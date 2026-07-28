@@ -92,7 +92,7 @@ insights-explorer/
 
 ### 8. CI/CD: Google Cloud Build
 **Decision:** Use `cloudbuild.yaml` with GCP Cloud Build triggers on every push.
-**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 166-test suite.
+**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 171-test suite.
 
 ---
 
@@ -171,8 +171,8 @@ insights-explorer/
 | `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
 | `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
-| `test_static_analysis.py` | 5 | AST def-before-call linter, file I/O BytesIO guard |
-| **Total** | **166** | All util modules + learn page + error boundary + data quality + static analysis covered |
+| `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern |
+| **Total** | **171** | All util modules + learn page + error boundary + data quality + static analysis (all 4 BUGLOG patterns gated) |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -237,6 +237,9 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 35 | Added 14 unit tests for `utils/error_boundary.py` — `render_error_card()` | Testing |
 | 36 | BUG-008: Full `except Exception` audit — 11 instances across 5 files, 9 safe, 2 documented risks | Audit |
 | 37 | Added `tests/test_static_analysis.py` — def-before-call AST linter + file I/O guard (BUGLOG Patterns 3 & 4 gated) | Testing |
+| 38 | Fixed BUG-005: replaced `on_click=lambda` with `if st.button` + `st.spinner()` for summary generation | Fix |
+| 39 | Added Pattern 1 linter: Streamlit exception guard check (BUG-001 CI gate) | Testing |
+| 40 | Added Pattern 2 linter: `on_click` anti-pattern detection (BUG-005 CI gate) | Testing |
 
 ---
 

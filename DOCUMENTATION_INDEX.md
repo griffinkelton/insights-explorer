@@ -62,7 +62,7 @@ ARCHITECTURE.md ─── "How it's built"
         │                               ├── COMPONENT_REFACTOR.md
         │                               └── AI_DATA_ENHANCEMENTS.md
         │
-        ├──► BUGLOG.md ─── "What broke and why" (8 bugs, patterns, rules)
+        ├──► BUGLOG.md ─── "What broke and why" (8 bugs, all 4 patterns CI-gated)
         │
         ├──► IDEAS.md ─── "What's beyond the roadmap" (25 enhancements + 10 moonshots)
         │
@@ -81,7 +81,7 @@ ARCHITECTURE.md ─── "How it's built"
 | ENHANCEMENTS.md | ✅ Current (v2 rewrite) | Today |
 | IMPLEMENTATION_PLAN.md | ✅ Current (8 review fixes applied) | Today |
 | IDEAS.md | ✅ Current | Today |
-| BUGLOG.md | ✅ Current | Today |
+| BUGLOG.md | ✅ Current (all 4 patterns CI-gated) | Today |
 | plans/APP_ICON.md | ✅ Completed | Today |
 | plans/UNIFIED_PLAN.md | ✅ Current (P1–P2 complete, 2/6 done) | Today |
 | plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ Completed | Today |

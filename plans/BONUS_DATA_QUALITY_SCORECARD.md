@@ -2,7 +2,7 @@
 
 > **Promoted from:** IDEAS.md — Bonus Enhancement #17
 > **Effort:** Medium (2-4 hours) | **Risk:** Low (read-only analytics, no behavior changes)
-> **Status:** 🔲 Planned
+> **Status:** ✅ Completed (commit `9842065`, 2026-07-28)
 
 ---
 
@@ -287,25 +287,33 @@ This tells Gemini about data limitations so it can qualify its answers ("Based o
 
 ## 🧪 Test Impact
 
-New file `tests/test_data_quality.py`:
+New file `tests/test_data_quality.py` — **18 tests implemented:**
 
 ```python
 class TestAssessDataQuality:
-    def test_perfect_data_gets_a(self): ...
-    def test_low_completeness_drops_grade(self): ...
-    def test_high_duplicates_drops_grade(self): ...
-    def test_outliers_drop_grade(self): ...
-    def test_short_date_range_drops_grade(self): ...
-    def test_missing_columns_drop_grade(self): ...
-    def test_empty_dataframe_returns_f(self): ...
-    def test_single_row_handled(self): ...
+    def test_perfect_data_gets_a(self): ...          # ✅
+    def test_low_completeness_drops_grade(self): ... # ✅
+    def test_high_duplicates_drops_grade(self): ...  # ✅
+    def test_outliers_drop_grade(self): ...           # ✅
+    def test_short_date_range_drops_grade(self): ...  # ✅
+    def test_missing_columns_drop_grade(self): ...    # ✅
+    def test_empty_dataframe_returns_f(self): ...     # ✅
+    def test_single_row_handled(self): ...            # ✅
+    def test_no_date_column_handled(self): ...        # ✅
+    def test_no_numeric_columns_handled(self): ...    # ✅
+    def test_constant_column_handled(self): ...       # ✅
+    def test_all_duplicate_rows(self): ...            # ✅
 
 class TestDataQualityReport:
-    def test_report_has_all_fields(self): ...
-    def test_grade_mapping_all_ranges(self): ...
+    def test_report_has_all_fields(self): ...         # ✅
+    def test_grade_a_boundary(self): ...              # ✅
+    def test_grade_b_boundary(self): ...              # ✅
+    def test_grade_c_boundary(self): ...              # ✅
+    def test_grade_d_boundary(self): ...              # ✅
+    def test_grade_f_boundary(self): ...              # ✅
 ```
 
-~10 new tests.
+18 tests implemented (plan estimated ~10).
 
 Update `test_data_loader.py` if `assess_data_quality` is added to `data_loader.py`.
 
@@ -330,4 +338,14 @@ The letter grade (A-F) is deliberately simple — it communicates instantly. The
 
 ---
 
-*Promoted from IDEAS.md Bonus Enhancement #17. Standalone feature — no dependencies on other plans.*
+## ✅ Implementation Notes
+
+- **Actual implementation deviated slightly from plan** — the `_calculate_grade` function signature uses the same parameters but `assess_data_quality` was implemented directly inline rather than as a separate top-level function (simpler, same logic).
+- **18 tests** were written (vs. ~10 planned) — edge cases for constant columns (std=0), all-duplicate rows, no-date/no-numeric columns, and grade boundary tests (A/B/C/D/F) were added beyond the plan.
+- The `build_summary_prompt()` accepts an optional `quality_report` parameter (duck-typed — no `DataQualityReport` import needed) and appends a DATA QUALITY section when present.
+- The scorecard renders between the metrics row and the preview table in `_render_main()`.
+- Wired into both file upload and GA4 pull flows.
+
+---
+
+*Promoted from IDEAS.md Bonus Enhancement #17. ✅ Completed 2026-07-28.*

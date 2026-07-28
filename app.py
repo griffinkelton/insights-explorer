@@ -337,13 +337,15 @@ def _render_main() -> None:
             st.info("Click **Generate Summary** to analyze your dataset with AI.")
 
     with summary_col2:
-        st.button(
+        if st.button(
             "✨ Generate Summary",
             type="primary",
             use_container_width=True,
             key="gen_summary_btn",
-            on_click=lambda: _generate_summary(df, stats),
-        )
+        ):
+            with st.spinner("🤖 Analyzing your dataset with Gemini..."):
+                _generate_summary(df, stats)
+            st.rerun()
 
     st.divider()
 

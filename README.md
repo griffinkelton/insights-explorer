@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
-  <img src="https://img.shields.io/badge/tests-166%20passed-success?logo=pytest" alt="166 tests">
+  <img src="https://img.shields.io/badge/tests-171%20passed-success?logo=pytest" alt="171 tests">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -71,7 +71,7 @@ Opens at **http://localhost:8501** 🎉
 python -m pytest tests/
 ```
 
-166 tests across 8 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, learn page structure, error boundary rendering, data quality scoring, and static analysis guards.
+171 tests across 8 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, learn page structure, error boundary rendering, data quality scoring, and static analysis guards.
 
 ---
 
@@ -377,7 +377,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (166 unit tests across 8 modules) |
+| Testing | pytest (171 unit tests across 8 modules) |
 | CI/CD | Google Cloud Build (`cloudbuild.yaml`) |
 | Data | Pandas |
 | Charts | Plotly |

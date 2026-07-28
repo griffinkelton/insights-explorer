@@ -280,9 +280,9 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 
 ### Top Patterns (What Keeps Happening)
 
-1. **Streamlit's control flow is exception-based.** `st.stop()`, `st.rerun()`, and `st.spinner()` all use exceptions internally. Any top-level `try/except` must filter these out.
+1. **Streamlit's control flow is exception-based.** `st.stop()`, `st.rerun()`, and `st.spinner()` all use exceptions internally. Any top-level `try/except` must filter these out. ✅ **Gated:** `tests/test_static_analysis.py::TestStreamlitExceptionGuard` — AST-based check that every `except Exception` wrapping Streamlit control flow has the re-raise guard.
 
-2. **`on_click` callbacks are for instant operations only.** Any network, disk, or compute operation in an `on_click` callback freezes the UI. Use `if st.button(...)` + `st.spinner()`.
+2. **`on_click` callbacks are for instant operations only.** Any network, disk, or compute operation in an `on_click` callback freezes the UI. Use `if st.button(...)` + `st.spinner()`. ✅ **Gated:** `tests/test_static_analysis.py::TestOnClickAntiPattern` — string-based check that `on_click` callbacks don't reference slow functions or use lambda for non-instant ops.
 
 3. **File objects are one-shot.** Streamlit's `UploadedFile` is a file-like object — read once into bytes, then pass `BytesIO` wrappers to downstream consumers. ✅ **Gated:** `tests/test_static_analysis.py::TestFileIOGuard` — prevents `file.read()` + `pd.read_csv()` without `BytesIO`.
 
@@ -297,10 +297,11 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 - **Rule 5:** Plan review sessions check for file I/O bugs (buffer consumption, re-reading)
 - **Rule 6:** Version bumps require justification — prefer graceful degradation
 - **Rule 7:** Every new bug pattern gets a CI gate — if it can be detected statically (Patterns 3 & 4), add it to `test_static_analysis.py`. If it needs runtime (Patterns 1 & 2), document the rule and enforce in code review.
+- **Rule 8:** All 4 BUGLOG patterns are now CI-gated via `test_static_analysis.py`. When adding a new bug pattern, ask: "Can I write a static test for this?" If yes, add it. If no, add a runtime smoke check.
 
 ---
 
-*Last updated: 2026-07-28 after static analysis linter implementation. 8 bugs documented, 6 fixed, 2 pending implementation. Patterns 3 & 4 now CI-gated.*
+*Last updated: 2026-07-28 after Patterns 1 & 2 linter implementation. 8 bugs documented, 6 fixed, 2 pending implementation. All 4 BUGLOG patterns now CI-gated via tests/test_static_analysis.py (7 linter tests across 4 pattern classes).*
 
 ---
 
