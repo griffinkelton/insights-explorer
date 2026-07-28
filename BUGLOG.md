@@ -355,3 +355,6 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (8 bugs, patterns, rules)
 - [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan

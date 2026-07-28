@@ -263,3 +263,6 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan

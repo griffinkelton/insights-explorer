@@ -2,7 +2,7 @@
 
 > Complete 21-item implementation blueprint with context, reasoning, risk assessments, and execution strategy.
 >
-> **Status:** 🔴 Awaiting review — no code has been written yet.
+> **Status:** 🟡 In progress — #7 (loading spinner) done, #6 (pages.toml) skipped per P1-P3 sprint spec. See [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) for current sprint plan, [plans/P4-future-plan.md](plans/P4-future-plan.md) for deferred items, and [plans/onboarding-tour.md](plans/onboarding-tour.md) for the #8 mini-spec.
 >
 > **Numbering note:** This document uses its own item numbering (#1-21) for the 21 planned tasks. References to ENHANCEMENTS.md use the roadmap's numbering (e.g., "ENHANCEMENTS.md #13"). The two numbering schemes are independent.
 
@@ -306,7 +306,9 @@ if st.session_state.api_call_count > 0:
 
 ---
 
-### #6: Add `.streamlit/pages.toml`
+### #6: Add `.streamlit/pages.toml` ⏭️ SKIPPED
+
+> **Status:** ⏭️ Skipped per [P1-P3 sprint spec](plans/P1-P3-sprint-spec.md). `st.page_link` (#1) provides sidebar navigation without version-compatibility concerns. `pages.toml` would create a duplicate nav entry and requires Streamlit ≥1.44 for support while `requirements.txt` pins `>=1.28`.
 
 **Files:** New `.streamlit/pages.toml`
 
@@ -341,61 +343,11 @@ Estimated total time: **~2.5 hours**
 
 ---
 
-### #7: Loading state for summary button
+### #7: Loading state for summary button ✅ DONE
 
-**Files:** `app.py`
-
-**Why now:** This is the single highest-impact UX fix remaining. Currently, the "✨ Generate Summary" button uses `on_click` callback mode — the UI freezes for 3-5 seconds during the Gemini API call with zero feedback. Users think the app crashed. A `st.spinner` wrapper tells them *something is happening*.
-
-**Current code (the problem):**
-
-```python
-st.button(
-    "✨ Generate Summary",
-    type="primary",
-    use_container_width=True,
-    key="gen_summary_btn",
-    on_click=lambda: _generate_summary(df, stats),
-)
-```
-
-The `on_click` callback runs `_generate_summary()` synchronously inside Streamlit's event loop, blocking all UI updates until the API call returns. No spinner, no progress, just a frozen page.
-
-**New code (the fix):**
-
-```python
-if st.button("✨ Generate Summary", type="primary", use_container_width=True, key="gen_summary_btn"):
-    with st.spinner("🤖 Analyzing your dataset with Gemini..."):
-        _generate_summary(df, stats)
-    st.rerun()
-```
-
-**Why this works:** The `st.spinner` context manager wraps the API call. Streamlit renders the spinner *before* executing the block, then clears it *after* the block completes. The `st.rerun()` forces a refresh so the summary (now in `st.session_state.summary`) appears immediately rather than on the next user interaction.
-
-**The `_generate_summary()` callback stays the same:**
-
-```python
-def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
-    try:
-        summary_prompt = build_summary_prompt(df, stats)
-        st.session_state.summary = generate_response(summary_prompt)
-    except ValueError as e:
-        st.error(f"🔑 Configuration error: {e}")
-    except RuntimeError as e:
-        st.error(f"⚠️ API error: {e}")
-```
-
-**Edge cases:**
-- **Error during API call:** `st.error()` inside `st.spinner` still works — the error appears after the spinner closes. The error persists across reruns (same behavior as before).
-- **Double-click:** If the user clicks twice rapidly, the second click starts a new spinner. Streamlit's widget state management prevents duplicate execution by default.
-
-**Risk:** Low. Just wrapping existing logic. The `on_click` callback approach was the original bug — this is the standard Streamlit pattern for async operations.
-
-**Test impact:** No unit test needed (it's a Streamlit widget behavior, not logic). Smoke test: verify the spinner text appears in the page source when the button is clicked.
-
-**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots and the Generate Summary button still works.
-
-**Dependencies:** None.
+> **Status:** ✅ Implemented. The `st.spinner` wrapper is in `app.py` — `if st.button(...): with st.spinner(...): _generate_summary(df, stats); st.rerun()`.
+> 
+> Original issue (fixed): The Generate Summary button used `on_click` callback — UI froze for 3-5 seconds with zero feedback during Gemini API calls.
 
 ---
 
@@ -1409,7 +1361,10 @@ Each of these is described in detail in [ENHANCEMENTS.md](ENHANCEMENTS.md) with 
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 plans, 1/6 done)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, items #1–14 + OAuth redirect)
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items (#15–21, P3–P6, repo weaknesses)
+- [plans/onboarding-tour.md](plans/onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 plans, 2/6 done)
 
 ---
 

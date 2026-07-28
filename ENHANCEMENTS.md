@@ -230,3 +230,7 @@
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items
+- [plans/onboarding-tour.md](plans/onboarding-tour.md) — Standalone mini-spec for #8

@@ -252,3 +252,6 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
 - [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived sprint plans)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items

@@ -2,14 +2,16 @@
 
 > **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
 >
-> **Status:** 🟢 In progress — P1–P2 complete, P3–P6 planned
-> **Last updated:** 2026-07-28 (P2 completed)
+> **Status:** 🟢 In progress — P1–P2 complete, P1–P3 sprint spec done (awaiting implementation), P3–P6 planned. See also [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md), [P4-future-plan.md](P4-future-plan.md), and [onboarding-tour.md](onboarding-tour.md).
+> **Last updated:** 2026-07-28 (P2 completed; P1-P3 sprint spec + P4+ future plan + onboarding mini-spec created)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features.
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. New sprint-planning docs derive from these: [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) (current sprint), [P4-future-plan.md](P4-future-plan.md) (deferred items), and [onboarding-tour.md](onboarding-tour.md) (#8 mini-spec).
 
 ---
 
 ## 📋 Plan Inventory
+
+### Original Phase Plans (P1–P6)
 
 | # | Plan File | What | Effort | Risk | Dependencies | IMPL Ref |
 |---|---|---|---|---|---|---|
@@ -19,6 +21,14 @@
 | P4 | [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](../IMPLEMENTATION_PLAN.md) |
 | P5 | [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](../IMPLEMENTATION_PLAN.md) |
 | P6 | [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items (chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling) | Varies | Medium-High | None | [#21](../IMPLEMENTATION_PLAN.md) |
+
+### Sprint & Future-Phase Plans (derived from IMPLEMENTATION_PLAN.md)
+
+| # | Plan File | What | Effort | Status |
+|---|---|---|---|---|
+| SP1 | [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) | Current sprint: IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches, ~5.5 hrs) | ~5.5 hrs | 🔴 Awaiting implementation |
+| SP2 | [P4-future-plan.md](P4-future-plan.md) | Future phases: IMPL items #15–21 + P3–P6 + repo weaknesses (3 waves, ~26 days) | ~26 days | 🔵 Captured |
+| SP3 | [onboarding-tour.md](onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour (⚠️ Optional, ~60 min) | ~1 hr | ⚠️ Optional, deferred |
 
 ### P6 Sub-Item Codes
 
@@ -184,6 +194,7 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | Sprint | Items | Duration | Outcome |
 |---|---|---|---|
 | **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day ✅ | Polished favicon, trust-building quality card |
+| **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs** | **Guardrails, quick wins, docs, UX, infra — see [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md)** |
 | **Sprint P4** | Streaming Responses | 3-5 days | ChatGPT-like real-time chat |
 | **Sprint P3** | Theme Toggle | 3-5 days | Light/dark mode with full component coverage |
 | **Sprint P5** | Component Refactor | 3-5 days | Clean 7-file architecture from 400-line monolith |
@@ -197,6 +208,8 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 
 ## 📊 Progress Tracking
 
+### Original Phase Plans
+
 | # | Plan | Files Touched | New Files | Tests | Status |
 |---|---|---|---|---|---|
 | P1 | App Icon | 5 | 13+ | 0 | ✅ Completed (commit `25ca2df`) |
@@ -206,6 +219,14 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | P5 | Component Refactor | 1 + 7 new | 7 | ~25 | 🔲 Planned |
 | P6 | AI & Data Enhancements | 3 | 0 | ~20 | 🔲 Planned |
 | **Total** | **6 plans** | **18 + 20 new** | **21+ new** | **~66 new** | **2/6 done** |
+
+### Sprint & Future-Phase Plans
+
+| # | Plan | Items | Est. Time | Status |
+|---|---|---|---|---|
+| SP1 | P1-P3 Sprint Spec | #1–14 + OAuth + download slice (13 items) | ~5.5 hrs | 🔴 Awaiting implementation |
+| SP2 | P4+ Future Plan | #15–21, P3–P6, repo weaknesses (16 items) | ~26 days | 🔵 Captured |
+| SP3 | Onboarding Tour | #8 (mini-spec) | ~1 hr | ⚠️ Optional, deferred |
 
 ---
 
