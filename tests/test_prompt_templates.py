@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 
 from utils.prompt_templates import (
+    _sanitize_question,
     build_summary_prompt,
     build_chat_prompt,
     detect_chart_request,
@@ -178,6 +179,106 @@ class TestBuildChatPrompt:
         assert "Total rows: 0" in prompt
         # describe() on empty numeric df returns an empty DataFrame string
         assert "NUMERIC COLUMN STATISTICS" in prompt
+
+
+# ── _sanitize_question tests ─────────────────────────────────────────────────
+
+class TestSanitizeQuestion:
+    """Tests for _sanitize_question() — code blocks, backticks, whitespace."""
+
+    # ── Basic whitespace ──
+
+    def test_strips_leading_trailing_whitespace(self):
+        result = _sanitize_question("  hello world  ")
+        assert result == "hello world"
+
+    def test_strips_tabs_and_newlines(self):
+        result = _sanitize_question("\t\n query \n\t")
+        assert result == "query"
+
+    def test_empty_string(self):
+        result = _sanitize_question("")
+        assert result == ""
+
+    def test_whitespace_only(self):
+        result = _sanitize_question("   \n\t  ")
+        assert result == ""
+
+    # ── Code block removal ──
+
+    def test_removes_fenced_code_block(self):
+        result = _sanitize_question("hello ```print('hack')``` world")
+        assert result == "hello [code block removed] world"
+
+    def test_removes_multiline_code_block(self):
+        result = _sanitize_question(
+            "ignore this:\n```\nprint('line1')\nprint('line2')\n```\nnow answer"
+        )
+        assert "[code block removed]" in result
+        assert "print('line1')" not in result
+        assert "now answer" in result
+
+    def test_removes_language_tagged_code_block(self):
+        result = _sanitize_question("run ```python\nx = 1\n``` please")
+        assert result == "run [code block removed] please"
+
+    def test_removes_multiple_code_blocks(self):
+        result = _sanitize_question("a ```x``` b ```y``` c")
+        assert result == "a [code block removed] b [code block removed] c"
+
+    # ── Inline backtick removal ──
+
+    def test_removes_inline_backticks(self):
+        result = _sanitize_question("run `rm -rf /` command")
+        assert result == "run [code removed] command"
+
+    def test_removes_multiple_inline_backticks(self):
+        result = _sanitize_question("`x` and `y`")
+        assert result == "[code removed] and [code removed]"
+
+    # ── Newline collapsing ──
+
+    def test_collapses_excessive_newlines(self):
+        result = _sanitize_question("hello\n\n\n\nworld")
+        assert result == "hello\n\nworld"
+
+    def test_preserves_single_newlines(self):
+        result = _sanitize_question("hello\nworld")
+        assert result == "hello\nworld"
+
+    def test_preserves_double_newlines(self):
+        result = _sanitize_question("hello\n\nworld")
+        assert result == "hello\n\nworld"
+
+    # ── Edge cases ──
+
+    def test_already_clean_text_passes_through(self):
+        result = _sanitize_question("What were the top pages by sessions?")
+        assert result == "What were the top pages by sessions?"
+
+    def test_unbalanced_backticks_pass_through(self):
+        """Unbalanced ` markers should be left as-is — not stripped."""
+        result = _sanitize_question("it costs `5 dollars")
+        # Inline regex requires closing ` so unbalanced passes through
+        assert "5 dollars" in result
+        assert "`" in result  # backtick survives since there's no closing match
+
+    def test_unbalanced_code_fence_pass_through(self):
+        """Unbalanced ``` markers pass through since regex requires a closing fence."""
+        result = _sanitize_question("use ``` to format")
+        # ``` without closing ``` should not match the code block regex
+        assert "use ``` to format" == result
+
+    def test_nested_backticks_in_code_block(self):
+        """Code block regex runs first, so inline backticks inside are handled."""
+        result = _sanitize_question("a ```\n`inner`\n``` b")
+        assert result == "a [code block removed] b"
+
+    def test_preserves_special_characters(self):
+        result = _sanitize_question("em-dash: — ellipsis: … bullet: •")
+        assert "—" in result
+        assert "…" in result
+        assert "•" in result
 
 
 # ── detect_chart_request tests ───────────────────────────────────────────────
