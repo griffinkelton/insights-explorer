@@ -229,3 +229,4 @@
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
+- [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)

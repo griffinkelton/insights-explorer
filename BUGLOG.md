@@ -300,3 +300,14 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 ---
 
 *Last updated: 2026-07-28 after systematic IMPLEMENTATION_PLAN.md review. 7 bugs documented, 6 fixed, 1 pending implementation.*
+
+---
+
+## 📖 Related Docs
+
+- [README.md](README.md) — Setup guide, features, quick start
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
+- [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint

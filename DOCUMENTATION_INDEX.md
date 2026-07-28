@@ -65,6 +65,8 @@ ARCHITECTURE.md ─── "How it's built"
         ├──► BUGLOG.md ─── "What broke and why" (7 bugs, patterns, rules)
         │
         ├──► IDEAS.md ─── "What's beyond the roadmap" (25 enhancements + 10 moonshots)
+        │
+        └──► plans/UNIFIED_PLAN.md ─── "Master execution plan" (6 plans, 1/6 done)
 ```
 
 ---
