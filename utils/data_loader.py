@@ -2,6 +2,7 @@
 
 from typing import Any
 import pandas as pd
+import streamlit as st
 
 
 # Expected GA4 export columns (case-insensitive matching attempted)
@@ -36,6 +37,7 @@ def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
     return df, None
 
 
+@st.cache_data(ttl=600, show_spinner=False)
 def validate_columns(df: pd.DataFrame) -> list[str]:
     """Check which expected columns are missing. Returns list of missing column names."""
     # Case-insensitive column matching
@@ -47,8 +49,13 @@ def validate_columns(df: pd.DataFrame) -> list[str]:
     return missing
 
 
+@st.cache_data(ttl=600, show_spinner=False)
 def get_dataset_stats(df: pd.DataFrame) -> dict[str, Any]:
-    """Compute basic statistics for the uploaded dataset."""
+    """Compute basic statistics for the uploaded dataset.
+
+    Cached for 10 minutes (ttl=600s) since stats don't change
+    for the same DataFrame across Streamlit reruns.
+    """
     stats = {
         "row_count": len(df),
         "column_count": len(df.columns),

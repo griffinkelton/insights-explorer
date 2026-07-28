@@ -168,16 +168,27 @@ with st.sidebar:
         )
         st.session_state.ga4_property_id = property_id
 
+        date_range = st.selectbox(
+            "Date range",
+            options=["7 days", "30 days", "90 days"],
+            index=2,  # Default to 90 days on first load; key persists selection thereafter
+            key="ga4_date_range",
+            help="How far back to pull data from GA4.",
+        )
+        # Map UI labels to GA4 API date expressions
+        start_date_map = {"7 days": "7daysAgo", "30 days": "30daysAgo", "90 days": "90daysAgo"}
+        start_date = start_date_map[date_range]
+
         col_pull, col_disc = st.columns(2)
         with col_pull:
             if st.button("📥 Pull Data", use_container_width=True, type="primary"):
                 if not property_id:
                     st.error("Please enter your GA4 Property ID first.")
                 else:
-                    with st.spinner("Fetching data from Google Analytics..."):
+                    with st.spinner(f"Fetching {date_range} of data from Google Analytics..."):
                         try:
                             creds = credentials_from_dict(st.session_state.ga4_creds)
-                            df = pull_ga4_report(creds, property_id)
+                            df = pull_ga4_report(creds, property_id, start_date=start_date)
                             if df.empty:
                                 st.error("No data returned. Check your Property ID and date range.")
                             else:

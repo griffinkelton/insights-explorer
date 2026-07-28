@@ -3,6 +3,7 @@
 from typing import Any
 import re
 import pandas as pd
+import streamlit as st
 
 
 def _sanitize_question(question: str) -> str:
@@ -27,8 +28,13 @@ def _sanitize_question(question: str) -> str:
     return sanitized
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def build_summary_prompt(df: pd.DataFrame, stats: dict[str, Any]) -> str:
-    """Build a prompt asking Gemini to generate a plain-language data summary."""
+    """Build a prompt asking Gemini to generate a plain-language data summary.
+
+    Cached for 5 minutes since the summary prompt is deterministic
+    for the same dataset.
+    """
 
     missing = stats.get("missing_columns", [])
     date_info = ""
