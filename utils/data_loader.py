@@ -1,9 +1,15 @@
 """GA4 data loading, validation, and preview utilities."""
 
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any
 import pandas as pd
 import streamlit as st
+
+
+# File size and row limits
+MAX_FILE_SIZE_MB = 100
+MAX_ROWS = 50_000
 
 
 # Expected GA4 export columns (case-insensitive matching attempted)
@@ -31,26 +37,49 @@ class DataQualityReport:
     warnings: list[str]           # human-readable warnings
 
 
-def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
+def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
     """Load a CSV or XLSX file into a DataFrame.
 
-    Returns (df, error_message).  If successful, error_message is None.
+    Returns (df, error_message, warning_message).  If successful, both
+    error_message and warning_message are None.  Warning is set when
+    data is truncated due to row limits.
     """
     filename = file.name.lower()
+
+    # Read file into bytes ONCE — avoids buffer consumption issues
+    file_bytes = file.read()
+    file_size = len(file_bytes)
+
+    # Size check
+    if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        return None, (
+            f"File too large ({file_size / 1024 / 1024:.1f} MB). "
+            f"Maximum is {MAX_FILE_SIZE_MB} MB."
+        ), None
+
     try:
         if filename.endswith(".csv"):
-            df = pd.read_csv(file)
+            df = pd.read_csv(BytesIO(file_bytes))
         elif filename.endswith(".xlsx"):
-            df = pd.read_excel(file, engine="openpyxl")
+            df = pd.read_excel(BytesIO(file_bytes), engine="openpyxl")
         else:
-            return None, f"Unsupported file type: {file.name}. Please upload a CSV or XLSX file."
+            return None, f"Unsupported file type: {file.name}. Please upload a CSV or XLSX file.", None
     except Exception as e:
-        return None, f"Failed to parse file: {str(e)}"
+        return None, f"Failed to parse file: {str(e)}", None
 
     if df.empty:
-        return None, "The uploaded file is empty."
+        return None, "The uploaded file is empty.", None
 
-    return df, None
+    # Row count check
+    warning = None
+    if len(df) > MAX_ROWS:
+        warning = (
+            f"Dataset has {len(df):,} rows — showing first {MAX_ROWS:,} for performance. "
+            "Consider exporting a narrower date range from GA4."
+        )
+        df = df.head(MAX_ROWS)
+
+    return df, None, warning
 
 
 @st.cache_data(ttl=600, show_spinner=False)

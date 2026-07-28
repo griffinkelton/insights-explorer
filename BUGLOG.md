@@ -355,6 +355,11 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (8 bugs, patterns, rules)
 - [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived plans)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
+- [plans/P1-P3-completion.md](plans/P1-P3-completion.md) — Sprint completion tracker
+- [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) — Active sprint spec
 - [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
+- [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) — Deferred items plan
+- [plans/component-refactor.md](plans/component-refactor.md) — #20 mini-spec
+- [CHANGELOG.md](CHANGELOG.md) — Unified change history

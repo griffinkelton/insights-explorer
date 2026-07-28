@@ -264,5 +264,9 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
 - [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
+- [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) — Active sprint spec
 - [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
+- [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) — Deferred items plan
+- [plans/component-refactor.md](plans/component-refactor.md) — #20 mini-spec
+- [CHANGELOG.md](CHANGELOG.md) — Unified change history

@@ -172,7 +172,8 @@ insights-explorer/
 | `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
 | `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern |
-| **Total** | **171** | All util modules + learn page + error boundary + data quality + static analysis (all 4 BUGLOG patterns gated) |
+| `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
+| **Total** | **194** | All util modules + pages + error boundary + data quality + static analysis + app structure |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -240,6 +241,18 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 38 | Fixed BUG-005: replaced `on_click=lambda` with `if st.button` + `st.spinner()` for summary generation | Fix |
 | 39 | Added Pattern 1 linter: Streamlit exception guard check (BUG-001 CI gate) | Testing |
 | 40 | Added Pattern 2 linter: `on_click` anti-pattern detection (BUG-005 CI gate) | Testing |
+| 41 | P1-P3 sprint: #4 file size/row limits (100MB, 50k rows) + download truncated slice | Feature |
+| 42 | P1-P3 sprint: #5 rate limiting (2-sec debounce + API call counter) | Feature |
+| 43 | P1-P3 sprint: #1 learn page sidebar link (`st.page_link`) | Feature |
+| 44 | P1-P3 sprint: OAuth redirect configurability (`OAUTH_REDIRECT_URI` env var) | Feature |
+| 45 | P1-P3 sprint: #2 learn page test count updated (92 → 171) | Fix |
+| 46 | P1-P3 sprint: #10 pytest-cov coverage reporting | Infra |
+| 47 | P1-P3 sprint: #11 split dev dependencies (requirements/base.txt + dev.txt) | Infra |
+| 48 | P1-P3 sprint: #12 per-module test badges in README | Docs |
+| 49 | P1-P3 sprint: #13 app.py structural test (20 tests) | Testing |
+| 50 | P1-P3 sprint: #14 GitHub Actions CI | CI/CD |
+| 51 | P1-P3 sprint: #9 free-tier limits documented in README | Docs |
+| 52 | P1-P3 sprint: cross-reference sweep across 12 MD files | Docs |
 
 ---
 
@@ -252,6 +265,11 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
 - [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived sprint plans)
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
-- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items
+- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived sprint plans)
+- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
+- [plans/P1-P3-completion.md](plans/P1-P3-completion.md) — Sprint completion tracker
+- [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) — Active sprint (#15–17, #19)
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
+- [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) — Deferred items (Batches C–F)
+- [plans/component-refactor.md](plans/component-refactor.md) — #20 component refactor mini-spec
+- [CHANGELOG.md](CHANGELOG.md) — Unified change history

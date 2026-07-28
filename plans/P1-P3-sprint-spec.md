@@ -2,7 +2,7 @@
 
 > **What:** Execution spec for the next sprint batch of enhancements.
 > **Scope:** IMPLEMENTATION_PLAN.md items #1–14 (P1 Quick Wins + P2 UX Polish + P3 Code Quality), plus OAuth redirect configurability. #7 is already done. #8 is ⚠️ Optional — see [onboarding-tour.md](onboarding-tour.md). #6 is skipped.
-> **Status:** 🔴 Spec complete — awaiting implementation.
+> **Status:** ✅ Done — 12/13 items implemented, 1 deferred (#8), 194 tests.
 > **Based on:** IMPLEMENTATION_PLAN.md, ENHANCEMENTS.md, user interview (3 rounds, July 28, 2026) + follow-up analysis. #8 tour implementation extracted to [onboarding-tour.md](onboarding-tour.md).
 > **Test baseline:** 171 tests passing across 8 modules.
 

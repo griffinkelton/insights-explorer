@@ -6,19 +6,48 @@
 
 ---
 
-## 2026-07-28 — P1–P3 Sprint Planning & Docs Reconciliation
+---
 
-### Specs & Planning (docs only, no code)
+### P4 Wave 1 + Streaming Sprint Spec — #15–17, #19 spec'd (~6-7 days)
+
+**Date:** 2026-07-28 | **Status:** 🔵 Awaiting implementation
 
 | Change | Commit | Related Docs |
 |---|---|---|
-| Created P1–P3 sprint spec — 13 items across 5 batches (~5.5 hrs) | _(pending commit)_ | [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) |
-| Created P4+ future-phase plan — 16 items across 3 waves (~26 days) | _(pending commit)_ | [plans/P4-future-plan.md](plans/P4-future-plan.md) |
-| Extracted #8 onboarding tour to standalone mini-spec | _(pending commit)_ | [plans/onboarding-tour.md](plans/onboarding-tour.md) |
-| Updated IMPLEMENTATION_PLAN.md — #6 skipped, #7 done, status annotations | _(pending commit)_ | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
-| Updated UNIFIED_PLAN.md — SP1–SP3 added to inventory, progress tracker split | _(pending commit)_ | [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) |
-| Cross-reference reconciliation across 8 MD files | _(pending commit)_ | [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md), [ARCHITECTURE.md](ARCHITECTURE.md), [ENHANCEMENTS.md](ENHANCEMENTS.md), [BUGLOG.md](BUGLOG.md), [IDEAS.md](IDEAS.md) |
-| Created P1–P3 completion tracker and CHANGELOG.md | _(pending commit)_ | [plans/P1-P3-completion.md](plans/P1-P3-completion.md), CHANGELOG.md |
+| Created P4 Wave 1 + Streaming sprint spec — 4 items (streaming, column picker, conversation memory, export) | _(pending commit)_ | [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) |
+| Created P4 deferred plan — captured #18, #20, #21 (Batches C–F, ~20-35 days) | _(pending commit)_ | [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) |
+| Created component-refactor mini-spec — standalone spec for #20 (deferred) | _(pending commit)_ | [plans/component-refactor.md](plans/component-refactor.md) |
+| Updated UNIFIED_PLAN.md — SP2–SP5 added, progress tracker reflects P1-P3 done + P4 active | _(pending commit)_ | [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) |
+| Updated P4-future-plan.md — linked to sprint spec + deferred plan | _(pending commit)_ | [plans/P4-future-plan.md](plans/P4-future-plan.md) |
+
+---
+
+### P1–P3 Sprint Executed — 12 items implemented across 5 batches
+
+**Date:** 2026-07-28 | **Tests:** 171 → 194
+
+| Batch | Items | Status |
+|---|---|---|
+| Batch 1 (Safety) | #4 file limits + download slice, #5 rate limiting | ✅ |
+| Batch 2 (Quick Wins) | #1 learn sidebar link, NEW-A OAuth redirect config | ✅ |
+| Batch 3 (Docs) | #2 test count update, #3 doc updates, #9 README learn link | ✅ |
+| Batch 4 (UX) | #8 onboarding tour | ⚠️ Deferred |
+| Batch 5 (Infra) | #10 pytest-cov, #11 dev deps split, #12 test badges, #13 app.py structural test (20 tests), #14 GitHub Actions CI | ✅ |
+
+**Key changes:**
+- `utils/data_loader.py`: Added 100MB/50k-row limits, BytesIO parsing, 3-tuple return with warning
+- `app.py`: Rate limiting (2-sec debounce + counter), learn sidebar link, OAuth env config, 3-tuple unpacking
+- New `tests/test_app.py`: 20 structural tests (syntax, imports, structure, session state)
+- New `.github/workflows/test.yml`: GitHub Actions CI pipeline
+- New `requirements/base.txt` + `requirements/dev.txt`: Dev/prod dependency split
+- `README.md`: Test breakdown table, GitHub Actions badge, learn page access, free-tier limits
+- `ENHANCEMENTS.md` + `ARCHITECTURE.md`: Progress counts updated (15→22/37 done)
+
+**Related:** [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md), [plans/P1-P3-completion.md](plans/P1-P3-completion.md)
+
+| Change | Commit | Related Docs |
+|---|---|---|
+| **P1–P3 sprint executed — 12 items implemented across 5 batches** | `83aef98` | [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md), [plans/P1-P3-completion.md](plans/P1-P3-completion.md) |
 
 ---
 
@@ -471,7 +500,7 @@
 | Total commits tracked | 43 |
 | Date range | July 25–28, 2026 |
 | Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon |
-| Tests | 0 → 171 across 8 modules |
+| Tests | 0 → 194 across 9 modules |
 | CI/CD | Cloud Build + smoke test |
 | Documentation | 18 MD files totaling 100+ KB |
 | Plans | 21-item IMPLEMENTATION_PLAN + 6 UNIFIED plans + 3 derived sprint plans |

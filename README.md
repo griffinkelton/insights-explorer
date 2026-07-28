@@ -6,7 +6,8 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
-  <img src="https://img.shields.io/badge/tests-171%20passed-success?logo=pytest" alt="171 tests">
+  <img src="https://img.shields.io/badge/tests-194%20passed-success?logo=pytest" alt="194 tests">
+  <img src="https://github.com/griffinkelton/insights-explorer/actions/workflows/test.yml/badge.svg" alt="GitHub Actions">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -57,6 +58,10 @@ GEMINI_API_KEY=your_api_key_here
 
 > 🔑 **Get a free key in 10 seconds:** [Google AI Studio → Get API Key](https://aistudio.google.com/apikey)
 
+> ⚠️ **Free tier limits:** 1,500 requests/day, 10 requests/min, 250K tokens/min. Google may use free-tier API inputs/outputs to train/improve their models. If you're analyzing sensitive data, consider upgrading to a [paid tier](https://ai.google.dev/pricing). This app processes data in-memory only and does not store anything, but Google's free-tier ToS still applies to API calls.
+
+> 📚 **Learn Page:** Visit `/learn` in the app (click **📚 Learn Python** in the sidebar, or navigate to [http://localhost:8501/learn](http://localhost:8501/learn)) for interactive Python tutorials covering every library and pattern used in the app.
+
 ### 4. Launch
 
 ```bash
@@ -68,10 +73,25 @@ Opens at **http://localhost:8501** 🎉
 ### 5. Run tests
 
 ```bash
-python -m pytest tests/
+python -m pytest tests/ --cov=utils --cov=pages --cov-report=term -v
 ```
 
-171 tests across 8 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, learn page structure, error boundary rendering, data quality scoring, and static analysis guards.
+194 tests across 9 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, learn page structure, error boundary rendering, data quality scoring, static analysis guards, and app structure.
+
+### Test breakdown
+
+| Module | Tests | Covers |
+|---|---|---|
+| `test_prompt_templates.py` | 58 | `build_summary_prompt`, `build_chat_prompt`, `_sanitize_question`, `detect_chart_request` |
+| `test_app.py` | 23 | Syntax, imports, structure, session state (app.py structural tests) |
+| `test_data_loader.py` | 20 | `load_file`, `validate_columns`, `get_dataset_stats` |
+| `test_ga4_client.py` | 18 | `get_auth_url`, `exchange_code`, credentials serialization, `pull_ga4_report` |
+| `test_data_quality.py` | 18 | Grade calculation, edge cases, `assess_data_quality` |
+| `test_learn_page.py` | 19 | Syntax, structure, tab content, stale detection |
+| `test_gemini_client.py` | 14 | `generate_response`, `validate_api_key` |
+| `test_error_boundary.py` | 14 | `render_error_card` rendering scenarios |
+| `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O, Streamlit guard, on_click |
+| **Total** | **194** | All util modules + pages + app structure + static analysis |
 
 ---
 
@@ -120,6 +140,7 @@ python -m pytest tests/
 ├── IDEAS.md                    # 25 bonus enhancements + 10 moonshots
 ├── DOCUMENTATION_INDEX.md      # Central index of all docs
 ├── ARCHITECTURE.md             # Architecture & design decisions
+├── CHANGELOG.md                # Unified change history with commit links
 └── README.md
 ```
 
@@ -365,8 +386,9 @@ Your GA4 export should include columns like:
 
 - ✅ All data processed **in-memory only**
 - ✅ Nothing written to disk or any database
-- ✅ No data used to train any AI model
 - ✅ Click **Clear Data** to wipe everything instantly
+
+> ⚠️ **Google free-tier notice:** When using a free Gemini API key from Google AI Studio, Google may use your API inputs and outputs to train and improve their models. This app itself never stores or trains on your data, but the API calls pass through Google's infrastructure under their [terms of service](https://ai.google.dev/terms). If this is a concern, use a paid API tier or a different LLM provider.
 
 ---
 

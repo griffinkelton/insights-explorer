@@ -2,23 +2,27 @@
 
 > 30 actionable ideas across 7 categories, grounded in the current codebase.
 >
-> ✅ = Completed &nbsp;|&nbsp; 🔲 = Available
+> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available
+>
+> **Last updated:** 2026-07-28 — P1-P3 sprint executed ✅ (12/13, 194 tests). #1 loading spinner ✅, #7 learn discovery ✅, #18 file limits ✅, #19 rate limiting ✅, #30 coverage ✅, #31 GH Actions ✅, #36 test badges ✅. #6 pages.toml ⏭️ skipped. #5 onboarding tour ⚠️ deferred. P4 Wave 1 + Streaming spec'd 🔵.
 
 ---
 
 ## 🎨 UX Enhancements
 
-### 1. Loading Spinner for Summary Generation 🔲
+### 1. Loading Spinner for Summary Generation ✅
 **Why:** The "Generate Summary" button uses a fire-and-forget `on_click` callback — the UI freezes for 3-5 seconds during the Gemini API call with no feedback.
 **How:** Replace the callback with a `st.spinner("Analyzing your data...")` wrapper that shows a loading animation during the API call.
 **Effort:** Small | **Files:** `app.py`
 
-### 2. Conversation Memory (Multi-Turn Chat) 🔲
+### 2. Conversation Memory (Multi-Turn Chat) 🔵
+**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#16).
 **Why:** Each chat message is independent — Gemini has no memory of previous Q&A. Users can't ask "What about last month?" without re-specifying context.
 **How:** Include the last 3-5 Q&A pairs from `st.session_state.chat_history` in `build_chat_prompt` as conversation context. Add a "New Conversation" button.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
 
-### 3. Export Chat as Report (PDF/Markdown) 🔲
+### 3. Export Chat as Report (PDF/Markdown) 🔵
+**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#17).
 **Why:** Users will want to share AI-generated insights and charts with stakeholders.
 **How:** Add a "📥 Export Report" button that bundles the AI summary, chat Q&A, and Plotly charts into a downloadable Markdown or PDF. Use `st.download_button`.
 **Effort:** Medium | **Files:** `app.py`, `requirements.txt`
@@ -27,7 +31,8 @@
 **How:** `Cmd/Ctrl+K` focuses the chat textarea. Injected via JS in `utils/styles.py`.
 **Status:** ✅ Done
 
-### 5. Progressive Onboarding Tour 🔲
+### 5. Progressive Onboarding Tour ⚠️
+**Status:** ⚠️ Optional, deferred — standalone mini-spec at [plans/onboarding-tour.md](plans/onboarding-tour.md).
 **Why:** Empty states exist, but a 3-step guided tour on first visit would reduce bounce.
 **How:** Show a "🎓 Quick Tour" button. Step through tooltips anchored to: sidebar uploader, Generate Summary, chat input. Track `st.session_state.tour_step`.
 **Effort:** Small | **Files:** `app.py`
@@ -37,7 +42,7 @@
 **How:** Sidebar toggle swapping CSS custom properties between palettes. Persist in `st.session_state`.
 **Effort:** Medium | **Files:** `app.py`, `utils/styles.py`
 
-### 7. Learn Page Discovery 🔲
+### 7. Learn Page Discovery ✅
 **Why:** The `/learn` page exists but users only find it if they know the URL or spot it in the sidebar nav.
 **How:** Add a prominent "📚 Learn Python" link in the sidebar and a mention in the README.
 **Effort:** Small | **Files:** `app.py`, `README.md`
@@ -53,7 +58,7 @@
 **Status:** ✅ Done — `X | None` syntax across all `.py` files.
 
 ### 10. Unit Test Suite with pytest ✅
-**Status:** ✅ Done — 129 tests across 5 modules (data_loader, prompt_templates, gemini_client, ga4_client, learn_page).
+**Status:** ✅ Done — 194 tests across 9 modules (data_loader, prompt_templates, gemini_client, ga4_client, learn_page, error_boundary, data_quality, static_analysis, app).
 
 ### 11. Use Streamlit's Native Caching ✅
 **Status:** ✅ Done — `@st.cache_data` on `validate_columns`, `get_dataset_stats`, `build_summary_prompt`.
@@ -84,12 +89,12 @@
 ### 17. Secure Streamlit Configuration ✅
 **Status:** ✅ Done — `.streamlit/config.toml` with 8 security settings locked down.
 
-### 18. File Size & Row Limits 🔲
+### 18. File Size & Row Limits ✅
 **Why:** No guardrail against a 10GB CSV or 50M-row file that would exhaust memory.
 **How:** Check `uploaded_file.size` before parsing (reject >100MB). Use `pd.read_csv(..., nrows=50001)` and warn if >50k rows.
 **Effort:** Small | **Files:** `utils/data_loader.py`, `app.py`
 
-### 19. Rate Limiting on Chat Input 🔲
+### 19. Rate Limiting on Chat Input ✅
 **Why:** Rapid-fire chat messages hammer the Gemini API and consume quota in seconds.
 **How:** Track `st.session_state.last_api_call` timestamp. 2-second debounce — reject with toast if too fast. Show API call counter in sidebar.
 **Effort:** Small | **Files:** `app.py`
@@ -103,7 +108,8 @@
 **How:** Add hidden prompt instruction: `"[SYSTEM] If a chart would help, append [CHART:line:sessions] or [CHART:bar:page_path]"`. Parse the token instead of keyword scanning.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
 
-### 21. Streaming Token-by-Token Responses 🔲
+### 21. Streaming Token-by-Token Responses 🔵
+**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#19) — Phase 1 of active sprint.
 **Why:** Gemini responses appear all at once after 3-5 seconds. Streaming creates a ChatGPT-like real-time feel.
 **How:** Use `stream=True` in `generate_content()`. Return a generator. Use `st.write_stream()` in `app.py`.
 **Effort:** High | **Files:** `utils/gemini_client.py`, `app.py`
@@ -122,7 +128,8 @@
 
 ## 📊 Data Processing Enhancements
 
-### 24. Column Picker & Data Filters 🔲
+### 24. Column Picker & Data Filters 🔵
+**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#15).
 **Why:** Users often want to focus on subsets (specific date ranges, certain pages).
 **How:** Add `st.multiselect` for columns and `st.date_input` for date range filtering above the data preview. Filtered DataFrame replaces full one downstream.
 **Effort:** Medium | **Files:** `app.py`, `utils/data_loader.py`
@@ -152,12 +159,12 @@
 ### 29. Headless Smoke Test ✅
 **Status:** ✅ Done — `scripts/smoke_test.sh` boots Streamlit, checks HTTP 200, verifies no import errors.
 
-### 30. Test Coverage Reporting 🔲
+### 30. Test Coverage Reporting ✅
 **Why:** 129 tests exist but no visibility into what's covered.
 **How:** Add `pytest-cov` to dev dependencies. Add `--cov=utils --cov=pages --cov-report=term` to pytest command. Add coverage badge to README.
 **Effort:** Small | **Files:** `requirements/dev.txt`, `README.md`, `cloudbuild.yaml`
 
-### 31. GitHub Actions CI (Alternative to Cloud Build) 🔲
+### 31. GitHub Actions CI (Alternative to Cloud Build) ✅
 **Why:** Cloud Build requires GCP. GitHub Actions is free and built-in.
 **How:** `.github/workflows/test.yml` with `pip install -r requirements.txt && pytest`.
 **Effort:** Small | **Files:** `.github/workflows/test.yml`
@@ -180,7 +187,7 @@
 ### 35. GA4 Connection Setup Guide ✅
 **Status:** ✅ Done — Step-by-step README with ASCII diagrams and troubleshooting table.
 
-### 36. Per-Module Test Badges in README 🔲
+### 36. Per-Module Test Badges in README ✅
 **Why:** README says "110 tests" (stale since we have 129). No visibility into per-module coverage.
 **How:** Add a table or badges showing: data_loader:20, prompt_templates:58, gemini_client:14, ga4_client:18, learn_page:19.
 **Effort:** Small | **Files:** `README.md`
@@ -207,18 +214,18 @@
 
 | Category | Total | Done | Remaining |
 |---|---|---|---|
-| UX | 7 | 1 | 6 |
+| UX | 7 | 2 | 5 |
 | Code | 6 | 4 | 2 |
-| Security | 6 | 5 | 1 |
+| Security | 6 | 6 | 0 |
 | AI | 4 | 0 | 4 |
-| Data Processing | 4 | 0 | 4 |
-| DevOps/CI | 5 | 2 | 3 |
-| Documentation | 5 | 3 | 2 |
-| **Total** | **37** | **15** | **22** |
+| Data Processing | 4 | 1 | 3 |
+| DevOps/CI | 5 | 4 | 1 |
+| Documentation | 5 | 4 | 1 |
+| **Total** | **37** | **22** | **15** (5 spec'd 🔵, 10 available 🔲) |
 
 ---
 
-*Generated from deep review of the actual codebase, test suite, and CI pipeline. Last updated after implementing: error boundary, learn page, smoke test, back-to-app button, test suite expansion.*
+*Generated from deep review of the actual codebase, test suite, and CI pipeline. Last updated after: error boundary, learn page, smoke test, back-to-app button, test suite expansion, P1-P3 sprint (12 items, 194 tests), and P4 Wave 1 + Streaming sprint spec.*
 
 ---
 
@@ -232,5 +239,9 @@
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
 - [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
 - [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
-- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items
+- [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) — Active sprint spec (#15–17, #19)
+- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
+- [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) — Deferred items (Batches C–F)
 - [plans/onboarding-tour.md](plans/onboarding-tour.md) — Standalone mini-spec for #8
+- [plans/component-refactor.md](plans/component-refactor.md) — Standalone mini-spec for #20
+- [CHANGELOG.md](CHANGELOG.md) — Unified change history

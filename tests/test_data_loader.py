@@ -38,7 +38,7 @@ class TestLoadFile:
 
     def test_load_valid_csv(self):
         csv = "date,page_path,sessions\n2024-01-01,/home,100\n2024-01-02,/about,80\n"
-        df, err = load_file(_make_csv(csv))
+        df, err, _ = load_file(_make_csv(csv))
         assert err is None
         assert len(df) == 2
         assert list(df.columns) == ["date", "page_path", "sessions"]
@@ -49,23 +49,23 @@ class TestLoadFile:
             "page_path": ["/home"],
             "sessions": [100],
         })
-        df, err = load_file(_make_xlsx(df_in))
+        df, err, _ = load_file(_make_xlsx(df_in))
         assert err is None
         assert len(df) == 1
 
     def test_load_empty_csv(self):
-        df, err = load_file(_make_csv("date,page_path,sessions\n"))
+        df, err, _ = load_file(_make_csv("date,page_path,sessions\n"))
         assert df is None
         assert "empty" in err.lower()
 
     def test_load_unsupported_extension(self):
         f = FakeUploadedFile("hello", name="data.txt")
-        df, err = load_file(f)
+        df, err, _ = load_file(f)
         assert df is None
         assert "unsupported" in err.lower()
 
     def test_load_malformed_csv(self):
-        df, err = load_file(_make_csv("garbage$$$not,csv\n"))
+        df, err, _ = load_file(_make_csv("garbage$$$not,csv\n"))
         # pandas may read this as a single-row, single-column mess;
         # the key is that it doesn't crash and returns something or an error.
         # Verify we get a result (either df or error message) without exception.
@@ -73,7 +73,7 @@ class TestLoadFile:
 
     def test_load_file_handles_bytes_content(self):
         f = FakeUploadedFile(b"col1,col2\n1,2\n", name="bytes.csv")
-        df, err = load_file(f)
+        df, err, _ = load_file(f)
         assert err is None
         assert len(df) == 1
 

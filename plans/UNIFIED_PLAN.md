@@ -2,10 +2,10 @@
 
 > **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
 >
-> **Status:** 🟢 In progress — P1–P2 complete, P1–P3 sprint spec done (awaiting implementation), P3–P6 planned. See also [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md), [P4-future-plan.md](P4-future-plan.md), and [onboarding-tour.md](onboarding-tour.md).
-> **Last updated:** 2026-07-28 (P2 completed; P1-P3 sprint spec + P4+ future plan + onboarding mini-spec created)
+> **Status:** 🟢 In progress — P1–P2 done ✅, P1–P3 sprint implemented ✅, P4 Wave 1 + Streaming spec'd 🔵, remaining items deferred/captured 🔵.
+> **Last updated:** 2026-07-28 (P1-P3 sprint complete; P4 Wave 1 + Streaming sprint spec + deferred plan + onboarding-tour & component-refactor mini-specs created)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. New sprint-planning docs derive from these: [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) (current sprint), [P4-future-plan.md](P4-future-plan.md) (deferred items), and [onboarding-tour.md](onboarding-tour.md) (#8 mini-spec).
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) (✅ done), [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) (🔵 active), [P4-deferred-plan.md](P4-deferred-plan.md) (🔵 captured), [onboarding-tour.md](onboarding-tour.md) (⚠️ deferred), and [component-refactor.md](component-refactor.md) (🔵 deferred).
 
 ---
 
@@ -26,9 +26,11 @@
 
 | # | Plan File | What | Effort | Status |
 |---|---|---|---|---|
-| SP1 | [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) | Current sprint: IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches, ~5.5 hrs) | ~5.5 hrs | 🔴 Awaiting implementation |
-| SP2 | [P4-future-plan.md](P4-future-plan.md) | Future phases: IMPL items #15–21 + P3–P6 + repo weaknesses (3 waves, ~26 days) | ~26 days | 🔵 Captured |
-| SP3 | [onboarding-tour.md](onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour (⚠️ Optional, ~60 min) | ~1 hr | ⚠️ Optional, deferred |
+| SP1 | [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) | IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches) | ~5.5 hrs | ✅ Done (12/13 items, 194 tests) |
+| SP2 | [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) | **Active sprint:** #15–17 Wave 1 + #19 Streaming (2 phases) | ~6-7 days | 🔵 Spec'd — awaiting implementation |
+| SP3 | [P4-deferred-plan.md](P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | 🔵 Captured |
+| SP4 | [onboarding-tour.md](onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour | ~1 hr | ⚠️ Optional, deferred |
+| SP5 | [component-refactor.md](component-refactor.md) | Standalone mini-spec for #20 component refactor | 3-5 days | 🔵 Deferred (after streaming + theming) |
 
 ### P6 Sub-Item Codes
 
@@ -194,15 +196,14 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | Sprint | Items | Duration | Outcome |
 |---|---|---|---|
 | **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day ✅ | Polished favicon, trust-building quality card |
-| **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs** | **Guardrails, quick wins, docs, UX, infra — see [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md)** |
-| **Sprint P4** | Streaming Responses | 3-5 days | ChatGPT-like real-time chat |
-| **Sprint P3** | Theme Toggle | 3-5 days | Light/dark mode with full component coverage |
-| **Sprint P5** | Component Refactor | 3-5 days | Clean 7-file architecture from 400-line monolith |
-| **Sprint P6: Small Wins** | P6d (Type Detection), P6f (Smart Sampling), P6a (Chart Tokens) | 2 days | Three quick, independent wins |
-| **Sprint P6: Medium Features** | P6e (Anomaly Detection), P6b (JSON Chart Mapping) | 2 days | Two mathematical/structured features |
-| **Sprint P6: Comparative Mode** | P6c (Comparative Analysis) | 2 days | Largest single sub-item |
+| **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs ✅** | **Guardrails, quick wins, docs, UX, infra — 12/13 done, 194 tests. See [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md)** |
+| **Sprint P4 Wave 1** | **#15–17 + #19 Streaming** | **~6-7 days 🔵** | **Column picker, conversation memory, export, streaming chat. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md)** |
+| **Sprint Deferred C** | Theme Toggle (#18) | 3-5 days 🔲 | Light/dark mode — after streaming stable. See [P4-deferred-plan.md](P4-deferred-plan.md) |
+| **Sprint Deferred D** | Component Refactor (#20) | 3-5 days 🔲 | Clean 7-file architecture — after features stable. See [component-refactor.md](component-refactor.md) |
+| **Sprint Deferred E** | P6d (Type Detection), P6f (Sampling), P6a (Chart Tokens) | ~3-5 hrs 🔲 | Three quick AI/data wins. See [P4-deferred-plan.md](P4-deferred-plan.md) |
+| **Sprint Deferred F** | P6e (Anomaly), P6b (JSON Mapping), P6c (Comparative) | ~10-15 hrs 🔲 | Complex AI/data items. See [P4-deferred-plan.md](P4-deferred-plan.md) |
 
-**Total estimated time:** 14-24 days (one person, sequential order)
+**P1–P3 done (194 tests). P4 Wave 1 + Streaming spec'd (~6-7 days). Remaining deferred (~20-35 days).**
 
 ---
 
@@ -224,9 +225,11 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 
 | # | Plan | Items | Est. Time | Status |
 |---|---|---|---|---|
-| SP1 | P1-P3 Sprint Spec | #1–14 + OAuth + download slice (13 items) | ~5.5 hrs | 🔴 Awaiting implementation |
-| SP2 | P4+ Future Plan | #15–21, P3–P6, repo weaknesses (16 items) | ~26 days | 🔵 Captured |
-| SP3 | Onboarding Tour | #8 (mini-spec) | ~1 hr | ⚠️ Optional, deferred |
+| SP1 | P1-P3 Sprint Spec | #1–14 + OAuth + download slice (13 items) | ~5.5 hrs | ✅ Done (12/13, 194 tests) |
+| SP2 | P4 Wave 1 + Streaming Sprint | #15–17, #19 — 2 phases | ~6-7 days | 🔵 Spec'd — awaiting implementation |
+| SP3 | P4 Deferred Plan | #18, #20, #21 (Batches C–F), Wave 3 weaknesses | ~20-35 days | 🔵 Captured |
+| SP4 | Onboarding Tour (#8) | Mini-spec | ~1 hr | ⚠️ Optional, deferred |
+| SP5 | Component Refactor (#20) | Mini-spec | 3-5 days | 🔵 Deferred (after streaming + theming) |
 
 ---
 

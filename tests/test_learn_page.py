@@ -202,16 +202,16 @@ class TestStaleContent:
     """Verify numbers and references in the learn page match the current codebase."""
 
     def test_test_count_in_testing_tab_is_current(self):
-        """The testing tab mentions the test count — should be >= 92 (original).
+        """The testing tab mentions the test count — should be >= 171.
 
         Note: this is intentionally a floor check, not an exact match, since
-        the learn page text says '92 unit tests' and actual count is 110.
+        the learn page text says '171 unit tests' and actual count is 171.
         The text will be slightly behind as tests grow.
         """
         source = _read_source()
-        # The testing tab says "92 unit tests" (from when it was first written).
-        # We verify it's at least 92 and hasn't regressed to a lower number.
+        # The testing tab says "171 unit tests" (updated July 2026).
+        # We verify it hasn't regressed below the updated count.
         match = re.search(r'(\d+)\s+unit tests', source)
         assert match is not None, "Test count not found in testing tab"
         count = int(match.group(1))
-        assert count >= 92, f"Stale test count: {count} (should be >= 92)"
+        assert count >= 171, f"Stale test count: {count} (should be >= 171)"

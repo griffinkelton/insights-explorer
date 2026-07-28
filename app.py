@@ -1,5 +1,7 @@
 """GA4 Insight Explorer — Streamlit web app for analyzing GA4 export data with Gemini."""
 
+import os
+import time
 from typing import Any
 import streamlit as st
 import pandas as pd
@@ -22,8 +24,8 @@ from utils.ga4_client import (
 from utils.styles import inject_custom_css, inject_favicon_meta
 from utils.error_boundary import render_error_card
 
-# OAuth redirect URI — must match what's registered in GCP Console
-REDIRECT_URI = "http://localhost:8501"
+# OAuth redirect URI — configurable via env var for non-localhost deployments
+REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -65,6 +67,11 @@ if "quality_report" not in st.session_state:
     st.session_state.quality_report = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = None  # Tri-state: None=unchecked, True/False
+# Rate limiting state
+if "last_api_call" not in st.session_state:
+    st.session_state.last_api_call = 0.0
+if "api_call_count" not in st.session_state:
+    st.session_state.api_call_count = 0
 
 
 # ── API key validation on first run ──────────────────────────────────────────
@@ -241,10 +248,21 @@ with st.sidebar:
             type="secondary",
         )
 
+    if st.session_state.api_call_count > 0:
+        st.caption(f"🔢 API calls this session: {st.session_state.api_call_count}")
+
     st.divider()
     st.markdown(
         '<div style="font-size:0.72rem;color:#686880;">Built with ❤️ using Streamlit + Gemini</div>',
         unsafe_allow_html=True,
+    )
+
+    st.divider()
+    st.page_link(
+        "pages/learn.py",
+        label="📚 Learn Python",
+        icon="📚",
+        help="Interactive tutorials on Streamlit, Pandas, Plotly, Gemini, and more",
     )
 
 # ── File processing ──────────────────────────────────────────────────────────
@@ -258,12 +276,21 @@ if uploaded_file is not None:
             clear_data()
             st.session_state.data_cleared = False
 
-        df, error = load_file(uploaded_file)
+        df, error, warning = load_file(uploaded_file)
 
         if error:
             st.error(f"❌ {error}")
             st.session_state.last_file_id = file_id
         else:
+            if warning:
+                st.warning(f"⚠️ {warning}")
+                csv_data = df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label=f"📥 Download truncated data ({len(df):,} rows)",
+                    data=csv_data,
+                    file_name=f"truncated_{uploaded_file.name}",
+                    mime="text/csv",
+                )
             missing = validate_columns(df)
             if missing:
                 st.warning(
@@ -370,6 +397,14 @@ def _render_main() -> None:
 
     # Chat input
     if prompt := st.chat_input("e.g., which pages have the highest drop-off?"):
+        # Rate limiting guard
+        now = time.time()
+        if now - st.session_state.last_api_call < 2.0:
+            st.warning("⏳ Please wait a moment between questions...")
+            st.stop()
+        st.session_state.last_api_call = now
+        st.session_state.api_call_count += 1
+
         st.session_state.chat_history.append({
             "question": prompt,
             "response": None,

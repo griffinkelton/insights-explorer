@@ -746,7 +746,7 @@ with tab8:
     st.markdown("## 🧪 Testing — pytest with Mocks")
 
     st.markdown("""
-    This project has **92 unit tests** covering data loading, prompt construction,
+    This project has **171 unit tests** covering data loading, prompt construction,
     chart detection, sanitization, Gemini API calls, and API key validation.
     Run them with:
     """)

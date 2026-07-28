@@ -1,9 +1,11 @@
 # 📋 P4+ Future-Phase Plan — GA4 Insight Explorer
 
 > **What:** Capture document for all items beyond the current P1–P3 sprint — medium features, large investments, and unresolved repo weaknesses.
-> **Status:** 🔵 Spec captured — awaiting P1–P3 sprint completion before execution.
+> **Status:** 🔵 Partially spec'd — Wave 1 + Streaming sprint spec complete; remaining items deferred.
 > **Based on:** IMPLEMENTATION_PLAN.md (#15–21), UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
-> **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) must be completed and stable first. #8 tour deferred to [onboarding-tour.md](onboarding-tour.md).
+> **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — completed. #8 tour deferred to [onboarding-tour.md](onboarding-tour.md).
+> **Current sprint:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — #15–17, #19.
+> **Deferred items:** [P4-deferred-plan.md](P4-deferred-plan.md) — #18, #20, #21 (Batches C–F).
 
 ---
 
@@ -17,19 +19,19 @@ Everything deferred from the current sprint, organized into three waves:
 | **Wave 2** | Large Investments (P5) | #18 Theme toggle, #19 Streaming, #20 Component refactor, #21 AI/data enhancements | 14–24 days |
 | **Wave 3** | Repo Weaknesses | API key fallback, app-level auth (if deployability becomes a goal) | Varies |
 
----
+---## 📊 Current State
 
-## 📊 Why These Items Are Deferred
+**Wave 1 (#15–17) + Streaming (#19)** are now spec'd for immediate implementation in [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) (~6–7 days).
 
-From the P1–P3 sprint spec analysis:
+**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4-deferred-plan.md](P4-deferred-plan.md) for execution after the current sprint.
 
-> "P4 items (#15–17) each touch the core data flow or prompt construction and carry 'Medium' risk; they warrant their own spec when P1–P3 are stable. P5 items are explicitly 'each 1–3 days' and are transformative enough to need dedicated specs."
-
-The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth config), docs, and infra must be solid before layering on medium-risk features that change the data flow.
+The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth config), docs, and infra from P1–P3 are solid, so the medium-risk features that change the data flow can now proceed.
 
 ---
 
-## 🌊 Wave 1 — Medium Features (P4)
+## 🌊 Wave 1 — Medium Features (P4) 🔵 Spec'd
+
+> **Now spec'd in:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — Phase 2 & 3.
 
 Estimated total time: **~5 hours**
 
@@ -143,7 +145,9 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 ---
 
-### #19 / P4: Streaming Token-by-Token Responses
+### #19 / P4: Streaming Token-by-Token Responses 🔵 Spec'd
+
+> **Now spec'd in:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — Phase 1 (highest priority).
 
 **Risk:** High | **Effort:** 3–5 days | **Files:** `utils/gemini_client.py`, `app.py`
 
@@ -167,7 +171,9 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 ---
 
-### #20 / P5: Component Refactor
+### #20 / P5: Component Refactor 🔵 Mini-spec'd
+
+> **Now a standalone mini-spec:** [component-refactor.md](component-refactor.md) — design decisions, target architecture, 7-phase extraction plan.
 
 **Risk:** Medium | **Effort:** 3–5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
@@ -288,31 +294,19 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 ## 📈 Execution Order
 
 ```
-After P1–P3 sprint is complete and stable:
+✅ P1–P3 sprint — DONE (12/13 items implemented, 194 tests)
 
-Wave 1 — Medium Features (~5 hrs):
-  #15 Column picker & date filters   ── Touches data flow (do first)
-  #16 Conversation memory            ── Touches prompt construction
-  #17 Export chat as report          ── Standalone (new module)
+🔵 CURRENT SPRINT — [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md):
+  Phase 1: #19 Streaming (~3-5 days)          ── Changes response pipeline (hardest)
+  Phase 2: #15 Column picker + #16 Memory     ── Touches data flow + prompt construction
+  Phase 3: #17 Export chat (~1.5 hrs)          ── Standalone (new module)
 
-Wave 2a — Game Changers (~8 days):
-  #19 / P4 Streaming responses       ── Changes response pipeline (hardest)
-  #18 / P3 Theme toggle              ── CSS architecture (do after streaming stable)
-
-Wave 2b — Structural (~5 days):
-  #20 / P5 Component refactor        ── Mechanical extraction (do after features stable)
-
-Wave 2c — AI/Data Layer (~8 days, parallel-safe):
-  P6d Column type detection  ──┐
-  P6f Smart sampling         ──┤
-  P6a Chart token detection  ──┼── All independent, do in any order
-  P6e Anomaly detection      ──┤
-  P6b JSON chart mapping     ──┤
-  P6c Comparative mode       ──┘
-
-Wave 3 — Weaknesses (as needed):
-  API key fallback            ── Only if deployment demands it
-  App-level auth              ── Only if scope shifts to multi-user
+🔲 DEFERRED — [P4-deferred-plan.md](P4-deferred-plan.md):
+  Batch C: #18 Theme toggle (~3-5 days)       ── CSS architecture (after streaming stable)
+  Batch D: #20 Component refactor (~3-5 days)  ── Mechanical extraction (after features stable)
+  Batch E: #21a Column types + Smart sampling  ── Quick AI/data wins (~2-3 hrs)
+  Batch F: #21b Chart tokens + Anomaly + JSON + Comparative ── Complex AI/data (~10-15 hrs)
+  Wave 3: API key fallback, app-level auth    ── Only if deployment demands it
 ```
 
 ### Why This Order (from UNIFIED_PLAN.md)
@@ -340,14 +334,17 @@ Wave 3 — Weaknesses (as needed):
 
 ## 📖 Related Docs
 
-- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Current sprint spec (must complete first)
+- [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — **Current sprint:** #15-17, #19 (~6-7 days)
+- [P4-deferred-plan.md](P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
+- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Completed sprint (must complete first)
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source 21-item plan
 - [UNIFIED_PLAN.md](UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
-- [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases)
+- [component-refactor.md](component-refactor.md) — **Standalone mini-spec** for #20 (deferred)
+- [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
-- [onboarding-tour.md](onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
+- [onboarding-tour.md](onboarding-tour.md) — Standalone mini-spec for #8 (deferred)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](../ORIGINAL_SPEC.md) — Initial project prompt + 26-item compliance checklist
