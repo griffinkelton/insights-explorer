@@ -2,7 +2,7 @@
 
 > **Roadmap ref:** IMPLEMENTATION_PLAN.md #18, ENHANCEMENTS.md #6
 > **Effort:** High (3-5 days) | **Risk:** High (many CSS overrides to test)
-> **Status:** 🔲 Planned — no code written
+> **Status:** ✅ Done (2026-07-28)
 
 ---
 

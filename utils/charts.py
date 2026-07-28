@@ -10,11 +10,17 @@ def generate_chart(
     chart_config: dict[str, str],
     gemini_response: str,
     user_question: str,
+    theme: str = "dark",
 ) -> dict[str, Any] | None:
     """Generate a Plotly chart based on detected chart config.
 
+    Args:
+        theme: "dark" (default) or "light". Controls plotly template + font colors.
+
     Returns {"fig": go.Figure, "type": "line"|"bar"} or None.
     """
+    template = "plotly_dark" if theme == "dark" else "plotly_light"
+    font_color = "#9898b0" if theme == "dark" else "#4b5563"
     chart_type = chart_config.get("chart_type", "bar")
     try:
         date_col = find_date_column(df)
@@ -26,14 +32,14 @@ def generate_chart(
                 fig = px.line(
                     daily, x=date_col, y=sessions_col,
                     title="Sessions Over Time", markers=True,
-                    template="plotly_dark",
+                    template=template,
                     color_discrete_sequence=["#818cf8"],
                 )
                 fig.update_traces(line=dict(width=2.5), marker=dict(size=6))
                 fig.update_layout(
                     xaxis_title="Date", yaxis_title="Sessions",
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#9898b0", size=12),
+                    font=dict(color=font_color, size=12),
                     margin=dict(l=20, r=20, t=40, b=20),
                     hovermode="x unified",
                 )
@@ -47,15 +53,15 @@ def generate_chart(
                 fig = px.bar(
                     top, x=sessions_col, y=page_col, orientation="h",
                     title=f"Top Pages by {sessions_col.replace('_', ' ').title()}",
-                    template="plotly_dark",
+                    template=template,
                     color_discrete_sequence=["#818cf8"],
                     text_auto=".1s",
                 )
-                fig.update_traces(textposition="outside", textfont=dict(color="#9898b0", size=11))
+                fig.update_traces(textposition="outside", textfont=dict(color=font_color, size=11))
                 fig.update_layout(
                     yaxis={"categoryorder": "total ascending"},
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#9898b0", size=12),
+                    font=dict(color=font_color, size=12),
                     margin=dict(l=20, r=40, t=40, b=20),
                 )
                 return {"fig": fig, "type": "bar"}
@@ -69,12 +75,12 @@ def generate_chart(
             fig = px.bar(
                 agg, x=num_col, y=cat_col, orientation="h",
                 title=f"{num_col.replace('_', ' ').title()} by {cat_col.replace('_', ' ').title()}",
-                template="plotly_dark",
+                template=template,
                 color_discrete_sequence=["#818cf8"],
             )
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#9898b0", size=12),
+                font=dict(color=font_color, size=12),
             )
             return {"fig": fig, "type": "bar"}
     except Exception:

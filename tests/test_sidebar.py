@@ -27,6 +27,11 @@ class TestSidebarStructure:
         source = open(MODULE).read()
         assert "def render_sidebar()" in source
 
+    def test_has_theme_toggle_function(self):
+        """Theme toggle: _render_theme_toggle must exist in sidebar."""
+        source = open(MODULE).read()
+        assert "def _render_theme_toggle()" in source
+
     def test_clear_button_no_on_click_anti_pattern(self):
         """BUG-005: _render_clear_button uses `if st.button`, not `on_click=`."""
         import re

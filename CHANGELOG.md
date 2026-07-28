@@ -8,6 +8,32 @@
 
 ---
 
+### Theme Toggle Executed — 4 phases, light/dark mode, 231 tests
+
+**Date:** 2026-07-28 | **Status:** ✅ Done
+
+| Phase | What | Files |
+|---|---|---|
+| 1 | Light theme CSS variables + theme param for `inject_custom_css()` | `utils/styles.py` |
+| 2 | Session state + toggle button + wiring | `app.py`, `components/sidebar.py`, `components/__init__.py` |
+| 3 | Theme-aware chart generation + Plotly cache-busting | `utils/charts.py`, `components/chat.py` |
+| 4 | Learn page: delete standalone CSS, use `inject_custom_css()` | `pages/learn.py`, `utils/styles.py` |
+
+**Key decisions (9 from 3 interview rounds):**
+- Syntax tokens: background-only (dark colors on white = legible)
+- Default: always dark (no `prefers-color-scheme` detection)
+- Toggle: bottom of sidebar (learn link → theme → footer)
+- Persistence: session-only (`st.session_state`)
+- Learn page: same CSS function, standalone block deleted
+- Plotly: theme-tagged cache keys (`chart_0_dark` / `chart_0_light`)
+- Charts: `generate_chart()` accepts `theme` param for testability
+- Hero gradient: darker purples in light mode for contrast
+- Learn page styles: concept cards/tips/tabs use CSS variables
+
+**Related:** [plans/p3-p4/🔵 THEME_TOGGLE.md](plans/p3-p4/🔵 THEME_TOGGLE.md), [plans/00-sprints/theme-toggle-spec.md](plans/00-sprints/theme-toggle-spec.md)
+
+---
+
 ### Component Refactor Executed — 7 phases, app.py 809→78 lines, 228 tests
 
 **Date:** 2026-07-28 | **Status:** ✅ Done
@@ -30,7 +56,7 @@
 - Widget key audit: all 4 keys unique, no collisions
 - Test coverage: 194 → 228 (34 new tests across 8 modules)
 
-**Related:** [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](plans/p5-p6/🔵 COMPONENT_REFACTOR.md), [plans/00-sprints/component-refactor-spec.md](plans/00-sprints/component-refactor-spec.md)
+**Related:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md), [plans/00-sprints/component-refactor-spec.md](plans/00-sprints/component-refactor-spec.md)
 
 ---
 

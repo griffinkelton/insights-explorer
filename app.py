@@ -18,8 +18,8 @@ st.set_page_config(
 )
 
 # ── Custom CSS, JS & favicon (extracted to utils/styles.py) ──────────────────
-inject_custom_css()
-inject_favicon_meta()
+inject_custom_css(theme=st.session_state.get("theme", "dark"))
+inject_favicon_meta(theme=st.session_state.get("theme", "dark"))
 
 # ── Session state initialization ─────────────────────────────────────────────
 if "df" not in st.session_state:
@@ -56,6 +56,8 @@ if "api_call_count" not in st.session_state:
     st.session_state.api_call_count = 0
 if "filtered_df" not in st.session_state:
     st.session_state.filtered_df = None
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:

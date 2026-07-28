@@ -132,12 +132,10 @@ class TestContentStructure:
         assert "Learn by exploring" in source
 
     def test_has_css_injection(self):
-        """Page must inject custom CSS via st.markdown with style tags."""
+        """Learn page must call theme-aware inject_custom_css (styles now in utils/styles.py)."""
         source = _read_source()
-        assert ".concept-card" in source
-        assert ".tip-box" in source
-        assert ".file-badge" in source
-        assert ".kb-shortcut" not in source  # kb-shortcut is app.py only
+        assert "inject_custom_css" in source
+        assert "inject_favicon_meta" in source
 
 
 # ── Tab content tests ────────────────────────────────────────────────────────

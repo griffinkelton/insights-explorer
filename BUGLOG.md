@@ -361,5 +361,5 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec
 - [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
 - [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) — Deferred items plan
-- [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](plans/p5-p6/🔵 COMPONENT_REFACTOR.md) — #20 mini-spec
+- [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) — #20 mini-spec
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

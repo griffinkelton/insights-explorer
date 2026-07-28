@@ -22,8 +22,9 @@ def render_sidebar() -> None:
         _render_privacy_notice()
         _render_clear_button()
         _render_api_counter()
-        _render_footer()
         _render_learn_link()
+        _render_theme_toggle()
+        _render_footer()
 
     # Process uploaded file (after sidebar renders so errors show in main area)
     if uploaded_file is not None:
@@ -183,6 +184,18 @@ def _render_footer() -> None:
         '<div style="font-size:0.72rem;color:#686880;">Built with ❤️ using Streamlit + Gemini</div>',
         unsafe_allow_html=True,
     )
+
+
+def _render_theme_toggle() -> None:
+    """Render the theme toggle button at the bottom of the sidebar."""
+    current = st.session_state.get("theme", "dark")
+    new_theme = "light" if current == "dark" else "dark"
+    label = "☀️ Light Mode" if current == "dark" else "🌙 Dark Mode"
+
+    st.divider()
+    if st.button(label, use_container_width=True, key="theme_toggle"):
+        st.session_state.theme = new_theme
+        st.rerun()
 
 
 def _render_learn_link() -> None:

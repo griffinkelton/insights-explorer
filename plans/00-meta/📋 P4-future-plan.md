@@ -173,13 +173,13 @@ Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p
 
 ### #20 / P5: Component Refactor 🔵 Mini-spec'd
 
-> **Now a standalone mini-spec:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — design decisions, target architecture, 7-phase extraction plan.
+> **Now a standalone mini-spec:** [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — design decisions, target architecture, 7-phase extraction plan.
 
 **Risk:** Medium | **Effort:** 3–5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
 **From:** IMPLEMENTATION_PLAN.md #20, 📋 UNIFIED_PLAN.md P5, ENHANCEMENTS.md #12
 
-**Detailed plan:** [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md)
+**Detailed plan:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md)
 
 **What:** Split `app.py` (~400 lines) into a thin orchestrator + 6 focused component modules. This directly addresses the repo assessment's "single-file orchestration" weakness.
 
@@ -342,8 +342,8 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
-- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)
-- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
+- [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)
+- [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
 - [Onboarding tour](🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model

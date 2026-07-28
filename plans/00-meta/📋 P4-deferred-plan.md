@@ -69,11 +69,11 @@ Visual smoke test only — no automated CSS tests. Verify all components in both
 
 ## 📐 Batch D — Component Refactor (#20/P5)
 
-> **Now a standalone mini-spec:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — full design decisions, target architecture, 7-phase extraction plan, edge cases, and test impact.
+> **Now a standalone mini-spec:** [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — full design decisions, target architecture, 7-phase extraction plan, edge cases, and test impact.
 
 **Risk:** Medium | **Effort:** 3-5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
-**Detailed plan:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — complete code samples for all 7 phases.
+**Detailed plan:** [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — complete code samples for all 7 phases.
 
 Split `app.py` (~500 lines) into a thin orchestrator + 6 focused component modules. Addresses the repo assessment's "single-file orchestration" weakness. 7 extraction phases, each verified independently. ~32 new tests. **Must run after streaming AND theming are stable.**
 
@@ -215,8 +215,8 @@ Batch F — AI/Data Complex (~10-15 hrs):
 - [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — Current sprint (must complete first)
 - [P4 future plan](📋 P4-future-plan.md) — Original future-phase plan this derives from
 - [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
-- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
-- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
+- [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
+- [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
 - [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint

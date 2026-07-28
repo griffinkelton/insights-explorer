@@ -1,6 +1,6 @@
 # 🧩 Component Refactor — Implementation Spec
 
-> **Source plan:** [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](../p5-p6/🔵 COMPONENT_REFACTOR.md)
+> **Source plan:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](../p5-p6/✅ COMPONENT_REFACTOR.md)
 > **Status:** ✅ Done (7 phases, 228 tests, 2026-07-28)
 > **Effort:** 3–5 days | **Risk:** Medium
 > **Based on:** 5 rounds of user interviews (2026-07-28)
@@ -661,4 +661,4 @@ All existing tests continue to pass — they test `utils/` modules which are not
 
 ---
 
-*Spec derived from 5 interview rounds (2026-07-28), the original [p5-p6/🔵 COMPONENT_REFACTOR.md](../p5-p6/🔵 COMPONENT_REFACTOR.md), and analysis of the current 809-line app.py.*
+*Spec derived from 5 interview rounds (2026-07-28), the original [p5-p6/✅ COMPONENT_REFACTOR.md](../p5-p6/✅ COMPONENT_REFACTOR.md), and analysis of the current 809-line app.py.*

@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from utils.styles import inject_favicon_meta
+from utils.styles import inject_custom_css, inject_favicon_meta
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -10,109 +10,9 @@ st.set_page_config(
     page_icon="assets/favicon.ico",
 )
 
-# ── Favicon meta tags ────────────────────────────────────────────────────────
-inject_favicon_meta()
-
-# ── Custom CSS ───────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-    /* ── Concept cards ── */
-    .concept-card {
-        background: #1a1a26;
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 16px;
-        padding: 1.5rem 1.6rem;
-        margin: 0.6rem 0;
-        transition: all 0.2s ease;
-    }
-    .concept-card:hover {
-        border-color: rgba(99,102,241,0.25);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-        transform: translateY(-2px);
-    }
-    .concept-card .icon {
-        font-size: 2.2rem;
-        margin-bottom: 0.5rem;
-    }
-    .concept-card h4 {
-        margin: 0 0 0.3rem 0;
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #f0f0f5;
-    }
-    .concept-card p {
-        color: #9898b0;
-        font-size: 0.82rem;
-        line-height: 1.5;
-        margin: 0;
-    }
-
-    /* ── Section divider ── */
-    .section-divider {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin: 2.5rem 0 1.5rem 0;
-    }
-    .section-divider .line {
-        flex: 1;
-        height: 1px;
-        background: rgba(255,255,255,0.06);
-    }
-    .section-divider .label {
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #686880;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        white-space: nowrap;
-    }
-
-    /* ── File path badge ── */
-    .file-badge {
-        display: inline-block;
-        background: rgba(99,102,241,0.1);
-        border: 1px solid rgba(99,102,241,0.2);
-        border-radius: 6px;
-        padding: 1px 8px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: #818cf8;
-        font-family: 'SF Mono', 'Fira Code', monospace;
-        margin-left: 0.5rem;
-    }
-
-    /* ── Tip box ── */
-    .tip-box {
-        background: rgba(251,191,36,0.06);
-        border: 1px solid rgba(251,191,36,0.12);
-        border-left: 3px solid #fbbf24;
-        border-radius: 0 10px 10px 0;
-        padding: 0.8rem 1.1rem;
-        margin: 1rem 0;
-        font-size: 0.82rem;
-        color: #d4d4e0;
-    }
-    .tip-box strong {
-        color: #fbbf24;
-    }
-
-    /* ── Tabs customization ── */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.3rem;
-        background: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 0.5rem 1.2rem;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-    .stTabs [aria-selected="true"] {
-        background: rgba(99,102,241,0.12) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+# ── Theme-aware CSS + favicon ─────────────────────────────────────────────────
+inject_custom_css(theme=st.session_state.get("theme", "dark"))
+inject_favicon_meta(theme=st.session_state.get("theme", "dark"))
 
 # ── Hero ─────────────────────────────────────────────────────────────────────
 st.markdown("""

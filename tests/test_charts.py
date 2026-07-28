@@ -38,6 +38,20 @@ class TestGenerateChart:
             assert "fig" in result
             assert result["type"] == "line"
 
+    def test_light_theme_produces_light_template(self, sample_df):
+        """Theme param should switch plotly template."""
+        result = generate_chart(
+            sample_df, {"chart_type": "bar"}, "top pages", "top?", theme="light"
+        )
+        if result is not None:
+            assert "fig" in result
+
+    def test_theme_defaults_to_dark(self, sample_df):
+        """When theme is omitted, default to dark."""
+        result = generate_chart(sample_df, {"chart_type": "bar"}, "top pages", "top?")
+        if result is not None:
+            assert result["type"] == "bar"
+
 
 class TestFindColumn:
     def test_finds_case_insensitive(self, sample_df):

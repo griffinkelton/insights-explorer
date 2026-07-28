@@ -49,7 +49,7 @@ def render_chat_section() -> None:
                         st.plotly_chart(
                             entry["chart"]["fig"],
                             use_container_width=True,
-                            key=f"chart_{i}",
+                            key=f"chart_{i}_{st.session_state.get('theme', 'dark')}",
                         )
 
     # ── Chat input ───────────────────────────────────────────────────────
@@ -119,14 +119,17 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
         # Detect and render chart from the full response
         chart_config = detect_chart_request(full_text)
         if chart_config:
-            chart_data = generate_chart(df, chart_config, full_text, entry["question"])
+            chart_data = generate_chart(
+                df, chart_config, full_text, entry["question"],
+                theme=st.session_state.get("theme", "dark"),
+            )
             if chart_data:
                 entry["chart"] = chart_data
                 with st.container(border=True):
                     st.plotly_chart(
                         chart_data["fig"],
                         use_container_width=True,
-                        key=f"chart_{i}",
+                        key=f"chart_{i}_{st.session_state.get('theme', 'dark')}",
                     )
 
     except ValueError as e:
