@@ -62,7 +62,13 @@ def _render_main_content() -> None:
 
 
 def _handle_oauth_callback() -> None:
-    """Handle Google OAuth redirect (?code=...)."""
+    """Handle Google OAuth redirect (?code=...).
+
+    Called at the very start of render_all(), before any UI renders.
+    After exchanging the code for credentials, calls st.rerun() to
+    clean the URL of query params and start a fresh render cycle with
+    the authenticated state.
+    """
     if "code" not in st.query_params or st.session_state.ga4_auth_flow is None:
         return
     try:
@@ -73,7 +79,11 @@ def _handle_oauth_callback() -> None:
         st.session_state.ga4_creds = credentials_to_dict(creds)
         st.session_state.ga4_auth_flow = None
         st.query_params.clear()
-        st.success("✅ Connected to Google Analytics!")
+        # Rerun immediately: strips ?code= from the browser URL and
+        # starts a clean render cycle where the sidebar shows "✅ Connected".
+        # Without this, the callback and page render share a cycle, and
+        # the browser URL retains the single-use auth code on refresh.
+        st.rerun()
     except Exception as e:
         st.error(f"Authentication failed: {e}")
         st.session_state.ga4_auth_flow = None
