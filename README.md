@@ -61,6 +61,14 @@ streamlit run app.py
 
 Opens at **http://localhost:8501** 🎉
 
+### 5. Run tests
+
+```bash
+python -m pytest tests/
+```
+
+74 tests covering data loading, prompt construction, chart detection, and Gemini API error handling.
+
 ---
 
 ## 📁 Project Structure
@@ -71,7 +79,13 @@ Opens at **http://localhost:8501** 🎉
 │   ├── __init__.py
 │   ├── data_loader.py          # CSV/XLSX parsing, validation, stats
 │   ├── gemini_client.py        # Gemini API wrapper (error handling)
-│   └── prompt_templates.py     # Prompt construction + chart detection
+│   ├── prompt_templates.py     # Prompt construction + chart detection
+│   ├── ga4_client.py           # GA4 live connection (OAuth + Data API)
+│   └── styles.py               # Custom CSS + keyboard shortcuts
+├── tests/
+│   ├── test_data_loader.py
+│   ├── test_prompt_templates.py
+│   └── test_gemini_client.py
 ├── .env.example                # API key template
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
@@ -110,7 +124,8 @@ Your GA4 export should include columns like:
 | Layer | Technology |
 |---|---|
 | UI | Streamlit |
-| AI | Gemini 2.5 Flash (via `google-generativeai`) |
+| AI | Gemini 2.5 Flash (via `google-genai`) |
+| Testing | pytest (74 unit tests) |
 | Data | Pandas |
 | Charts | Plotly |
 | Config | python-dotenv |
