@@ -16,6 +16,29 @@ DEFAULT_MAX_OUTPUT_TOKENS = 2048
 _client: genai.Client | None = None
 
 
+def validate_api_key() -> tuple[bool, str]:
+    """Test whether the configured API key is valid.
+
+    Returns (is_valid, message).
+    """
+    try:
+        client = _get_client()
+        # Lightweight call: list models (1 token, no quota impact)
+        client.models.list(config={"page_size": 1})
+        return True, ""
+    except ValueError:
+        return False, (
+            "GEMINI_API_KEY not found. Set it in your .env file. "
+            "Get a free key at https://aistudio.google.com/apikey"
+        )
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "api_key" in error_msg or "unauthorized" in error_msg or "permission" in error_msg:
+            return False, f"API key rejected: {e}"
+        # Other errors (network, etc.) don't necessarily mean the key is bad
+        return True, ""
+
+
 def _get_client() -> genai.Client:
     """Return a configured genai.Client, creating it on first call."""
     global _client

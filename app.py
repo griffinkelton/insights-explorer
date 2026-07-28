@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 
 from utils.data_loader import load_file, validate_columns, get_dataset_stats
-from utils.gemini_client import generate_response
+from utils.gemini_client import generate_response, validate_api_key
 from utils.prompt_templates import (
     build_summary_prompt,
     build_chat_prompt,
@@ -297,7 +297,37 @@ st.markdown("""
     .stTooltip {
         font-size: 0.8rem;
     }
+
+    /* ── Keyboard shortcut hint ── */
+    .kb-shortcut {
+        display: inline-block;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 2px 7px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-family: 'Inter', monospace;
+    }
 </style>
+
+<!-- Keyboard shortcuts JS -->
+<script>
+(function() {
+    document.addEventListener('keydown', function(e) {
+        const isMac = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+        const mod = isMac ? e.metaKey : e.ctrlKey;
+
+        // Cmd/Ctrl + K → focus chat input
+        if (mod && e.key === 'k') {
+            e.preventDefault();
+            const chatInput = document.querySelector('[data-testid="stChatInput"] textarea');
+            if (chatInput) { chatInput.focus(); }
+        }
+    });
+})();
+</script>
 """, unsafe_allow_html=True)
 
 # ── Session state initialization ─────────────────────────────────────────────
@@ -324,6 +354,16 @@ if "ga4_auth_flow" not in st.session_state:
     st.session_state.ga4_auth_flow = None
 if "data_source" not in st.session_state:
     st.session_state.data_source = None  # "file" or "ga4"
+if "api_key_valid" not in st.session_state:
+    st.session_state.api_key_valid = None  # Tri-state: None=unchecked, True/False
+
+
+# ── API key validation on first run ──────────────────────────────────────────
+if st.session_state.api_key_valid is None:
+    is_valid, msg = validate_api_key()
+    st.session_state.api_key_valid = is_valid
+    if not is_valid:
+        st.session_state.api_key_error = msg
 
 
 # ── Handle OAuth callback (Google redirects back with ?code=...) ─────────────
@@ -353,6 +393,13 @@ def clear_data():
     st.session_state.data_cleared = True
     st.session_state.data_source = None
 
+
+# ── API key banner (persistent, shows on every page if key is bad) ──────────
+if st.session_state.api_key_valid is False:
+    st.error(
+        f"🔑 **Gemini API Key Issue** — {st.session_state.get('api_key_error', 'Invalid key.')}"
+    )
+    st.caption("[Get a free key → Google AI Studio](https://aistudio.google.com/apikey)")
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -624,7 +671,13 @@ with summary_col2:
 st.divider()
 
 # ── Chat interface ───────────────────────────────────────────────────────────
-st.markdown("### 💬 Ask Questions")
+st.markdown(
+    '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
+    '<h3 style="margin:0;">💬 Ask Questions</h3>'
+    '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 # Display chat history
 for i, entry in enumerate(st.session_state.chat_history):
