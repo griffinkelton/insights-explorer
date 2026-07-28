@@ -1,0 +1,30 @@
+# ── Google Cloud Build CI/CD ─────────────────────────────────────────────────
+# Triggers on every push to the repo. Requires Cloud Build API enabled at:
+# https://console.cloud.google.com/cloud-build/triggers
+#
+# The build will fail if any test fails (pytest exits with non-zero).
+
+steps:
+  - name: 'python:${_PYTHON_VERSION}'
+    id: 'install-and-test'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Creating virtual environment ==="
+        python -m venv venv
+        . venv/bin/activate
+
+        echo "=== Installing dependencies ==="
+        pip install --upgrade pip --quiet
+        pip install -r requirements.txt --progress-bar off
+
+        echo "=== Running tests ==="
+        python -m pytest tests/ -v --tb=short
+
+# ── Timeout (default is 10 min — more than enough for 92 tests) ──────────────
+timeout: 600s
+
+# ── Substitutions (override via gcloud builds submit --substitutions) ────────
+substitutions:
+  _PYTHON_VERSION: '3.11'
