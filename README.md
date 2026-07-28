@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
+  <img src="https://img.shields.io/badge/tests-110%20passed-success?logo=pytest" alt="110 tests">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -14,9 +15,12 @@
 ## ✨ Features
 
 - **📂 Drag & Drop Upload** — CSV or XLSX GA4 exports with graceful column validation
+- **🔗 GA4 Live Connection** — OAuth sign-in + Analytics Data API for real-time data pulls
 - **🤖 AI Summary** — One-click plain-language overview of your entire dataset
 - **💬 Natural Language Chat** — Ask questions like *"which pages have the highest drop-off?"*
 - **📈 Auto-Chart Generation** — Bar charts, line charts, and tables generated automatically from answers
+- **⌨️ Keyboard Shortcuts** — `Cmd/Ctrl+K` to focus the chat input
+- **📚 Learn Page** — Interactive Python tutorials at `/learn`
 - **🔒 Privacy-First** — Everything stays in-memory; nothing is stored or used for training
 
 ---
@@ -67,7 +71,7 @@ Opens at **http://localhost:8501** 🎉
 python -m pytest tests/
 ```
 
-74 tests covering data loading, prompt construction, chart detection, and Gemini API error handling.
+110 tests covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, and GA4 report pulling.
 
 ---
 
@@ -75,6 +79,8 @@ python -m pytest tests/
 
 ```
 ├── app.py                      # Streamlit app (UI + orchestration)
+├── pages/
+│   └── learn.py                # Interactive Python tutorials (8 topics)
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py          # CSV/XLSX parsing, validation, stats
@@ -85,10 +91,16 @@ python -m pytest tests/
 ├── tests/
 │   ├── test_data_loader.py
 │   ├── test_prompt_templates.py
-│   └── test_gemini_client.py
+│   ├── test_gemini_client.py
+│   └── test_ga4_client.py
+├── .streamlit/
+│   └── config.toml             # Secure defaults (headless, XSRF, CORS)
+├── cloudbuild.yaml             # CI/CD — auto-run tests on push
 ├── .env.example                # API key template
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
+├── ENHANCEMENTS.md             # 25-item roadmap
+├── ARCHITECTURE.md             # Architecture & design decisions
 └── README.md
 ```
 
@@ -345,13 +357,53 @@ Your GA4 export should include columns like:
 |---|---|
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
-| Testing | pytest (74 unit tests) |
+| Auth | OAuth 2.0 + Google Analytics Data API |
+| Testing | pytest (110 unit tests) |
+| CI/CD | Google Cloud Build (`cloudbuild.yaml`) |
 | Data | Pandas |
 | Charts | Plotly |
 | Config | python-dotenv |
 
 ---
 
+## 🔒 Security
+
+| Setting | Value |
+|---|---|
+| API key | `.env` file, never committed |
+| Prompt injection | Code block & backtick stripping + security guardrails |
+| Key validation | Startup check with persistent error banner |
+| Data storage | In-memory only, wiped on "Clear Data" |
+| XSRF | Enabled via `config.toml` |
+| CORS | Disabled — localhost only |
+| Error details | Hidden — prevents source leakage |
+| Max upload | 200 MB capped |
+
+---
+
+## 📚 Learn Page
+
+Visit `/learn` in the app for interactive tutorials covering:
+
+- 🏗️ **Streamlit** — UI framework, session state, chat components
+- 🐼 **Pandas** — DataFrames, column validation, date parsing
+- 📈 **Plotly** — Line/bar charts, dark theme, chart detection
+- 🤖 **Gemini API** — Client init, prompt construction, sanitization
+- 🔐 **OAuth + GA4** — Flow diagram, auth URL, code exchange
+- 🏷️ **Type Hints** — Python 3.10+ union syntax, project usage
+- ⚡ **Caching** — `@st.cache_data` with TTL
+- 🧪 **Testing** — pytest structure, mocking patterns, edge cases
+
+---
+
 ## 📝 License
 
 MIT — experimental prototype, use at your own risk.
+
+---
+
+## 📖 Further Reading
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Full architecture, design decisions, build log
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 25-item enhancement roadmap
+- [Learn Page](http://localhost:8501/learn) — Interactive Python tutorials (app must be running)

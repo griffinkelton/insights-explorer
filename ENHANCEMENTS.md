@@ -1,6 +1,8 @@
 # 🚀 GA4 Insight Explorer — Enhancement Roadmap
 
 > 25 actionable ideas across 5 categories, grounded in the current codebase.
+>
+> ✅ = Completed &nbsp;|&nbsp; 🔲 = Available
 
 ---
 
@@ -21,10 +23,11 @@
 **How:** Add `st.multiselect` for column selection and `st.date_input` for date range filtering in an expander above the data preview. The filtered DataFrame replaces the full one in session state for all downstream operations.
 **Effort:** Medium | **Files:** `app.py` (data preview section), `utils/data_loader.py`
 
-### 4. Keyboard Shortcuts & Power-User Interactions
+### 4. Keyboard Shortcuts & Power-User Interactions ✅
 **Why:** Analysts love speed. Every click saved is friction removed.
-**How:** Bind `Cmd/Ctrl+Enter` to submit chat, `Cmd/Ctrl+K` to focus chat input, `Esc` to clear. Use a lightweight JS snippet injected via `st.markdown` that listens for keydown events and clicks Streamlit buttons or focuses inputs programmatically.
-**Effort:** Small | **Files:** `app.py` (inline JS in custom CSS block)
+**How:** Bind `Cmd/Ctrl+K` to focus chat input. Injected via JS snippet in `utils/styles.py`.
+**Effort:** Small | **Files:** `utils/styles.py`
+**Status:** ✅ Done — `Cmd/Ctrl+K` focuses the chat textarea. `Cmd+Enter` skipped (Streamlit React event system doesn't reliably pick up synthetic `dispatchEvent`).
 
 ### 5. Progressive Onboarding Tour
 **Why:** Empty states exist, but a 3-step guided tour on first visit would reduce bounce.
@@ -35,44 +38,50 @@
 
 ## 🧱 Code Enhancements
 
-### 6. Extract CSS to a Dedicated Stylesheet
+### 6. Extract CSS to a Dedicated Stylesheet ✅
 **Why:** The 200-line `st.markdown("<style>...")` block clutters `app.py` and is hard to maintain.
-**How:** Create `utils/styles.py` with a function `inject_custom_css()` that reads from a `.css` file or returns the style string. Call it once in `app.py`. Bonus: use Streamlit's native `[theme]` config in `.streamlit/config.toml` for base colors.
-**Effort:** Small | **Files:** New `utils/styles.py`, `app.py`
+**How:** Created `utils/styles.py` with `inject_custom_css()` function. Called once in `app.py`.
+**Effort:** Small | **Files:** `utils/styles.py`, `app.py`
+**Status:** ✅ Done — CSS theme + keyboard shortcut JS extracted to `utils/styles.py`.
 
-### 7. Add Full Type Hints Throughout
-**Why:** `_generate_chart`, `_find_column`, `_find_date_column`, and the callback functions all lack type annotations. This makes the codebase harder to maintain and loses IDE autocompletion.
-**How:** Add `mypy` to dev dependencies and annotate every function signature. Example: `def _generate_chart(df: pd.DataFrame, chart_config: dict[str, str], ...) -> dict[str, Any] | None:`.
-**Effort:** Small | **Files:** `app.py`, `utils/*.py`, new `mypy.ini`
+### 7. Add Full Type Hints Throughout ✅
+**Why:** Functions lacked type annotations, making the codebase harder to maintain.
+**How:** Added `X | None` (Python 3.10+ union syntax) to all function signatures in `app.py`, `utils/data_loader.py`, `utils/prompt_templates.py`, `utils/ga4_client.py`, and `utils/styles.py`.
+**Effort:** Small | **Files:** All `.py` files
+**Status:** ✅ Done — all functions across the codebase are fully typed.
 
-### 8. Unit Test Suite with pytest
-**Why:** Zero tests exist. Chart detection, data loading, prompt construction, and error handling all need coverage.
-**How:** Create `tests/` with `test_data_loader.py`, `test_prompt_templates.py`, `test_gemini_client.py`. Mock the Gemini API. Use `pytest` and `pytest-cov`. Add `python -m pytest` to CI.
-**Effort:** Medium | **Files:** New `tests/` directory, `requirements.txt` (add `pytest`)
+### 8. Unit Test Suite with pytest ✅
+**Why:** Zero tests existed initially. Chart detection, data loading, prompt construction, error handling, OAuth flow — all needed coverage.
+**How:** Created `tests/` with 4 test modules totalling 110 tests using `pytest` + `unittest.mock`. Mocked Gemini API, GA4 Data API, OAuth Flow, and token refresh.
+**Effort:** Medium | **Files:** `tests/` directory, `requirements.txt` (added `pytest`)
+**Status:** ✅ Done — 110 tests across `test_data_loader.py` (20), `test_prompt_templates.py` (58), `test_gemini_client.py` (14), `test_ga4_client.py` (18).
 
 ### 9. Refactor app.py into Modular Components
 **Why:** At ~400 lines, `app.py` mixes concerns: CSS, session state, file processing, UI rendering, chart generation. As features grow, this becomes unmanageable.
 **How:** Split into: `utils/styles.py` (CSS), `utils/session.py` (session state init + clear_data), `components/sidebar.py`, `components/hero.py`, `components/data_preview.py`, `components/chat.py`, `utils/charts.py` (the `_generate_chart` helpers).
 **Effort:** High | **Files:** New `components/` package, refactored `app.py`
 
-### 10. Use Streamlit's Native Caching
-**Why:** `get_dataset_stats` and `build_chat_prompt` run on every rerun even if the underlying DataFrame hasn't changed.
-**How:** Decorate `get_dataset_stats` with `@st.cache_data(ttl=300)` and similarly cache prompt construction where appropriate. This prevents redundant computation during Streamlit's reactive rerender cycle.
+### 10. Use Streamlit's Native Caching ✅
+**Why:** `get_dataset_stats` and `build_summary_prompt` ran on every rerun.
+**How:** Decorated `validate_columns` (600s TTL), `get_dataset_stats` (600s TTL), and `build_summary_prompt` (300s TTL) with `@st.cache_data`. `build_chat_prompt` intentionally not cached — unique input every call.
 **Effort:** Small | **Files:** `utils/data_loader.py`, `utils/prompt_templates.py`
+**Status:** ✅ Done — three functions cached with appropriate TTLs.
 
 ---
 
 ## 🔒 Security Enhancements
 
-### 11. API Key Validation on Startup
-**Why:** Currently, users only discover a bad/missing key when they click "Generate Summary" or send a chat — a poor experience.
-**How:** On app startup (before rendering), call a lightweight Gemini endpoint (e.g., `models.list`) to validate the key. If invalid, show a persistent banner with a link to Google AI Studio. Use `st.session_state.api_key_valid` to control downstream behavior.
+### 11. API Key Validation on Startup ✅
+**Why:** Users only discovered a bad key when clicking "Generate Summary."
+**How:** `validate_api_key()` calls `client.models.list()` on first load. If invalid, a persistent `st.error()` banner shows with a link to Google AI Studio.
 **Effort:** Small | **Files:** `utils/gemini_client.py`, `app.py`
+**Status:** ✅ Done — startup validation with persistent error banner + Google AI Studio link.
 
-### 12. Prompt Injection Mitigation
-**Why:** User input is embedded directly into prompts sent to Gemini. A malicious user could inject instructions like `"Ignore previous instructions and..."` that alter Gemini's behavior or leak data context.
-**How:** Sanitize user questions before embedding — strip markdown delimiters, wrap the question in clear boundaries (`USER QUESTION:\n"""\n{user_question}\n"""`), and add a system instruction that the assistant must only respond about the provided data. Already partially done in `build_chat_prompt` but could be tightened.
-**Effort:** Small | **Files:** `utils/prompt_templates.py`
+### 12. Prompt Injection Mitigation ✅
+**Why:** User input embedded directly into prompts — vulnerable to injection.
+**How:** `_sanitize_question()` strips code blocks, backticks, and collapses newlines. Chat prompt wraps question in `"""..."""` delimiters with a `⚠️ SECURITY` guardrail instruction. 18 unit tests cover sanitization edge cases.
+**Effort:** Small | **Files:** `utils/prompt_templates.py`, `tests/test_prompt_templates.py`
+**Status:** ✅ Done — sanitization + guardrails + 18 tests.
 
 ### 13. File Size & Row Limits
 **Why:** No guardrail exists against a 10GB CSV or a file with 50M rows that would exhaust memory and crash the app (or the server).
@@ -84,10 +93,11 @@
 **How:** Track `st.session_state.last_api_call` timestamp. If the user submits another question within 2 seconds, show a "Please wait..." toast and reject. Also add a visible API call counter in the sidebar footer.
 **Effort:** Small | **Files:** `app.py` (chat input handler)
 
-### 15. Secure Streamlit Configuration
-**Why:** Streamlit's default config exposes the app on all network interfaces (`server.address=0.0.0.0`) and enables file watcher, which could be security risks in shared environments.
-**How:** Create `.streamlit/config.toml` with `server.headless = true`, `browser.gatherUsageStats = false`, and `server.enableXsrfProtection = true`. Add `server.maxUploadSize = 100` (MB). Document in README.
-**Effort:** Small | **Files:** New `.streamlit/config.toml`, `README.md`
+### 15. Secure Streamlit Configuration ✅
+**Why:** Streamlit's defaults expose the app on all network interfaces and enable telemetry.
+**How:** Created `.streamlit/config.toml` with `headless=true`, `enableXsrfProtection=true`, `enableCORS=false`, `address=localhost`, `gatherUsageStats=false`, `showErrorDetails=false`, `toolbarMode=minimal`, `maxUploadSize=200`.
+**Effort:** Small | **Files:** `.streamlit/config.toml`
+**Status:** ✅ Done — 8 security settings locked down.
 
 ---
 
