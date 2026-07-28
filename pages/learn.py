@@ -2,11 +2,16 @@
 
 import streamlit as st
 
+from utils.styles import inject_favicon_meta
+
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Learn · GA4 Insight Explorer",
-    page_icon="📚",
+    page_icon="assets/favicon.ico",
 )
+
+# ── Favicon meta tags ────────────────────────────────────────────────────────
+inject_favicon_meta()
 
 # ── Custom CSS ───────────────────────────────────────────────────────────────
 st.markdown("""

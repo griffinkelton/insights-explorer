@@ -19,7 +19,7 @@ from utils.ga4_client import (
     credentials_from_dict,
     pull_ga4_report,
 )
-from utils.styles import inject_custom_css
+from utils.styles import inject_custom_css, inject_favicon_meta
 from utils.error_boundary import render_error_card
 
 # OAuth redirect URI — must match what's registered in GCP Console
@@ -28,13 +28,14 @@ REDIRECT_URI = "http://localhost:8501"
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="GA4 Insight Explorer",
-    page_icon="📊",
+    page_icon="assets/favicon.ico",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS & JS (extracted to utils/styles.py) ────────────────────────────
+# ── Custom CSS, JS & favicon (extracted to utils/styles.py) ──────────────────
 inject_custom_css()
+inject_favicon_meta()
 
 # ── Session state initialization ─────────────────────────────────────────────
 if "df" not in st.session_state:

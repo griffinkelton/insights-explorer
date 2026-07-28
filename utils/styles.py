@@ -1,6 +1,45 @@
-"""Custom CSS and JS injection for the GA4 Insight Explorer UI."""
+"""Custom CSS, JS, and favicon injection for the GA4 Insight Explorer UI."""
 
 import streamlit as st
+
+
+def inject_favicon_meta() -> None:
+    """Inject favicon, Apple Touch Icon, and Open Graph meta tags into the page head.
+
+    Call this once per page after st.set_page_config().
+
+    Note: The HTML <link> tags here will 404 in local dev mode
+    (streamlit run) because Streamlit doesn't serve arbitrary static
+    files — only st.set_page_config(page_icon=...) works locally via
+    base64 encoding. The HTML tags activate in production behind
+    nginx, Cloud Run, or any proper static file server.
+    """
+    st.markdown(
+        """
+    <!-- Favicon (standard + retina) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16x16.png">
+    <link rel="shortcut icon" href="/assets/favicon.ico">
+
+    <!-- Apple Touch Icon (iOS home screen) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-180x180.png">
+
+    <!-- Android / PWA -->
+    <link rel="manifest" href="/assets/site.webmanifest">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Open Graph / Social Share -->
+    <meta property="og:title" content="GA4 Insight Explorer">
+    <meta property="og:description" content="Analyze GA4 data with natural language — powered by Gemini AI">
+    <meta property="og:image" content="/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def inject_custom_css() -> None:
