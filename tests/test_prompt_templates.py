@@ -157,12 +157,27 @@ class TestBuildChatPrompt:
         assert "/page1" in prompt or "/page01" in prompt
 
     def test_handles_empty_dataframe(self):
-        """Edge case: empty DataFrame should not crash."""
+        """Edge case: empty DataFrame (0 columns, 0 rows) should not crash."""
         df = pd.DataFrame()
         stats = {"row_count": 0, "columns": []}
         prompt = build_chat_prompt("test", df, stats)
         assert "test" in prompt
         assert "Total rows: 0" in prompt
+
+    def test_handles_empty_numeric_dataframe(self):
+        """Edge case: DataFrame with numeric columns but 0 rows.
+        Hits the df.describe() path — pandas handles this gracefully."""
+        df = pd.DataFrame({
+            "sessions": pd.Series(dtype="int64"),
+            "users": pd.Series(dtype="int64"),
+        })
+        stats = {"row_count": 0, "columns": ["sessions", "users"]}
+        prompt = build_chat_prompt("how many sessions?", df, stats)
+        # Should not crash and should include numeric summary area
+        assert "how many sessions?" in prompt
+        assert "Total rows: 0" in prompt
+        # describe() on empty numeric df returns an empty DataFrame string
+        assert "NUMERIC COLUMN STATISTICS" in prompt
 
 
 # ── detect_chart_request tests ───────────────────────────────────────────────
