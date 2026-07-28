@@ -570,4 +570,19 @@
 
 ---
 
+---
+
+### v1.5.0 — Google Drive File Picker (2026-07-28)
+- **NEW**: `utils/drive_client.py` — list, download, and load Drive CSV/Sheets as DataFrames
+- **NEW**: `tests/test_drive_client.py` — 4 tests (list, export, token refresh, bad file)
+- **CHANGED**: `utils/ga4_client.py` — added `drive.readonly` OAuth scope
+- **CHANGED**: `components/sidebar.py` — `_render_drive_picker()` with file ID-based selectbox, 🔄 refresh button, BUG-005 compliant
+- **CHANGED**: `components/sidebar.py` — extracted `_populate_data_state()` shared helper (eliminates triplicated 8-line blocks across upload/GA4/Drive paths)
+- **CHANGED**: `app.py` — added `drive_files_cache` session state
+- **CHANGED**: `requirements.txt` — added `google-api-python-client>=2.0.0`
+- **CHANGED**: `tests/test_sidebar.py` — structural test for `_render_drive_picker()`
+- 236 tests (was 231) | Bug fix: upload path now correctly sets `data_source` + clears `summary`/`chat_history` on reload
+
+---
+
 *This changelog will be updated as each batch from the P1-P3 sprint is completed. Each completed item will be marked with its commit hash, date, files changed, and test impact.*

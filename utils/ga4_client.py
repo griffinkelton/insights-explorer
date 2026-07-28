@@ -14,8 +14,11 @@ from google.analytics.data_v1beta.types import (
     RunReportRequest,
 )
 
-# OAuth scopes — read-only Analytics access
-SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
+# OAuth scopes — read-only Analytics + Drive access (Drive file picker)
+SCOPES = [
+    "https://www.googleapis.com/auth/analytics.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+]
 
 # Path to client secret JSON file for OAuth (downloaded from GCP Console)
 CLIENT_SECRETS_FILE = os.getenv(

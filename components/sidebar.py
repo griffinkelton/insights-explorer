@@ -4,10 +4,37 @@ import os
 import pandas as pd
 import streamlit as st
 from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality
+from utils.drive_client import list_drive_files, load_drive_file_as_df
 from utils.ga4_client import get_auth_url, credentials_from_dict, pull_ga4_report
 from utils.session import clear_data
 
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
+
+
+def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> None:
+    """Populate session state with loaded data — shared by upload, GA4, and Drive paths.
+
+    Args:
+        df: The loaded DataFrame.
+        source: "file", "ga4", or "drive".
+        missing: List of expected-but-missing column names.
+    """
+    date_cols = [c for c in df.columns if "date" in c.lower()]
+    if date_cols:
+        try:
+            df[date_cols[0]] = pd.to_datetime(df[date_cols[0]], errors="coerce")
+        except Exception:
+            pass
+
+    st.session_state.df = df
+    st.session_state.missing_columns = missing
+    st.session_state.stats = get_dataset_stats(df)
+    st.session_state.stats["missing_columns"] = missing
+    st.session_state.quality_report = assess_data_quality(df, missing)
+    st.session_state.summary = None
+    st.session_state.chat_history = []
+    st.session_state.data_source = source
+    st.session_state.data_cleared = False
 
 
 def render_sidebar() -> None:
@@ -18,6 +45,7 @@ def render_sidebar() -> None:
         uploaded_file = _render_file_uploader()
         st.divider()
         _render_ga4_connect()
+        _render_drive_picker()
         st.divider()
         _render_privacy_notice()
         _render_clear_button()
@@ -120,15 +148,7 @@ def _render_ga4_connect() -> None:
                                 if missing:
                                     st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
 
-                                st.session_state.df = df
-                                st.session_state.missing_columns = missing
-                                st.session_state.stats = get_dataset_stats(df)
-                                st.session_state.stats["missing_columns"] = missing
-                                st.session_state.quality_report = assess_data_quality(df, missing)
-                                st.session_state.summary = None
-                                st.session_state.chat_history = []
-                                st.session_state.data_source = "ga4"
-                                st.session_state.data_cleared = False
+                                _populate_data_state(df, "ga4", missing)
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Failed to pull GA4 data: {e}")
@@ -138,6 +158,7 @@ def _render_ga4_connect() -> None:
                 st.session_state.ga4_creds = None
                 st.session_state.ga4_auth_flow = None
                 st.session_state.ga4_property_id = ""
+                st.session_state.drive_files_cache = None
                 if st.session_state.data_source == "ga4":
                     clear_data()
                 st.rerun()
@@ -209,6 +230,77 @@ def _render_learn_link() -> None:
     )
 
 
+def _render_drive_picker() -> None:
+    """Render the Google Drive file picker (only when authenticated)."""
+    if st.session_state.ga4_creds is None:
+        return
+
+    st.divider()
+
+    # Header row with refresh button
+    col_hdr, col_btn = st.columns([5, 1])
+    with col_hdr:
+        st.markdown("**📂 Google Drive**")
+    with col_btn:
+        if st.button("🔄", key="drive_refresh", help="Refresh file list"):
+            st.session_state.drive_files_cache = None
+            st.rerun()
+
+    creds = credentials_from_dict(st.session_state.ga4_creds)
+
+    # Cache the file list to avoid re-fetching on every rerun
+    if st.session_state.get("drive_files_cache") is None:
+        with st.spinner("Loading Drive files..."):
+            try:
+                files = list_drive_files(
+                    creds,
+                    ["text/csv", "application/vnd.google-apps.spreadsheet"],
+                )
+                st.session_state.drive_files_cache = files
+            except Exception as e:
+                st.error(f"Drive error: {e}")
+                return
+
+    files = st.session_state.drive_files_cache
+
+    if not files:
+        st.caption("No CSV files or Google Sheets found in your Drive.")
+        return
+
+    # File selector — display names, store IDs via format_func
+    file_map = {f["id"]: f["name"] for f in files}
+    selected_id = st.selectbox(
+        "Select a file",
+        options=list(file_map.keys()),
+        format_func=lambda fid: file_map[fid],
+        key="drive_file_select",
+    )
+
+    # Find selected file metadata
+    selected_file = next(f for f in files if f["id"] == selected_id)
+
+    # Load button
+    if st.button("📥 Load from Drive", use_container_width=True):
+        with st.spinner(f"Loading {selected_file['name']}..."):
+            df, error = load_drive_file_as_df(
+                creds,
+                selected_file["id"],
+                selected_file["mime_type"],
+            )
+
+        if error:
+            st.error(error)
+        else:
+            missing = validate_columns(df)
+            if missing:
+                st.warning(
+                    f"⚠️ Missing expected columns: {', '.join(missing)}. "
+                    "Some features may be limited."
+                )
+            _populate_data_state(df, "drive", missing)
+            st.rerun()
+
+
 def _process_uploaded_file(uploaded_file) -> None:
     """Parse uploaded file and populate session state."""
     file_id = f"{uploaded_file.name}-{uploaded_file.size}"
@@ -244,17 +336,5 @@ def _process_uploaded_file(uploaded_file) -> None:
                 "Some features may be limited."
             )
 
-        date_cols = [c for c in df.columns if "date" in c.lower()]
-        if date_cols:
-            try:
-                df[date_cols[0]] = pd.to_datetime(df[date_cols[0]], errors="coerce")
-            except Exception:
-                pass
-
-        st.session_state.df = df
-        st.session_state.missing_columns = missing
-        st.session_state.stats = get_dataset_stats(df)
-        st.session_state.stats["missing_columns"] = missing
-        st.session_state.quality_report = assess_data_quality(df, missing)
-        st.session_state.data_cleared = False
+        _populate_data_state(df, "file", missing)
         st.session_state.last_file_id = file_id

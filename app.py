@@ -58,6 +58,8 @@ if "filtered_df" not in st.session_state:
     st.session_state.filtered_df = None
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"
+if "drive_files_cache" not in st.session_state:
+    st.session_state.drive_files_cache = None
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:

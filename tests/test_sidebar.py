@@ -48,6 +48,11 @@ class TestSidebarStructure:
             "BUG-005: on_click= anti-pattern in _render_clear_button"
         )
 
+    def test_has_drive_picker_function(self):
+        """Drive picker: _render_drive_picker must exist in sidebar."""
+        source = open(MODULE).read()
+        assert "def _render_drive_picker()" in source
+
     def test_clear_data_uses_button_if_pattern(self):
         """Clear Data must use `if st.button(...)` pattern per BUG-005."""
         source = open(MODULE).read()
