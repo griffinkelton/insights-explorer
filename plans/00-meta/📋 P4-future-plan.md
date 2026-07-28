@@ -128,7 +128,7 @@ Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p
 
 **From:** IMPLEMENTATION_PLAN.md #18, 📋 UNIFIED_PLAN.md P3, ENHANCEMENTS.md #6
 
-**Detailed plan:** [plans/p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md)
+**Detailed plan:** [plans/p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md)
 
 **What:** Sidebar toggle swapping ~80 CSS custom properties between dark and light palettes. JS snippet syncs `document.documentElement.dataset.theme` with `st.session_state.theme`. Plotly chart templates swap between `plotly_dark` and `plotly_light`.
 
@@ -340,7 +340,7 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source 21-item plan
 - [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
+- [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)

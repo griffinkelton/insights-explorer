@@ -30,7 +30,7 @@
 - Hero gradient: darker purples in light mode for contrast
 - Learn page styles: concept cards/tips/tabs use CSS variables
 
-**Related:** [plans/p3-p4/🔵 THEME_TOGGLE.md](plans/p3-p4/🔵 THEME_TOGGLE.md), [plans/00-sprints/theme-toggle-spec.md](plans/00-sprints/theme-toggle-spec.md)
+**Related:** [plans/p3-p4/✅ THEME_TOGGLE.md](plans/p3-p4/✅ THEME_TOGGLE.md), [plans/00-sprints/✅ theme-toggle-spec.md](plans/00-sprints/✅ theme-toggle-spec.md)
 
 ---
 
@@ -56,7 +56,7 @@
 - Widget key audit: all 4 keys unique, no collisions
 - Test coverage: 194 → 228 (34 new tests across 8 modules)
 
-**Related:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md), [plans/00-sprints/component-refactor-spec.md](plans/00-sprints/component-refactor-spec.md)
+**Related:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md), [plans/00-sprints/✅ component-refactor-spec.md](plans/00-sprints/✅ component-refactor-spec.md)
 
 ---
 

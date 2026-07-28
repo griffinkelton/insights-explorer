@@ -1,6 +1,6 @@
 # 🌓 Theme Toggle — Implementation Spec
 
-> **Source plan:** [plans/p3-p4/🔵 THEME_TOGGLE.md](../p3-p4/🔵 THEME_TOGGLE.md)
+> **Source plan:** [plans/p3-p4/✅ THEME_TOGGLE.md](../p3-p4/✅ THEME_TOGGLE.md)
 > **Status:** ✅ Done (4 phases, 231 tests, 2026-07-28)
 > **Effort:** 2-3 days (reduced from 3-5 due to component refactor) | **Risk:** Medium
 > **Based on:** 3 rounds of user interviews (2026-07-28), component refactor already complete
@@ -369,4 +369,4 @@ st.plotly_chart(
 
 ---
 
-*Spec derived from 3 interview rounds (2026-07-28), the original [p3-p4/🔵 THEME_TOGGLE.md](../p3-p4/🔵 THEME_TOGGLE.md), the post-refactor component structure, and analysis of `utils/styles.py` (already has CSS variables).*
+*Spec derived from 3 interview rounds (2026-07-28), the original [p3-p4/✅ THEME_TOGGLE.md](../p3-p4/✅ THEME_TOGGLE.md), the post-refactor component structure, and analysis of `utils/styles.py` (already has CSS variables).*

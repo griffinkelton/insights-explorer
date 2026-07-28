@@ -38,7 +38,7 @@ From the analysis:
 
 **Risk:** High effort for polish | **Effort:** 3-5 days | **Files:** `utils/styles.py`, `app.py`, `pages/learn.py`
 
-**Detailed plan:** [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md)
+**Detailed plan:** [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md)
 
 ### What
 
@@ -214,7 +214,7 @@ Batch F — AI/Data Complex (~10-15 hrs):
 
 - [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — Current sprint (must complete first)
 - [P4 future plan](📋 P4-future-plan.md) — Original future-phase plan this derives from
-- [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
+- [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
