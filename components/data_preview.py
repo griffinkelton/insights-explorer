@@ -2,8 +2,11 @@
 
 import pandas as pd
 import streamlit as st
-from utils.charts import find_date_column
-from utils.data_loader import filter_dataframe
+from utils.charts import find_date_column, find_column
+from utils.data_loader import (
+    filter_dataframe, detect_column_types, ColumnType,
+    smart_sample, detect_anomalies,
+)
 
 
 def render_data_preview() -> None:
@@ -29,11 +32,48 @@ def render_data_preview() -> None:
 
     # ── Preview table ────────────────────────────────────────────────────
     with st.expander("🔍 Preview Table (first 10 rows)", expanded=False):
-        st.dataframe(display_df.head(10), use_container_width=True)
+        st.dataframe(smart_sample(display_df, max_rows=10), use_container_width=True)
+
+    # ── Column type badges ───────────────────────────────────────────────
+    if st.session_state.df is not None and not st.session_state.df.empty:
+        col_types = detect_column_types(display_df)
+        badge_css = {
+            ColumnType.DATE:        ("col-date",      "📅"),
+            ColumnType.NUMERIC:     ("col-numeric",   "🔢"),
+            ColumnType.CATEGORICAL: ("col-category",  "🏷️"),
+            ColumnType.TEXT:        ("col-text",      "📝"),
+        }
+        badges = " ".join(
+            f'<span class="col-badge {badge_css[t][0]}">{badge_css[t][1]} {col}</span>'
+            for col, t in col_types.items()
+        )
+        st.markdown(
+            f'<div style="margin:0.5rem 0;">{badges}</div>',
+            unsafe_allow_html=True,
+        )
 
     # ── Data quality scorecard ───────────────────────────────────────────
     if st.session_state.get("quality_report"):
         _render_quality_scorecard(st.session_state.quality_report)
+
+    # ── Anomaly detection table ──────────────────────────────────────────
+    if st.session_state.df is not None:
+        date_col = find_date_column(st.session_state.df)
+        metric_col = find_column(st.session_state.df, ["sessions", "users"])
+        if date_col and metric_col and len(st.session_state.df) >= 7:
+            anomaly_df = detect_anomalies(st.session_state.df, date_col, metric_col)
+            anomalies = anomaly_df[anomaly_df["is_anomaly"]]
+            if not anomalies.empty:
+                with st.expander(
+                    f"⚠️ {len(anomalies)} Anomalies Detected ({metric_col})",
+                    expanded=False,
+                ):
+                    st.dataframe(
+                        anomalies[[date_col, metric_col, "z_score"]]
+                        .sort_values("z_score", key=abs, ascending=False)
+                        .head(20),
+                        use_container_width=True,
+                    )
 
     st.markdown("<br>", unsafe_allow_html=True)
 

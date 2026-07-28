@@ -3,7 +3,7 @@
 import os
 import pandas as pd
 import streamlit as st
-from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality
+from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality, detect_column_types, ColumnType
 from utils.drive_client import list_drive_files, load_drive_file_as_df
 from utils.ga4_client import get_auth_url, credentials_from_dict, pull_ga4_report
 from utils.session import clear_data
@@ -49,6 +49,7 @@ def render_sidebar() -> None:
         st.divider()
         _render_privacy_notice()
         _render_clear_button()
+        _render_compare_controls()
         _render_api_counter()
         _render_learn_link()
         _render_theme_toggle()
@@ -228,6 +229,40 @@ def _render_learn_link() -> None:
         icon="📚",
         help="Interactive tutorials on Streamlit, Pandas, Plotly, Gemini, and more",
     )
+
+
+def _render_compare_controls() -> None:
+    """Render the Compare mode toggle + dimension/value selectors."""
+    if st.session_state.df is None:
+        return
+
+    st.divider()
+    compare_mode = st.toggle("🔬 Compare Mode", value=False, key="compare_mode")
+
+    if compare_mode:
+        col_types = detect_column_types(st.session_state.df)
+        categorical_cols = [
+            c for c, t in col_types.items()
+            if t in (ColumnType.CATEGORICAL, ColumnType.TEXT)
+        ]
+        if categorical_cols:
+            dimension = st.selectbox(
+                "Split by", categorical_cols, key="compare_dimension"
+            )
+            unique_vals = sorted(
+                st.session_state.df[dimension].dropna().unique().tolist()
+            )
+            if len(unique_vals) >= 2:
+                val_a = st.selectbox("Value A", unique_vals, key="compare_val_a")
+                val_b = st.selectbox(
+                    "Value B",
+                    [v for v in unique_vals if v != val_a],
+                    key="compare_val_b",
+                )
+            else:
+                st.caption("Need ≥2 unique values in the selected dimension.")
+        else:
+            st.caption("No categorical columns available for comparison.")
 
 
 def _render_drive_picker() -> None:

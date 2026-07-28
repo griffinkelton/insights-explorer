@@ -363,6 +363,20 @@ def inject_custom_css(theme: str = "dark") -> None:
         font-family: 'Inter', monospace;
     }}
 
+    /* ── Column type badges ── */
+    .col-badge {{
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        margin: 0 4px 4px 0;
+        font-weight: 600;
+    }}
+    .col-date {{ background: rgba(99, 102, 241, 0.12); color: var(--accent-hover); }}
+    .col-numeric {{ background: rgba(52, 211, 153, 0.12); color: var(--success); }}
+    .col-category {{ background: rgba(251, 191, 36, 0.12); color: var(--warning); }}
+    .col-text {{ background: rgba(152, 152, 176, 0.12); color: var(--text-muted); }}
+
     /* ── Learn page: concept cards ── */
     .concept-card {{
         background: var(--bg-card);

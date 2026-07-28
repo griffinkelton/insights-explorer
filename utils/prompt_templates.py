@@ -1,9 +1,11 @@
 """Prompt construction for Gemini interactions."""
 
 from typing import Any
+import json
 import re
 import pandas as pd
 import streamlit as st
+from utils.data_loader import smart_sample, detect_anomalies, find_date_column
 
 
 def _sanitize_question(question: str) -> str:
@@ -48,7 +50,7 @@ def build_summary_prompt(
         )
 
     # Sample the first few rows for context (compact representation)
-    sample_rows = df.head(5).to_string(index=False)
+    sample_rows = smart_sample(df, max_rows=5).to_string(index=False)
 
     prompt = f"""You are a data analyst assistant. Summarize the following GA4 dataset in plain language.
 
@@ -119,7 +121,7 @@ def build_chat_prompt(
 
     # Top 10 rows (or fewer if the dataset is small)
     sample_size = min(10, len(df))
-    sample = df.head(sample_size).to_string(index=False)
+    sample = smart_sample(df, max_rows=10).to_string(index=False)
 
     # Column list
     columns_str = ", ".join(df.columns.tolist())
@@ -177,29 +179,52 @@ def build_chat_prompt(
         f"- If the sample size is small, mention that conclusions may not "
         f"be statistically significant.\n"
         f"- Suggest a follow-up question the user might find helpful.\n"
+        f"- After your answer, if a chart would help, append exactly:\n"
+        f"  [CHART:{{\"type\":\"line\",\"x\":\"date\",\"y\":\"sessions\","
+        f"\"title\":\"Sessions Over Time\"}}]\n"
+        f"  Valid types: line, bar. x and y are column names from the data.\n"
+        f"  If no chart would help, omit this entirely.\n"
     )
     return prompt
 
 
 def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
-    """Heuristically detect if a Gemini response suggests a chart-able metric.
+    """Parse [CHART:{json}] token from Gemini response, with keyword fallbacks.
 
-    Returns a dict with chart config if detected, or None.
-    Looks for keywords suggesting: time-series trends, top-N comparisons,
-    metric breakdowns, or explicit comparisons.
+    Tries JSON config first (Gemini-suggested). Falls back to keyword
+    heuristics for backward compatibility with older-style responses.
+    Returns dict with chart config or None.
     """
+    if gemini_response is None:
+        return None
+
+    # Try JSON config first
+    json_match = re.search(r'\[CHART:(\{.*?\})\]', gemini_response)
+    if json_match:
+        try:
+            config = json.loads(json_match.group(1))
+            if "type" in config and "y" in config:
+                return {
+                    "chart_type": config["type"],
+                    "x": config.get("x", ""),
+                    "y": config["y"],
+                    "title": config.get("title", ""),
+                    "method": "gemini_json",
+                }
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Fallback: keyword heuristics (backward compatible)
     text_lower = gemini_response.lower()
 
-    # Time-series / trend indicators
     time_phrases = [
         "over time", "trend", "over the period", "day", "week", "month",
         "per day", "daily", "by date", "timeline", "increase", "decrease",
         "growing", "declining", "spike", "drop", "sessions over",
     ]
     if any(phrase in text_lower for phrase in time_phrases):
-        return {"chart_type": "line", "reason": "trend"}
+        return {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
-    # Ranking / comparison indicators
     rank_phrases = [
         "top 5", "top 10", "top", "highest", "lowest", "most", "least",
         "ranking", "ranked", "top pages", "breakdown", "compare",
@@ -207,6 +232,27 @@ def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
         "by channel", "by device",
     ]
     if any(phrase in text_lower for phrase in rank_phrases):
-        return {"chart_type": "bar", "reason": "ranking"}
+        return {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     return None
+
+
+def build_comparison_prompt(
+    question: str,
+    df_a: pd.DataFrame,
+    df_b: pd.DataFrame,
+    label_a: str,
+    label_b: str,
+    stats: dict[str, Any],
+) -> str:
+    """Build a comparison prompt for side-by-side analysis."""
+    sanitized = _sanitize_question(question)
+    return (
+        f"Compare {label_a} vs {label_b} for: {sanitized}\n\n"
+        f"{label_a} ({len(df_a)} rows):\n"
+        f"{smart_sample(df_a, max_rows=10).to_string()}\n\n"
+        f"{label_b} ({len(df_b)} rows):\n"
+        f"{smart_sample(df_b, max_rows=10).to_string()}\n\n"
+        f"Provide a comparison with specific numbers and percentages. "
+        f"Highlight the largest differences and any actionable insights."
+    )

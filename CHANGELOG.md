@@ -585,4 +585,20 @@
 
 ---
 
+### v1.6.0 — AI & Data Processing Enhancements (2026-07-28)
+- **21d**: Column type detection — `detect_column_types()` + colored badges (📅🔢🏷️📝) in data preview
+- **21f**: Smart sampling — `smart_sample()` with stratified weekly sampling, replaces `head()` everywhere
+- **21a+b**: Chart JSON detection — `[CHART:{json}]` token in prompts, JSON-first `detect_chart_request()` with keyword fallback + retry logic
+- **21e**: Anomaly detection — 7-day rolling Z-score, collapsible anomaly table, red X markers on charts
+- **21c**: Comparative mode — sidebar toggle, dual-panel charts, `build_comparison_prompt()`
+- **CHANGED**: `utils/charts.py` — imports `find_date_column` from `utils/data_loader` (canonical source)
+- **CHANGED**: `utils/prompt_templates.py` — chart instruction in chat prompt, JSON + keyword hybrid detection
+- **CHANGED**: `components/chat.py` — CHART token stripping (post-detection), retry Gemini call, compare mode dual charts
+- **CHANGED**: `components/sidebar.py` — `_render_compare_controls()` between Clear Data and API counter
+- **CHANGED**: `app.py` — 5 compare mode session state variables
+- **CHANGED**: `utils/styles.py` — `.col-badge` CSS for type badges
+- 239 tests (was 236) | +3 JSON chart detection tests, updated 15 keyword tests with `method` tag
+
+---
+
 *This changelog will be updated as each batch from the P1-P3 sprint is completed. Each completed item will be marked with its commit hash, date, files changed, and test impact.*

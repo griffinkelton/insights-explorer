@@ -1,6 +1,7 @@
 """GA4 data loading, validation, and preview utilities."""
 
 from dataclasses import dataclass
+from enum import Enum
 from io import BytesIO
 from typing import Any
 import pandas as pd
@@ -262,6 +263,109 @@ def _calculate_grade(
     )
 
     return grade, warnings
+
+
+def find_date_column(df: pd.DataFrame) -> str | None:
+    """Find the best date column in the DataFrame. Lives here as the canonical
+    version; charts.py imports from here to avoid data→presentation coupling.
+    """
+    date_candidates = ["date", "day", "date_time", "timestamp"]
+    df_cols_lower = {c.lower().strip(): c for c in df.columns}
+    for candidate in date_candidates:
+        if candidate in df_cols_lower:
+            return df_cols_lower[candidate]
+    for col in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            return col
+    return None
+
+
+class ColumnType(Enum):
+    DATE = "date"
+    NUMERIC = "numeric"
+    CATEGORICAL = "categorical"
+    TEXT = "text"
+
+
+def detect_column_types(df: pd.DataFrame) -> dict[str, ColumnType]:
+    """Classify each column by type. Returns {column_name: ColumnType}.
+
+    Uses select_dtypes (not is_string_dtype — removed in pandas 3.0).
+    """
+    types: dict[str, ColumnType] = {}
+    for col in df.columns:
+        if "date" in col.lower() or "time" in col.lower() or "day" in col.lower():
+            types[col] = ColumnType.DATE
+            continue
+        if pd.api.types.is_numeric_dtype(df[col]):
+            types[col] = ColumnType.NUMERIC
+            continue
+        # String/object detection (pandas 3.0 compatible)
+        if col in df.select_dtypes(include=["object", "string"]).columns:
+            unique_count = df[col].nunique()
+            total_count = len(df)
+            if unique_count < total_count * 0.2 and unique_count < 100:
+                types[col] = ColumnType.CATEGORICAL
+            else:
+                types[col] = ColumnType.TEXT
+            continue
+        types[col] = ColumnType.TEXT
+    return types
+
+
+def smart_sample(df: pd.DataFrame, max_rows: int = 50) -> pd.DataFrame:
+    """Return a representative sample. Small datasets return all rows.
+
+    Uses stratified weekly sampling for large datasets with a date column.
+    Falls back to random sampling otherwise. Deterministic (random_state=42).
+    """
+    n = len(df)
+    if n <= max_rows:
+        return df
+    if n <= 10_000:
+        return df.head(max_rows)
+    # Large dataset: stratified sampling by date if possible
+    date_col = find_date_column(df)
+    if date_col:
+        df_copy = df.copy()
+        df_copy[date_col] = pd.to_datetime(df_copy[date_col], errors="coerce")
+        df_copy["_week"] = df_copy[date_col].dt.to_period("W")
+        weeks = max(df_copy["_week"].nunique(), 1)
+        sample = df_copy.groupby("_week", group_keys=False).apply(
+            lambda g: g.sample(n=min(len(g), max(1, max_rows // weeks)), random_state=42)
+        )
+        sample = sample.drop(columns=["_week"])
+        return sample.head(max_rows)
+    return df.sample(n=min(max_rows, n), random_state=42)
+
+
+def detect_anomalies(
+    df: pd.DataFrame,
+    date_col: str,
+    metric_col: str,
+    window: int = 7,
+    threshold_std: float = 2.0,
+) -> pd.DataFrame:
+    """Flag anomalies using rolling Z-score. Returns a copy with added columns.
+
+    Mutates a copy (not the input) to avoid corrupting st.session_state.df.
+    """
+    result = df.copy()
+    result[date_col] = pd.to_datetime(result[date_col], errors="coerce")
+    result = result.sort_values(date_col)
+    result["rolling_mean"] = (
+        result[metric_col].rolling(window=window, min_periods=window).mean()
+    )
+    result["rolling_std"] = (
+        result[metric_col].rolling(window=window, min_periods=window).std()
+    )
+    # Guard against zero std (constant values produce Inf Z-scores)
+    result["rolling_std"] = result["rolling_std"].replace(0, float("nan"))
+    result["z_score"] = (
+        (result[metric_col] - result["rolling_mean"]) / result["rolling_std"]
+    )
+    result["is_anomaly"] = result["z_score"].abs() > threshold_std
+    return result
 
 
 def filter_dataframe(

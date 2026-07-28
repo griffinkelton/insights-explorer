@@ -60,6 +60,14 @@ if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 if "drive_files_cache" not in st.session_state:
     st.session_state.drive_files_cache = None
+if "compare_mode" not in st.session_state:
+    st.session_state.compare_mode = False
+if "compare_dimension" not in st.session_state:
+    st.session_state.compare_dimension = ""
+if "compare_val_a" not in st.session_state:
+    st.session_state.compare_val_a = ""
+if "compare_val_b" not in st.session_state:
+    st.session_state.compare_val_b = ""
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:

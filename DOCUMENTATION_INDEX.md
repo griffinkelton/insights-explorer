@@ -44,7 +44,7 @@
 | [plans/00-sprints/✅ theme-toggle-spec.md](plans/00-sprints/✅ theme-toggle-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, file-level changes | 4-phase plan executed: CSS → toggle → charts → polish | ✅ Done |
 | [plans/p3-p4/✅ STREAMING_RESPONSES.md](plans/p3-p4/✅ STREAMING_RESPONSES.md) | Make chat feel real-time instead of waiting 3-5 seconds per response | Generator, st.write_stream, append→rerun→stream pattern (IMPL #19, UNIFIED P4) | High (3-5 days) ✅ Done |
 | [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) | Upgrade the AI and data layer: smarter charts, anomaly detection, comparative mode | 6 sub-items: chart tokens, JSON mapping, type detection, sampling, anomalies, comparisons (IMPL #21, UNIFIED P6) | 3-4 days 🔵 Spec'd |
-| [plans/00-sprints/🔵 ai-data-enhancements-spec.md](plans/00-sprints/🔵 ai-data-enhancements-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, 5-phase order | 6 sub-items: type detection → sampling → chart JSON → anomalies → compare mode. ~249 tests. | 🔵 Ready to implement |
+| [plans/00-sprints/✅ ai-data-enhancements-spec.md](plans/00-sprints/✅ ai-data-enhancements-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, 5-phase order | 6 sub-items: type detection → sampling → chart JSON → anomalies → compare mode. 239 tests. | ✅ Done (239 tests) |
 | [plans/00-sprints/✅ drive-file-picker-spec.md](plans/00-sprints/✅ drive-file-picker-spec.md) | Add a Google Drive file picker to the sidebar — load CSVs/Sheets directly | 7 files changed, 2 new: drive_client.py + sidebar UI. Piggybacks on GA4 OAuth. 236 tests. | ✅ Done (236 tests) |
 
 ---
@@ -129,7 +129,7 @@ IMPLEMENTATION_PLAN.md
 | plans/00-sprints/✅ theme-toggle-spec.md | Interview-derived spec: 9 design decisions, 4-phase plan, 7 files | ✅ Done | Today |
 | plans/p3-p4/✅ STREAMING_RESPONSES.md | ChatGPT-style token-by-token streaming with error recovery (done) | ✅ Current | Today |
 | plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md | 6 independent AI/data upgrades: charts, anomalies, sampling | ✅ Current | Today |
-| plans/00-sprints/🔵 ai-data-enhancements-spec.md | Interview-derived spec: 9 design decisions, 5-phase order, 6 sub-items | 🔵 Ready | Today |
+| plans/00-sprints/✅ ai-data-enhancements-spec.md | Interview-derived spec: 9 design decisions, 5-phase order, 6 sub-items | ✅ Done | Today |
 
 ---
 

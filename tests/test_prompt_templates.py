@@ -284,59 +284,86 @@ class TestSanitizeQuestion:
 # ── detect_chart_request tests ───────────────────────────────────────────────
 
 class TestDetectChartRequest:
-    """Tests for detect_chart_request()."""
+    """Tests for detect_chart_request() — JSON + keyword hybrid detection."""
 
-    # ── Line chart triggers ──
+    # ── Line chart triggers (keyword fallback with method tag) ──
 
     def test_over_time_triggers_line(self):
         result = detect_chart_request("Sessions increased over time.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_trend_triggers_line(self):
         result = detect_chart_request("There is a clear upward trend.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_daily_triggers_line(self):
         result = detect_chart_request("Daily active users peaked on Monday.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_per_day_triggers_line(self):
         result = detect_chart_request("Sessions per day declined.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_spike_triggers_line(self):
         result = detect_chart_request("There was a spike in traffic.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_decrease_triggers_line(self):
         result = detect_chart_request("Engagement decreased significantly.")
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
-    # ── Bar chart triggers ──
+    # ── Bar chart triggers (keyword fallback with method tag) ──
 
     def test_top_5_triggers_bar(self):
         result = detect_chart_request("The top 5 pages by sessions are...")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     def test_highest_triggers_bar(self):
         result = detect_chart_request("The highest sessions were on /home.")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     def test_breakdown_triggers_bar(self):
         result = detect_chart_request("Breakdown by device shows mobile dominant.")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     def test_distribution_triggers_bar(self):
         result = detect_chart_request("The distribution across channels...")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     def test_comparison_triggers_bar(self):
         result = detect_chart_request("A comparison of pages shows...")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
 
     def test_by_source_triggers_bar(self):
         result = detect_chart_request("Traffic by source varies a lot.")
-        assert result == {"chart_type": "bar", "reason": "ranking"}
+        assert result == {"chart_type": "bar", "reason": "ranking", "method": "keyword"}
+
+    # ── JSON chart config detection ──
+
+    def test_parses_json_chart_config(self):
+        """[CHART:{...}] token should be parsed as JSON."""
+        result = detect_chart_request(
+            'Sessions grew. [CHART:{"type":"line","x":"date","y":"sessions","title":"Trend"}]'
+        )
+        assert result["chart_type"] == "line"
+        assert result["x"] == "date"
+        assert result["y"] == "sessions"
+        assert result["method"] == "gemini_json"
+
+    def test_json_trumps_keyword(self):
+        """JSON config should be preferred over keyword heuristics."""
+        result = detect_chart_request(
+            'Top pages ranked. [CHART:{"type":"line","x":"date","y":"sessions"}]'
+        )
+        assert result["chart_type"] == "line"  # JSON says line
+        assert result["method"] == "gemini_json"  # not keyword
+
+    def test_invalid_json_falls_back_to_keyword(self):
+        """Malformed JSON should fall back to keyword detection."""
+        result = detect_chart_request(
+            'Top pages trend [CHART:{bad json}] over time'
+        )
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     # ── No chart triggers ──
 
@@ -349,6 +376,10 @@ class TestDetectChartRequest:
     def test_no_chart_for_vague_text(self):
         assert detect_chart_request("Interesting findings in the dataset.") is None
 
+    def test_none_input_returns_none(self):
+        """None input should return None gracefully (None guard added)."""
+        assert detect_chart_request(None) is None
+
     # ── Edge cases ──
 
     def test_line_before_bar_precedence(self):
@@ -356,21 +387,17 @@ class TestDetectChartRequest:
         result = detect_chart_request(
             "The top pages trended downward over time."
         )
-        # "top" triggers bar, "trend" and "over time" trigger line
-        # Line is checked first in the function
-        assert result == {"chart_type": "line", "reason": "trend"}
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_case_insensitive(self):
-        assert detect_chart_request("Trend Over Time") == {"chart_type": "line", "reason": "trend"}
-        assert detect_chart_request("Top 10 Pages") == {"chart_type": "bar", "reason": "ranking"}
+        assert detect_chart_request("Trend Over Time") == {
+            "chart_type": "line", "reason": "trend", "method": "keyword"
+        }
+        assert detect_chart_request("Top 10 Pages") == {
+            "chart_type": "bar", "reason": "ranking", "method": "keyword"
+        }
 
     def test_partial_word_boundary(self):
         """'day' should match within words like 'Monday'."""
         result = detect_chart_request("On Monday traffic spiked.")
-        assert result == {"chart_type": "line", "reason": "trend"}
-
-    def test_none_input_raises(self):
-        """None input should raise AttributeError (calling .lower() on None).
-        If this behavior changes (e.g., a None guard is added), update this test."""
-        with pytest.raises(AttributeError):
-            detect_chart_request(None)
+        assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}

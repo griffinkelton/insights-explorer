@@ -3,6 +3,7 @@
 from typing import Any
 import pandas as pd
 import plotly.express as px
+from utils.data_loader import find_date_column
 
 
 def generate_chart(
@@ -95,17 +96,4 @@ def find_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
         key = candidate.lower().strip()
         if key in df_cols_lower:
             return df_cols_lower[key]
-    return None
-
-
-def find_date_column(df: pd.DataFrame) -> str | None:
-    """Find the best date column in the DataFrame."""
-    date_candidates = ["date", "day", "date_time", "timestamp"]
-    df_cols_lower = {c.lower().strip(): c for c in df.columns}
-    for candidate in date_candidates:
-        if candidate in df_cols_lower:
-            return df_cols_lower[candidate]
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            return col
     return None
