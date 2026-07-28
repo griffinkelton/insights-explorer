@@ -266,8 +266,8 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 |---|---|---|
 | 🔴 Critical | 2 | 2 | 0 |
 | 🟠 High | 1 | 1 | 0 |
-| 🟡 Medium | 4 | 2 | 2 |
-| **Total** | **7** | **5** | **2** |
+| 🟡 Medium | 5 | 3 | 2 |
+| **Total** | **8** | **6** | **2** |
 
 ### By Root Cause Category
 
@@ -299,7 +299,49 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 
 ---
 
-*Last updated: 2026-07-28 after systematic IMPLEMENTATION_PLAN.md review. 7 bugs documented, 6 fixed, 1 pending implementation.*
+*Last updated: 2026-07-28 after systematic IMPLEMENTATION_PLAN.md review. 8 bugs documented, 6 fixed, 2 pending implementation.*
+
+---
+
+### BUG-008: `except Exception` audit — 11 instances, 2 silent swallowers
+
+**Date:** 2026-07-28
+**Severity:** 🟡 Medium (documentation/risk, not an active bug)
+**Found during:** Systematic codebase audit (triggered by BUG-001 pattern review)
+**Fixed:** ✅ Documented (no code changes needed)
+
+**The Problem:**
+BUG-001 established that generic `except Exception` at the top level can catch Streamlit control flow exceptions. This prompted a full audit of every `except Exception` in the codebase (11 instances across 5 files).
+
+**Findings:**
+
+| # | File | Line | Context | Risk |
+|---|---|---|---|---|
+| 1 | `app.py` | 450 | Error boundary — catches all, re-raises Streamlit | ✅ Safe (BUG-001 fix in place) |
+| 2 | `app.py` | 87 | OAuth callback — catches auth failures, shows `st.error` | ✅ Safe (no Streamlit IO in try block) |
+| 3 | `app.py` | 208 | GA4 pull — catches API errors, shows `st.error` | ✅ Safe (no Streamlit IO in try block) |
+| 4 | `app.py` | 274 | Date parsing — `except Exception: pass` | ⚠️ Silently swallows all errors |
+| 5 | `app.py` | 540 | Chart generation — `except Exception: pass` | ⚠️ Silently swallows all errors |
+| 6 | `gemini_client.py` | 34 | Key validation — catches API errors, returns (False, msg) | ✅ Safe (utility, no Streamlit) |
+| 7 | `gemini_client.py` | 75 | `generate_response()` — converts to RuntimeError | ✅ Safe (utility, no Streamlit) |
+| 8 | `data_loader.py` | 31 | `load_file()` — catches parse errors, returns error string | ✅ Safe (utility, no Streamlit) |
+| 9 | `data_loader.py` | 75 | `get_dataset_stats()` — date parse fallback | ✅ Safe (utility, no Streamlit) |
+| 10 | `prompt_templates.py` | 90 | `describe()` fallback for empty DataFrames | ✅ Safe (utility, no Streamlit) |
+| 11 | `pages/learn.py` | 481 | Learn page error display | ✅ Safe (no Streamlit IO in try block) |
+
+**Key distinction:** "Safe" instances are in utility modules (no Streamlit imports) or in try blocks that don't contain Streamlit control flow calls (`st.stop`, `st.rerun`). The two "⚠️" instances use bare `except Exception: pass` which silently swallows errors — not a bug, but makes debugging chart/date issues harder.
+
+**Decision — no code changes needed:** The two silent swallowers are intentional design choices:
+- **Date parsing (line 274):** If `pd.to_datetime` fails, the app continues with unparsed dates. Better than crashing on a malformed CSV.
+- **Chart generation (line 540):** If chart generation fails, the chat message renders without a chart. Better than crashing on a single chart error.
+
+**How It Was Caught:**
+Systematic `ripgrep` search for `except Exception` across all `.py` files, triggered by the BUG-001 pattern review asking "are there other instances of this pattern?"
+
+**Learnings:**
+- **For this project:** 9 of 11 instances are safe. The 2 silent swallowers trade debuggability for resilience — a fair trade for a prototype. Consider adding `st.warning(f"Chart generation failed: {e}")` inside the chart exception handler (not just `pass`) to surface errors without crashing.
+- **For future projects:** Audit `except Exception` patterns after every significant feature. The risk is always Streamlit control flow (BUG-001) or swallowed errors that hide bugs (lines 274, 540). A `grep except Exception *.py` takes 5 seconds.
+- **Pattern alert:** "Silently pass" (`except Exception: pass`) is the most dangerous exception pattern. It hides all errors, including syntax errors in the try block itself. Every `pass` should be justified with a comment: `# If date parsing fails, continue without dates — not worth crashing.`
 
 ---
 
