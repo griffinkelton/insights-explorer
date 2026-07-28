@@ -481,7 +481,7 @@ def _get_client():
     2. Context (row count, columns, date range, sample data)
     3. Specific instructions (be concise, flag limitations, suggest follow-ups)
     """)
-    st.code(r'''def build_chat_prompt(user_question, df, stats):
+    st.code('''def build_chat_prompt(user_question, df, stats):
     sanitized = _sanitize_question(user_question)  # Security hardening
 
     prompt = (
