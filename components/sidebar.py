@@ -94,16 +94,19 @@ def _render_ga4_connect() -> None:
     if st.session_state.ga4_creds is None:
         # Not connected — show sign-in
         if st.button("🔐 Sign in with Google", use_container_width=True, type="primary"):
-            auth_url, flow = get_auth_url(REDIRECT_URI)
-            st.session_state.ga4_auth_flow = flow
-            st.markdown(
-                f'<meta http-equiv="refresh" content="0;url={auth_url}">'
-                f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
-                f'<p style="color:#686880;font-size:0.75rem;">'
-                f'If not redirected, <a href="{auth_url}" style="color:#818cf8;">click here</a></p>',
-                unsafe_allow_html=True,
-            )
-            st.stop()
+            try:
+                auth_url, flow = get_auth_url(REDIRECT_URI)
+                st.session_state.ga4_auth_flow = flow
+                st.markdown(
+                    f'<meta http-equiv="refresh" content="0;url={auth_url}">'
+                    f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
+                    f'<p style="color:#686880;font-size:0.75rem;">'
+                    f'If not redirected, <a href="{auth_url}" style="color:#818cf8;">click here</a></p>',
+                    unsafe_allow_html=True,
+                )
+                st.stop()
+            except FileNotFoundError as e:
+                st.error(str(e))
 
         st.caption(
             "Connect live to your GA4 property. "

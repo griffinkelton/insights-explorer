@@ -1,6 +1,7 @@
 """Unit tests for utils/ga4_client.py — OAuth flow, credentials, GA4 report pull."""
 
 import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 import pandas as pd
 
@@ -66,7 +67,8 @@ class TestOAuthFlow:
     """Tests for get_auth_url() and exchange_code()."""
 
     @patch("utils.ga4_client.Flow")
-    def test_get_auth_url_returns_url_and_flow(self, mock_flow_class):
+    @patch.object(Path, "exists", return_value=True)
+    def test_get_auth_url_returns_url_and_flow(self, mock_exists, mock_flow_class):
         """get_auth_url should return (url, flow) tuple."""
         mock_flow = MagicMock()
         mock_flow.authorization_url.return_value = (
@@ -81,7 +83,8 @@ class TestOAuthFlow:
         assert flow is mock_flow
 
     @patch("utils.ga4_client.Flow")
-    def test_get_auth_url_uses_offline_access(self, mock_flow_class):
+    @patch.object(Path, "exists", return_value=True)
+    def test_get_auth_url_uses_offline_access(self, mock_exists, mock_flow_class):
         """OAuth flow should request offline access for refresh tokens."""
         mock_flow = MagicMock()
         mock_flow.authorization_url.return_value = ("http://auth", "state")
@@ -95,7 +98,8 @@ class TestOAuthFlow:
         )
 
     @patch("utils.ga4_client.Flow")
-    def test_get_auth_url_passes_redirect_uri(self, mock_flow_class):
+    @patch.object(Path, "exists", return_value=True)
+    def test_get_auth_url_passes_redirect_uri(self, mock_exists, mock_flow_class):
         """Redirect URI should be passed through to the Flow constructor."""
         mock_flow = MagicMock()
         mock_flow.authorization_url.return_value = ("http://auth", "state")
@@ -106,13 +110,10 @@ class TestOAuthFlow:
         _, call_kwargs = mock_flow_class.from_client_secrets_file.call_args
         assert call_kwargs["redirect_uri"] == "http://localhost:8501"
 
-    @patch("utils.ga4_client.Flow")
-    def test_get_auth_url_missing_secrets_file(self, mock_flow_class):
-        """Missing client_secrets.json → FileNotFoundError propagates."""
-        mock_flow_class.from_client_secrets_file.side_effect = FileNotFoundError(
-            "client_secrets.json not found"
-        )
-        with pytest.raises(FileNotFoundError, match="client_secrets.json"):
+    @patch.object(Path, "exists", return_value=False)
+    def test_get_auth_url_missing_secrets_file(self, mock_exists):
+        """Missing client_secrets.json → FileNotFoundError with instructions."""
+        with pytest.raises(FileNotFoundError, match="Google OAuth client secrets"):
             ga4.get_auth_url("http://localhost:8501")
 
     def test_exchange_code_returns_credentials(self):
