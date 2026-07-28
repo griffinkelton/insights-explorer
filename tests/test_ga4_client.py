@@ -1,0 +1,353 @@
+"""Unit tests for utils/ga4_client.py — OAuth flow, credentials, GA4 report pull."""
+
+import pytest
+from unittest.mock import patch, MagicMock
+import pandas as pd
+
+import utils.ga4_client as ga4
+
+
+# ── credential serialization tests ──────────────────────────────────────────
+
+class TestCredentialsSerialization:
+    """Tests for credentials_to_dict() and credentials_from_dict()."""
+
+    def test_round_trip_preserves_all_fields(self):
+        """Serialize → deserialize should preserve all credential fields."""
+        original = {
+            "token": "ya29.abc123",
+            "refresh_token": "1/def456",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "client_id": "123.apps.googleusercontent.com",
+            "client_secret": "GOCSPX-secret",
+            "scopes": ["https://www.googleapis.com/auth/analytics.readonly"],
+        }
+        creds = ga4.credentials_from_dict(original)
+        result = ga4.credentials_to_dict(creds)
+
+        for key in original:
+            assert result[key] == original[key], f"Field '{key}' mismatch"
+
+    def test_to_dict_returns_all_expected_keys(self):
+        """credentials_to_dict should include the standard OAuth keys."""
+        creds = ga4.credentials_from_dict({
+            "token": "t",
+            "refresh_token": "rt",
+            "token_uri": "https://example.com",
+            "client_id": "id",
+            "client_secret": "secret",
+            "scopes": ["scope1"],
+        })
+        d = ga4.credentials_to_dict(creds)
+
+        expected_keys = {"token", "refresh_token", "token_uri",
+                         "client_id", "client_secret", "scopes"}
+        assert set(d.keys()) == expected_keys
+
+    def test_from_dict_creates_credentials(self):
+        """credentials_from_dict should return a Credentials object."""
+        creds = ga4.credentials_from_dict({
+            "token": "t",
+            "refresh_token": "rt",
+            "token_uri": "https://example.com",
+            "client_id": "id",
+            "client_secret": "secret",
+            "scopes": ["scope1"],
+        })
+        from google.oauth2.credentials import Credentials
+        assert isinstance(creds, Credentials)
+        assert creds.token == "t"
+        assert creds.refresh_token == "rt"
+
+
+# ── OAuth flow tests ────────────────────────────────────────────────────────
+
+class TestOAuthFlow:
+    """Tests for get_auth_url() and exchange_code()."""
+
+    @patch("utils.ga4_client.Flow")
+    def test_get_auth_url_returns_url_and_flow(self, mock_flow_class):
+        """get_auth_url should return (url, flow) tuple."""
+        mock_flow = MagicMock()
+        mock_flow.authorization_url.return_value = (
+            "https://accounts.google.com/o/oauth2/auth?...",
+            "state-abc",
+        )
+        mock_flow_class.from_client_secrets_file.return_value = mock_flow
+
+        url, flow = ga4.get_auth_url("http://localhost:8501")
+
+        assert url == "https://accounts.google.com/o/oauth2/auth?..."
+        assert flow is mock_flow
+
+    @patch("utils.ga4_client.Flow")
+    def test_get_auth_url_uses_offline_access(self, mock_flow_class):
+        """OAuth flow should request offline access for refresh tokens."""
+        mock_flow = MagicMock()
+        mock_flow.authorization_url.return_value = ("http://auth", "state")
+        mock_flow_class.from_client_secrets_file.return_value = mock_flow
+
+        ga4.get_auth_url("http://localhost:8501")
+
+        mock_flow.authorization_url.assert_called_once_with(
+            access_type="offline",
+            prompt="consent",
+        )
+
+    @patch("utils.ga4_client.Flow")
+    def test_get_auth_url_passes_redirect_uri(self, mock_flow_class):
+        """Redirect URI should be passed through to the Flow constructor."""
+        mock_flow = MagicMock()
+        mock_flow.authorization_url.return_value = ("http://auth", "state")
+        mock_flow_class.from_client_secrets_file.return_value = mock_flow
+
+        ga4.get_auth_url("http://localhost:8501")
+
+        _, call_kwargs = mock_flow_class.from_client_secrets_file.call_args
+        assert call_kwargs["redirect_uri"] == "http://localhost:8501"
+
+    @patch("utils.ga4_client.Flow")
+    def test_get_auth_url_missing_secrets_file(self, mock_flow_class):
+        """Missing client_secrets.json → FileNotFoundError propagates."""
+        mock_flow_class.from_client_secrets_file.side_effect = FileNotFoundError(
+            "client_secrets.json not found"
+        )
+        with pytest.raises(FileNotFoundError, match="client_secrets.json"):
+            ga4.get_auth_url("http://localhost:8501")
+
+    def test_exchange_code_returns_credentials(self):
+        """exchange_code should fetch token and return credentials."""
+        mock_flow = MagicMock()
+        mock_flow.credentials = MagicMock()
+        mock_flow.credentials.token = "new-token"
+
+        creds = ga4.exchange_code(mock_flow, "auth-code-xyz")
+
+        mock_flow.fetch_token.assert_called_once_with(code="auth-code-xyz")
+        assert creds is mock_flow.credentials
+
+
+# ── pull_ga4_report tests ───────────────────────────────────────────────────
+
+class TestPullGa4Report:
+    """Tests for pull_ga4_report() — success, empty, token refresh, date range."""
+
+    @staticmethod
+    def _make_mock_response(dimension_values, metric_values):
+        """Helper: build a mock GA4 API response with one row."""
+        mock_row = MagicMock()
+        mock_row.dimension_values = [
+            MagicMock(value=dv) for dv in dimension_values
+        ]
+        mock_row.metric_values = [
+            MagicMock(value=mv) for mv in metric_values
+        ]
+        mock_response = MagicMock()
+        mock_response.rows = [mock_row]
+        return mock_response
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_successful_report_returns_dataframe(self, mock_client_class):
+        """pull_ga4_report should return a DataFrame with correct columns."""
+        mock_client = MagicMock()
+        mock_client.run_report.return_value = self._make_mock_response(
+            dimension_values=["2024-01-01", "/home", "desktop"],
+            metric_values=["100", "50", "45", "0.65", "0.42"],
+        )
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+        assert df.iloc[0]["date"] == pd.Timestamp("2024-01-01")
+        assert df.iloc[0]["page_path"] == "/home"
+        assert df.iloc[0]["device_category"] == "desktop"
+        assert df.iloc[0]["sessions"] == 100
+        assert df.iloc[0]["users"] == 50
+        assert df.iloc[0]["active_users"] == 45
+        assert df.iloc[0]["engagement_rate"] == 0.65
+        assert df.iloc[0]["bounce_rate"] == 0.42
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_empty_response_returns_empty_dataframe(self, mock_client_class):
+        """No rows from GA4 → empty DataFrame (not None or crash)."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        assert isinstance(df, pd.DataFrame)
+        assert df.empty
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    @patch("utils.ga4_client.Request")
+    def test_refreshes_expired_token(self, mock_request_class, mock_client_class):
+        """Expired credentials with refresh_token should be refreshed."""
+        mock_client = MagicMock()
+        mock_client.run_report.return_value = self._make_mock_response(
+            dimension_values=["2024-01-01", "/home", "mobile"],
+            metric_values=["10", "5", "4", "0.5", "0.3"],
+        )
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = True
+        mock_creds.refresh_token = "refresh-me"
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        mock_creds.refresh.assert_called_once()
+        assert len(df) == 1
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_uses_default_date_range(self, mock_client_class):
+        """Default start_date should be '90daysAgo' and end_date 'today'."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        ga4.pull_ga4_report(mock_creds, "123456789")
+
+        # Verify the date range was passed to the API
+        call_args = mock_client.run_report.call_args[0][0]
+        assert call_args.date_ranges[0].start_date == "90daysAgo"
+        assert call_args.date_ranges[0].end_date == "today"
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_custom_date_range(self, mock_client_class):
+        """Custom start_date and end_date should be passed through."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        ga4.pull_ga4_report(mock_creds, "123456789",
+                            start_date="7daysAgo", end_date="yesterday")
+
+        call_args = mock_client.run_report.call_args[0][0]
+        assert call_args.date_ranges[0].start_date == "7daysAgo"
+        assert call_args.date_ranges[0].end_date == "yesterday"
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_property_id_in_request(self, mock_client_class):
+        """Property ID should appear in the RunReportRequest."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        ga4.pull_ga4_report(mock_creds, "987654321")
+
+        call_args = mock_client.run_report.call_args[0][0]
+        assert call_args.property == "properties/987654321"
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_returns_correct_columns(self, mock_client_class):
+        """Returned DataFrame should have all 8 expected columns."""
+        mock_client = MagicMock()
+        mock_client.run_report.return_value = self._make_mock_response(
+            dimension_values=["2024-03-15", "/pricing", "tablet"],
+            metric_values=["200", "120", "100", "0.55", "0.38"],
+        )
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        expected = {"date", "page_path", "device_category", "sessions",
+                    "users", "active_users", "engagement_rate", "bounce_rate"}
+        assert set(df.columns) == expected
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_date_column_is_datetime(self, mock_client_class):
+        """The date column should be converted to datetime64."""
+        mock_client = MagicMock()
+        mock_client.run_report.return_value = self._make_mock_response(
+            dimension_values=["2024-06-01", "/blog", "desktop"],
+            metric_values=["300", "180", "160", "0.72", "0.29"],
+        )
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        assert pd.api.types.is_datetime64_any_dtype(df["date"])
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_expired_without_refresh_token_skips_refresh(self, mock_client_class):
+        """Expired=True with no refresh_token → refresh skipped, API call proceeds."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = True
+        mock_creds.refresh_token = None  # No refresh token available
+
+        ga4.pull_ga4_report(mock_creds, "123456789")
+
+        mock_creds.refresh.assert_not_called()
+
+    @patch("utils.ga4_client.BetaAnalyticsDataClient")
+    def test_multiple_rows_preserved(self, mock_client_class):
+        """Multiple response rows → all preserved in DataFrame."""
+        mock_row1 = MagicMock()
+        mock_row1.dimension_values = [
+            MagicMock(value="2024-01-01"), MagicMock(value="/a"), MagicMock(value="desktop")
+        ]
+        mock_row1.metric_values = [
+            MagicMock(value="10"), MagicMock(value="5"), MagicMock(value="4"),
+            MagicMock(value="0.5"), MagicMock(value="0.3"),
+        ]
+        mock_row2 = MagicMock()
+        mock_row2.dimension_values = [
+            MagicMock(value="2024-01-02"), MagicMock(value="/b"), MagicMock(value="mobile")
+        ]
+        mock_row2.metric_values = [
+            MagicMock(value="20"), MagicMock(value="12"), MagicMock(value="10"),
+            MagicMock(value="0.6"), MagicMock(value="0.4"),
+        ]
+
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.rows = [mock_row1, mock_row2]
+        mock_client.run_report.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+
+        df = ga4.pull_ga4_report(mock_creds, "123456789")
+
+        assert len(df) == 2
+        assert df.iloc[0]["page_path"] == "/a"
+        assert df.iloc[1]["page_path"] == "/b"
