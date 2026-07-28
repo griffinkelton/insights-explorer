@@ -121,6 +121,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Back to app ──────────────────────────────────────────────────────────────
+st.page_link(
+    "app.py",
+    label="← Back to App",
+    icon="🏠",
+    help="Return to the GA4 Insight Explorer",
+)
+
 # ── Quick-nav cards ──────────────────────────────────────────────────────────
 st.markdown("### 🧭 Jump to a topic")
 
