@@ -224,7 +224,7 @@ with st.sidebar:
     <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
         <div style="font-size:0.78rem;color:#9898b0;line-height:1.5;">
-            🔒 <b>Privacy</b><br>All data stays in-memory.<br>Nothing is stored or sent to train models.
+            🔒 <b>Privacy</b><br>Data is processed in-memory only and is not stored or used to train any model.
         </div>
     </div>
     """, unsafe_allow_html=True)
