@@ -1,0 +1,26 @@
+# ── Streamlit secure defaults ────────────────────────────────────────────────
+# See: https://docs.streamlit.io/develop/api-reference/configuration/config.toml
+
+[server]
+# Run without opening a browser window (headless)
+headless = true
+# Enable Cross-Site Request Forgery protection
+enableXsrfProtection = true
+# Max file upload size in MB (200 MB)
+maxUploadSize = 200
+# Disable Cross-Origin Resource Sharing — no external origins
+enableCORS = false
+# Disable hot-reload / run-on-save (not needed for this app)
+runOnSave = false
+# Bind only to localhost — never expose directly to the network
+address = "localhost"
+
+[client]
+# Hide detailed error messages in production (prevents source leakage)
+showErrorDetails = false
+# Minimal toolbar — no deploy/share buttons for local-only prototype
+toolbarMode = "minimal"
+
+[logger]
+# Keep log level at info for production; use "debug" when troubleshooting
+level = "info"
