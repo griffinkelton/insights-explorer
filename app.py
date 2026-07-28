@@ -11,6 +11,16 @@ from utils.prompt_templates import (
     build_chat_prompt,
     detect_chart_request,
 )
+from utils.ga4_client import (
+    get_auth_url,
+    exchange_code,
+    credentials_to_dict,
+    credentials_from_dict,
+    pull_ga4_report,
+)
+
+# OAuth redirect URI — must match what's registered in GCP Console
+REDIRECT_URI = "http://localhost:8501"
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -305,6 +315,32 @@ if "data_cleared" not in st.session_state:
     st.session_state.data_cleared = False
 if "last_file_id" not in st.session_state:
     st.session_state.last_file_id = None
+# GA4 live connection state
+if "ga4_creds" not in st.session_state:
+    st.session_state.ga4_creds = None
+if "ga4_property_id" not in st.session_state:
+    st.session_state.ga4_property_id = ""
+if "ga4_auth_flow" not in st.session_state:
+    st.session_state.ga4_auth_flow = None
+if "data_source" not in st.session_state:
+    st.session_state.data_source = None  # "file" or "ga4"
+
+
+# ── Handle OAuth callback (Google redirects back with ?code=...) ─────────────
+if "code" in st.query_params and st.session_state.ga4_auth_flow is not None:
+    try:
+        creds = exchange_code(
+            st.session_state.ga4_auth_flow,
+            code=st.query_params["code"],
+        )
+        st.session_state.ga4_creds = credentials_to_dict(creds)
+        st.session_state.ga4_auth_flow = None
+        st.query_params.clear()
+        st.success("✅ Connected to Google Analytics!")
+    except Exception as e:
+        st.error(f"Authentication failed: {e}")
+        st.session_state.ga4_auth_flow = None
+        st.query_params.clear()
 
 
 def clear_data():
@@ -315,6 +351,7 @@ def clear_data():
     st.session_state.chat_history = []
     st.session_state.missing_columns = []
     st.session_state.data_cleared = True
+    st.session_state.data_source = None
 
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
@@ -337,6 +374,86 @@ with st.sidebar:
         type=["csv", "xlsx"],
         help="De-identified Google Analytics 4 export file (CSV or XLSX).",
     )
+
+    st.divider()
+
+    # ── GA4 Live Connection section ──
+    st.markdown(
+        '<p style="font-size:0.8rem;font-weight:600;color:#f0f0f5;margin-bottom:0.3rem;">'
+        '🔗 Google Analytics 4 (Live)</p>',
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.ga4_creds is None:
+        # Not connected — show sign-in
+        if st.button("🔐 Sign in with Google", use_container_width=True, type="primary"):
+            auth_url, flow = get_auth_url(REDIRECT_URI)
+            st.session_state.ga4_auth_flow = flow
+            # Redirect user to Google OAuth consent screen
+            st.markdown(
+                f'<meta http-equiv="refresh" content="0;url={auth_url}">'
+                f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
+                f'<p style="color:#686880;font-size:0.75rem;">'
+                f'If not redirected, <a href="{auth_url}" style="color:#818cf8;">click here</a></p>',
+                unsafe_allow_html=True,
+            )
+            st.stop()
+
+        st.caption(
+            "Connect live to your GA4 property. "
+            "Requires a [GCP OAuth client](https://console.cloud.google.com/apis/credentials) "
+            "with `http://localhost:8501` as an authorized redirect URI."
+        )
+    else:
+        # Connected — show controls
+        st.success("✅ Connected to Google")
+
+        property_id = st.text_input(
+            "GA4 Property ID",
+            value=st.session_state.ga4_property_id,
+            placeholder="e.g., 123456789",
+            help="Numeric property ID from GA4 Admin > Property Settings",
+        )
+        st.session_state.ga4_property_id = property_id
+
+        col_pull, col_disc = st.columns(2)
+        with col_pull:
+            if st.button("📥 Pull Data", use_container_width=True, type="primary"):
+                if not property_id:
+                    st.error("Please enter your GA4 Property ID first.")
+                else:
+                    with st.spinner("Fetching data from Google Analytics..."):
+                        try:
+                            creds = credentials_from_dict(st.session_state.ga4_creds)
+                            df = pull_ga4_report(creds, property_id)
+                            if df.empty:
+                                st.error("No data returned. Check your Property ID and date range.")
+                            else:
+                                # Parse dates and validate columns
+                                missing = validate_columns(df)
+                                if missing:
+                                    st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
+
+                                st.session_state.df = df
+                                st.session_state.missing_columns = missing
+                                st.session_state.stats = get_dataset_stats(df)
+                                st.session_state.stats["missing_columns"] = missing
+                                st.session_state.summary = None
+                                st.session_state.chat_history = []
+                                st.session_state.data_source = "ga4"
+                                st.session_state.data_cleared = False
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Failed to pull GA4 data: {e}")
+
+        with col_disc:
+            if st.button("✕ Disconnect", use_container_width=True):
+                st.session_state.ga4_creds = None
+                st.session_state.ga4_auth_flow = None
+                st.session_state.ga4_property_id = ""
+                if st.session_state.data_source == "ga4":
+                    clear_data()
+                st.rerun()
 
     st.divider()
 
@@ -422,10 +539,17 @@ if st.session_state.df is None:
                 Explore Your Analytics
             </h2>
             <p style="color:#9898b0;font-size:1rem;line-height:1.6;margin-bottom:2rem;">
-                Upload a <strong>de-identified GA4 export</strong> (CSV or XLSX)<br>
+                <strong>Upload a GA4 export</strong> (CSV or XLSX) or<br>
+                <strong>connect live</strong> via Google sign-in<br>
                 and ask natural language questions about your data.
             </p>
             <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;">
+                <div style="background:#1a1a26;border:1px solid rgba(255,255,255,0.06);
+                            border-radius:16px;padding:1.2rem 1.4rem;text-align:center;min-width:140px;">
+                    <div style="font-size:1.6rem;margin-bottom:0.3rem;">🔗</div>
+                    <div style="font-weight:600;font-size:0.85rem;color:#f0f0f5;">Live Connect</div>
+                    <div style="font-size:0.72rem;color:#686880;">Direct GA4 API</div>
+                </div>
                 <div style="background:#1a1a26;border:1px solid rgba(255,255,255,0.06);
                             border-radius:16px;padding:1.2rem 1.4rem;text-align:center;min-width:140px;">
                     <div style="font-size:1.6rem;margin-bottom:0.3rem;">🤖</div>
@@ -648,7 +772,8 @@ st.divider()
 st.markdown(
     '<p style="text-align:center;color:#686880;font-size:0.75rem;">'
     'GA4 Insight Explorer · Data processed in-memory only · '
-    '<a href="https://aistudio.google.com/apikey" style="color:#818cf8;">Get API Key</a>'
+    '<a href="https://aistudio.google.com/apikey" style="color:#818cf8;">Gemini API Key</a> · '
+    '<a href="https://console.cloud.google.com/apis/credentials" style="color:#818cf8;">GCP OAuth Setup</a>'
     '</p>',
     unsafe_allow_html=True,
 )
