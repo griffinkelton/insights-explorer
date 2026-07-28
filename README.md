@@ -410,4 +410,5 @@ MIT — experimental prototype, use at your own risk.
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Detailed 21-item execution blueprint with sprint plan
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project documentation
+- [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
 - [Learn Page](http://localhost:8501/learn) — Interactive Python tutorials (app must be running)

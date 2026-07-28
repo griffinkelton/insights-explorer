@@ -11,6 +11,7 @@
 | [README.md](README.md) | Setup guide, features, tech stack, security, quick start | First — before running the app |
 | [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) | The initial project prompt + 26-item compliance checklist | To understand what was asked for vs what was built |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Design decisions, data flow, security model, dependencies, build log | To understand how the app is structured and why |
+| [BUGLOG.md](BUGLOG.md) | Structured bug log — every error encountered, root cause, fix, and learnings | When debugging, after encountering an error, or reviewing patterns |
 
 ---
 
@@ -60,7 +61,9 @@ ARCHITECTURE.md ─── "How it's built"
         │                               ├── COMPONENT_REFACTOR.md
         │                               └── AI_DATA_ENHANCEMENTS.md
         │
-        └──► IDEAS.md ─── "What's beyond the roadmap" (25 enhancements + 10 moonshots)
+        ├──► BUGLOG.md ─── "What broke and why" (7 bugs, patterns, rules)
+        │
+        ├──► IDEAS.md ─── "What's beyond the roadmap" (25 enhancements + 10 moonshots)
 ```
 
 ---
@@ -75,6 +78,7 @@ ARCHITECTURE.md ─── "How it's built"
 | ENHANCEMENTS.md | ✅ Current (v2 rewrite) | Today |
 | IMPLEMENTATION_PLAN.md | ✅ Current (8 review fixes applied) | Today |
 | IDEAS.md | ✅ Current | Today |
+| BUGLOG.md | ✅ Current | Today |
 | plans/APP_ICON.md | ✅ New | Today |
 | plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ New | Today |
 | plans/phase5/THEME_TOGGLE.md | ✅ Current | Today |
