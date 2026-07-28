@@ -131,7 +131,7 @@ CONSTRAINTS:
 | 12 | No chart when not applicable | ✅ Done | `detect_chart_request()` returns `None` → silent skip |
 | 13 | In-memory only (no disk/database) | ✅ Done | All data in `st.session_state`; cleared on demand |
 | 14 | "Clear Data" button | ✅ Done | Sidebar button wipes all session state |
-| 15 | Privacy disclaimer in sidebar | ✅ Done | "Data is processed in-memory only" card |
+| 15 | Privacy disclaimer in sidebar | ✅ Done | Verbatim match: "Data is processed in-memory only and is not stored or used to train any model." |
 | 16 | API key from environment variable | ✅ Done | `python-dotenv` loads `.env` → `os.getenv("GEMINI_API_KEY")` |
 | 17 | Model config as constant | ✅ Done | `DEFAULT_MODEL = "gemini-2.5-flash"` in `gemini_client.py` |
 | 18 | API error handling (try/except) | ✅ Done | `ValueError` for missing key, `RuntimeError` for rate limits/quota |
