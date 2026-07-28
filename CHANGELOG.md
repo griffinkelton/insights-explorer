@@ -8,6 +8,32 @@
 
 ---
 
+### Component Refactor Executed — 7 phases, app.py 809→78 lines, 228 tests
+
+**Date:** 2026-07-28 | **Status:** ✅ Done
+
+| Phase | What | Files |
+|---|---|---|
+| 1 | Extracted `utils/charts.py` + `utils/session.py` | `utils/charts.py` (new), `utils/session.py` (new), `app.py` |
+| 2 | Extracted `components/hero.py` — empty state | `components/hero.py` (new) |
+| 3 | Extracted `components/data_preview.py` — metrics, filters, quality | `components/data_preview.py` (new) |
+| 4 | Extracted `components/summary.py` — AI summary | `components/summary.py` (new) |
+| 5 | Extracted `components/chat.py` — chat, streaming, export | `components/chat.py` (new) |
+| 6 | Extracted `components/sidebar.py` — sidebar + file processing | `components/sidebar.py` (new) |
+| 7 | Created `components/__init__.py` orchestrator, rewrote `app.py` | `components/__init__.py` (new), `app.py` (rewritten) |
+
+**Key decisions:**
+- `clear_data()` lives in `utils/session.py` (shared by sidebar + orchestrator)
+- BUG-005 fixed: `on_click=clear_data` → `if st.button` + `st.rerun()` pattern
+- `_stream_chat_response` moved as-is with in-place mutation docstring
+- Footer moved to `components/__init__.py`
+- Widget key audit: all 4 keys unique, no collisions
+- Test coverage: 194 → 228 (34 new tests across 8 modules)
+
+**Related:** [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](plans/p5-p6/🔵 COMPONENT_REFACTOR.md), [plans/00-sprints/component-refactor-spec.md](plans/00-sprints/component-refactor-spec.md)
+
+---
+
 ### P4 Wave 1 + Streaming Sprint Executed — 4/4 items, 194 tests
 
 **Date:** 2026-07-28 | **Status:** ✅ Done
@@ -501,7 +527,7 @@
 | Total commits tracked | 43 |
 | Date range | July 25–28, 2026 |
 | Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon |
-| Tests | 0 → 194 across 9 modules |
+| Tests | 0 → 228 across 17 modules |
 | CI/CD | Cloud Build + smoke test |
 | Documentation | 18 MD files totaling 100+ KB |
 | Plans | 21-item IMPLEMENTATION_PLAN + 6 UNIFIED plans + 3 derived sprint plans |

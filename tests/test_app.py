@@ -24,84 +24,55 @@ class TestAppSyntax:
 
 
 class TestAppImports:
-    """Verify all expected utility modules are imported."""
+    """Verify all expected utility modules are imported in app.py.
 
-    def test_imports_data_loader(self):
-        source = _read_source()
-        assert "from utils.data_loader import" in source
-
-    def test_imports_gemini_client(self):
-        source = _read_source()
-        assert "from utils.gemini_client import" in source
-
-    def test_imports_prompt_templates(self):
-        source = _read_source()
-        assert "from utils.prompt_templates import" in source
-
-    def test_imports_ga4_client(self):
-        source = _read_source()
-        assert "from utils.ga4_client import" in source
+    Post-refactor, app.py is a thin orchestrator (~78 lines). Only core
+    imports needed for page config, session state, and routing remain.
+    """
 
     def test_imports_styles(self):
         source = _read_source()
         assert "from utils.styles import" in source
 
-    def test_imports_error_boundary(self):
+    def test_imports_gemini_client(self):
         source = _read_source()
-        assert "from utils.error_boundary import" in source
+        assert "from utils.gemini_client import" in source
+
+    def test_imports_components(self):
+        source = _read_source()
+        assert "from components import" in source
 
 
 class TestAppStructure:
-    """Verify key sections and patterns exist."""
+    """Verify key patterns exist in the thin orchestrator."""
 
     def test_has_page_config(self):
         source = _read_source()
         assert "st.set_page_config" in source
         assert "GA4 Insight Explorer" in source
 
-    def test_has_sidebar(self):
+    def test_has_clear_data_import(self):
         source = _read_source()
-        assert "with st.sidebar:" in source
+        # clear_data() is now in utils/session.py, imported by components not app.py
+        # app.py doesn't need it directly; verify it exists somewhere accessible
+        with open("utils/session.py") as f:
+            session_src = f.read()
+        assert "def clear_data()" in session_src
 
-    def test_has_file_uploader(self):
+    def test_has_render_all_call(self):
         source = _read_source()
-        assert "st.file_uploader" in source
-
-    def test_has_clear_data_function(self):
-        source = _read_source()
-        assert "def clear_data()" in source
-
-    def test_has_chat_input(self):
-        source = _read_source()
-        assert "st.chat_input" in source
-
-    def test_has_error_boundary_wrapper(self):
-        """The main content must be wrapped in try/except with render_error_card."""
-        source = _read_source()
-        assert "try:" in source
-        assert "_render_main()" in source
-        assert "render_error_card" in source
-
-    def test_has_footer(self):
-        source = _read_source()
-        assert "Data processed in-memory only" in source
-
-    def test_has_learn_page_link(self):
-        """Sidebar must have a st.page_link to the learn page."""
-        source = _read_source()
-        assert 'st.page_link(' in source
-        assert 'pages/learn.py' in source
-
-    def test_has_rate_limiting(self):
-        """Rate limiting guard must be present in chat handler."""
-        source = _read_source()
-        assert "last_api_call" in source
-        assert "api_call_count" in source
+        assert "render_all()" in source
 
     def test_has_oauth_env_config(self):
         """OAuth redirect URI must use os.getenv with fallback."""
         source = _read_source()
-        assert 'OAUTH_REDIRECT_URI' in source
+        assert "OAUTH_REDIRECT_URI" in source
+
+    def test_has_rate_limiting_state(self):
+        """Rate limiting session state keys must be initialized."""
+        source = _read_source()
+        assert '"last_api_call"' in source
+        assert '"api_call_count"' in source
 
 
 class TestAppSessionState:

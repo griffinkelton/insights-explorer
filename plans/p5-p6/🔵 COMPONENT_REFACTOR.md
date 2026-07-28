@@ -2,7 +2,7 @@
 
 > **Roadmap ref:** IMPLEMENTATION_PLAN.md #20, ENHANCEMENTS.md #12
 > **Effort:** High (3-5 days) | **Risk:** Medium (mechanical extraction, session state coupling)
-> **Status:** 🔲 Planned — no code written
+> **Status:** ✅ Done (7 phases, 78-line orchestrator, 228 tests, 2026-07-28)
 
 ---
 
@@ -50,7 +50,7 @@ The refactor is mechanical — extract each section into a function in its own m
 | Widget keys | **No changes; audit for collisions** | Existing keys already unique; new components get new keys. |
 | `st.rerun()` / `st.stop()` | **No special handling** | Works identically regardless of which module calls it. |
 | Extraction order | **Charts first, orchestrator last** | Lowest-risk → highest-risk. Each phase verified independently before next. |
-| File processing | **Stays in `app.py` orchestrator** | Touches file upload widget state; tightly coupled to uploader in sidebar. Simplest to keep inline. |
+| File processing | **Moves to `components/sidebar.py`** | `_process_uploaded_file()` is called at the bottom of `render_sidebar()`. Keeps the upload lifecycle contained in one module. |
 | Mini-spec source | **Design decisions from component-refactor mini-spec** | Merged into this detailed plan to eliminate duplication. |
 
 ---
