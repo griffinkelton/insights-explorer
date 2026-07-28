@@ -20,6 +20,7 @@ from utils.ga4_client import (
     pull_ga4_report,
 )
 from utils.styles import inject_custom_css
+from utils.error_boundary import render_error_card
 
 # OAuth redirect URI — must match what's registered in GCP Console
 REDIRECT_URI = "http://localhost:8501"
@@ -141,7 +142,6 @@ with st.sidebar:
         if st.button("🔐 Sign in with Google", use_container_width=True, type="primary"):
             auth_url, flow = get_auth_url(REDIRECT_URI)
             st.session_state.ga4_auth_flow = flow
-            # Redirect user to Google OAuth consent screen
             st.markdown(
                 f'<meta http-equiv="refresh" content="0;url={auth_url}">'
                 f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
@@ -171,11 +171,10 @@ with st.sidebar:
         date_range = st.selectbox(
             "Date range",
             options=["7 days", "30 days", "90 days"],
-            index=2,  # Default to 90 days on first load; key persists selection thereafter
+            index=2,
             key="ga4_date_range",
             help="How far back to pull data from GA4.",
         )
-        # Map UI labels to GA4 API date expressions
         start_date_map = {"7 days": "7daysAgo", "30 days": "30daysAgo", "90 days": "90daysAgo"}
         start_date = start_date_map[date_range]
 
@@ -192,7 +191,6 @@ with st.sidebar:
                             if df.empty:
                                 st.error("No data returned. Check your Property ID and date range.")
                             else:
-                                # Parse dates and validate columns
                                 missing = validate_columns(df)
                                 if missing:
                                     st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
@@ -220,7 +218,7 @@ with st.sidebar:
 
     st.divider()
 
-    # Privacy disclaimer — clean card style
+    # Privacy disclaimer
     st.markdown("""
     <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
@@ -282,12 +280,113 @@ if uploaded_file is not None:
             st.session_state.data_cleared = False
             st.session_state.last_file_id = file_id
 
-# ── Main content area ────────────────────────────────────────────────────────
-st.markdown('<h1 style="margin-bottom:0.3rem;">GA4 Insight Explorer</h1>', unsafe_allow_html=True)
-st.caption("Ask questions about your analytics data — powered by Gemini AI.")
+# ═══════════════════════════════════════════════════════════════════════════════
+# Main content rendering
+# ═══════════════════════════════════════════════════════════════════════════════
 
-if st.session_state.df is None:
-    # ── Empty state — hero section ──
+def _render_main() -> None:
+    """Render all main content: header, hero/data-preview, summary, chat."""
+
+    st.markdown('<h1 style="margin-bottom:0.3rem;">GA4 Insight Explorer</h1>', unsafe_allow_html=True)
+    st.caption("Ask questions about your analytics data — powered by Gemini AI.")
+
+    if st.session_state.df is None:
+        _render_hero()
+        st.stop()
+
+    df = st.session_state.df
+    stats = st.session_state.stats
+
+    # ── Data preview ─────────────────────────────────────────────────────────
+    st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("📋 Total Rows", f"{stats['row_count']:,}")
+    with col2:
+        st.metric("📊 Columns", stats["column_count"])
+    with col3:
+        st.metric("📅 From", stats.get("date_range_start", "—"))
+    with col4:
+        st.metric("📅 To", stats.get("date_range_end", "—"))
+
+    with st.expander("🔍 Preview Table (first 10 rows)", expanded=False):
+        st.dataframe(df.head(10), use_container_width=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── AI Summary ───────────────────────────────────────────────────────────
+    st.markdown("### 🤖 AI-Generated Summary")
+
+    summary_col1, summary_col2 = st.columns([3, 1])
+    with summary_col1:
+        if st.session_state.summary:
+            with st.container(border=True):
+                st.markdown(st.session_state.summary)
+        else:
+            st.info("Click **Generate Summary** to analyze your dataset with AI.")
+
+    with summary_col2:
+        st.button(
+            "✨ Generate Summary",
+            type="primary",
+            use_container_width=True,
+            key="gen_summary_btn",
+            on_click=lambda: _generate_summary(df, stats),
+        )
+
+    st.divider()
+
+    # ── Chat interface ───────────────────────────────────────────────────────
+    st.markdown(
+        '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
+        '<h3 style="margin:0;">💬 Ask Questions</h3>'
+        '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    for i, entry in enumerate(st.session_state.chat_history):
+        with st.chat_message("user"):
+            st.markdown(entry["question"])
+
+        with st.chat_message("assistant"):
+            st.markdown(entry["response"])
+            if entry.get("chart") and entry["chart"].get("fig"):
+                with st.container(border=True):
+                    st.plotly_chart(entry["chart"]["fig"], use_container_width=True, key=f"chart_{i}")
+
+    # Chat input
+    if prompt := st.chat_input("e.g., which pages have the highest drop-off?"):
+        st.session_state.chat_history.append({
+            "question": prompt,
+            "response": None,
+            "chart": None,
+        })
+
+        with st.spinner("Thinking..."):
+            try:
+                chat_prompt = build_chat_prompt(prompt, df, stats)
+                response = generate_response(chat_prompt)
+
+                chart_config = detect_chart_request(response)
+                chart_data = None
+                if chart_config:
+                    chart_data = _generate_chart(df, chart_config, prompt, response)
+
+                st.session_state.chat_history[-1]["response"] = response
+                st.session_state.chat_history[-1]["chart"] = chart_data
+
+            except ValueError as e:
+                st.session_state.chat_history[-1]["response"] = f"🔑 Configuration error: {e}"
+            except RuntimeError as e:
+                st.session_state.chat_history[-1]["response"] = f"⚠️ API error: {e}"
+
+        st.rerun()
+
+
+def _render_hero() -> None:
+    """Render the hero / empty state when no data is loaded."""
     st.markdown("<br>", unsafe_allow_html=True)
 
     col_a, col_b, col_c = st.columns([1, 2, 1])
@@ -341,101 +440,21 @@ if st.session_state.df is None:
         '📂 Upload a file in the sidebar to get started</p>',
         unsafe_allow_html=True,
     )
-    st.stop()
 
-# ── Data preview ─────────────────────────────────────────────────────────────
-df = st.session_state.df
-stats = st.session_state.stats
 
-st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
+# ── Global error boundary ────────────────────────────────────────────────────
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("📋 Total Rows", f"{stats['row_count']:,}")
-with col2:
-    st.metric("📊 Columns", stats["column_count"])
-with col3:
-    st.metric("📅 From", stats.get("date_range_start", "—"))
-with col4:
-    st.metric("📅 To", stats.get("date_range_end", "—"))
-
-with st.expander("🔍 Preview Table (first 10 rows)", expanded=False):
-    st.dataframe(df.head(10), use_container_width=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ── AI Summary ───────────────────────────────────────────────────────────────
-st.markdown("### 🤖 AI-Generated Summary")
-
-summary_col1, summary_col2 = st.columns([3, 1])
-with summary_col1:
-    if st.session_state.summary:
-        with st.container(border=True):
-            st.markdown(st.session_state.summary)
-    else:
-        st.info("Click **Generate Summary** to analyze your dataset with AI.")
-
-with summary_col2:
-    st.button(
-        "✨ Generate Summary",
-        type="primary",
-        use_container_width=True,
-        key="gen_summary_btn",
-        on_click=lambda: _generate_summary(df, stats),
-    )
-
-st.divider()
-
-# ── Chat interface ───────────────────────────────────────────────────────────
-st.markdown(
-    '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
-    '<h3 style="margin:0;">💬 Ask Questions</h3>'
-    '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
-    '</div>',
-    unsafe_allow_html=True,
-)
-
-# Display chat history
-for i, entry in enumerate(st.session_state.chat_history):
-    with st.chat_message("user"):
-        st.markdown(entry["question"])
-
-    with st.chat_message("assistant"):
-        st.markdown(entry["response"])
-        if entry.get("chart") and entry["chart"].get("fig"):
-            with st.container(border=True):
-                st.plotly_chart(entry["chart"]["fig"], use_container_width=True, key=f"chart_{i}")
-
-# Chat input
-if prompt := st.chat_input("e.g., which pages have the highest drop-off?"):
-    st.session_state.chat_history.append({
-        "question": prompt,
-        "response": None,
-        "chart": None,
-    })
-
-    with st.spinner("Thinking..."):
-        try:
-            chat_prompt = build_chat_prompt(prompt, df, stats)
-            response = generate_response(chat_prompt)
-
-            chart_config = detect_chart_request(response)
-            chart_data = None
-            if chart_config:
-                chart_data = _generate_chart(df, chart_config, prompt, response)
-
-            st.session_state.chat_history[-1]["response"] = response
-            st.session_state.chat_history[-1]["chart"] = chart_data
-
-        except ValueError as e:
-            st.session_state.chat_history[-1]["response"] = f"🔑 Configuration error: {e}"
-        except RuntimeError as e:
-            st.session_state.chat_history[-1]["response"] = f"⚠️ API error: {e}"
-
-    st.rerun()
+try:
+    _render_main()
+except Exception as e:
+    # Streamlit uses exceptions for control flow (st.stop, st.rerun); let those propagate
+    if e.__class__.__module__.startswith("streamlit"):
+        raise
+    render_error_card(e, context="rendering the page")
 
 
 # ── Summary generation callback ──────────────────────────────────────────────
+
 def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
     """Callback for the Generate Summary button."""
     try:
@@ -448,6 +467,7 @@ def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
 
 
 # ── Chart generation helpers ─────────────────────────────────────────────────
+
 def _generate_chart(
     df: pd.DataFrame,
     chart_config: dict[str, str],
