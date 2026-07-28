@@ -1,5 +1,6 @@
 """Google Analytics 4 Data API client with OAuth 2.0 authentication."""
 
+from typing import Any
 import os
 import pandas as pd
 from google.auth.transport.requests import Request
@@ -45,7 +46,7 @@ def exchange_code(flow: Flow, code: str) -> Credentials:
     return flow.credentials
 
 
-def credentials_to_dict(creds: Credentials) -> dict:
+def credentials_to_dict(creds: Credentials) -> dict[str, Any]:
     """Serialize credentials to a JSON-safe dict for st.session_state."""
     return {
         "token": creds.token,
@@ -57,7 +58,7 @@ def credentials_to_dict(creds: Credentials) -> dict:
     }
 
 
-def credentials_from_dict(creds_dict: dict) -> Credentials:
+def credentials_from_dict(creds_dict: dict[str, Any]) -> Credentials:
     """Deserialize credentials from a JSON-safe dict."""
     return Credentials(**creds_dict)
 

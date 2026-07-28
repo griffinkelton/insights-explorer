@@ -1,7 +1,7 @@
 """GA4 data loading, validation, and preview utilities."""
 
+from typing import Any
 import pandas as pd
-from typing import Optional, Tuple
 
 
 # Expected GA4 export columns (case-insensitive matching attempted)
@@ -14,7 +14,7 @@ EXPECTED_COLUMNS = [
 ]
 
 
-def load_file(file) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
     """Load a CSV or XLSX file into a DataFrame.
 
     Returns (df, error_message).  If successful, error_message is None.
@@ -47,7 +47,7 @@ def validate_columns(df: pd.DataFrame) -> list[str]:
     return missing
 
 
-def get_dataset_stats(df: pd.DataFrame) -> dict:
+def get_dataset_stats(df: pd.DataFrame) -> dict[str, Any]:
     """Compute basic statistics for the uploaded dataset."""
     stats = {
         "row_count": len(df),

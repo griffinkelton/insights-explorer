@@ -1,5 +1,6 @@
 """Prompt construction for Gemini interactions."""
 
+from typing import Any
 import re
 import pandas as pd
 
@@ -26,7 +27,7 @@ def _sanitize_question(question: str) -> str:
     return sanitized
 
 
-def build_summary_prompt(df: pd.DataFrame, stats: dict) -> str:
+def build_summary_prompt(df: pd.DataFrame, stats: dict[str, Any]) -> str:
     """Build a prompt asking Gemini to generate a plain-language data summary."""
 
     missing = stats.get("missing_columns", [])
@@ -65,7 +66,7 @@ Keep it concise — about 3-5 bullet points. Flag any data limitations explicitl
 def build_chat_prompt(
     user_question: str,
     df: pd.DataFrame,
-    stats: dict,
+    stats: dict[str, Any],
 ) -> str:
     """Build a prompt for a user question about the uploaded data.
 
@@ -126,7 +127,7 @@ def build_chat_prompt(
     return prompt
 
 
-def detect_chart_request(gemini_response: str) -> dict | None:
+def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
     """Heuristically detect if a Gemini response suggests a chart-able metric.
 
     Returns a dict with chart config if detected, or None.
