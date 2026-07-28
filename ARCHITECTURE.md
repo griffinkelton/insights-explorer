@@ -29,7 +29,10 @@ insights-explorer/
 │   ├── test_gemini_client.py    # 14 tests — API calls, error handling, key validation
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 18 tests — OAuth flow, credentials, GA4 report pull
-│   └── test_learn_page.py       # 19 tests — learn page structure, content, tabs
+│   ├── test_learn_page.py       # 19 tests — learn page structure, content, tabs
+│   ├── test_error_boundary.py   # 14 tests — error card rendering, exception types, edge cases
+│   ├── test_data_quality.py     # 18 tests — quality scoring, grade calculation, edge cases
+│   └── test_static_analysis.py  # 5 tests — def-before-call AST linter, file I/O guard
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -89,7 +92,7 @@ insights-explorer/
 
 ### 8. CI/CD: Google Cloud Build
 **Decision:** Use `cloudbuild.yaml` with GCP Cloud Build triggers on every push.
-**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 129-test suite.
+**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 166-test suite.
 
 ---
 
@@ -166,7 +169,10 @@ insights-explorer/
 | `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
 | `test_ga4_client.py` | 18 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (5), `pull_ga4_report` (10) |
 | `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
-| **Total** | **129** | All util modules + learn page covered |
+| `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
+| `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
+| `test_static_analysis.py` | 5 | AST def-before-call linter, file I/O BytesIO guard |
+| **Total** | **166** | All util modules + learn page + error boundary + data quality + static analysis covered |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -227,6 +233,10 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 31 | Fixed privacy disclaimer wording to match ORIGINAL_SPEC.md requirement #15 verbatim | Fix |
 | 32 | Added BUGLOG.md cross-references to DOCUMENTATION_INDEX.md, README.md, and ARCHITECTURE.md | Docs |
 | 33 | Docs consistency sweep — updated test counts (110→129), project structures, build log | Docs |
+| 34 | Implemented P2: Data Quality Scorecard — A-F grading, styled card, 18 tests | Feature |
+| 35 | Added 14 unit tests for `utils/error_boundary.py` — `render_error_card()` | Testing |
+| 36 | BUG-008: Full `except Exception` audit — 11 instances across 5 files, 9 safe, 2 documented risks | Audit |
+| 37 | Added `tests/test_static_analysis.py` — def-before-call AST linter + file I/O guard (BUGLOG Patterns 3 & 4 gated) | Testing |
 
 ---
 

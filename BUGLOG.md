@@ -284,9 +284,9 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 
 2. **`on_click` callbacks are for instant operations only.** Any network, disk, or compute operation in an `on_click` callback freezes the UI. Use `if st.button(...)` + `st.spinner()`.
 
-3. **File objects are one-shot.** Streamlit's `UploadedFile` is a file-like object — read once into bytes, then pass `BytesIO` wrappers to downstream consumers.
+3. **File objects are one-shot.** Streamlit's `UploadedFile` is a file-like object — read once into bytes, then pass `BytesIO` wrappers to downstream consumers. ✅ **Gated:** `tests/test_static_analysis.py::TestFileIOGuard` — prevents `file.read()` + `pd.read_csv()` without `BytesIO`.
 
-4. **Static analysis isn't enough.** `ast.parse()` catches syntax errors but not ordering errors (function defined after call). Smoke tests catch what linters miss.
+4. **Static analysis isn't enough — but it can be.** `ast.parse()` catches syntax errors but not ordering errors (function defined after call). ✅ **Gated:** `tests/test_static_analysis.py::TestDefBeforeCall` — AST linter catches module-level calls before their `def` statements. Synthetic tests prove detection inside `try:`/`if:`/`with:` blocks.
 
 ### Rules for Future Development
 
@@ -296,10 +296,11 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 - **Rule 4:** Every `st.code()` block in the learn page uses single-quote triples
 - **Rule 5:** Plan review sessions check for file I/O bugs (buffer consumption, re-reading)
 - **Rule 6:** Version bumps require justification — prefer graceful degradation
+- **Rule 7:** Every new bug pattern gets a CI gate — if it can be detected statically (Patterns 3 & 4), add it to `test_static_analysis.py`. If it needs runtime (Patterns 1 & 2), document the rule and enforce in code review.
 
 ---
 
-*Last updated: 2026-07-28 after systematic IMPLEMENTATION_PLAN.md review. 8 bugs documented, 6 fixed, 2 pending implementation.*
+*Last updated: 2026-07-28 after static analysis linter implementation. 8 bugs documented, 6 fixed, 2 pending implementation. Patterns 3 & 4 now CI-gated.*
 
 ---
 
@@ -350,6 +351,6 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [README.md](README.md) — Setup guide, features, quick start
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
-- [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
+- [BUGLOG.md](BUGLOG.md) — Structured bug log (8 bugs, patterns, rules)
 - [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint

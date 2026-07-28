@@ -2,8 +2,8 @@
 
 > **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
 >
-> **Status:** 🟢 In progress — P1 complete, P2–P6 planned
-> **Last updated:** 2026-07-28 (P1 completed)
+> **Status:** 🟢 In progress — P1–P2 complete, P3–P6 planned
+> **Last updated:** 2026-07-28 (P2 completed)
 >
 > **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features.
 
@@ -14,7 +14,7 @@
 | # | Plan File | What | Effort | Risk | Dependencies | IMPL Ref |
 |---|---|---|---|---|---|---|
 | P1 | [APP_ICON.md](APP_ICON.md) | Custom app icon + favicon (SVG, 8 sizes, PWA manifest, OG image) | 2-3 hrs | Low | None | Bonus |
-| P2 | [BONUS_DATA_QUALITY_SCORECARD.md](BONUS_DATA_QUALITY_SCORECARD.md) | A-F data quality card (completeness, duplicates, outliers, date gaps) | 2-4 hrs | Low | None | Bonus |
+| P2 | [BONUS_DATA_QUALITY_SCORECARD.md](BONUS_DATA_QUALITY_SCORECARD.md) | A-F data quality card (completeness, duplicates, outliers, date gaps) | 2-4 hrs | Low | None | Bonus ✅ |
 | P3 | [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md) | Light/dark theme toggle (CSS variables, JS sync, Plotly swap) | 3-5 days | High | None | [#18](../IMPLEMENTATION_PLAN.md) |
 | P4 | [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](../IMPLEMENTATION_PLAN.md) |
 | P5 | [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](../IMPLEMENTATION_PLAN.md) |
@@ -183,7 +183,7 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 
 | Sprint | Items | Duration | Outcome |
 |---|---|---|---|
-| **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day | Polished favicon, trust-building quality card |
+| **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day ✅ | Polished favicon, trust-building quality card |
 | **Sprint P4** | Streaming Responses | 3-5 days | ChatGPT-like real-time chat |
 | **Sprint P3** | Theme Toggle | 3-5 days | Light/dark mode with full component coverage |
 | **Sprint P5** | Component Refactor | 3-5 days | Clean 7-file architecture from 400-line monolith |
@@ -200,12 +200,12 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | # | Plan | Files Touched | New Files | Tests | Status |
 |---|---|---|---|---|---|
 | P1 | App Icon | 5 | 13+ | 0 | ✅ Completed (commit `25ca2df`) |
-| P2 | Data Quality Scorecard | 4 | 1 | ~10 | 🔲 Planned |
+| P2 | Data Quality Scorecard | 4 | 1 | 18 | ✅ Completed (commit `9842065`) |
 | P3 | Theme Toggle | 3 | 0 | 0 | 🔲 Planned |
 | P4 | Streaming Responses | 2 | 0 | 3 | 🔲 Planned |
 | P5 | Component Refactor | 1 + 7 new | 7 | ~25 | 🔲 Planned |
 | P6 | AI & Data Enhancements | 3 | 0 | ~20 | 🔲 Planned |
-| **Total** | **6 plans** | **18 + 20 new** | **21+ new** | **~58 new** | **1/6 done** |
+| **Total** | **6 plans** | **18 + 20 new** | **21+ new** | **~66 new** | **2/6 done** |
 
 ---
 

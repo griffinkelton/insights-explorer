@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
-  <img src="https://img.shields.io/badge/tests-129%20passed-success?logo=pytest" alt="129 tests">
+  <img src="https://img.shields.io/badge/tests-166%20passed-success?logo=pytest" alt="166 tests">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -71,7 +71,7 @@ Opens at **http://localhost:8501** 🎉
 python -m pytest tests/
 ```
 
-129 tests across 5 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, and learn page structure.
+166 tests across 8 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, learn page structure, error boundary rendering, data quality scoring, and static analysis guards.
 
 ---
 
@@ -103,14 +103,17 @@ python -m pytest tests/
 │   ├── test_prompt_templates.py
 │   ├── test_gemini_client.py
 │   ├── test_ga4_client.py
-│   └── test_learn_page.py
+│   ├── test_learn_page.py
+│   ├── test_error_boundary.py
+│   ├── test_data_quality.py
+│   └── test_static_analysis.py
 ├── .streamlit/
 │   └── config.toml             # Secure defaults (headless, XSRF, CORS)
 ├── cloudbuild.yaml             # CI/CD — auto-run tests on push
 ├── .env.example                # API key template
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
-├── BUGLOG.md                   # Structured bug log (7 bugs, patterns, rules)
+├── BUGLOG.md                   # Structured bug log (8 bugs, patterns, rules)
 ├── ORIGINAL_SPEC.md            # Initial spec + 26-item compliance checklist
 ├── ENHANCEMENTS.md             # 37-item enhancement roadmap
 ├── IMPLEMENTATION_PLAN.md      # 21-item execution blueprint
@@ -374,7 +377,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (129 unit tests across 5 modules) |
+| Testing | pytest (166 unit tests across 8 modules) |
 | CI/CD | Google Cloud Build (`cloudbuild.yaml`) |
 | Data | Pandas |
 | Charts | Plotly |

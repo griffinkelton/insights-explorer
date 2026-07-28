@@ -31,7 +31,7 @@
 |---|---|---|
 | [plans/APP_ICON.md](plans/APP_ICON.md) | Custom app icon + favicon design and implementation | Small (2-3 hrs) ✅ Done |
 | [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) | Master index of all 6 plans — execution order, sprint plan, progress tracker | Reference |
-| [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) | Data quality scorecard (promoted from IDEAS.md #17) | Medium (2-4 hrs) |
+| [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) | Data quality scorecard (promoted from IDEAS.md #17) | Medium (2-4 hrs) ✅ Done |
 | [plans/phase5/THEME_TOGGLE.md](plans/phase5/THEME_TOGGLE.md) | Light/dark theme toggle (IMPL #18) | High (3-5 days) |
 | [plans/phase5/STREAMING_RESPONSES.md](plans/phase5/STREAMING_RESPONSES.md) | Streaming token-by-token responses (IMPL #19) | High (3-5 days) |
 | [plans/phase5/COMPONENT_REFACTOR.md](plans/phase5/COMPONENT_REFACTOR.md) | Refactor app.py into components/ (IMPL #20) | High (3-5 days) |
@@ -62,11 +62,11 @@ ARCHITECTURE.md ─── "How it's built"
         │                               ├── COMPONENT_REFACTOR.md
         │                               └── AI_DATA_ENHANCEMENTS.md
         │
-        ├──► BUGLOG.md ─── "What broke and why" (7 bugs, patterns, rules)
+        ├──► BUGLOG.md ─── "What broke and why" (8 bugs, patterns, rules)
         │
         ├──► IDEAS.md ─── "What's beyond the roadmap" (25 enhancements + 10 moonshots)
         │
-        └──► plans/UNIFIED_PLAN.md ─── "Master execution plan" (6 plans, 1/6 done)
+        └──► plans/UNIFIED_PLAN.md ─── "Master execution plan" (6 plans, 2/6 done)
 ```
 
 ---
@@ -83,8 +83,8 @@ ARCHITECTURE.md ─── "How it's built"
 | IDEAS.md | ✅ Current | Today |
 | BUGLOG.md | ✅ Current | Today |
 | plans/APP_ICON.md | ✅ Completed | Today |
-| plans/UNIFIED_PLAN.md | ✅ Current (P1 complete, 1/6 done) | Today |
-| plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ New | Today |
+| plans/UNIFIED_PLAN.md | ✅ Current (P1–P2 complete, 2/6 done) | Today |
+| plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ Completed | Today |
 | plans/phase5/THEME_TOGGLE.md | ✅ Current | Today |
 | plans/phase5/STREAMING_RESPONSES.md | ✅ Current | Today |
 | plans/phase5/COMPONENT_REFACTOR.md | ✅ Current | Today |
