@@ -252,3 +252,13 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 ---
 
 *These ideas are intentionally ambitious. Some are weekend projects. Some are startup ideas. None are in the implementation plan. They're here to inspire what comes after Phase 5.*
+
+---
+
+## 📖 Related Docs
+
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
+- [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs

@@ -195,3 +195,24 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 17 | Added comprehensive GA4 live connection setup guide to README | Docs |
 | 18 | Created smoke test: verified app boots, key banner, Cmd+K shortcut | Testing |
 | 19 | Test suite: 0 → 110 tests across 4 test modules | Testing |
+| 20 | Added `utils/error_boundary.py` — global error boundary (#13) | Feature |
+| 21 | Added 19 structural tests for `pages/learn.py` | Testing |
+| 22 | Added `scripts/smoke_test.sh` — headless smoke test | CI/CD |
+| 23 | Added Back to App button on `/learn` via `st.page_link` | Feature |
+| 24 | Rewrote `ENHANCEMENTS.md` v2 — 37 enhancements across 7 categories | Docs |
+| 25 | Added `IMPLEMENTATION_PLAN.md` — 21-item execution blueprint | Docs |
+| 26 | Added `IDEAS.md` — 25 bonus enhancements + 10 moonshots | Docs |
+| 27 | Added `ORIGINAL_SPEC.md` — initial prompt + compliance checklist | Docs |
+| 28 | Added `DOCUMENTATION_INDEX.md` — central doc index | Docs |
+| 29 | Added `plans/` directory — Phase 5 detailed plans + bonus plans | Docs |
+
+---
+
+## 📖 Further Reading
+
+- [README.md](README.md) — Setup guide, features, quick start
+- [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
+- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation

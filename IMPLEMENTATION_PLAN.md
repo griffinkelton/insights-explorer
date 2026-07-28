@@ -176,12 +176,21 @@ MAX_FILE_SIZE_MB = 100
 MAX_ROWS = 50_000
 ```
 
-In `load_file()`, before the `pd.read_csv()` / `pd.read_excel()` call, check file size:
+In `load_file()`, read the file into bytes once (avoids consuming the buffer before pandas reads it), then check size:
 ```python
-# Check file size before parsing
-file_size = file.size if hasattr(file, "size") else len(file.getvalue())
+from io import BytesIO
+
+# Read file into bytes ONCE — avoids buffer consumption issues with pd.read_csv/read_excel
+file_bytes = file.read()
+file_size = len(file_bytes)
 if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
     return None, f"File too large ({file_size / 1024 / 1024:.1f} MB). Maximum is {MAX_FILE_SIZE_MB} MB."
+
+# Parse from bytes, not from file object
+if filename.endswith(".csv"):
+    df = pd.read_csv(BytesIO(file_bytes))
+elif filename.endswith(".xlsx"):
+    df = pd.read_excel(BytesIO(file_bytes), engine="openpyxl")
 ```
 
 After successful parse, check row count:
@@ -221,9 +230,9 @@ else:
 ```
 
 **Edge cases:**
-- **XLSX files:** `file.size` is available on `UploadedFile` objects from `st.file_uploader` — it works for both CSV and XLSX. The `len(file.getvalue())` fallback is for edge cases where `.size` isn't available.
 - **Truncation + date parsing:** If rows are truncated, the date range in `get_dataset_stats` may be narrower than the full dataset. The warning already covers this.
-- **Empty CSV with large file size:** Edge case where a CSV has a huge file size but few rows (e.g., lots of null columns). The size check happens first — it would reject. Unlikely to occur in practice.
+- **Empty CSV with large file size:** The size check happens before parsing — it would reject. In practice, empty CSVs are small.
+- **`BytesIO` import:** Add `from io import BytesIO` to `data_loader.py` imports.
 
 **Risk:** Low. Added before existing logic, fails closed. The return type change is a minor refactor but all callers are in the same codebase and updated simultaneously.
 
@@ -231,10 +240,13 @@ else:
 - `test_rejects_oversized_file()` — mock a 200 MB file, assert error message
 - `test_truncates_large_dataset()` — create a 60k-row DataFrame, assert warning and truncation
 - `test_small_file_passes_size_check()` — normal flow still works
+- **⚠️ Also update all 6 existing `load_file()` tests** — they unpack two values (`df, error`), must now unpack three (`df, error, warning`). The return type change from `tuple[DataFrame | None, str | None]` to `tuple[DataFrame | None, str | None, str | None]` is a breaking change to every existing test.
 
 **Dependencies:** None.
 
 ---
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots with file size limits active.
 
 ### #5: Rate limiting on chat (#14 from roadmap)
 
@@ -288,6 +300,8 @@ if st.session_state.api_call_count > 0:
 
 **Test impact:** Difficult to unit test time-based logic directly. Best tested via the smoke test (send two rapid messages, verify the second is rejected). The API call counter can be verified by inspecting `st.session_state.api_call_count` in the smoke test log.
 
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots with rate limiting active.
+
 **Dependencies:** None.
 
 ---
@@ -306,14 +320,14 @@ icon = "📚"
 
 **Why:** Streamlit auto-generates sidebar navigation from the `pages/` directory, using the filename ("learn") as the display name. This is functional but unpolished. `pages.toml` lets us customize the display name and icon without changing the filename.
 
-**Version compatibility:** `pages.toml` was added in Streamlit 1.44 (mid-2024). Our `requirements.txt` says `>=1.28` (late 2023). Since 1.28 is over a year old and 1.44 is widely available, we should bump the minimum to `streamlit>=1.44` in `requirements.txt`. If someone is on an older version, Streamlit gracefully ignores `pages.toml` and falls back to the filename.
+**Version compatibility:** `pages.toml` was added in Streamlit 1.44. Our `requirements.txt` says `>=1.28`. **Keep `>=1.28`** — do NOT bump. On Streamlit < 1.44, `pages.toml` is silently ignored and the sidebar shows "learn" instead of "📚 Learn Python" — a harmless fallback that doesn't break anyone's install. On >=1.44, it shows the polished name.
 
 **Edge cases:**
 - **Incorrect path:** If `pages/learn.py` doesn't exist, Streamlit shows an error. Not a concern since the file exists and is tested.
 - **Multiple pages:** If we add more pages later, each gets its own `[[pages]]` block.
 - **File not found:** If `pages.toml` is missing, Streamlit falls back to filename-based naming. No crash.
 
-**Risk:** Low. The file is optional — if it fails to parse, Streamlit ignores it. The version bump from 1.28 to 1.44 is the only risk, but 1.44 is over a year old and widely deployed.
+**Risk:** Low. The file is optional — if it fails to parse or the Streamlit version is <1.44, it's silently ignored. No version bump needed.
 
 **Test impact:** None. `test_learn_page.py` doesn't test the sidebar navigation. The `st.page_link` in #1 still references `"pages/learn.py"` regardless of the display name.
 
@@ -378,6 +392,8 @@ def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
 **Risk:** Low. Just wrapping existing logic. The `on_click` callback approach was the original bug — this is the standard Streamlit pattern for async operations.
 
 **Test impact:** No unit test needed (it's a Streamlit widget behavior, not logic). Smoke test: verify the spinner text appears in the page source when the button is clicked.
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots and the Generate Summary button still works.
 
 **Dependencies:** None.
 
@@ -487,6 +503,8 @@ if uploaded_file is not None and st.session_state.tour_step in (1, 2, 3):
 
 ---
 
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots and the tour renders correctly.
+
 ### #9: Add "Learn" link to README
 
 **Files:** `README.md`
@@ -585,7 +603,7 @@ requirements/
 
 #### `requirements/base.txt`
 ```
-streamlit>=1.44.0
+streamlit>=1.28.0
 google-genai>=1.0.0
 pandas>=2.0.0
 plotly>=5.17.0
@@ -771,6 +789,7 @@ class TestAppStructure:
         assert "GA4 Insight Explorer" in source
         assert "Data processed in-memory only" in source
 
+    @pytest.mark.skip(reason="Requires #1 (sidebar learn link) to be implemented first")
     def test_has_learn_page_link(self):
         """If #1 is implemented, the learn page link should exist."""
         source = _read_source()
@@ -868,6 +887,8 @@ jobs:
 **Risk:** Near zero. Standard GitHub Actions boilerplate. The workflow file is inert until pushed to GitHub.
 
 **Dependencies:** None.
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots and chat input still works.
 
 ---
 
@@ -967,7 +988,20 @@ if st.session_state.df is not None:
     st.caption(f"Showing {len(filtered_df):,} of {len(st.session_state.df):,} rows")
 ```
 
-All downstream consumers (summary, chat, charts) use `st.session_state.filtered_df` instead of `st.session_state.df`.
+All downstream consumers (summary, chat, charts) use `st.session_state.filtered_df` instead of `st.session_state.df`. The full `st.session_state.df` is preserved as the source of truth for filter resets.
+
+**Downstream consumer checklist** — every reference to `st.session_state.df` that must switch to `filtered_df`:
+
+| Consumer | Before | After |
+|---|---|---|
+| Data preview table | `st.dataframe(df.head(10))` | `st.dataframe(filtered_df.head(10))` |
+| Summary prompt | `build_summary_prompt(df, stats)` | `build_summary_prompt(filtered_df, filtered_stats)` — recompute stats for filtered data |
+| Chat prompt | `build_chat_prompt(prompt, df, stats)` | `build_chat_prompt(prompt, filtered_df, filtered_stats)` |
+| Chart generation | `_generate_chart(df, ...)` | `_generate_chart(filtered_df, ...)` |
+| Metrics row | `stats['row_count']` | `len(filtered_df)` — must use filtered stats, not full df stats |
+| AI Summary display | `st.session_state.summary` | Re-generate summary from filtered_df when filters change |
+
+Missing any consumer creates a silent bug where charts/prompts use unfiltered data while the UI shows filtered data.
 
 **Edge cases:**
 - **Empty filtered dataset:** Show `st.warning("No rows match your filters. Try a wider date range.")` and don't crash.
@@ -982,6 +1016,8 @@ All downstream consumers (summary, chat, charts) use `st.session_state.filtered_
 - `test_filter_dataframe_by_columns`
 - `test_filter_dataframe_empty_result`
 - `test_filter_dataframe_no_filters_returns_original`
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify filters don't crash the app.
 
 **Dependencies:** None directly, but touches the same areas as #7 (loading state) and should be done after that is stable.
 
@@ -1065,6 +1101,8 @@ with col_new_chat:
 - `test_build_chat_prompt_history_not_included_for_first_message`
 
 **Dependencies:** None.
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify chat still works with conversation history.
 
 ---
 
@@ -1182,6 +1220,10 @@ if st.session_state.chat_history:
             file_name=f"ga4_insight_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.md",
             mime="text/markdown",
         )
+        st.caption(
+            "⚠️ Charts missing from the report? "
+            "Install kaleido: `pip install kaleido`"
+        )
 ```
 
 #### `requirements.txt` (or `requirements/dev.txt`)
@@ -1195,7 +1237,7 @@ kaleido>=0.2.1
 **Why `kaleido` for chart export:** Plotly's `fig.to_image()` requires either `kaleido` (cross-platform, `pip install kaleido`) or `orca` (deprecated, requires a separate system install). `kaleido` is the official replacement.
 
 **Edge cases:**
-- **`kaleido` not installed:** `_chart_to_base64` catches the error and returns `None` — charts are silently skipped rather than crashing the export.
+- **`kaleido` not installed:** `_chart_to_base64` catches the error and returns `None` — charts are skipped. A `st.caption` warning is shown below the download button so the user knows why charts are missing and how to fix it.
 - **Very long chat history (100+ Q&A):** The entire history is included. Markdown files have no practical size limit for text. For extreme cases, add a `max_entries=50` parameter.
 - **No charts in session:** The export still works — just skips the chart embedding.
 - **No AI summary:** The "🤖 AI-Generated Summary" section is omitted if `summary` is None.
@@ -1208,6 +1250,8 @@ kaleido>=0.2.1
 - `test_builds_report_handles_empty_state`
 
 **Dependencies:** None.
+
+**Post-implementation:** Run `bash scripts/smoke_test.sh` to verify the app boots and the export button renders.
 
 ---
 
@@ -1369,7 +1413,7 @@ Phase 1 (parallel safe, ~1 hr total):
   #3  Update docs (ENHANCEMENTS, ARCH)  ── Depends on #2 for accurate counts
   #9  Add Learn link to README          ── No dependency (but better after #1)
 
-Phase 2 (parallel safe, ~1.5 hrs total):
+Phase 2 (~2.5 hrs total):
   #4  File size/row limits              ─┐
   #5  Rate limiting on chat             ├─ All independent
   #13 Add app.py structural test       ─┘
@@ -1396,7 +1440,7 @@ Phase 5 (future, 5-10 days):
 | Sprint | Items | Outcome |
 |---|---|---|
 | **Sprint 1** (2 hours) | #1, #2, #6, #3, #9 | Sidebar learn link, accurate docs, polished nav |
-| **Sprint 2** (2 hours) | #4, #5, #10, #11, #12, #13 | Safety guardrails, coverage reporting, full structural tests |
+| **Sprint 2** (2.5 hours) | #4, #5, #10, #11, #12, #13 | Safety guardrails, coverage reporting, full structural tests |
 | **Sprint 3** (3 hours) | #7, #14, #8 | Loading spinner, GitHub Actions, onboarding tour |
 | **Sprint 4** (5 hours) | #15, #16, #17 | Column filters, conversation memory, chat export |
 | **Sprint 5+** (as needed) | #18-21 | Theming, streaming, refactor, advanced AI features |

@@ -219,3 +219,13 @@
 ---
 
 *Generated from deep review of the actual codebase, test suite, and CI pipeline. Last updated after implementing: error boundary, learn page, smoke test, back-to-app button, test suite expansion.*
+
+---
+
+## 📖 Related Docs
+
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
+- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
+- [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs

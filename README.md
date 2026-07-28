@@ -405,5 +405,9 @@ MIT — experimental prototype, use at your own risk.
 ## 📖 Further Reading
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Full architecture, design decisions, build log
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 25-item enhancement roadmap
+- [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + 26-item compliance checklist
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap across 7 categories
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Detailed 21-item execution blueprint with sprint plan
+- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project documentation
 - [Learn Page](http://localhost:8501/learn) — Interactive Python tutorials (app must be running)

@@ -198,3 +198,13 @@ The project grew significantly beyond the initial prompt. Here's what was added:
 ---
 
 *This document is preserved for historical reference. It shows what was asked for (26 requirements, all met) and how the project grew organically beyond the initial scope.*
+
+---
+
+## 📖 Related Docs
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
