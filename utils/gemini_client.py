@@ -1,7 +1,7 @@
 """Gemini API client wrapper for GA4 Insight Explorer."""
 
 import os
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -12,23 +12,24 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_TEMPERATURE = 0.3  # Conservative for analytical consistency
 DEFAULT_MAX_OUTPUT_TOKENS = 2048
 
-# Configure the client once at module load time
-_api_configured = False
+# Lazy-initialized client
+_client: genai.Client | None = None
 
 
-def _configure_client() -> None:
-    """Configure the Gemini API client with the key from environment."""
-    global _api_configured
-    if _api_configured:
-        return
+def _get_client() -> genai.Client:
+    """Return a configured genai.Client, creating it on first call."""
+    global _client
+    if _client is not None:
+        return _client
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError(
             "GEMINI_API_KEY not found. Please set it in your .env file. "
             "Get a free key at https://aistudio.google.com/apikey"
         )
-    genai.configure(api_key=api_key)
-    _api_configured = True
+    _client = genai.Client(api_key=api_key)
+    return _client
 
 
 def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
@@ -36,20 +37,18 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
 
     Raises ValueError for missing API key, RuntimeError for API failures.
     """
-    _configure_client()
-
     try:
-        generative_model = genai.GenerativeModel(
-            model_name=model,
-            generation_config={
+        response = _get_client().models.generate_content(
+            model=model,
+            contents=prompt,
+            config={
                 "temperature": DEFAULT_TEMPERATURE,
                 "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
             },
         )
-        response = generative_model.generate_content(prompt)
         return response.text
     except ValueError:
-        raise  # Re-raise API key errors as-is
+        raise  # API key errors propagate as-is
     except Exception as e:
         error_msg = str(e).lower()
         if "rate" in error_msg and "limit" in error_msg:
