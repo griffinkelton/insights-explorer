@@ -45,6 +45,7 @@
 | [plans/p3-p4/✅ STREAMING_RESPONSES.md](plans/p3-p4/✅ STREAMING_RESPONSES.md) | Make chat feel real-time instead of waiting 3-5 seconds per response | Generator, st.write_stream, append→rerun→stream pattern (IMPL #19, UNIFIED P4) | High (3-5 days) ✅ Done |
 | [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) | Upgrade the AI and data layer: smarter charts, anomaly detection, comparative mode | 6 sub-items: chart tokens, JSON mapping, type detection, sampling, anomalies, comparisons (IMPL #21, UNIFIED P6) | 3-4 days 🔵 Spec'd |
 | [plans/00-sprints/🔵 ai-data-enhancements-spec.md](plans/00-sprints/🔵 ai-data-enhancements-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, 5-phase order | 6 sub-items: type detection → sampling → chart JSON → anomalies → compare mode. ~249 tests. | 🔵 Ready to implement |
+| [plans/00-sprints/drive-file-picker-spec.md](plans/00-sprints/drive-file-picker-spec.md) | Add a Google Drive file picker to the sidebar — load CSVs/Sheets directly | 6 files changed, 2 new: drive_client.py + sidebar UI. Piggybacks on GA4 OAuth. ~234 tests. | 🔵 Planned |
 
 ---
 
