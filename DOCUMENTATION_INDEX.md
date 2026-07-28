@@ -27,22 +27,21 @@
 
 ## 📐 Detailed Phase Plans
 
-| File | Covers | Effort |
-|---|---|---|
-| [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) | Master index of all plans — 6 phase plans (P1–P6) + 5 sprint/derived plans (SP1–SP5) + progress tracker | Reference |
-| [plans/APP_ICON.md](plans/APP_ICON.md) | Custom app icon + favicon design and implementation (UNIFIED P1) | Small (2-3 hrs) ✅ Done |
-| [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) | Data quality scorecard — A-F grading, styled card, prompt integration (UNIFIED P2) | Medium (2-4 hrs) ✅ Done |
-| [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) | P1–P3 sprint: IMPL items #1–14 + OAuth redirect + download slice (5 batches, ~5.5 hrs) | ✅ Done (12/13, 194 tests) |
-| [plans/P1-P3-completion.md](plans/P1-P3-completion.md) | Sprint completion tracker — checkbox progress for all 13 items | ✅ Complete |
-| [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) | Active sprint: #15–17 Wave 1 + #19 Streaming (2 phases, ~6-7 days) | 🔵 Spec'd |
-| [plans/P4-future-plan.md](plans/P4-future-plan.md) | Future phases: IMPL items #15–21 + P3–P6 + repo weaknesses (3 waves) — now split into active + deferred | 🔵 Partially spec'd |
-| [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F, ~20-35 days) | 🔵 Captured |
-| [plans/onboarding-tour.md](plans/onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour (⚠️ Optional) | ⚠️ Deferred |
-| [plans/component-refactor.md](plans/component-refactor.md) | Standalone mini-spec for #20 component refactor (⚠️ Deferred) | 🔵 Deferred |
-| [plans/phase5/THEME_TOGGLE.md](plans/phase5/THEME_TOGGLE.md) | Light/dark theme toggle — CSS variables, JS sync, Plotly swap (IMPL #18, UNIFIED P3) | High (3-5 days) |
-| [plans/phase5/STREAMING_RESPONSES.md](plans/phase5/STREAMING_RESPONSES.md) | Streaming token-by-token responses — generator, st.write_stream, error recovery (IMPL #19, UNIFIED P4) | High (3-5 days) |
-| [plans/phase5/COMPONENT_REFACTOR.md](plans/phase5/COMPONENT_REFACTOR.md) | Refactor app.py into components/ package — 7 new files (IMPL #20, UNIFIED P5) | High (3-5 days) |
-| [plans/phase5/AI_DATA_ENHANCEMENTS.md](plans/phase5/AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items — chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling (IMPL #21, UNIFIED P6) | Medium-High (varies) |
+| File | Purpose (why read this?) | What it covers | Effort / Status |
+|---|---|---|---|
+| [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) | Understand the big picture: which plans exist, what order to run them, and overall progress | 6 phase plans (P1–P6) + 5 sprint/derived plans (SP1–SP5) + progress tracker | Reference |
+| [plans/p1-p2/✅ APP_ICON.md](plans/p1-p2/✅ APP_ICON.md) | Polish the app's brand identity across browsers, PWA installs, and social sharing previews | Custom SVG icon + 8 PNG sizes + PWA manifest + OG image (UNIFIED P1) | Small (2-3 hrs) ✅ Done |
+| [plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md](plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md) | Build user trust by showing data quality at a glance before running AI analysis | A-F grading on completeness, duplicates, outliers, and date gaps (UNIFIED P2) | Medium (2-4 hrs) ✅ Done |
+| [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) | See the step-by-step execution plan that shipped the first 13 improvements | IMPL items #1–14 + OAuth redirect + download slice (5 batches, ~5.5 hrs) | ✅ Done (12/13, 194 tests) |
+| [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) | Confirm exactly what was built and what was deferred in the first sprint | Checkbox tracker — progress for all 13 items | ✅ Complete |
+| [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) | See how streaming chat, column filters, conversation memory, and export were built | #15–17 Wave 1 + #19 Streaming (2 phases, ~6-7 days) | ✅ Done (4/4 items, 194 tests) |
+| [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) | Understand what comes next: medium features, large investments, and repo weaknesses | IMPL items #15–21 + P3–P6 + repo weaknesses (3 waves) | 🔵 Partially spec'd |
+| [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) | See the full catalog of work still waiting: theme, refactor, and 6 AI/data items | #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F, ~20-35 days) | 🔵 Captured |
+| [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) | Eliminate the "cold start" problem — guide first-time users through the app in 30 seconds | 3-step guided tour: upload → summary → chat, with auto-dismiss | ⚠️ Deferred (~1 hr) |
+| [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](plans/p5-p6/🔵 COMPONENT_REFACTOR.md) | Clean up technical debt: turn the 500-line monolith into maintainable modules | Design decisions, target architecture, and 7-phase extraction plan (IMPL #20, UNIFIED P5) | High (3-5 days) 🔵 Deferred |
+| [plans/p3-p4/🔵 THEME_TOGGLE.md](plans/p3-p4/🔵 THEME_TOGGLE.md) | Give users a light mode option — the single most-requested visual improvement | CSS variables, JS sync, Plotly chart swapping, 5 phases (IMPL #18, UNIFIED P3) | High (3-5 days) |
+| [plans/p3-p4/✅ STREAMING_RESPONSES.md](plans/p3-p4/✅ STREAMING_RESPONSES.md) | Make chat feel real-time instead of waiting 3-5 seconds per response | Generator, st.write_stream, append→rerun→stream pattern (IMPL #19, UNIFIED P4) | High (3-5 days) ✅ Done |
+| [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) | Upgrade the AI and data layer: smarter charts, anomaly detection, comparative mode | 6 sub-items: chart tokens, JSON mapping, type detection, sampling, anomalies, comparisons (IMPL #21, UNIFIED P6) | Medium-High (varies) |
 
 ---
 
@@ -71,26 +70,28 @@ ARCHITECTURE.md ─── "How it's built"
 ```
 IMPLEMENTATION_PLAN.md
         │
-        ├──► plans/P1-P3-sprint-spec.md ── "Sprint done ✅ (194 tests)"
-        │           └──► plans/P1-P3-completion.md
+        ├──► plans/00-sprints/✅ P1-P3-sprint-spec.md ── "Sprint done ✅ (194 tests)"
+        │           └──► plans/00-sprints/✅ P1-P3-completion.md
         │
-        ├──► plans/P4-wave1-streaming-sprint-spec.md ── "Active sprint 🔵"
+        ├──► plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md ── "Active sprint 🔵"
         │
-        ├──► plans/P4-deferred-plan.md ── "Deferred (Batches C–F)"
-        │           └──► plans/component-refactor.md ── "#20 mini-spec"
+        ├──► plans/00-meta/📋 P4-deferred-plan.md ── "Deferred (Batches C–F)"
+        │           └──► plans/p5-p6/🔵 COMPONENT_REFACTOR.md ── "#20 mini-spec"
         │
-        ├──► plans/onboarding-tour.md ── "#8 mini-spec (deferred)"
+        ├──► plans/00-meta/🔵 onboarding-tour.md ── "#8 mini-spec (deferred)"
         │
-        ├──► plans/UNIFIED_PLAN.md ── "Master index"
+        ├──► plans/00-meta/📋 UNIFIED_PLAN.md ── "Master index"
         │
-        ├──► plans/APP_ICON.md ✅
-        ├──► plans/BONUS_DATA_QUALITY_SCORECARD.md ✅
+        ├──► plans/p1-p2/✅ APP_ICON.md ✅
+        ├──► plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md ✅
         │
-        └──► plans/phase5/
-                 ├── THEME_TOGGLE.md
-                 ├── STREAMING_RESPONSES.md
-                 ├── COMPONENT_REFACTOR.md
-                 └── AI_DATA_ENHANCEMENTS.md
+        └──► plans/p3-p4/
+        │        ├── 🔵 THEME_TOGGLE.md
+        │        └── ✅ STREAMING_RESPONSES.md
+        │
+        └──► plans/p5-p6/
+                 ├── 🔵 COMPONENT_REFACTOR.md
+                 └── 🔵 AI_DATA_ENHANCEMENTS.md
 ```
 ```
 
@@ -98,31 +99,30 @@ IMPLEMENTATION_PLAN.md
 
 ## 📊 Document Status
 
-| File | Status | Last Updated |
-|---|---|---|
-| README.md | ✅ Current (test counts 171→194, test_app.py added, CHANGELOG in structure) | Today |
-| ORIGINAL_SPEC.md | ✅ Current | Today |
-| ARCHITECTURE.md | ✅ Current (build log #41–52, test count 194) | Today |
-| ENHANCEMENTS.md | ✅ Current (22/37 done, P1-P3 sprint reflected) | Today |
-| IMPLEMENTATION_PLAN.md | ✅ Current (#6 skipped, #7 done, cross-refs to new plans) | Today |
-| IDEAS.md | ✅ Current | Today |
-| BUGLOG.md | ✅ Current (all 4 patterns CI-gated) | Today |
-| DOCUMENTATION_INDEX.md | ✅ Current (all new plan files added) | Today |
-| CHANGELOG.md | ✅ Current (43 commits tracked, P1-P3 sprint entries) | Today |
-| plans/APP_ICON.md | ✅ Completed | Today |
-| plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ Completed | Today |
-| plans/UNIFIED_PLAN.md | ✅ Current (SP1–SP5 added, progress tracker updated) | Today |
-| plans/P1-P3-sprint-spec.md | ✅ Done (12/13 implemented, 194 tests) | Today |
-| plans/P1-P3-completion.md | ✅ Complete (all items tracked) | Today |
-| plans/P4-wave1-streaming-sprint-spec.md | 🔵 Spec'd — awaiting implementation | Today |
-| plans/P4-future-plan.md | 🔵 Partially spec'd (Wave 1+streaming active, rest deferred) | Today |
-| plans/P4-deferred-plan.md | 🔵 Captured (Batches C–F deferred) | Today |
-| plans/onboarding-tour.md | ⚠️ Optional, deferred | Today |
-| plans/component-refactor.md | 🔵 Deferred (after streaming + theming stable) | Today |
-| plans/phase5/THEME_TOGGLE.md | ✅ Current | Today |
-| plans/phase5/STREAMING_RESPONSES.md | ✅ Current | Today |
-| plans/phase5/COMPONENT_REFACTOR.md | ✅ Current | Today |
-| plans/phase5/AI_DATA_ENHANCEMENTS.md | ✅ Current | Today |
+| File | Purpose | Status | Last Updated |
+|---|---|---|---|
+| README.md | First read: setup guide, features, tech stack, security, quick start | ✅ Current | Today |
+| ORIGINAL_SPEC.md | The initial project requirements and 26-item compliance checklist | ✅ Current | Today |
+| ARCHITECTURE.md | Design decisions, data flow, security model, dependencies, build log | ✅ Current | Today |
+| ENHANCEMENTS.md | 37-item roadmap of what's been improved and what's still available | ✅ Current | Today |
+| IMPLEMENTATION_PLAN.md | 21-item execution blueprint — the master implementation guide | ✅ Current | Today |
+| IDEAS.md | Creative ideas beyond the roadmap: 25 bonus enhancements + 10 moonshots | ✅ Current | Today |
+| BUGLOG.md | Structured bug history with root causes, fixes, and detection patterns | ✅ Current | Today |
+| DOCUMENTATION_INDEX.md | This file — central index connecting all project documentation | ✅ Current | Today |
+| CHANGELOG.md | Unified change history with commit hashes and related doc links | ✅ Current | Today |
+| plans/p1-p2/✅ APP_ICON.md | How to create a custom SVG favicon + PWA manifest (completed) | ✅ Completed | Today |
+| plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md | How to add an A-F data quality grading card (completed) | ✅ Completed | Today |
+| plans/00-meta/📋 UNIFIED_PLAN.md | Master index of all 11 plans with execution order and progress | ✅ Current | Today |
+| plans/00-sprints/✅ P1-P3-sprint-spec.md | P1–P3 implementation spec for the first 13 quick wins (completed) | ✅ Done | Today |
+| plans/00-sprints/✅ P1-P3-completion.md | Checkbox tracker: exactly what was done in the P1–P3 sprint | ✅ Complete | Today |
+| plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md | P4 Wave 1 + Streaming sprint spec (completed) | ✅ Done | Today |
+| plans/00-meta/📋 P4-future-plan.md | Future-phase plan for all deferred items | 🔵 Partially spec'd | Today |
+| plans/00-meta/📋 P4-deferred-plan.md | Deferred items catalog: Batches C–F | 🔵 Captured | Today |
+| plans/00-meta/🔵 onboarding-tour.md | How to build a 3-step guided tour for first-time users | ⚠️ Deferred | Today |
+| plans/p5-p6/🔵 COMPONENT_REFACTOR.md | How to split app.py into 7 clean component files (merged from mini-spec) | 🔵 Deferred | Today |
+| plans/p3-p4/🔵 THEME_TOGGLE.md | Light/dark mode: CSS variables, JS sync, Plotly chart swapping | ✅ Current | Today |
+| plans/p3-p4/✅ STREAMING_RESPONSES.md | ChatGPT-style token-by-token streaming with error recovery (done) | ✅ Current | Today |
+| plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md | 6 independent AI/data upgrades: charts, anomalies, sampling | ✅ Current | Today |
 
 ---
 

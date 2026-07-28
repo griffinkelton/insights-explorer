@@ -1,10 +1,10 @@
 # 📋 P4+ Deferred Items — Future Batches
 
-> **What:** Everything deferred from the [P4 Wave 1 + Streaming sprint spec](P4-wave1-streaming-sprint-spec.md).
+> **What:** Everything deferred from the [P4 Wave 1 + Streaming sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 > **Status:** 🔵 Captured — awaiting P4 Wave 1 + Streaming completion before execution.
-> **Based on:** [P4-future-plan.md](P4-future-plan.md), user interview (3 rounds) + follow-up analysis (4 rounds), July 28, 2026.
-> **Predecessor:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) must be complete and stable first.
-> **Already deferred elsewhere:** #8 Onboarding tour → [onboarding-tour.md](onboarding-tour.md)
+> **Based on:** [P4 future plan](📋 P4-future-plan.md), user interview (3 rounds) + follow-up analysis (4 rounds), July 28, 2026.
+> **Predecessor:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) must be complete and stable first.
+> **Already deferred elsewhere:** #8 Onboarding tour → [Onboarding tour](🔵 onboarding-tour.md)
 
 ---
 
@@ -12,7 +12,7 @@
 
 | Batch | Item(s) | What | Effort | Why deferred |
 |---|---|---|---|---|
-| **Batch C** | #18/P3 | Light/dark theme toggle | 3-5 days | CSS-only — do after streaming stable per UNIFIED_PLAN.md order |
+| **Batch C** | #18/P3 | Light/dark theme toggle | 3-5 days | CSS-only — do after streaming stable per 📋 UNIFIED_PLAN.md order |
 | **Batch D** | #20/P5 | Component refactor | 3-5 days | Mechanical extraction — do after ALL features stable. "Refactoring while streaming and theming are still changing means every feature change requires updating both the original code AND the extracted component." |
 | **Batch E** | P6a, P6d, P6f | 3 easy AI/data items: column type detection, smart sampling, chart tokens | ~3-5 hrs | Quick wins after structural work is done |
 | **Batch F** | P6b, P6c, P6e | 3 complex AI/data items: JSON chart mapping, comparative mode, anomaly detection | ~10-15 hrs | Largest scope — last |
@@ -38,7 +38,7 @@ From the analysis:
 
 **Risk:** High effort for polish | **Effort:** 3-5 days | **Files:** `utils/styles.py`, `app.py`, `pages/learn.py`
 
-**Detailed plan:** [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md)
+**Detailed plan:** [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md)
 
 ### What
 
@@ -69,11 +69,11 @@ Visual smoke test only — no automated CSS tests. Verify all components in both
 
 ## 📐 Batch D — Component Refactor (#20/P5)
 
-> **Now a standalone mini-spec:** [component-refactor.md](component-refactor.md) — full design decisions, target architecture, 7-phase extraction plan, edge cases, and test impact.
+> **Now a standalone mini-spec:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — full design decisions, target architecture, 7-phase extraction plan, edge cases, and test impact.
 
 **Risk:** Medium | **Effort:** 3-5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
-**Detailed plan:** [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) — complete code samples for all 7 phases.
+**Detailed plan:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — complete code samples for all 7 phases.
 
 Split `app.py` (~500 lines) into a thin orchestrator + 6 focused component modules. Addresses the repo assessment's "single-file orchestration" weakness. 7 extraction phases, each verified independently. ~32 new tests. **Must run after streaming AND theming are stable.**
 
@@ -83,7 +83,7 @@ Split `app.py` (~500 lines) into a thin orchestrator + 6 focused component modul
 
 **Risk:** Low-Medium | **Effort:** ~3-5 hrs | **Files:** `utils/data_loader.py`, `utils/prompt_templates.py`, `app.py`
 
-**Detailed plan:** [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) (items P6d, P6f, P6a)
+**Detailed plan:** [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) (items P6d, P6f, P6a)
 
 ### P6d: Column Type Detection (~1-2 hrs)
 
@@ -133,7 +133,7 @@ Replace keyword heuristics with Gemini-appended `[CHART:line:sessions]` tokens.
 
 **Risk:** Medium-High | **Effort:** ~10-15 hrs | **Files:** `utils/data_loader.py`, `utils/prompt_templates.py`, `app.py`
 
-**Detailed plan:** [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) (items P6e, P6b, P6c)
+**Detailed plan:** [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) (items P6e, P6b, P6c)
 
 ### P6e: Anomaly Detection (~2-3 hrs)
 
@@ -212,12 +212,12 @@ Batch F — AI/Data Complex (~10-15 hrs):
 
 ## 📖 Related Docs
 
-- [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — Current sprint (must complete first)
-- [P4-future-plan.md](P4-future-plan.md) — Original future-phase plan this derives from
-- [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
-- [component-refactor.md](component-refactor.md) — Standalone mini-spec for #20 (design decisions, edge cases)
-- [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
-- [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
-- [onboarding-tour.md](onboarding-tour.md) — Deferred #8 mini-spec
+- [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — Current sprint (must complete first)
+- [P4 future plan](📋 P4-future-plan.md) — Original future-phase plan this derives from
+- [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
+- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
+- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
+- [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
+- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
-- [UNIFIED_PLAN.md](UNIFIED_PLAN.md) — Master execution plan
+- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan

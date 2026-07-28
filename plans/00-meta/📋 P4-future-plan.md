@@ -1,11 +1,11 @@
 # 📋 P4+ Future-Phase Plan — GA4 Insight Explorer
 
 > **What:** Capture document for all items beyond the current P1–P3 sprint — medium features, large investments, and unresolved repo weaknesses.
-> **Status:** 🟢 Partially done — Wave 1 + Streaming sprint executed ✅ (4/4 items). Remaining items (#18, #20, #21, Wave 3) deferred in [P4-deferred-plan.md](P4-deferred-plan.md).
-> **Based on:** IMPLEMENTATION_PLAN.md (#15–21), UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
-> **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — completed. #8 tour deferred to [onboarding-tour.md](onboarding-tour.md).
-> **Current sprint:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
-> **Deferred items:** [P4-deferred-plan.md](P4-deferred-plan.md) — #18, #20, #21 (Batches C–F).
+> **Status:** 🟢 Partially done — Wave 1 + Streaming sprint executed ✅ (4/4 items). Remaining items (#18, #20, #21, Wave 3) deferred in [P4 deferred plan](📋 P4-deferred-plan.md).
+> **Based on:** IMPLEMENTATION_PLAN.md (#15–21), 📋 UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
+> **Predecessor:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — completed. #8 tour deferred to [Onboarding tour](🔵 onboarding-tour.md).
+> **Current sprint:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
+> **Deferred items:** [P4 deferred plan](📋 P4-deferred-plan.md) — #18, #20, #21 (Batches C–F).
 
 ---
 
@@ -21,9 +21,9 @@ Everything deferred from the current sprint, organized into three waves:
 
 ---## 📊 Current State
 
-**Wave 1 (#15–17) + Streaming (#19)** — ✅ Done. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md).
+**Wave 1 (#15–17) + Streaming (#19)** — ✅ Done. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 
-**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4-deferred-plan.md](P4-deferred-plan.md) for execution next.
+**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4 deferred plan](📋 P4-deferred-plan.md) for execution next.
 
 The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth config), docs, and infra from P1–P3 are solid, so the medium-risk features that change the data flow can now proceed.
 
@@ -31,7 +31,7 @@ The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth con
 
 ## 🌊 Wave 1 — Medium Features (P4) ✅ Done
 
-> **Implemented in:** P4 Wave 1 + Streaming sprint. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md).
+> **Implemented in:** P4 Wave 1 + Streaming sprint. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 
 Estimated total time: **~5 hours**
 
@@ -116,9 +116,9 @@ These are the three most-requested user-facing capabilities. Each touches the co
 
 ## 🌊 Wave 2 — Large Investments (P5)
 
-Estimated total time: **14–24 days** (one person, sequential order per UNIFIED_PLAN.md)
+Estimated total time: **14–24 days** (one person, sequential order per 📋 UNIFIED_PLAN.md)
 
-Each of these has a detailed implementation plan in `plans/phase5/`. This document provides the summary; implementation should follow the detailed plans.
+Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p6/`. This document provides the summary; implementation should follow the detailed plans.
 
 ---
 
@@ -126,9 +126,9 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 **Risk:** High effort for polish | **Effort:** 3–5 days | **Files:** `utils/styles.py`, `app.py`, `pages/learn.py`
 
-**From:** IMPLEMENTATION_PLAN.md #18, UNIFIED_PLAN.md P3, ENHANCEMENTS.md #6
+**From:** IMPLEMENTATION_PLAN.md #18, 📋 UNIFIED_PLAN.md P3, ENHANCEMENTS.md #6
 
-**Detailed plan:** [plans/phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md)
+**Detailed plan:** [plans/p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md)
 
 **What:** Sidebar toggle swapping ~80 CSS custom properties between dark and light palettes. JS snippet syncs `document.documentElement.dataset.theme` with `st.session_state.theme`. Plotly chart templates swap between `plotly_dark` and `plotly_light`.
 
@@ -151,9 +151,9 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 **Risk:** High | **Effort:** 3–5 days | **Files:** `utils/gemini_client.py`, `app.py`
 
-**From:** IMPLEMENTATION_PLAN.md #19, UNIFIED_PLAN.md P4, ENHANCEMENTS.md #21
+**From:** IMPLEMENTATION_PLAN.md #19, 📋 UNIFIED_PLAN.md P4, ENHANCEMENTS.md #21
 
-**Detailed plan:** [plans/phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md)
+**Detailed plan:** [plans/p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md)
 
 **What:** Instead of waiting 3–5 seconds for the full Gemini response, stream tokens one at a time using `st.write_stream()` — creating a ChatGPT-like real-time feel.
 
@@ -173,13 +173,13 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 ### #20 / P5: Component Refactor 🔵 Mini-spec'd
 
-> **Now a standalone mini-spec:** [component-refactor.md](component-refactor.md) — design decisions, target architecture, 7-phase extraction plan.
+> **Now a standalone mini-spec:** [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — design decisions, target architecture, 7-phase extraction plan.
 
 **Risk:** Medium | **Effort:** 3–5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
-**From:** IMPLEMENTATION_PLAN.md #20, UNIFIED_PLAN.md P5, ENHANCEMENTS.md #12
+**From:** IMPLEMENTATION_PLAN.md #20, 📋 UNIFIED_PLAN.md P5, ENHANCEMENTS.md #12
 
-**Detailed plan:** [plans/phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md)
+**Detailed plan:** [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md)
 
 **What:** Split `app.py` (~400 lines) into a thin orchestrator + 6 focused component modules. This directly addresses the repo assessment's "single-file orchestration" weakness.
 
@@ -211,9 +211,9 @@ utils/
 
 **Risk:** Medium–High | **Effort:** Varies (1–6 hrs each) | **Files:** `utils/prompt_templates.py`, `app.py`, `utils/data_loader.py`
 
-**From:** IMPLEMENTATION_PLAN.md #21, UNIFIED_PLAN.md P6, ENHANCEMENTS.md #20, #22, #23, #25, #26, #27
+**From:** IMPLEMENTATION_PLAN.md #21, 📋 UNIFIED_PLAN.md P6, ENHANCEMENTS.md #20, #22, #23, #25, #26, #27
 
-**Detailed plan:** [plans/phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md)
+**Detailed plan:** [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md)
 
 Six independent sub-items, ordered easiest → hardest:
 
@@ -296,12 +296,12 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 ```
 ✅ P1–P3 sprint — DONE (12/13 items implemented, 194 tests)
 
-🔵 CURRENT SPRINT — [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md):
+🔵 CURRENT SPRINT — [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md):
   Phase 1: #19 Streaming (~3-5 days)          ── Changes response pipeline (hardest)
   Phase 2: #15 Column picker + #16 Memory     ── Touches data flow + prompt construction
   Phase 3: #17 Export chat (~1.5 hrs)          ── Standalone (new module)
 
-🔲 DEFERRED — [P4-deferred-plan.md](P4-deferred-plan.md):
+🔲 DEFERRED — [P4 deferred plan](📋 P4-deferred-plan.md):
   Batch C: #18 Theme toggle (~3-5 days)       ── CSS architecture (after streaming stable)
   Batch D: #20 Component refactor (~3-5 days)  ── Mechanical extraction (after features stable)
   Batch E: #21a Column types + Smart sampling  ── Quick AI/data wins (~2-3 hrs)
@@ -309,7 +309,7 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
   Wave 3: API key fallback, app-level auth    ── Only if deployment demands it
 ```
 
-### Why This Order (from UNIFIED_PLAN.md)
+### Why This Order (from 📋 UNIFIED_PLAN.md)
 
 1. **Streaming before theming** — Streaming changes the response rendering pipeline (the most fundamental part of the app). Theming changes CSS (the most superficial part). If streaming breaks something, you want to know before you've spent 3 days on CSS.
 
@@ -334,17 +334,17 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 
 ## 📖 Related Docs
 
-- [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — **Current sprint:** #15-17, #19 (~6-7 days)
-- [P4-deferred-plan.md](P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
-- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Completed sprint (must complete first)
+- [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — **Current sprint:** #15-17, #19 (~6-7 days)
+- [P4 deferred plan](📋 P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
+- [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Completed sprint (must complete first)
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source 21-item plan
-- [UNIFIED_PLAN.md](UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
+- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
-- [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
-- [component-refactor.md](component-refactor.md) — **Standalone mini-spec** for #20 (deferred)
-- [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
-- [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
-- [onboarding-tour.md](onboarding-tour.md) — Standalone mini-spec for #8 (deferred)
+- [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
+- [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
+- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)
+- [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
+- [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
+- [Onboarding tour](🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](../ORIGINAL_SPEC.md) — Initial project prompt + 26-item compliance checklist

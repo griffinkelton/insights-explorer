@@ -1,6 +1,6 @@
 # 📋 P1–P3 Sprint — Completion Tracker
 
-> **Tracks:** All 13 items from [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md), plus the deferred #8 onboarding tour.
+> **Tracks:** All 13 items from [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md), plus the deferred #8 onboarding tour.
 > **Status:** 🟢 Complete — 12/13 items done, 1 deferred, 2 pre-done.
 > **Test baseline:** 194 tests passing across 9 modules (171 → 194).
 > **Last updated:** 2026-07-28 (sprint executed)
@@ -54,7 +54,7 @@
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| **#8** | Onboarding tour | ⚠️ Deferred | Full implementation in [onboarding-tour.md](onboarding-tour.md). |
+| **#8** | Onboarding tour | ⚠️ Deferred | Full implementation in [Onboarding tour](🔵 onboarding-tour.md). |
 
 ---
 
@@ -88,7 +88,7 @@
 
 ## 📖 Related Docs
 
-- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Full implementation details
-- [onboarding-tour.md](onboarding-tour.md) — Deferred #8 mini-spec
-- [P4-future-plan.md](P4-future-plan.md) — Remaining items
+- [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Full implementation details
+- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
+- [P4 future plan](📋 P4-future-plan.md) — Remaining items
 - [CHANGELOG.md](../CHANGELOG.md) — All changes tracked

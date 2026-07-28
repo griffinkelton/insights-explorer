@@ -1,9 +1,9 @@
 # 📋 P1–P3 Sprint Spec — GA4 Insight Explorer
 
 > **What:** Execution spec for the next sprint batch of enhancements.
-> **Scope:** IMPLEMENTATION_PLAN.md items #1–14 (P1 Quick Wins + P2 UX Polish + P3 Code Quality), plus OAuth redirect configurability. #7 is already done. #8 is ⚠️ Optional — see [onboarding-tour.md](onboarding-tour.md). #6 is skipped.
+> **Scope:** IMPLEMENTATION_PLAN.md items #1–14 (P1 Quick Wins + P2 UX Polish + P3 Code Quality), plus OAuth redirect configurability. #7 is already done. #8 is ⚠️ Optional — see [Onboarding tour](🔵 onboarding-tour.md). #6 is skipped.
 > **Status:** ✅ Done — 12/13 items implemented, 1 deferred (#8), 194 tests.
-> **Based on:** IMPLEMENTATION_PLAN.md, ENHANCEMENTS.md, user interview (3 rounds, July 28, 2026) + follow-up analysis. #8 tour implementation extracted to [onboarding-tour.md](onboarding-tour.md).
+> **Based on:** IMPLEMENTATION_PLAN.md, ENHANCEMENTS.md, user interview (3 rounds, July 28, 2026) + follow-up analysis. #8 tour implementation extracted to [Onboarding tour](🔵 onboarding-tour.md).
 > **Test baseline:** 171 tests passing across 8 modules.
 
 ---
@@ -260,11 +260,11 @@ Covered by `test_app.py` structural test (#13) once written. No standalone test 
 
 ---
 
-### #8: Onboarding Tour ⚠️ Optional — see [onboarding-tour.md](onboarding-tour.md)
+### #8: Onboarding Tour ⚠️ Optional — see [Onboarding tour](🔵 onboarding-tour.md)
 
 **Risk:** Medium | **Effort:** ~60 min | **Files:** `app.py`
 
-> **⚠️ Optional — full implementation extracted to [onboarding-tour.md](onboarding-tour.md).** Pick it up after P1–P3 batches 1–3 are stable. Summary: 3-step guided tour (upload → summary → chat), per-session state machine, auto-dismisses on data load. Touch points: `_render_hero()`, `_render_main()`, file processing block, GA4 pull handler.
+> **⚠️ Optional — full implementation extracted to [Onboarding tour](🔵 onboarding-tour.md).** Pick it up after P1–P3 batches 1–3 are stable. Summary: 3-step guided tour (upload → summary → chat), per-session state machine, auto-dismisses on data load. Touch points: `_render_hero()`, `_render_main()`, file processing block, GA4 pull handler.
 
 ---
 
@@ -654,7 +654,7 @@ Batch 5 — Infra (~2 hrs):
 
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source plan with detailed per-item breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [UNIFIED_PLAN.md](UNIFIED_PLAN.md) — Master execution plan (P1-P6 phase plans)
+- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan (P1-P6 phase plans)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model
 - [BUGLOG.md](../BUGLOG.md) — Structured bug log with patterns and rules
-- [onboarding-tour.md](onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
+- [Onboarding tour](🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)

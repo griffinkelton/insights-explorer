@@ -4,7 +4,7 @@
 > **Status:** ⚠️ Optional — deferred until P1–P3 sprint is complete and stable.
 > **Effort:** ~60 min | **Risk:** Medium | **Files:** `app.py`
 > **Depends on:** #1 (Learn link in sidebar) must be implemented first.
-> **Referenced by:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) (Batch 4), [P4-future-plan.md](P4-future-plan.md)
+> **Referenced by:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (Batch 4), [P4 future plan](📋 P4-future-plan.md)
 
 ---
 
@@ -160,6 +160,6 @@ If the tour logic exceeds ~60 lines at implementation time, extract to `utils/on
 
 ## 📖 Related Docs
 
-- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Current sprint (references this as Batch 4 Optional)
-- [P4-future-plan.md](P4-future-plan.md) — Future-phase items beyond P1–P3
+- [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Current sprint (references this as Batch 4 Optional)
+- [P4 future plan](📋 P4-future-plan.md) — Future-phase items beyond P1–P3
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original item #8

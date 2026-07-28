@@ -19,7 +19,7 @@
 | #16 | Conversation memory (last 5 exchanges, New Chat button) | `utils/prompt_templates.py`, `app.py` |
 | #17 | Export chat as Markdown report (report_exporter.py, kaleido) | `utils/report_exporter.py` (new), `app.py`, `requirements.txt` |
 
-**Related:** [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md), [plans/P4-future-plan.md](plans/P4-future-plan.md)
+**Related:** [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md), [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md)
 
 ---
 
@@ -44,11 +44,11 @@
 - `README.md`: Test breakdown table, GitHub Actions badge, learn page access, free-tier limits
 - `ENHANCEMENTS.md` + `ARCHITECTURE.md`: Progress counts updated (15→22/37 done)
 
-**Related:** [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md), [plans/P1-P3-completion.md](plans/P1-P3-completion.md)
+**Related:** [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md), [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md)
 
 | Change | Commit | Related Docs |
 |---|---|---|
-| **P1–P3 sprint executed — 12 items implemented across 5 batches** | `83aef98` | [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md), [plans/P1-P3-completion.md](plans/P1-P3-completion.md) |
+| **P1–P3 sprint executed — 12 items implemented across 5 batches** | `83aef98` | [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md), [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) |
 
 ---
 
@@ -98,8 +98,8 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Added `DataQualityReport` dataclass + `assess_data_quality()` to `utils/data_loader.py` | Feature | [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) |
-| Added `render_quality_scorecard()` to `app.py` — styled A-F grade card | Feature | [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) |
+| Added `DataQualityReport` dataclass + `assess_data_quality()` to `utils/data_loader.py` | Feature | [plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md](plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md) |
+| Added `render_quality_scorecard()` to `app.py` — styled A-F grade card | Feature | [plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md](plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md) |
 | Added quality section to `build_summary_prompt()` | Feature | [utils/prompt_templates.py](utils/prompt_templates.py) |
 | 18 new tests in `test_data_quality.py` | Testing | [tests/test_data_quality.py](tests/test_data_quality.py) |
 
@@ -153,7 +153,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| P1 App Icon completion documented across all docs | Docs | [ARCHITECTURE.md](ARCHITECTURE.md), [plans/APP_ICON.md](plans/APP_ICON.md) |
+| P1 App Icon completion documented across all docs | Docs | [ARCHITECTURE.md](ARCHITECTURE.md), [plans/p1-p2/✅ APP_ICON.md](plans/p1-p2/✅ APP_ICON.md) |
 | Stale test counts updated across files | Docs | [README.md](README.md) |
 
 ---
@@ -186,19 +186,19 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Custom SVG icon + 8 PNG sizes + ICO + PWA manifest + OG image | Feature | [plans/APP_ICON.md](plans/APP_ICON.md) |
+| Custom SVG icon + 8 PNG sizes + ICO + PWA manifest + OG image | Feature | [plans/p1-p2/✅ APP_ICON.md](plans/p1-p2/✅ APP_ICON.md) |
 | `inject_favicon_meta()` added to `utils/styles.py` | Feature | [utils/styles.py](utils/styles.py) |
 | Page configs updated to use custom favicon | Feature | [app.py](app.py), [pages/learn.py](pages/learn.py) |
 
 ---
 
-### Apply 7 reviewer fixes to UNIFIED_PLAN.md + APP_ICON.md forward-reference fix
+### Apply 7 reviewer fixes to 📋 UNIFIED_PLAN.md + ✅ APP_ICON.md forward-reference fix
 
 **Commit:** [`aad1190`](https://github.com/griffinkelton/insights-explorer/commit/aad1190)
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 7 review fixes applied to UNIFIED_PLAN.md | Docs | [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) |
+| 7 review fixes applied to 📋 UNIFIED_PLAN.md | Docs | [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) |
 
 ---
 
@@ -220,7 +220,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| APP_ICON.md, BONUS_DATA_QUALITY_SCORECARD.md, DOCUMENTATION_INDEX.md created | Docs | [plans/](plans/) |
+| ✅ APP_ICON.md, ✅ BONUS_DATA_QUALITY_SCORECARD.md, DOCUMENTATION_INDEX.md created | Docs | [plans/](plans/) |
 | Cross-references and IMPLEMENTATION_PLAN fixes | Docs | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
 
 ---
@@ -241,7 +241,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 4 Phase 5 detailed plans (theme toggle, streaming, component refactor, AI/data) | Docs | [plans/phase5/](plans/phase5/) |
+| 4 Phase 5 detailed plans (theme toggle, streaming, component refactor, AI/data) | Docs | [plans/p3-p4/ and plans/p5-p6/](plans/p3-p4/ and plans/p5-p6/) |
 | IDEAS.md with 25 bonus enhancements + 10 moonshot ideas | Docs | [IDEAS.md](IDEAS.md) |
 
 ---
@@ -511,10 +511,10 @@
 ## 📖 Related Docs
 
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec
-- [plans/P1-P3-completion.md](plans/P1-P3-completion.md) — Sprint completion tracker
-- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan
+- [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec
+- [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
+- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
 
 ---
 

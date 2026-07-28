@@ -5,7 +5,7 @@
 > **Status:** 🟢 In progress — P1–P2 done ✅, P1–P3 sprint done ✅, P4 Wave 1 + Streaming done ✅, remaining items deferred/captured 🔵.
 > **Last updated:** 2026-07-28 (P4 Wave 1 + Streaming sprint executed; 4/4 items, 194 tests)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) (✅ done), [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) (🔵 active), [P4-deferred-plan.md](P4-deferred-plan.md) (🔵 captured), [onboarding-tour.md](onboarding-tour.md) (⚠️ deferred), and [component-refactor.md](component-refactor.md) (🔵 deferred).
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (🔵 active), [P4 deferred plan](📋 P4-deferred-plan.md) (🔵 captured), [Onboarding tour](🔵 onboarding-tour.md) (⚠️ deferred), and [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) (🔵 deferred).
 
 ---
 
@@ -15,22 +15,22 @@
 
 | # | Plan File | What | Effort | Risk | Dependencies | IMPL Ref |
 |---|---|---|---|---|---|---|
-| P1 | [APP_ICON.md](APP_ICON.md) | Custom app icon + favicon (SVG, 8 sizes, PWA manifest, OG image) | 2-3 hrs | Low | None | Bonus |
-| P2 | [BONUS_DATA_QUALITY_SCORECARD.md](BONUS_DATA_QUALITY_SCORECARD.md) | A-F data quality card (completeness, duplicates, outliers, date gaps) | 2-4 hrs | Low | None | Bonus ✅ |
-| P3 | [phase5/THEME_TOGGLE.md](phase5/THEME_TOGGLE.md) | Light/dark theme toggle (CSS variables, JS sync, Plotly swap) | 3-5 days | High | None | [#18](../IMPLEMENTATION_PLAN.md) |
-| P4 | [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](../IMPLEMENTATION_PLAN.md) |
-| P5 | [phase5/COMPONENT_REFACTOR.md](phase5/COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](../IMPLEMENTATION_PLAN.md) |
-| P6 | [phase5/AI_DATA_ENHANCEMENTS.md](phase5/AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items (chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling) | Varies | Medium-High | None | [#21](../IMPLEMENTATION_PLAN.md) |
+| P1 | [✅ APP_ICON.md](✅ APP_ICON.md) | Custom app icon + favicon (SVG, 8 sizes, PWA manifest, OG image) | 2-3 hrs | Low | None | Bonus |
+| P2 | [✅ BONUS_DATA_QUALITY_SCORECARD.md](✅ BONUS_DATA_QUALITY_SCORECARD.md) | A-F data quality card (completeness, duplicates, outliers, date gaps) | 2-4 hrs | Low | None | Bonus ✅ |
+| P3 | [p3-p4/🔵 THEME_TOGGLE.md](p3-p4/🔵 THEME_TOGGLE.md) | Light/dark theme toggle (CSS variables, JS sync, Plotly swap) | 3-5 days | High | None | [#18](../IMPLEMENTATION_PLAN.md) |
+| P4 | [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](../IMPLEMENTATION_PLAN.md) |
+| P5 | [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](../IMPLEMENTATION_PLAN.md) |
+| P6 | [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items (chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling) | Varies | Medium-High | None | [#21](../IMPLEMENTATION_PLAN.md) |
 
 ### Sprint & Future-Phase Plans (derived from IMPLEMENTATION_PLAN.md)
 
 | # | Plan File | What | Effort | Status |
 |---|---|---|---|---|
-| SP1 | [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) | IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches) | ~5.5 hrs | ✅ Done (12/13 items, 194 tests) |
-| SP2 | [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) | P4 Wave 1 + Streaming: #15–17, #19 (2 phases) | ~6-7 days | ✅ Done (4/4 items, 194 tests) |
-| SP3 | [P4-deferred-plan.md](P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | 🔵 Captured |
-| SP4 | [onboarding-tour.md](onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour | ~1 hr | ⚠️ Optional, deferred |
-| SP5 | [component-refactor.md](component-refactor.md) | Standalone mini-spec for #20 component refactor | 3-5 days | 🔵 Deferred (after streaming + theming) |
+| SP1 | [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) | IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches) | ~5.5 hrs | ✅ Done (12/13 items, 194 tests) |
+| SP2 | [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) | P4 Wave 1 + Streaming: #15–17, #19 (2 phases) | ~6-7 days | ✅ Done (4/4 items, 194 tests) |
+| SP3 | [P4 deferred plan](📋 P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | 🔵 Captured |
+| SP4 | [Onboarding tour](🔵 onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour | ~1 hr | ⚠️ Optional, deferred |
+| SP5 | [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) | Standalone mini-spec for #20 component refactor | 3-5 days | 🔵 Deferred (after streaming + theming) |
 
 ### P6 Sub-Item Codes
 
@@ -196,12 +196,12 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | Sprint | Items | Duration | Outcome |
 |---|---|---|---|
 | **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day ✅ | Polished favicon, trust-building quality card |
-| **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs ✅** | **Guardrails, quick wins, docs, UX, infra — 12/13 done, 194 tests. See [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md)** |
-| **Sprint P4 Wave 1** | **#15–17 + #19 Streaming** | **~6-7 days ✅** | **Streaming chat, column picker, conversation memory, export. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md)** |
-| **Sprint Deferred C** | Theme Toggle (#18) | 3-5 days 🔲 | Light/dark mode — after streaming stable. See [P4-deferred-plan.md](P4-deferred-plan.md) |
-| **Sprint Deferred D** | Component Refactor (#20) | 3-5 days 🔲 | Clean 7-file architecture — after features stable. See [component-refactor.md](component-refactor.md) |
-| **Sprint Deferred E** | P6d (Type Detection), P6f (Sampling), P6a (Chart Tokens) | ~3-5 hrs 🔲 | Three quick AI/data wins. See [P4-deferred-plan.md](P4-deferred-plan.md) |
-| **Sprint Deferred F** | P6e (Anomaly), P6b (JSON Mapping), P6c (Comparative) | ~10-15 hrs 🔲 | Complex AI/data items. See [P4-deferred-plan.md](P4-deferred-plan.md) |
+| **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs ✅** | **Guardrails, quick wins, docs, UX, infra — 12/13 done, 194 tests. See [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md)** |
+| **Sprint P4 Wave 1** | **#15–17 + #19 Streaming** | **~6-7 days ✅** | **Streaming chat, column picker, conversation memory, export. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md)** |
+| **Sprint Deferred C** | Theme Toggle (#18) | 3-5 days 🔲 | Light/dark mode — after streaming stable. See [P4 deferred plan](📋 P4-deferred-plan.md) |
+| **Sprint Deferred D** | Component Refactor (#20) | 3-5 days 🔲 | Clean 7-file architecture — after features stable. See [p5-p6/🔵 COMPONENT_REFACTOR.md](p5-p6/🔵 COMPONENT_REFACTOR.md) |
+| **Sprint Deferred E** | P6d (Type Detection), P6f (Sampling), P6a (Chart Tokens) | ~3-5 hrs 🔲 | Three quick AI/data wins. See [P4 deferred plan](📋 P4-deferred-plan.md) |
+| **Sprint Deferred F** | P6e (Anomaly), P6b (JSON Mapping), P6c (Comparative) | ~10-15 hrs 🔲 | Complex AI/data items. See [P4 deferred plan](📋 P4-deferred-plan.md) |
 
 **P1–P3 done ✅. P4 Wave 1 + Streaming done ✅ (194 tests). Remaining deferred (~20-35 days).**
 
@@ -239,8 +239,8 @@ Tell your AI agent (Buffy) which item to implement. The agent reads the plan fil
 
 | Command | What happens |
 |---|---|
-| **"Execute P1"** | Read `plans/APP_ICON.md` → create SVG, generate icons, update page configs, smoke test |
-| **"Execute P2"** | Read `plans/BONUS_DATA_QUALITY_SCORECARD.md` → create dataclass, write tests, render scorecard UI |
+| **"Execute P1"** | Read `plans/p1-p2/✅ APP_ICON.md` → create SVG, generate icons, update page configs, smoke test |
+| **"Execute P2"** | Read `plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md` → create dataclass, write tests, render scorecard UI |
 | **"Execute the unified plan — start at P1"** | Begin with P1, continue through all waves in order |
 | **"Skip to P4"** | Jump to streaming responses, skip P1–P3 |
 | **"What's the status?"** | Agent reads this file, reports completed vs. planned items |

@@ -2,7 +2,7 @@
 
 > Complete 21-item implementation blueprint with context, reasoning, risk assessments, and execution strategy.
 >
-> **Status:** 🟡 In progress — P1-P3 sprint done ✅ (12/13 items), P4 Wave 1 + Streaming done ✅ (4/4 items: #15-17, #19). #6 skipped, #8 deferred, #18/#20/#21 deferred. See [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) for remaining items.
+> **Status:** 🟡 In progress — P1-P3 sprint done ✅ (12/13 items), P4 Wave 1 + Streaming done ✅ (4/4 items: #15-17, #19). #6 skipped, #8 deferred, #18/#20/#21 deferred. See [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) for remaining items.
 >
 > **Numbering note:** This document uses its own item numbering (#1-21) for the 21 planned tasks. References to ENHANCEMENTS.md use the roadmap's numbering (e.g., "ENHANCEMENTS.md #13"). The two numbering schemes are independent.
 
@@ -308,7 +308,7 @@ if st.session_state.api_call_count > 0:
 
 ### #6: Add `.streamlit/pages.toml` ⏭️ SKIPPED
 
-> **Status:** ⏭️ Skipped per [P1-P3 sprint spec](plans/P1-P3-sprint-spec.md). `st.page_link` (#1) provides sidebar navigation without version-compatibility concerns. `pages.toml` would create a duplicate nav entry and requires Streamlit ≥1.44 for support while `requirements.txt` pins `>=1.28`.
+> **Status:** ⏭️ Skipped per [P1-P3 sprint spec](plans/00-sprints/✅ P1-P3-sprint-spec.md). `st.page_link` (#1) provides sidebar navigation without version-compatibility concerns. `pages.toml` would create a duplicate nav entry and requires Streamlit ≥1.44 for support while `requirements.txt` pins `>=1.28`.
 
 **Files:** New `.streamlit/pages.toml`
 
@@ -1361,10 +1361,10 @@ Each of these is described in detail in [ENHANCEMENTS.md](ENHANCEMENTS.md) with 
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, items #1–14 + OAuth redirect)
-- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan for deferred items (#15–21, P3–P6, repo weaknesses)
-- [plans/onboarding-tour.md](plans/onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 plans, 2/6 done)
+- [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, items #1–14 + OAuth redirect)
+- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan for deferred items (#15–21, P3–P6, repo weaknesses)
+- [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
+- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan (6 plans, 2/6 done)
 
 ---
 

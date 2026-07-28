@@ -169,7 +169,7 @@ The project grew significantly beyond the initial prompt. Here's what was added:
 | **CI/CD** | `cloudbuild.yaml` + `scripts/smoke_test.sh` | Auto-run tests on every push; headless boot verification |
 | **Test Suite** | 129 unit tests across 5 modules | Data loader, prompts, Gemini client, GA4 client, learn page |
 | **Documentation** | `ARCHITECTURE.md`, `ENHANCEMENTS.md` (37 items), `IMPLEMENTATION_PLAN.md` (21 items), `IDEAS.md` (25+10 ideas) | Full architecture, roadmap, and creative exploration |
-| **Phase Plans** | `plans/phase5/` — 4 detailed implementation documents | Streaming, theming, component refactor, AI enhancements |
+| **Phase Plans** | `plans/p3-p4/ and plans/p5-p6/` — 4 detailed implementation documents | Streaming, theming, component refactor, AI enhancements |
 
 ### Project structure then vs now
 
@@ -191,7 +191,7 @@ The project grew significantly beyond the initial prompt. Here's what was added:
 | — | `cloudbuild.yaml` (CI/CD) |
 | — | `scripts/smoke_test.sh` (headless boot test) |
 | — | `ARCHITECTURE.md`, `ENHANCEMENTS.md`, `IMPLEMENTATION_PLAN.md`, `IDEAS.md` |
-| — | `plans/phase5/` (4 detailed implementation docs) |
+| — | `plans/p3-p4/ and plans/p5-p6/` (4 detailed implementation docs) |
 
 **Original: 7 files. Current: 24+ files.** The spec asked for "an experimental prototype." It became a production-quality tool with tests, CI/CD, security hardening, live API integration, and an interactive learn page.
 

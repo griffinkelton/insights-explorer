@@ -14,7 +14,7 @@ Split `app.py` (~400 lines) into a `components/` package with 6 focused modules.
 
 ## 🧠 Why Refactor Now
 
-`app.py` has grown organically. It now contains:
+`app.py` has grown organically to ~500 lines. It now contains:
 
 - Page config & CSS injection (lines 1-30)
 - 14 session state key initializations (lines 41-59)
@@ -37,6 +37,21 @@ None of these are individually complex. The problem is that they're all in one f
 - Avoid merge conflicts when multiple features touch different sections
 
 The refactor is mechanical — extract each section into a function in its own module. No behavior changes.
+
+---
+
+## 🏗️ Design Decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Session state location | **All in `app.py` orchestrator** | Single source of truth for what state exists. Components read/write `st.session_state` directly. |
+| State passing | **Direct `st.session_state` access** | Passing to every component creates verbose signatures that drift. Streamlit-idiomatic approach. |
+| Callback functions | **Move to components, update references** | `on_click=clear_data` stays as reference; source function moves to relevant component. |
+| Widget keys | **No changes; audit for collisions** | Existing keys already unique; new components get new keys. |
+| `st.rerun()` / `st.stop()` | **No special handling** | Works identically regardless of which module calls it. |
+| Extraction order | **Charts first, orchestrator last** | Lowest-risk → highest-risk. Each phase verified independently before next. |
+| File processing | **Stays in `app.py` orchestrator** | Touches file upload widget state; tightly coupled to uploader in sidebar. Simplest to keep inline. |
+| Mini-spec source | **Design decisions from component-refactor mini-spec** | Merged into this detailed plan to eliminate duplication. |
 
 ---
 

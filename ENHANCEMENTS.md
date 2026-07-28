@@ -32,7 +32,7 @@
 **Status:** ✅ Done
 
 ### 5. Progressive Onboarding Tour ⚠️
-**Status:** ⚠️ Optional, deferred — standalone mini-spec at [plans/onboarding-tour.md](plans/onboarding-tour.md).
+**Status:** ⚠️ Optional, deferred — standalone mini-spec at [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md).
 **Why:** Empty states exist, but a 3-step guided tour on first visit would reduce bounce.
 **How:** Show a "🎓 Quick Tour" button. Step through tooltips anchored to: sidebar uploader, Generate Summary, chat input. Track `st.session_state.tour_step`.
 **Effort:** Small | **Files:** `app.py`
@@ -237,11 +237,11 @@
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
-- [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
-- [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
-- [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) — Active sprint spec (#15–17, #19)
-- [plans/P4-future-plan.md](plans/P4-future-plan.md) — Future-phase plan
-- [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) — Deferred items (Batches C–F)
-- [plans/onboarding-tour.md](plans/onboarding-tour.md) — Standalone mini-spec for #8
-- [plans/component-refactor.md](plans/component-refactor.md) — Standalone mini-spec for #20
+- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 3 derived plans)
+- [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, 13 items)
+- [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec (#15–17, #19)
+- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) — Deferred items (Batches C–F)
+- [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) — Standalone mini-spec for #8
+- [plans/p5-p6/🔵 COMPONENT_REFACTOR.md](plans/p5-p6/🔵 COMPONENT_REFACTOR.md) — Standalone mini-spec for #20
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

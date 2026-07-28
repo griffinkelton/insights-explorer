@@ -3,9 +3,9 @@
 > **What:** Execution spec for the next sprint: P4 medium features (Wave 1) + game-changer (#19 streaming).
 > **Scope:** IMPL items #15 (column picker), #16 (conversation memory), #17 (export chat), #19 (streaming responses).
 > **Status:** ✅ Done — 4/4 items implemented, 194 tests.
-> **Based on:** [P4-future-plan.md](P4-future-plan.md), [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md), user interview (3 rounds, July 28, 2026) + follow-up analysis (4 rounds).
-> **Deferred items:** Theme toggle (#18), component refactor (#20), AI/data batches E+F — captured in [P4-deferred-plan.md](P4-deferred-plan.md).
-> **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — must be complete and stable.
+> **Based on:** [P4 future plan](📋 P4-future-plan.md), [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md), user interview (3 rounds, July 28, 2026) + follow-up analysis (4 rounds).
+> **Deferred items:** Theme toggle (#18), component refactor (#20), AI/data batches E+F — captured in [P4 deferred plan](📋 P4-deferred-plan.md).
+> **Predecessor:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — must be complete and stable.
 > **Test baseline:** 194 tests passing across 9 modules.
 
 ---
@@ -19,7 +19,7 @@
 | **#16** | Multi-turn conversation memory | ~1.5 hrs | Medium | Touches prompt construction |
 | **#17** | Export chat as Markdown report | ~1.5 hrs | Medium | Standalone new module |
 
-**Explicitly deferred — see [P4-deferred-plan.md](P4-deferred-plan.md):**
+**Explicitly deferred — see [P4 deferred plan](📋 P4-deferred-plan.md):**
 | Batch | # | Item | Effort | When |
 |---|---|---|---|---|
 | **C** | #18/P3 | Theme toggle | 3-5 days | After streaming stable |
@@ -27,7 +27,7 @@
 | **E** | P6d,P6f,P6a | AI/data quick wins | 3-5 hrs | After structural work |
 | **F** | P6e,P6b,P6c | AI/data complex | 10-15 hrs | Last |
 | — | Wave 3 | Repo weaknesses | Varies | If deployability needed |
-| — | #8 | Onboarding tour | ~1 hr | [onboarding-tour.md](onboarding-tour.md) |
+| — | #8 | Onboarding tour | ~1 hr | [Onboarding tour](🔵 onboarding-tour.md) |
 
 ---
 
@@ -55,7 +55,7 @@
 
 **Risk:** High | **Effort:** 3-5 days | **Files:** `utils/gemini_client.py`, `app.py`
 
-**Detailed plan:** [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md)
+**Detailed plan:** [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md)
 
 #### What Changes
 
@@ -633,9 +633,9 @@ Verify + Update:
 
 ## 📖 Related Docs
 
-- [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — Predecessor sprint (must be complete first)
-- [P4-future-plan.md](P4-future-plan.md) — Future-phase plan this sprint derives from
-- [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
+- [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Predecessor sprint (must be complete first)
+- [P4 future plan](📋 P4-future-plan.md) — Future-phase plan this sprint derives from
+- [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [onboarding-tour.md](onboarding-tour.md) — Deferred #8 mini-spec
+- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
