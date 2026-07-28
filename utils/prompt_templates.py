@@ -29,7 +29,11 @@ def _sanitize_question(question: str) -> str:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def build_summary_prompt(df: pd.DataFrame, stats: dict[str, Any]) -> str:
+def build_summary_prompt(
+    df: pd.DataFrame,
+    stats: dict[str, Any],
+    quality_report: Any = None,
+) -> str:
     """Build a prompt asking Gemini to generate a plain-language data summary.
 
     Cached for 5 minutes since the summary prompt is deterministic
@@ -66,6 +70,27 @@ Please provide:
 
 Keep it concise — about 3-5 bullet points. Flag any data limitations explicitly.
 """
+
+    # Append data quality info if available (not part of cache key)
+    if quality_report is not None:
+        quality_info = (
+            f"\n\nDATA QUALITY (for your awareness when summarizing):\n"
+            f"- Grade: {quality_report.grade}\n"
+            f"- Completeness: {quality_report.completeness_pct}%\n"
+            f"- Duplicates: {quality_report.duplicate_pct}% of rows\n"
+            f"- Outliers: {quality_report.outlier_count}\n"
+        )
+        if quality_report.date_range_days is not None:
+            quality_info += (
+                f"- Date coverage: {quality_report.date_range_days} days "
+                f"({quality_report.date_gaps} missing days)\n"
+            )
+        if quality_report.warnings:
+            quality_info += (
+                f"- Data warnings: {'; '.join(quality_report.warnings)}\n"
+            )
+        prompt += quality_info
+
     return prompt
 
 

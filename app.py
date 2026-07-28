@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from utils.data_loader import load_file, validate_columns, get_dataset_stats
+from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality
 from utils.gemini_client import generate_response, validate_api_key
 from utils.prompt_templates import (
     build_summary_prompt,
@@ -61,6 +61,8 @@ if "ga4_auth_flow" not in st.session_state:
     st.session_state.ga4_auth_flow = None
 if "data_source" not in st.session_state:
     st.session_state.data_source = None  # "file" or "ga4"
+if "quality_report" not in st.session_state:
+    st.session_state.quality_report = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = None  # Tri-state: None=unchecked, True/False
 
@@ -95,6 +97,7 @@ def clear_data() -> None:
     st.session_state.df = None
     st.session_state.stats = None
     st.session_state.summary = None
+    st.session_state.quality_report = None
     st.session_state.chat_history = []
     st.session_state.missing_columns = []
     st.session_state.data_cleared = True
@@ -200,6 +203,7 @@ with st.sidebar:
                                 st.session_state.missing_columns = missing
                                 st.session_state.stats = get_dataset_stats(df)
                                 st.session_state.stats["missing_columns"] = missing
+                                st.session_state.quality_report = assess_data_quality(df, missing)
                                 st.session_state.summary = None
                                 st.session_state.chat_history = []
                                 st.session_state.data_source = "ga4"
@@ -278,6 +282,7 @@ if uploaded_file is not None:
             st.session_state.missing_columns = missing
             st.session_state.stats = get_dataset_stats(df)
             st.session_state.stats["missing_columns"] = missing
+            st.session_state.quality_report = assess_data_quality(df, missing)
             st.session_state.data_cleared = False
             st.session_state.last_file_id = file_id
 
@@ -313,6 +318,10 @@ def _render_main() -> None:
 
     with st.expander("🔍 Preview Table (first 10 rows)", expanded=False):
         st.dataframe(df.head(10), use_container_width=True)
+
+    # ── Data quality scorecard ───────────────────────────────────────────
+    if st.session_state.get("quality_report"):
+        _render_quality_scorecard(st.session_state.quality_report)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -459,7 +468,7 @@ except Exception as e:
 def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
     """Callback for the Generate Summary button."""
     try:
-        summary_prompt = build_summary_prompt(df, stats)
+        summary_prompt = build_summary_prompt(df, stats, quality_report=st.session_state.get("quality_report"))
         st.session_state.summary = generate_response(summary_prompt)
     except ValueError as e:
         st.error(f"🔑 Configuration error: {e}")
@@ -468,6 +477,59 @@ def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
 
 
 # ── Chart generation helpers ─────────────────────────────────────────────────
+
+def _render_quality_scorecard(report) -> None:
+    """Render the data quality scorecard as a styled A-F grade card."""
+    grade_colors = {
+        "A": "#34d399",
+        "B": "#818cf8",
+        "C": "#fbbf24",
+        "D": "#f59e0b",
+        "F": "#f87171",
+    }
+    color = grade_colors.get(report.grade, "#686880")
+
+    with st.container(border=True):
+        col_grade, col_stats = st.columns([0.2, 0.8])
+
+        with col_grade:
+            st.markdown(
+                f'<div style="text-align:center;padding:1rem 0;">'
+                f'<div style="font-size:3.5rem;font-weight:800;color:{color};'
+                f'line-height:1;">{report.grade}</div>'
+                f'<div style="font-size:0.7rem;color:#686880;text-transform:uppercase;'
+                f'letter-spacing:0.08em;">Data Quality</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        with col_stats:
+            parts = [
+                f"**{report.completeness_pct}%** completeness",
+                f"**{report.column_count}** columns",
+                f"**{report.duplicate_count:,}** duplicates",
+            ]
+            if report.outlier_count:
+                parts.append(f"**{report.outlier_count}** outliers")
+            st.markdown(" · ".join(parts))
+
+            if report.date_range_days is not None:
+                st.markdown(
+                    f"📅 **{report.date_range_days}** days of data "
+                    f"({report.date_gaps} missing days)"
+                )
+
+            if report.missing_columns:
+                st.caption(
+                    f"Missing expected columns: {', '.join(report.missing_columns)}"
+                )
+
+            for warning in report.warnings:
+                st.warning(warning, icon="⚠️")
+
+            if not report.warnings:
+                st.success("No significant data quality issues detected.", icon="✅")
+
 
 def _generate_chart(
     df: pd.DataFrame,
