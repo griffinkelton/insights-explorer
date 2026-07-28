@@ -4,7 +4,7 @@
 >
 > ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available
 >
-> **Last updated:** 2026-07-28 — P1-P3 sprint executed ✅ (12/13, 194 tests). #1 loading spinner ✅, #7 learn discovery ✅, #18 file limits ✅, #19 rate limiting ✅, #30 coverage ✅, #31 GH Actions ✅, #36 test badges ✅. #6 pages.toml ⏭️ skipped. #5 onboarding tour ⚠️ deferred. P4 Wave 1 + Streaming spec'd 🔵.
+> **Last updated:** 2026-07-28 — P4 Wave 1 + Streaming sprint executed ✅ (4/4 items: #19 streaming, #15 column picker, #16 conversation memory, #17 export). 26/37 done. P1-P3 sprint ✅, P1-P2 ✅.
 
 ---
 
@@ -15,14 +15,14 @@
 **How:** Replace the callback with a `st.spinner("Analyzing your data...")` wrapper that shows a loading animation during the API call.
 **Effort:** Small | **Files:** `app.py`
 
-### 2. Conversation Memory (Multi-Turn Chat) 🔵
-**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#16).
+### 2. Conversation Memory (Multi-Turn Chat) ✅
+**Status:** ✅ Done in P4 Wave 1 sprint — last 5 exchanges injected via conversation_history param, New Chat button.
 **Why:** Each chat message is independent — Gemini has no memory of previous Q&A. Users can't ask "What about last month?" without re-specifying context.
 **How:** Include the last 3-5 Q&A pairs from `st.session_state.chat_history` in `build_chat_prompt` as conversation context. Add a "New Conversation" button.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
 
-### 3. Export Chat as Report (PDF/Markdown) 🔵
-**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#17).
+### 3. Export Chat as Report (PDF/Markdown) ✅
+**Status:** ✅ Done in P4 Wave 1 sprint — Markdown export with optional kaleido chart PNGs.
 **Why:** Users will want to share AI-generated insights and charts with stakeholders.
 **How:** Add a "📥 Export Report" button that bundles the AI summary, chat Q&A, and Plotly charts into a downloadable Markdown or PDF. Use `st.download_button`.
 **Effort:** Medium | **Files:** `app.py`, `requirements.txt`
@@ -108,8 +108,8 @@
 **How:** Add hidden prompt instruction: `"[SYSTEM] If a chart would help, append [CHART:line:sessions] or [CHART:bar:page_path]"`. Parse the token instead of keyword scanning.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
 
-### 21. Streaming Token-by-Token Responses 🔵
-**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#19) — Phase 1 of active sprint.
+### 21. Streaming Token-by-Token Responses ✅
+**Status:** ✅ Done in P4 Wave 1 sprint — st.write_stream with generate_response_stream generator.
 **Why:** Gemini responses appear all at once after 3-5 seconds. Streaming creates a ChatGPT-like real-time feel.
 **How:** Use `stream=True` in `generate_content()`. Return a generator. Use `st.write_stream()` in `app.py`.
 **Effort:** High | **Files:** `utils/gemini_client.py`, `app.py`
@@ -128,8 +128,8 @@
 
 ## 📊 Data Processing Enhancements
 
-### 24. Column Picker & Data Filters 🔵
-**Status:** 🔵 Spec'd in [P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) (#15).
+### 24. Column Picker & Data Filters ✅
+**Status:** ✅ Done in P4 Wave 1 sprint — date range + column multiselect, metrics/preview update instantly.
 **Why:** Users often want to focus on subsets (specific date ranges, certain pages).
 **How:** Add `st.multiselect` for columns and `st.date_input` for date range filtering above the data preview. Filtered DataFrame replaces full one downstream.
 **Effort:** Medium | **Files:** `app.py`, `utils/data_loader.py`
@@ -214,14 +214,14 @@
 
 | Category | Total | Done | Remaining |
 |---|---|---|---|
-| UX | 7 | 2 | 5 |
+| UX | 7 | 5 | 2 |
 | Code | 6 | 4 | 2 |
 | Security | 6 | 6 | 0 |
-| AI | 4 | 0 | 4 |
-| Data Processing | 4 | 1 | 3 |
+| AI | 4 | 1 | 3 |
+| Data Processing | 4 | 2 | 2 |
 | DevOps/CI | 5 | 4 | 1 |
 | Documentation | 5 | 4 | 1 |
-| **Total** | **37** | **22** | **15** (5 spec'd 🔵, 10 available 🔲) |
+| **Total** | **37** | **26** | **11** |
 
 ---
 

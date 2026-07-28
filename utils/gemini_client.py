@@ -1,6 +1,7 @@
 """Gemini API client wrapper for GA4 Insight Explorer."""
 
 import os
+from collections.abc import Generator
 from google import genai
 from dotenv import load_dotenv
 
@@ -70,6 +71,48 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
             },
         )
         return response.text
+    except ValueError:
+        raise  # API key errors propagate as-is
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "rate" in error_msg and "limit" in error_msg:
+            raise RuntimeError(
+                "Rate limit hit. Please wait a moment and try again."
+            ) from e
+        elif "quota" in error_msg:
+            raise RuntimeError(
+                "API quota exceeded. Check your Google Cloud quota or try again later."
+            ) from e
+        else:
+            raise RuntimeError(
+                f"Gemini API error: {str(e)}"
+            ) from e
+
+
+def generate_response_stream(
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+) -> Generator[str, None, None]:
+    """Stream Gemini response tokens one at a time.
+
+    Yields text chunks as they arrive from the API.
+    The caller is responsible for collecting the full text
+    and running chart detection after the stream completes.
+
+    Raises ValueError for missing API key, RuntimeError for API failures.
+    """
+    try:
+        response = _get_client().models.generate_content_stream(
+            model=model,
+            contents=prompt,
+            config={
+                "temperature": DEFAULT_TEMPERATURE,
+                "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+            },
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
     except ValueError:
         raise  # API key errors propagate as-is
     except Exception as e:

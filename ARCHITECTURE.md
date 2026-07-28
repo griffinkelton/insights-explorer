@@ -253,6 +253,10 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 50 | P1-P3 sprint: #14 GitHub Actions CI | CI/CD |
 | 51 | P1-P3 sprint: #9 free-tier limits documented in README | Docs |
 | 52 | P1-P3 sprint: cross-reference sweep across 12 MD files | Docs |
+| 53 | P4 Wave 1 + Streaming: #19 streaming (st.write_stream, generate_response_stream) | Feature |
+| 54 | P4 Wave 1 + Streaming: #15 column picker & date filters (filter_dataframe, _render_data_filters) | Feature |
+| 55 | P4 Wave 1 + Streaming: #16 conversation memory (last 5 exchanges in build_chat_prompt, New Chat button) | Feature |
+| 56 | P4 Wave 1 + Streaming: #17 export chat as Markdown report (report_exporter.py, kaleido) | Feature |
 
 ---
 

@@ -7,8 +7,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality
-from utils.gemini_client import generate_response, validate_api_key
+from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality, filter_dataframe
+from utils.gemini_client import generate_response, generate_response_stream, validate_api_key
 from utils.prompt_templates import (
     build_summary_prompt,
     build_chat_prompt,
@@ -72,6 +72,8 @@ if "last_api_call" not in st.session_state:
     st.session_state.last_api_call = 0.0
 if "api_call_count" not in st.session_state:
     st.session_state.api_call_count = 0
+if "filtered_df" not in st.session_state:
+    st.session_state.filtered_df = None
 
 
 # ── API key validation on first run ──────────────────────────────────────────
@@ -330,27 +332,35 @@ def _render_main() -> None:
     df = st.session_state.df
     stats = st.session_state.stats
 
+    # Use filtered data for metrics/preview if available
+    display_df = st.session_state.filtered_df if st.session_state.filtered_df is not None else df
+
     # ── Data preview ─────────────────────────────────────────────────────────
     st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("📋 Total Rows", f"{stats['row_count']:,}")
+        st.metric("📋 Total Rows", f"{len(display_df):,}")
     with col2:
-        st.metric("📊 Columns", stats["column_count"])
+        st.metric("📊 Columns", len(display_df.columns))
     with col3:
         st.metric("📅 From", stats.get("date_range_start", "—"))
     with col4:
         st.metric("📅 To", stats.get("date_range_end", "—"))
 
     with st.expander("🔍 Preview Table (first 10 rows)", expanded=False):
-        st.dataframe(df.head(10), use_container_width=True)
+        st.dataframe(display_df.head(10), use_container_width=True)
 
     # ── Data quality scorecard ───────────────────────────────────────────
     if st.session_state.get("quality_report"):
         _render_quality_scorecard(st.session_state.quality_report)
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Data filters ─────────────────────────────────────────────────────────
+    if st.session_state.df is not None:
+        with st.expander("🔍 Filter Data", expanded=False):
+            _render_data_filters(df)
 
     # ── AI Summary ───────────────────────────────────────────────────────────
     st.markdown("### 🤖 AI-Generated Summary")
@@ -377,23 +387,42 @@ def _render_main() -> None:
     st.divider()
 
     # ── Chat interface ───────────────────────────────────────────────────────
-    st.markdown(
-        '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
-        '<h3 style="margin:0;">💬 Ask Questions</h3>'
-        '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    col_chat_header, col_new_chat = st.columns([4, 1])
+    with col_chat_header:
+        st.markdown(
+            '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
+            '<h3 style="margin:0;">💬 Ask Questions</h3>'
+            '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with col_new_chat:
+        if st.button(
+            "🆕 New Chat",
+            use_container_width=True,
+            help="Clear chat history but keep your data",
+        ):
+            st.session_state.chat_history = []
+            st.rerun()
 
     for i, entry in enumerate(st.session_state.chat_history):
         with st.chat_message("user"):
             st.markdown(entry["question"])
 
         with st.chat_message("assistant"):
-            st.markdown(entry["response"])
-            if entry.get("chart") and entry["chart"].get("fig"):
-                with st.container(border=True):
-                    st.plotly_chart(entry["chart"]["fig"], use_container_width=True, key=f"chart_{i}")
+            if entry["response"] == "":
+                # ── Stream new message ────────────────────────────────────
+                _stream_chat_response(entry, df, i)
+            else:
+                # ── Render historical message ─────────────────────────────
+                st.markdown(entry["response"])
+                if entry.get("chart") and entry["chart"].get("fig"):
+                    with st.container(border=True):
+                        st.plotly_chart(
+                            entry["chart"]["fig"],
+                            use_container_width=True,
+                            key=f"chart_{i}",
+                        )
 
     # Chat input
     if prompt := st.chat_input("e.g., which pages have the highest drop-off?"):
@@ -407,29 +436,98 @@ def _render_main() -> None:
 
         st.session_state.chat_history.append({
             "question": prompt,
-            "response": None,
+            "response": "",
             "chart": None,
         })
-
-        with st.spinner("Thinking..."):
-            try:
-                chat_prompt = build_chat_prompt(prompt, df, stats)
-                response = generate_response(chat_prompt)
-
-                chart_config = detect_chart_request(response)
-                chart_data = None
-                if chart_config:
-                    chart_data = _generate_chart(df, chart_config, prompt, response)
-
-                st.session_state.chat_history[-1]["response"] = response
-                st.session_state.chat_history[-1]["chart"] = chart_data
-
-            except ValueError as e:
-                st.session_state.chat_history[-1]["response"] = f"🔑 Configuration error: {e}"
-            except RuntimeError as e:
-                st.session_state.chat_history[-1]["response"] = f"⚠️ API error: {e}"
-
         st.rerun()
+
+    # ── Export button ────────────────────────────────────────────────────
+    if any(
+        e.get("response") and e["response"] != ""
+        for e in st.session_state.chat_history
+    ):
+        st.divider()
+        if st.button("📥 Export Report", use_container_width=True):
+            from utils.report_exporter import build_markdown_report
+
+            report = build_markdown_report(
+                summary=st.session_state.summary,
+                chat_history=st.session_state.chat_history,
+                stats=st.session_state.stats or {},
+                data_source=st.session_state.data_source,
+            )
+            st.download_button(
+                label="⬇️ Download Markdown Report",
+                data=report,
+                file_name=f"ga4_insight_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.md",
+                mime="text/markdown",
+            )
+            st.caption(
+                "⚠️ Charts missing from the report? "
+                "Install kaleido: `pip install kaleido`"
+            )
+
+
+def _render_data_filters(df: pd.DataFrame) -> None:
+    """Render column picker and date range filter controls."""
+    col_filter1, col_filter2, col_filter3 = st.columns([1, 1, 1])
+
+    date_col = _find_date_column(df)
+    all_columns = df.columns.tolist()
+    dates = None
+    min_date = None
+    max_date = None
+
+    with col_filter1:
+        selected_columns = st.multiselect(
+            "Columns to include",
+            options=all_columns,
+            default=all_columns,
+            key="filter_columns",
+        )
+
+    with col_filter2:
+        start_date = None
+        end_date = None
+        if date_col:
+            dates = pd.to_datetime(df[date_col], errors="coerce").dropna()
+            if not dates.empty:
+                min_date = dates.min().date()
+                max_date = dates.max().date()
+                date_range = st.date_input(
+                    "Date range",
+                    value=(min_date, max_date),
+                    min_value=min_date,
+                    max_value=max_date,
+                    key="filter_dates",
+                )
+                if isinstance(date_range, tuple) and len(date_range) == 2:
+                    start_date = str(date_range[0])
+                    end_date = str(date_range[1])
+
+    with col_filter3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 Reset Filters", use_container_width=True):
+            st.session_state.filter_columns = all_columns
+            if date_col and not dates.empty:
+                st.session_state.filter_dates = (min_date, max_date)
+            st.rerun()
+
+    # Apply filters and store result
+    filtered_df = filter_dataframe(
+        df,
+        date_col=date_col,
+        start_date=start_date,
+        end_date=end_date,
+        selected_columns=selected_columns,
+    )
+
+    if filtered_df.empty:
+        st.warning("⚠️ No rows match your filters. Try a wider date range or select more columns.")
+        st.session_state.filtered_df = None
+    else:
+        st.session_state.filtered_df = filtered_df
+        st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
 
 
 def _render_hero() -> None:
@@ -659,6 +757,44 @@ def _find_date_column(df: pd.DataFrame) -> str | None:
         if pd.api.types.is_datetime64_any_dtype(df[col]):
             return col
     return None
+
+
+def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> None:
+    """Stream a Gemini response with st.write_stream, then detect and render chart.
+
+    Called from _render_main() when a chat_history entry has response=="".
+    Updates entry["response"] and entry["chart"] in place.
+    """
+    chat_prompt = build_chat_prompt(
+        entry["question"],
+        df,
+        st.session_state.stats,
+        conversation_history=st.session_state.chat_history[:-1],
+    )
+
+    try:
+        full_text = st.write_stream(generate_response_stream(chat_prompt))
+        entry["response"] = full_text
+
+        # Detect and render chart from the full response
+        chart_config = detect_chart_request(full_text)
+        if chart_config:
+            chart_data = _generate_chart(df, chart_config, full_text, entry["question"])
+            if chart_data:
+                entry["chart"] = chart_data
+                with st.container(border=True):
+                    st.plotly_chart(
+                        chart_data["fig"],
+                        use_container_width=True,
+                        key=f"chart_{i}",
+                    )
+
+    except ValueError as e:
+        entry["response"] = f"🔑 Configuration error: {e}"
+    except RuntimeError as e:
+        entry["response"] = f"⚠️ API error: {e}"
+    except Exception as e:
+        entry["response"] = f"⚠️ An unexpected error occurred: {e}"
 
 
 # ── Footer ───────────────────────────────────────────────────────────────────

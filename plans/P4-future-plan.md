@@ -1,10 +1,10 @@
 # 📋 P4+ Future-Phase Plan — GA4 Insight Explorer
 
 > **What:** Capture document for all items beyond the current P1–P3 sprint — medium features, large investments, and unresolved repo weaknesses.
-> **Status:** 🔵 Partially spec'd — Wave 1 + Streaming sprint spec complete; remaining items deferred.
+> **Status:** 🟢 Partially done — Wave 1 + Streaming sprint executed ✅ (4/4 items). Remaining items (#18, #20, #21, Wave 3) deferred in [P4-deferred-plan.md](P4-deferred-plan.md).
 > **Based on:** IMPLEMENTATION_PLAN.md (#15–21), UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
 > **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — completed. #8 tour deferred to [onboarding-tour.md](onboarding-tour.md).
-> **Current sprint:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — #15–17, #19.
+> **Current sprint:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
 > **Deferred items:** [P4-deferred-plan.md](P4-deferred-plan.md) — #18, #20, #21 (Batches C–F).
 
 ---
@@ -21,17 +21,17 @@ Everything deferred from the current sprint, organized into three waves:
 
 ---## 📊 Current State
 
-**Wave 1 (#15–17) + Streaming (#19)** are now spec'd for immediate implementation in [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) (~6–7 days).
+**Wave 1 (#15–17) + Streaming (#19)** — ✅ Done. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md).
 
-**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4-deferred-plan.md](P4-deferred-plan.md) for execution after the current sprint.
+**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4-deferred-plan.md](P4-deferred-plan.md) for execution next.
 
 The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth config), docs, and infra from P1–P3 are solid, so the medium-risk features that change the data flow can now proceed.
 
 ---
 
-## 🌊 Wave 1 — Medium Features (P4) 🔵 Spec'd
+## 🌊 Wave 1 — Medium Features (P4) ✅ Done
 
-> **Now spec'd in:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — Phase 2 & 3.
+> **Implemented in:** P4 Wave 1 + Streaming sprint. See [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md).
 
 Estimated total time: **~5 hours**
 
@@ -145,9 +145,9 @@ Each of these has a detailed implementation plan in `plans/phase5/`. This docume
 
 ---
 
-### #19 / P4: Streaming Token-by-Token Responses 🔵 Spec'd
+### #19 / P4: Streaming Token-by-Token Responses ✅ Done
 
-> **Now spec'd in:** [P4-wave1-streaming-sprint-spec.md](P4-wave1-streaming-sprint-spec.md) — Phase 1 (highest priority).
+> **Implemented in:** P4 Wave 1 sprint — st.write_stream with generate_response_stream generator.
 
 **Risk:** High | **Effort:** 3–5 days | **Files:** `utils/gemini_client.py`, `app.py`
 

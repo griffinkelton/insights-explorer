@@ -98,11 +98,13 @@ def build_chat_prompt(
     user_question: str,
     df: pd.DataFrame,
     stats: dict[str, Any],
+    conversation_history: list[dict[str, str]] | None = None,
 ) -> str:
     """Build a prompt for a user question about the uploaded data.
 
     Includes a compact data representation (aggregate stats + sample)
     rather than the full raw dataset, to keep the prompt size manageable.
+    Optional conversation_history adds context for follow-up questions.
     """
 
     # Build a compact numeric summary of key columns
@@ -130,6 +132,26 @@ def build_chat_prompt(
 
     sanitized = _sanitize_question(user_question)
 
+    # Build conversation history block (last 5 exchanges)
+    history_block = ""
+    if conversation_history:
+        history_entries = [
+            h for h in conversation_history[-5:]
+            if h.get("response") and h["response"] != ""
+        ]
+        if history_entries:
+            lines = []
+            for h in history_entries:
+                lines.append(f"User: {h['question']}")
+                lines.append(f"Assistant: {h['response'][:500]}")
+                lines.append("")
+            history_block = (
+                "\nCONVERSATION HISTORY (for context only — "
+                "answer the CURRENT question, not these):\n"
+                + "\n".join(lines)
+                + "\n"
+            )
+
     # Build with explicit triple-quote delimiters around the user question
     prompt = (
         f"You are a helpful data analyst assistant. "
@@ -145,6 +167,7 @@ def build_chat_prompt(
         f"{agg_stats.get('numeric_summary', 'No numeric columns available.')}\n\n"
         f"SAMPLE DATA (first {sample_size} rows):\n"
         f"{sample}\n\n"
+        f"{history_block}"
         f'USER QUESTION:\n"""\n{sanitized}\n"""\n\n'
         f"INSTRUCTIONS:\n"
         f"- Answer the question using only the data provided above.\n"

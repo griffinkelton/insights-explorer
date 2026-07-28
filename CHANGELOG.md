@@ -8,17 +8,18 @@
 
 ---
 
-### P4 Wave 1 + Streaming Sprint Spec — #15–17, #19 spec'd (~6-7 days)
+### P4 Wave 1 + Streaming Sprint Executed — 4/4 items, 194 tests
 
-**Date:** 2026-07-28 | **Status:** 🔵 Awaiting implementation
+**Date:** 2026-07-28 | **Status:** ✅ Done
 
-| Change | Commit | Related Docs |
+| Item | What | Files |
 |---|---|---|
-| Created P4 Wave 1 + Streaming sprint spec — 4 items (streaming, column picker, conversation memory, export) | _(pending commit)_ | [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md) |
-| Created P4 deferred plan — captured #18, #20, #21 (Batches C–F, ~20-35 days) | _(pending commit)_ | [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) |
-| Created component-refactor mini-spec — standalone spec for #20 (deferred) | _(pending commit)_ | [plans/component-refactor.md](plans/component-refactor.md) |
-| Updated UNIFIED_PLAN.md — SP2–SP5 added, progress tracker reflects P1-P3 done + P4 active | _(pending commit)_ | [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) |
-| Updated P4-future-plan.md — linked to sprint spec + deferred plan | _(pending commit)_ | [plans/P4-future-plan.md](plans/P4-future-plan.md) |
+| #19 | Streaming token-by-token responses (st.write_stream, generate_response_stream) | `utils/gemini_client.py`, `app.py` |
+| #15 | Column picker & date filters (filter_dataframe, _render_data_filters) | `utils/data_loader.py`, `app.py` |
+| #16 | Conversation memory (last 5 exchanges, New Chat button) | `utils/prompt_templates.py`, `app.py` |
+| #17 | Export chat as Markdown report (report_exporter.py, kaleido) | `utils/report_exporter.py` (new), `app.py`, `requirements.txt` |
+
+**Related:** [plans/P4-wave1-streaming-sprint-spec.md](plans/P4-wave1-streaming-sprint-spec.md), [plans/P4-future-plan.md](plans/P4-future-plan.md)
 
 ---
 

@@ -262,3 +262,30 @@ def _calculate_grade(
     )
 
     return grade, warnings
+
+
+def filter_dataframe(
+    df: pd.DataFrame,
+    date_col: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    selected_columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Apply date range and column filters. Never mutates the original."""
+    filtered = df.copy()
+
+    if date_col and date_col in filtered.columns:
+        filtered[date_col] = pd.to_datetime(filtered[date_col], errors="coerce")
+        if start_date:
+            filtered = filtered[filtered[date_col] >= pd.Timestamp(start_date)]
+        if end_date:
+            filtered = filtered[filtered[date_col] <= pd.Timestamp(end_date)]
+
+    if selected_columns:
+        valid_cols = [c for c in selected_columns if c in filtered.columns]
+        if valid_cols:
+            filtered = filtered[valid_cols]
+        else:
+            return filtered.iloc[0:0]  # Empty but preserves column structure hint
+
+    return filtered

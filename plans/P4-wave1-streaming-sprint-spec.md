@@ -2,7 +2,7 @@
 
 > **What:** Execution spec for the next sprint: P4 medium features (Wave 1) + game-changer (#19 streaming).
 > **Scope:** IMPL items #15 (column picker), #16 (conversation memory), #17 (export chat), #19 (streaming responses).
-> **Status:** 🔴 Spec complete — awaiting implementation.
+> **Status:** ✅ Done — 4/4 items implemented, 194 tests.
 > **Based on:** [P4-future-plan.md](P4-future-plan.md), [phase5/STREAMING_RESPONSES.md](phase5/STREAMING_RESPONSES.md), user interview (3 rounds, July 28, 2026) + follow-up analysis (4 rounds).
 > **Deferred items:** Theme toggle (#18), component refactor (#20), AI/data batches E+F — captured in [P4-deferred-plan.md](P4-deferred-plan.md).
 > **Predecessor:** [P1-P3-sprint-spec.md](P1-P3-sprint-spec.md) — must be complete and stable.

@@ -2,7 +2,7 @@
 
 > Complete 21-item implementation blueprint with context, reasoning, risk assessments, and execution strategy.
 >
-> **Status:** 🟡 In progress — #7 (loading spinner) done, #6 (pages.toml) skipped per P1-P3 sprint spec. See [plans/P1-P3-sprint-spec.md](plans/P1-P3-sprint-spec.md) for current sprint plan, [plans/P4-future-plan.md](plans/P4-future-plan.md) for deferred items, and [plans/onboarding-tour.md](plans/onboarding-tour.md) for the #8 mini-spec.
+> **Status:** 🟡 In progress — P1-P3 sprint done ✅ (12/13 items), P4 Wave 1 + Streaming done ✅ (4/4 items: #15-17, #19). #6 skipped, #8 deferred, #18/#20/#21 deferred. See [plans/P4-deferred-plan.md](plans/P4-deferred-plan.md) for remaining items.
 >
 > **Numbering note:** This document uses its own item numbering (#1-21) for the 21 planned tasks. References to ENHANCEMENTS.md use the roadmap's numbering (e.g., "ENHANCEMENTS.md #13"). The two numbering schemes are independent.
 
