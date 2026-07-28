@@ -1,6 +1,6 @@
 # 🎨 App Icon & Favicon — Design & Implementation Plan
 
-> **Status:** 🔲 Planned — creative exploration
+> **Status:** ✅ Completed (2026-07-28)
 > **Effort:** Small-Medium (2-3 hours) | **Risk:** Low
 
 ---
@@ -109,7 +109,7 @@ for size in SIZES:
     )
 ```
 
-Add `cairosvg` to `requirements/dev.txt` (dev-only — not a runtime dependency).
+Add `cairosvg` and `pillow` to `requirements.txt` (used only by the one-time icon generation script, not at runtime).
 
 ### Step 3: Convert to ICO (Windows)
 
@@ -242,7 +242,7 @@ Add Open Graph meta tags:
 | `pages/learn.py` | Update `page_icon` from emoji to file path |
 | `utils/styles.py` | Add `inject_favicon_meta()` function |
 | `scripts/generate_icons.py` | New — one-time icon generation script |
-| `requirements/dev.txt` | Add `cairosvg`, `pillow` |
+| `requirements.txt` | Add `cairosvg>=2.7.0`, `Pillow>=10.0.0` |
 | `.gitignore` | Keep `assets/` (these are committed — they're generated once) |
 
 ---

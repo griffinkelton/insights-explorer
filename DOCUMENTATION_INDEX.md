@@ -29,7 +29,8 @@
 
 | File | Covers | Effort |
 |---|---|---|
-| [plans/APP_ICON.md](plans/APP_ICON.md) | Custom app icon + favicon design and implementation | Small (2-3 hrs) |
+| [plans/APP_ICON.md](plans/APP_ICON.md) | Custom app icon + favicon design and implementation | Small (2-3 hrs) ✅ Done |
+| [plans/UNIFIED_PLAN.md](plans/UNIFIED_PLAN.md) | Master index of all 6 plans — execution order, sprint plan, progress tracker | Reference |
 | [plans/BONUS_DATA_QUALITY_SCORECARD.md](plans/BONUS_DATA_QUALITY_SCORECARD.md) | Data quality scorecard (promoted from IDEAS.md #17) | Medium (2-4 hrs) |
 | [plans/phase5/THEME_TOGGLE.md](plans/phase5/THEME_TOGGLE.md) | Light/dark theme toggle (IMPL #18) | High (3-5 days) |
 | [plans/phase5/STREAMING_RESPONSES.md](plans/phase5/STREAMING_RESPONSES.md) | Streaming token-by-token responses (IMPL #19) | High (3-5 days) |
@@ -72,14 +73,15 @@ ARCHITECTURE.md ─── "How it's built"
 
 | File | Status | Last Updated |
 |---|---|---|
-| README.md | Needs update (test count, new files) | — |
+| README.md | ✅ Current (test counts, project structure updated) | Today |
 | ORIGINAL_SPEC.md | ✅ Current | Today |
-| ARCHITECTURE.md | Needs update (build log, test count, new docs) | — |
+| ARCHITECTURE.md | ✅ Current (build log, test counts, project structure updated) | Today |
 | ENHANCEMENTS.md | ✅ Current (v2 rewrite) | Today |
 | IMPLEMENTATION_PLAN.md | ✅ Current (8 review fixes applied) | Today |
 | IDEAS.md | ✅ Current | Today |
 | BUGLOG.md | ✅ Current | Today |
-| plans/APP_ICON.md | ✅ New | Today |
+| plans/APP_ICON.md | ✅ Completed | Today |
+| plans/UNIFIED_PLAN.md | ✅ Current (P1 complete, 1/6 done) | Today |
 | plans/BONUS_DATA_QUALITY_SCORECARD.md | ✅ New | Today |
 | plans/phase5/THEME_TOGGLE.md | ✅ Current | Today |
 | plans/phase5/STREAMING_RESPONSES.md | ✅ Current | Today |

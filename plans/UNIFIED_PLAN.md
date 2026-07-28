@@ -2,8 +2,8 @@
 
 > **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
 >
-> **Status:** 🔴 Review-for-approval — no code written
-> **Last updated:** 2026-07-28
+> **Status:** 🟢 In progress — P1 complete, P2–P6 planned
+> **Last updated:** 2026-07-28 (P1 completed)
 >
 > **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features.
 
@@ -199,13 +199,13 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 
 | # | Plan | Files Touched | New Files | Tests | Status |
 |---|---|---|---|---|---|
-| P1 | App Icon | 5 | 13+ | 0 | 🔲 Planned (note: `test_app.py` doesn't exist yet — structural test added after IMPL #13) |
+| P1 | App Icon | 5 | 13+ | 0 | ✅ Completed (commit `25ca2df`) |
 | P2 | Data Quality Scorecard | 4 | 1 | ~10 | 🔲 Planned |
 | P3 | Theme Toggle | 3 | 0 | 0 | 🔲 Planned |
 | P4 | Streaming Responses | 2 | 0 | 3 | 🔲 Planned |
 | P5 | Component Refactor | 1 + 7 new | 7 | ~25 | 🔲 Planned |
 | P6 | AI & Data Enhancements | 3 | 0 | ~20 | 🔲 Planned |
-| **Total** | **6 plans** | **18 + 20 new** | **21+ new** | **~58 new** | **0/6 done** |
+| **Total** | **6 plans** | **18 + 20 new** | **21+ new** | **~58 new** | **1/6 done** |
 
 ---
 

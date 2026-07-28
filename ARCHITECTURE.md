@@ -28,14 +28,29 @@ insights-explorer/
 │   ├── test_data_loader.py      # 20 tests — file parsing, validation, stats
 │   ├── test_gemini_client.py    # 14 tests — API calls, error handling, key validation
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
-│   └── test_ga4_client.py       # 18 tests — OAuth flow, credentials, GA4 report pull
+│   ├── test_ga4_client.py       # 18 tests — OAuth flow, credentials, GA4 report pull
+│   └── test_learn_page.py       # 19 tests — learn page structure, content, tabs
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
+├── assets/
+│   ├── icon.svg                 # Master SVG icon
+│   ├── favicon.ico              # Multi-res browser favicon
+│   ├── og-image.png             # Social share preview
+│   ├── site.webmanifest         # PWA manifest
+│   └── icons/                   # 8 PNG sizes (16–512px)
+├── scripts/
+│   ├── smoke_test.sh            # Headless smoke test
+│   └── generate_icons.py        # SVG → PNG/ICO/OG rasterizer
 ├── cloudbuild.yaml              # CI/CD — auto-run tests on every push (GCP Cloud Build)
 ├── .env.example                 # API key template + GA4 OAuth path
 ├── requirements.txt             # Python dependencies
 ├── .gitignore
-├── ENHANCEMENTS.md              # 25-item enhancement roadmap
+├── BUGLOG.md                    # Structured bug log
+├── ORIGINAL_SPEC.md             # Initial spec + compliance checklist
+├── IDEAS.md                     # 25 bonus ideas + 10 moonshots
+├── DOCUMENTATION_INDEX.md       # Central docs index
+├── ENHANCEMENTS.md              # 37-item enhancement roadmap
+├── IMPLEMENTATION_PLAN.md       # 21-item execution blueprint
 ├── ARCHITECTURE.md              # This file
 └── README.md                    # Setup guide + GA4 connection walkthrough
 ```
@@ -74,7 +89,7 @@ insights-explorer/
 
 ### 8. CI/CD: Google Cloud Build
 **Decision:** Use `cloudbuild.yaml` with GCP Cloud Build triggers on every push.
-**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 110-test suite.
+**Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 129-test suite.
 
 ---
 
@@ -150,7 +165,8 @@ insights-explorer/
 | `test_prompt_templates.py` | 58 | `build_summary_prompt` (9), `build_chat_prompt` (11), `_sanitize_question` (18), `detect_chart_request` (20) |
 | `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
 | `test_ga4_client.py` | 18 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (5), `pull_ga4_report` (10) |
-| **Total** | **110** | All util modules covered |
+| `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
+| **Total** | **129** | All util modules + learn page covered |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -169,6 +185,8 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | `google-analytics-data` | ≥0.18 | GA4 Data API |
 | `google-auth-oauthlib` | ≥1.0 | OAuth 2.0 flow |
 | `pytest` | ≥8.0 | Testing framework |
+| `cairosvg` | ≥2.7 | SVG-to-PNG rasterization (icon generation script) |
+| `pillow` (Pillow) | ≥10.0 | Image manipulation (ICO generation, OG image) |
 
 ---
 
@@ -205,6 +223,10 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 27 | Added `ORIGINAL_SPEC.md` — initial prompt + compliance checklist | Docs |
 | 28 | Added `DOCUMENTATION_INDEX.md` — central doc index | Docs |
 | 29 | Added `plans/` directory — Phase 5 detailed plans + bonus plans | Docs |
+| 30 | Implemented P1: App Icon — custom SVG, 8 PNG sizes, ICO, PWA manifest, OG image, favicon meta tags | Feature |
+| 31 | Fixed privacy disclaimer wording to match ORIGINAL_SPEC.md requirement #15 verbatim | Fix |
+| 32 | Added BUGLOG.md cross-references to DOCUMENTATION_INDEX.md, README.md, and ARCHITECTURE.md | Docs |
+| 33 | Docs consistency sweep — updated test counts (110→129), project structures, build log | Docs |
 
 ---
 

@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
-  <img src="https://img.shields.io/badge/tests-110%20passed-success?logo=pytest" alt="110 tests">
+  <img src="https://img.shields.io/badge/tests-129%20passed-success?logo=pytest" alt="129 tests">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -71,7 +71,7 @@ Opens at **http://localhost:8501** 🎉
 python -m pytest tests/
 ```
 
-110 tests covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, and GA4 report pulling.
+129 tests across 5 test modules covering data loading, prompt construction, chart detection, sanitization, Gemini API error handling, OAuth flow, GA4 report pulling, and learn page structure.
 
 ---
 
@@ -84,22 +84,38 @@ python -m pytest tests/
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py          # CSV/XLSX parsing, validation, stats
-│   ├── gemini_client.py        # Gemini API wrapper (error handling)
-│   ├── prompt_templates.py     # Prompt construction + chart detection
-│   ├── ga4_client.py           # GA4 live connection (OAuth + Data API)
-│   └── styles.py               # Custom CSS + keyboard shortcuts
+│   ├── gemini_client.py        # Gemini API wrapper (error handling, key validation)
+│   ├── prompt_templates.py     # Prompt construction + sanitization + chart detection
+│   ├── ga4_client.py           # GA4 live connection (OAuth + Analytics Data API)
+│   ├── styles.py               # Custom CSS + favicon meta tags + keyboard shortcuts
+│   └── error_boundary.py       # Global error boundary (friendly error cards)
+├── assets/
+│   ├── icon.svg                # Master SVG icon
+│   ├── favicon.ico             # Multi-res browser favicon
+│   ├── og-image.png            # Social share preview (1200×630)
+│   ├── site.webmanifest        # PWA manifest
+│   └── icons/                  # 8 PNG sizes (16–512px)
+├── scripts/
+│   ├── smoke_test.sh           # Headless startup smoke test
+│   └── generate_icons.py       # One-time SVG → PNG/ICO/OG rasterizer
 ├── tests/
 │   ├── test_data_loader.py
 │   ├── test_prompt_templates.py
 │   ├── test_gemini_client.py
-│   └── test_ga4_client.py
+│   ├── test_ga4_client.py
+│   └── test_learn_page.py
 ├── .streamlit/
 │   └── config.toml             # Secure defaults (headless, XSRF, CORS)
 ├── cloudbuild.yaml             # CI/CD — auto-run tests on push
 ├── .env.example                # API key template
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
-├── ENHANCEMENTS.md             # 25-item roadmap
+├── BUGLOG.md                   # Structured bug log (7 bugs, patterns, rules)
+├── ORIGINAL_SPEC.md            # Initial spec + 26-item compliance checklist
+├── ENHANCEMENTS.md             # 37-item enhancement roadmap
+├── IMPLEMENTATION_PLAN.md      # 21-item execution blueprint
+├── IDEAS.md                    # 25 bonus enhancements + 10 moonshots
+├── DOCUMENTATION_INDEX.md      # Central index of all docs
 ├── ARCHITECTURE.md             # Architecture & design decisions
 └── README.md
 ```
@@ -358,7 +374,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (110 unit tests) |
+| Testing | pytest (129 unit tests across 5 modules) |
 | CI/CD | Google Cloud Build (`cloudbuild.yaml`) |
 | Data | Pandas |
 | Charts | Plotly |
