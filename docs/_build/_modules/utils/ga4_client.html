@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>utils.ga4_client &#8212; GA4 Insight Explorer Docs</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=030dc6f6"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for utils.ga4_client</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Google Analytics 4 Data API client with OAuth 2.0 authentication.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.auth.transport.requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">Request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.oauth2.credentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">Credentials</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google_auth_oauthlib.flow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.analytics.data_v1beta</span><span class="w"> </span><span class="kn">import</span> <span class="n">BetaAnalyticsDataClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.analytics.data_v1beta.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DateRange</span><span class="p">,</span>
+    <span class="n">Dimension</span><span class="p">,</span>
+    <span class="n">Metric</span><span class="p">,</span>
+    <span class="n">RunReportRequest</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># OAuth scopes — read-only Analytics + Drive access (Drive file picker)</span>
+<span class="n">SCOPES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;https://www.googleapis.com/auth/analytics.readonly&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;https://www.googleapis.com/auth/drive.readonly&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Path to client secret JSON file for OAuth (downloaded from GCP Console).</span>
+<span class="c1"># Resolution order: env var → project-root-relative → raises clear error.</span>
+<span class="n">_PROJECT_ROOT</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">CLIENT_SECRETS_FILE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
+    <span class="s2">&quot;GA4_CLIENT_SECRETS_PATH&quot;</span><span class="p">,</span>
+    <span class="nb">str</span><span class="p">(</span><span class="n">_PROJECT_ROOT</span> <span class="o">/</span> <span class="s2">&quot;client_secrets.json&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_auth_url">
+<a class="viewcode-back" href="../../source/utils.ga4_client.html#utils.ga4_client.get_auth_url">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_auth_url</span><span class="p">(</span><span class="n">redirect_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Flow</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a Google OAuth authorization URL.</span>
+
+<span class="sd">    Returns (url, flow) — the flow must be stored for token exchange.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        FileNotFoundError: If the client secrets file doesn&#39;t exist, with</span>
+<span class="sd">            instructions for downloading it from the Google Cloud Console.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">secrets_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">CLIENT_SECRETS_FILE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">secrets_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">Google OAuth client secrets file not found.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Expected at: </span><span class="si">{</span><span class="n">secrets_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;To fix this:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  1. Go to https://console.cloud.google.com/apis/credentials</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  2. Click your OAuth 2.0 Client ID</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  3. Click &#39;Download JSON&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  4. Save the file as &#39;client_secrets.json&#39; in:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;     </span><span class="si">{</span><span class="n">_PROJECT_ROOT</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="si">}</span><span class="s2">/</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;   Or set the GA4_CLIENT_SECRETS_PATH env var to point</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;   to your file&#39;s actual location.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">flow</span> <span class="o">=</span> <span class="n">Flow</span><span class="o">.</span><span class="n">from_client_secrets_file</span><span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">secrets_path</span><span class="p">),</span>
+        <span class="n">scopes</span><span class="o">=</span><span class="n">SCOPES</span><span class="p">,</span>
+        <span class="n">redirect_uri</span><span class="o">=</span><span class="n">redirect_uri</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">auth_url</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">flow</span><span class="o">.</span><span class="n">authorization_url</span><span class="p">(</span>
+        <span class="n">access_type</span><span class="o">=</span><span class="s2">&quot;offline&quot;</span><span class="p">,</span>
+        <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;consent&quot;</span><span class="p">,</span>  <span class="c1"># Always get a refresh token</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">auth_url</span><span class="p">,</span> <span class="n">flow</span></div>
+
+
+
+<div class="viewcode-block" id="exchange_code">
+<a class="viewcode-back" href="../../source/utils.ga4_client.html#utils.ga4_client.exchange_code">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">exchange_code</span><span class="p">(</span><span class="n">flow</span><span class="p">:</span> <span class="n">Flow</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Credentials</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exchange the OAuth authorization code for credentials.&quot;&quot;&quot;</span>
+    <span class="n">flow</span><span class="o">.</span><span class="n">fetch_token</span><span class="p">(</span><span class="n">code</span><span class="o">=</span><span class="n">code</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flow</span><span class="o">.</span><span class="n">credentials</span></div>
+
+
+
+<div class="viewcode-block" id="credentials_to_dict">
+<a class="viewcode-back" href="../../source/utils.ga4_client.html#utils.ga4_client.credentials_to_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">credentials_to_dict</span><span class="p">(</span><span class="n">creds</span><span class="p">:</span> <span class="n">Credentials</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize credentials to a JSON-safe dict for st.session_state.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">token</span><span class="p">,</span>
+        <span class="s2">&quot;refresh_token&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">refresh_token</span><span class="p">,</span>
+        <span class="s2">&quot;token_uri&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">token_uri</span><span class="p">,</span>
+        <span class="s2">&quot;client_id&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">client_id</span><span class="p">,</span>
+        <span class="s2">&quot;client_secret&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">client_secret</span><span class="p">,</span>
+        <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="n">creds</span><span class="o">.</span><span class="n">scopes</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="credentials_from_dict">
+<a class="viewcode-back" href="../../source/utils.ga4_client.html#utils.ga4_client.credentials_from_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">credentials_from_dict</span><span class="p">(</span><span class="n">creds_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Credentials</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deserialize credentials from a JSON-safe dict.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Credentials</span><span class="p">(</span><span class="o">**</span><span class="n">creds_dict</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="pull_ga4_report">
+<a class="viewcode-back" href="../../source/utils.ga4_client.html#utils.ga4_client.pull_ga4_report">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pull_ga4_report</span><span class="p">(</span>
+    <span class="n">credentials</span><span class="p">:</span> <span class="n">Credentials</span><span class="p">,</span>
+    <span class="n">property_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;90daysAgo&quot;</span><span class="p">,</span>
+    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;today&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pull a standard GA4 report and return as a pandas DataFrame.</span>
+
+<span class="sd">    Fetches: date, pagePath, deviceCategory dimensions</span>
+<span class="sd">             + sessions, totalUsers, activeUsers, engagementRate, bounceRate metrics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Refresh token if needed</span>
+    <span class="k">if</span> <span class="n">credentials</span><span class="o">.</span><span class="n">expired</span> <span class="ow">and</span> <span class="n">credentials</span><span class="o">.</span><span class="n">refresh_token</span><span class="p">:</span>
+        <span class="n">credentials</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">Request</span><span class="p">())</span>
+
+    <span class="n">client</span> <span class="o">=</span> <span class="n">BetaAnalyticsDataClient</span><span class="p">(</span><span class="n">credentials</span><span class="o">=</span><span class="n">credentials</span><span class="p">)</span>
+
+    <span class="n">request</span> <span class="o">=</span> <span class="n">RunReportRequest</span><span class="p">(</span>
+        <span class="nb">property</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;properties/</span><span class="si">{</span><span class="n">property_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">Dimension</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">),</span>
+            <span class="n">Dimension</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;pagePath&quot;</span><span class="p">),</span>
+            <span class="n">Dimension</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;deviceCategory&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">Metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sessions&quot;</span><span class="p">),</span>
+            <span class="n">Metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;totalUsers&quot;</span><span class="p">),</span>
+            <span class="n">Metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;activeUsers&quot;</span><span class="p">),</span>
+            <span class="n">Metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;engagementRate&quot;</span><span class="p">),</span>
+            <span class="n">Metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bounceRate&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">date_ranges</span><span class="o">=</span><span class="p">[</span><span class="n">DateRange</span><span class="p">(</span><span class="n">start_date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="o">=</span><span class="n">end_date</span><span class="p">)],</span>
+        <span class="n">limit</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>  <span class="c1"># GA4 API max per request</span>
+    <span class="p">)</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run_report</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="c1"># Build DataFrame from response rows</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">dimension_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;page_path&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">dimension_values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;device_category&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">dimension_values</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;sessions&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">metric_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="s2">&quot;users&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">metric_values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="s2">&quot;active_users&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">metric_values</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="s2">&quot;engagement_rate&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">metric_values</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="s2">&quot;bounce_rate&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">metric_values</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+        <span class="p">})</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">GA4 Insight Explorer</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

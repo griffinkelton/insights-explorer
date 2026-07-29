@@ -181,31 +181,27 @@ Gemini outputs structured JSON chart configs. Parse with `json.loads` and map dy
 
 ---
 
-## 📈 Execution Order (After P4 Wave 1 + Streaming)
+## 📈 Execution Order (All Complete ✅)
 
 ```
-Batch C — Theme Toggle (~3-5 days):
-  #18 / P3  Light/dark theme toggle
-  → Visual smoke test in both themes
+✅ Batch C — Theme Toggle
+  #18 / P3  Light/dark theme toggle ✅
 
-Batch D — Component Refactor (~3-5 days):
-  #20 / P5  Split app.py into components/ package
-  → Run tests: python -m pytest tests/ -q
+✅ Batch D — Component Refactor
+  #20 / P5  Split app.py into components/ package ✅
 
-Batch E — AI/Data Quick Wins (~3-5 hrs):
-  P6d  Column type detection
-  P6f  Smart sampling
-  P6a  Chart token detection
-  → Run tests: python -m pytest tests/ -q
+✅ Batch E — AI/Data Quick Wins
+  P6d  Column type detection ✅
+  P6f  Smart sampling ✅
+  P6a  Chart token detection ✅
 
-Batch F — AI/Data Complex (~10-15 hrs):
-  P6e  Anomaly detection
-  P6b  JSON chart mapping
-  P6c  Comparative analysis
-  → Run tests: python -m pytest tests/ -q
+✅ Batch F — AI/Data Complex
+  P6e  Anomaly detection ✅
+  P6b  JSON chart mapping ✅
+  P6c  Comparative analysis ✅
 ```
 
-**Total: ~20-35 days after P4 Wave 1 + Streaming completes.**
+**All batches complete — 239 tests.**
 
 ---
 
@@ -216,7 +212,7 @@ Batch F — AI/Data Complex (~10-15 hrs):
 - [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
-- [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
-- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
+- [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
+- [✅ onboarding-tour.md](✅ onboarding-tour.md) — Onboarding tour completion doc
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
 - [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan

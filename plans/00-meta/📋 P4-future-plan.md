@@ -5,7 +5,7 @@
 > **Based on:** IMPLEMENTATION_PLAN.md (#15–21), 📋 UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
 > **Predecessor:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — completed. #8 tour deferred to [Onboarding tour](🔵 onboarding-tour.md).
 > **Current sprint:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
-> **Deferred items:** [P4 deferred plan](📋 P4-deferred-plan.md) — #18, #20, #21 (Batches C–F).
+> **Deferred items:** ✅ All done — see [P4 deferred plan](📋 P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
 
 ---
 
@@ -298,17 +298,15 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 ```
 ✅ P1–P3 sprint — DONE (12/13 items implemented, 194 tests)
 
-🔵 CURRENT SPRINT — [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md):
-  Phase 1: #19 Streaming (~3-5 days)          ── Changes response pipeline (hardest)
-  Phase 2: #15 Column picker + #16 Memory     ── Touches data flow + prompt construction
-  Phase 3: #17 Export chat (~1.5 hrs)          ── Standalone (new module)
+✅ P4 Wave 1 + Streaming sprint — DONE (4/4 items: #15-17, #19)
 
-🔲 DEFERRED — [P4 deferred plan](📋 P4-deferred-plan.md):
-  Batch C: #18 Theme toggle (~3-5 days)       ── CSS architecture (after streaming stable)
-  Batch D: #20 Component refactor (~3-5 days)  ── Mechanical extraction (after features stable)
-  Batch E: #21a Column types + Smart sampling  ── Quick AI/data wins (~2-3 hrs)
-  Batch F: #21b Chart tokens + Anomaly + JSON + Comparative ── Complex AI/data (~10-15 hrs)
-  Wave 3: API key fallback, app-level auth    ── Only if deployment demands it
+✅ Deferred Batches C-F — DONE:
+  Batch C: #18 Theme toggle ✅
+  Batch D: #20 Component refactor ✅
+  Batch E: P6d Type Detection + P6f Sampling + P6a Chart Tokens ✅
+  Batch F: P6e Anomaly + P6b JSON Mapping + P6c Comparative ✅
+
+🔲 Wave 3: API key fallback, app-level auth — Only if deployment demands it
 ```
 
 ### Why This Order (from 📋 UNIFIED_PLAN.md)
@@ -346,7 +344,7 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
-- [p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
-- [Onboarding tour](🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred)
+- [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
+- [✅ onboarding-tour.md](✅ onboarding-tour.md) — Onboarding tour completion doc
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](../ORIGINAL_SPEC.md) — Initial project prompt + 26-item compliance checklist

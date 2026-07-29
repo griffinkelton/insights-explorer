@@ -5,7 +5,7 @@
 > **Status:** ✅ Done — all 6 phase plans complete. P1–P2 ✅, P3 Theme Toggle ✅, P4 Streaming ✅, P5 Component Refactor ✅, P6 AI/Data Enhancements ✅.
 > **Last updated:** 2026-07-28 (all phases complete; 239 tests)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](📋 P4-deferred-plan.md) (✅ done), [Onboarding tour](🔵 onboarding-tour.md) (⚠️ deferred), and [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](📋 P4-deferred-plan.md) (✅ done), [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
 
 ---
 
@@ -28,9 +28,9 @@
 |---|---|---|---|---|
 | SP1 | [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) | IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches) | ~5.5 hrs | ✅ Done (12/13 items, 194 tests) |
 | SP2 | [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) | P4 Wave 1 + Streaming: #15–17, #19 (2 phases) | ~6-7 days | ✅ Done (4/4 items, 194 tests) |
-| SP3 | [P4 deferred plan](📋 P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | 🔵 Captured |
-| SP4 | [Onboarding tour](🔵 onboarding-tour.md) | Standalone mini-spec for #8 onboarding tour | ~1 hr | ⚠️ Optional, deferred |
-| SP5 | [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) | Standalone mini-spec for #20 component refactor | 3-5 days | 🔵 Deferred (after streaming + theming) |
+| SP3 | [P4 deferred plan](📋 P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | ✅ Done (all batches complete) |
+| SP4 | [✅ onboarding-tour.md](✅ onboarding-tour.md) | Mini-spec for #8 onboarding tour | ~1 hr | ✅ Done (implemented 2026-07-28) |
+| SP5 | [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) | Standalone mini-spec for #20 component refactor | 3-5 days | ✅ Done (now in components/) |
 
 ### P6 Sub-Item Codes
 

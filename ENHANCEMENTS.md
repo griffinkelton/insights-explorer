@@ -2,9 +2,9 @@
 
 > 30 actionable ideas across 7 categories, grounded in the current codebase.
 >
-> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available (only 3 remaining: #32 Pre-commit hooks, #37 Sphinx docs, plus #8 Onboarding tour is deferred)
+> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available (all done! 🎉)</newString>
 >
-> **Last updated:** 2026-07-28 — All sprints complete ✅. P1-P3 sprint ✅, P4 Wave 1 + Streaming ✅, Theme Toggle ✅, Component Refactor ✅, AI/Data sprint ✅, Drive File Picker ✅. 34/37 done.
+> **Last updated:** 2026-07-28 — All 37 enhancements complete ✅. Pre-commit hooks ✅, Sphinx docs ✅, onboarding tour ✅. 37/37 done.</newString>
 
 ---
 
@@ -177,8 +177,9 @@
 **How:** `.github/workflows/test.yml` with `pip install -r requirements.txt && pytest`.
 **Effort:** Small | **Files:** `.github/workflows/test.yml`
 
-### 32. Pre-commit Hooks 🔲
-**Why:** Catch syntax errors, trailing whitespace, and formatting issues before they reach CI.
+### 32. Pre-commit Hooks ✅
+**Status:** ✅ Done — `.pre-commit-config.yaml` with check-ast, ruff, black, trailing-whitespace, debug-statements.
+**Why:** Catch syntax errors, trailing whitespace, and formatting issues before they reach CI.</newString>
 **How:** Add `.pre-commit-config.yaml` with `black`, `ruff`, and `check-ast` hooks.
 **Effort:** Small | **Files:** `.pre-commit-config.yaml`
 
@@ -200,8 +201,9 @@
 **How:** Add a table or badges showing: data_loader:20, prompt_templates:58, gemini_client:14, ga4_client:18, learn_page:19.
 **Effort:** Small | **Files:** `README.md`
 
-### 37. API Documentation (Docstrings to Sphinx) 🔲
-**Why:** All functions have docstrings but no generated API reference.
+### 37. API Documentation (Docstrings to Sphinx) ✅
+**Status:** ✅ Done — Sphinx setup with autodoc, napoleon, alabaster theme. `docs/` directory with conf.py, index.rst, auto-generated API docs. Build: `sphinx-build -b html docs docs/_build`.
+**Why:** All functions have docstrings but no generated API reference.</newString>
 **How:** Run `sphinx-quickstart` + `sphinx-apidoc` to generate HTML docs from existing docstrings. Host on GitHub Pages.
 **Effort:** Medium | **Files:** `docs/` directory
 
@@ -227,9 +229,9 @@
 | Security | 6 | 6 | 0 |
 | AI | 4 | 4 | 0 |
 | Data Processing | 4 | 4 | 0 |
-| DevOps/CI | 5 | 4 | 1 |
-| Documentation | 5 | 4 | 1 |
-| **Total** | **37** | **34** | **3** |
+| DevOps/CI | 5 | 5 | 0 |
+| Documentation | 5 | 5 | 0 |
+| **Total** | **37** | **37** | **0** |</newString>
 
 ---
 
