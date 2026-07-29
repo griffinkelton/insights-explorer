@@ -71,7 +71,7 @@
 | #16 | Conversation memory (last 5 exchanges, New Chat button) | `utils/prompt_templates.py`, `app.py` |
 | #17 | Export chat as Markdown report (report_exporter.py, kaleido) | `utils/report_exporter.py` (new), `app.py`, `requirements.txt` |
 
-**Related:** [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md), [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md)
+**Related:** [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md), [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md)
 
 ---
 
@@ -244,13 +244,13 @@
 
 ---
 
-### Apply 7 reviewer fixes to 📋 UNIFIED_PLAN.md + ✅ APP_ICON.md forward-reference fix
+### Apply 7 reviewer fixes to ✅ UNIFIED_PLAN.md + ✅ APP_ICON.md forward-reference fix
 
 **Commit:** [`aad1190`](https://github.com/griffinkelton/insights-explorer/commit/aad1190)
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 7 review fixes applied to 📋 UNIFIED_PLAN.md | Docs | [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) |
+| 7 review fixes applied to ✅ UNIFIED_PLAN.md | Docs | [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) |
 
 ---
 
@@ -563,10 +563,10 @@
 ## 📖 Related Docs
 
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
-- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan
+- [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
-- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
 
 ---
 

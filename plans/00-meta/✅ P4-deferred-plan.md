@@ -2,7 +2,7 @@
 
 > **What:** Everything deferred from the [P4 Wave 1 + Streaming sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 > **Status:** ✅ Done — all batches (C–F) executed. Theme Toggle ✅, Component Refactor ✅, AI/Data Quick Wins ✅, AI/Data Complex ✅.
-> **Based on:** [P4 future plan](📋 P4-future-plan.md), user interview (3 rounds) + follow-up analysis (4 rounds), July 28, 2026.
+> **Based on:** [P4 future plan](✅ P4-future-plan.md), user interview (3 rounds) + follow-up analysis (4 rounds), July 28, 2026.
 > **Already deferred elsewhere:** #8 Onboarding tour → [Onboarding tour](🔵 onboarding-tour.md)
 
 ---
@@ -208,11 +208,11 @@ Gemini outputs structured JSON chart configs. Parse with `json.loads` and map dy
 ## 📖 Related Docs
 
 - [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — Current sprint (must complete first)
-- [P4 future plan](📋 P4-future-plan.md) — Original future-phase plan this derives from
+- [P4 future plan](✅ P4-future-plan.md) — Original future-phase plan this derives from
 - [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Standalone mini-spec for #20 (design decisions, edge cases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
 - [✅ onboarding-tour.md](✅ onboarding-tour.md) — Onboarding tour completion doc
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
-- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan
+- [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan

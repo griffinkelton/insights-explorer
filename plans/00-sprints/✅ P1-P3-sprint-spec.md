@@ -654,7 +654,7 @@ Batch 5 — Infra (~2 hrs):
 
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source plan with detailed per-item breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan (P1-P6 phase plans)
+- [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan (P1-P6 phase plans)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model
 - [BUGLOG.md](../BUGLOG.md) — Structured bug log with patterns and rules
 - [Onboarding tour](🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)

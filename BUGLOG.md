@@ -355,11 +355,11 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (8 bugs, patterns, rules)
 - [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
-- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived plans)
+- [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived plans)
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec
-- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
-- [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) — Deferred items plan
+- [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/✅ P4-deferred-plan.md](plans/00-meta/✅ P4-deferred-plan.md) — Deferred items plan
 - [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) — #20 mini-spec
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

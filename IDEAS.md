@@ -263,10 +263,10 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
-- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan
+- [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec
-- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
-- [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) — Deferred items plan
+- [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/✅ P4-deferred-plan.md](plans/00-meta/✅ P4-deferred-plan.md) — Deferred items plan
 - [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) — #20 mini-spec
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

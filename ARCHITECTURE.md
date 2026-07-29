@@ -269,11 +269,11 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
 - [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
-- [plans/00-meta/📋 UNIFIED_PLAN.md](plans/00-meta/📋 UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived sprint plans)
+- [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived sprint plans)
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint (#15–17, #19)
-- [plans/00-meta/📋 P4-future-plan.md](plans/00-meta/📋 P4-future-plan.md) — Future-phase plan
-- [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) — Deferred items (Batches C–F)
+- [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
+- [plans/00-meta/✅ P4-deferred-plan.md](plans/00-meta/✅ P4-deferred-plan.md) — Deferred items (Batches C–F)
 - [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) — #20 component refactor mini-spec
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

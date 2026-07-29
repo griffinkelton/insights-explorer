@@ -2,10 +2,10 @@
 
 > **What:** Capture document for all items beyond the current P1–P3 sprint — medium features, large investments, and unresolved repo weaknesses.
 > **Status:** ✅ Done — Wave 1 ✅ (4/4 items), Wave 2 ✅ (#18 Theme Toggle, #19 Streaming, #20 Component Refactor, #21 AI/Data). Wave 3 weaknesses remain optional.
-> **Based on:** IMPLEMENTATION_PLAN.md (#15–21), 📋 UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
+> **Based on:** IMPLEMENTATION_PLAN.md (#15–21), ✅ UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
 > **Predecessor:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — completed. #8 tour deferred to [Onboarding tour](🔵 onboarding-tour.md).
 > **Current sprint:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
-> **Deferred items:** ✅ All done — see [P4 deferred plan](📋 P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
+> **Deferred items:** ✅ All done — see [P4 deferred plan](✅ P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
 
 ---
 
@@ -23,7 +23,7 @@ Everything deferred from the current sprint, organized into three waves:
 
 **Wave 1 (#15–17) + Streaming (#19)** — ✅ Done. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 
-**Wave 2 (#18 Theme Toggle, #20 Component Refactor, #21 AI/Data)** — ✅ Done. See [P4 deferred plan](📋 P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
+**Wave 2 (#18 Theme Toggle, #20 Component Refactor, #21 AI/Data)** — ✅ Done. See [P4 deferred plan](✅ P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
 
 **Wave 3 weaknesses** remain optional — not yet addressed.
 
@@ -118,7 +118,7 @@ These are the three most-requested user-facing capabilities. Each touches the co
 
 ## 🌊 Wave 2 — Large Investments (P5)
 
-Estimated total time: **14–24 days** (one person, sequential order per 📋 UNIFIED_PLAN.md)
+Estimated total time: **14–24 days** (one person, sequential order per ✅ UNIFIED_PLAN.md)
 
 Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p6/`. This document provides the summary; implementation should follow the detailed plans.
 
@@ -128,7 +128,7 @@ Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p
 
 **Risk:** High effort for polish | **Effort:** 3–5 days | **Files:** `utils/styles.py`, `app.py`, `pages/learn.py`
 
-**From:** IMPLEMENTATION_PLAN.md #18, 📋 UNIFIED_PLAN.md P3, ENHANCEMENTS.md #6
+**From:** IMPLEMENTATION_PLAN.md #18, ✅ UNIFIED_PLAN.md P3, ENHANCEMENTS.md #6
 
 **Detailed plan:** [plans/p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md)
 
@@ -153,7 +153,7 @@ Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p
 
 **Risk:** High | **Effort:** 3–5 days | **Files:** `utils/gemini_client.py`, `app.py`
 
-**From:** IMPLEMENTATION_PLAN.md #19, 📋 UNIFIED_PLAN.md P4, ENHANCEMENTS.md #21
+**From:** IMPLEMENTATION_PLAN.md #19, ✅ UNIFIED_PLAN.md P4, ENHANCEMENTS.md #21
 
 **Detailed plan:** [plans/p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md)
 
@@ -179,7 +179,7 @@ Each of these has a detailed implementation plan in `plans/p3-p4/ and plans/p5-p
 
 **Risk:** Medium | **Effort:** 3–5 days | **Files:** New `components/` package (6 files), new `utils/charts.py`, rewritten `app.py` (~60 lines)
 
-**From:** IMPLEMENTATION_PLAN.md #20, 📋 UNIFIED_PLAN.md P5, ENHANCEMENTS.md #12
+**From:** IMPLEMENTATION_PLAN.md #20, ✅ UNIFIED_PLAN.md P5, ENHANCEMENTS.md #12
 
 **Detailed plan:** [plans/p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md)
 
@@ -213,7 +213,7 @@ utils/
 
 **Risk:** Medium–High | **Effort:** Varies (1–6 hrs each) | **Files:** `utils/prompt_templates.py`, `app.py`, `utils/data_loader.py`
 
-**From:** IMPLEMENTATION_PLAN.md #21, 📋 UNIFIED_PLAN.md P6, ENHANCEMENTS.md #20, #22, #23, #25, #26, #27
+**From:** IMPLEMENTATION_PLAN.md #21, ✅ UNIFIED_PLAN.md P6, ENHANCEMENTS.md #20, #22, #23, #25, #26, #27
 
 **Detailed plan:** [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](p5-p6/🔵 AI_DATA_ENHANCEMENTS.md)
 
@@ -309,7 +309,7 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 🔲 Wave 3: API key fallback, app-level auth — Only if deployment demands it
 ```
 
-### Why This Order (from 📋 UNIFIED_PLAN.md)
+### Why This Order (from ✅ UNIFIED_PLAN.md)
 
 1. **Streaming before theming** — Streaming changes the response rendering pipeline (the most fundamental part of the app). Theming changes CSS (the most superficial part). If streaming breaks something, you want to know before you've spent 3 days on CSS.
 
@@ -335,10 +335,10 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 ## 📖 Related Docs
 
 - [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — **Current sprint:** #15-17, #19 (~6-7 days)
-- [P4 deferred plan](📋 P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
+- [P4 deferred plan](✅ P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
 - [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Completed sprint (must complete first)
 - [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source 21-item plan
-- [📋 UNIFIED_PLAN.md](📋 UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
+- [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)

@@ -90,5 +90,5 @@
 
 - [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Full implementation details
 - [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
-- [P4 future plan](📋 P4-future-plan.md) — Remaining items
+- [P4 future plan](✅ P4-future-plan.md) — Remaining items
 - [CHANGELOG.md](../CHANGELOG.md) — All changes tracked

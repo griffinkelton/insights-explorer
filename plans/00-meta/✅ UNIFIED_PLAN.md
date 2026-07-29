@@ -5,7 +5,7 @@
 > **Status:** ✅ Done — all 6 phase plans complete. P1–P2 ✅, P3 Theme Toggle ✅, P4 Streaming ✅, P5 Component Refactor ✅, P6 AI/Data Enhancements ✅.
 > **Last updated:** 2026-07-28 (all phases complete; 239 tests)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](📋 P4-deferred-plan.md) (✅ done), [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](✅ P4-deferred-plan.md) (✅ done), [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
 
 ---
 
@@ -28,7 +28,7 @@
 |---|---|---|---|---|
 | SP1 | [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) | IMPL items #1–14 + OAuth redirect + download truncated slice (5 batches) | ~5.5 hrs | ✅ Done (12/13 items, 194 tests) |
 | SP2 | [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) | P4 Wave 1 + Streaming: #15–17, #19 (2 phases) | ~6-7 days | ✅ Done (4/4 items, 194 tests) |
-| SP3 | [P4 deferred plan](📋 P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | ✅ Done (all batches complete) |
+| SP3 | [P4 deferred plan](✅ P4-deferred-plan.md) | Deferred: #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F) | ~20-35 days | ✅ Done (all batches complete) |
 | SP4 | [✅ onboarding-tour.md](✅ onboarding-tour.md) | Mini-spec for #8 onboarding tour | ~1 hr | ✅ Done (implemented 2026-07-28) |
 | SP5 | [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) | Standalone mini-spec for #20 component refactor | 3-5 days | ✅ Done (now in components/) |
 
@@ -198,10 +198,10 @@ Wave 4 — AI/Data Layer (parallel, ~8 days):
 | **Sprint P1-P2** | App Icon + Data Quality Scorecard | 1 day ✅ | Polished favicon, trust-building quality card |
 | **Sprint P1-P3** | **IMPL items #1–14 + OAuth config** | **~5.5 hrs ✅** | **Guardrails, quick wins, docs, UX, infra — 12/13 done, 194 tests. See [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md)** |
 | **Sprint P4 Wave 1** | **#15–17 + #19 Streaming** | **~6-7 days ✅** | **Streaming chat, column picker, conversation memory, export. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md)** |
-| **Sprint Deferred C** | Theme Toggle (#18) | 3-5 days ✅ | Light/dark mode. See [P4 deferred plan](📋 P4-deferred-plan.md) |
+| **Sprint Deferred C** | Theme Toggle (#18) | 3-5 days ✅ | Light/dark mode. See [P4 deferred plan](✅ P4-deferred-plan.md) |
 | **Sprint Deferred D** | Component Refactor (#20) | 3-5 days ✅ | Clean 7-file architecture. See [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) |
-| **Sprint Deferred E** | P6d (Type Detection), P6f (Sampling), P6a (Chart Tokens) | ~3-5 hrs ✅ | Three quick AI/data wins. See [P4 deferred plan](📋 P4-deferred-plan.md) |
-| **Sprint Deferred F** | P6e (Anomaly), P6b (JSON Mapping), P6c (Comparative) | ~10-15 hrs ✅ | Complex AI/data items. See [P4 deferred plan](📋 P4-deferred-plan.md) |
+| **Sprint Deferred E** | P6d (Type Detection), P6f (Sampling), P6a (Chart Tokens) | ~3-5 hrs ✅ | Three quick AI/data wins. See [P4 deferred plan](✅ P4-deferred-plan.md) |
+| **Sprint Deferred F** | P6e (Anomaly), P6b (JSON Mapping), P6c (Comparative) | ~10-15 hrs ✅ | Complex AI/data items. See [P4 deferred plan](✅ P4-deferred-plan.md) |
 
 **✅ ALL DONE — 239 tests, all 21 IMPL items resolved, all 6 phase plans complete.**
 
