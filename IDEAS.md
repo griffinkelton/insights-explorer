@@ -3,7 +3,7 @@
 > **Status:** Creative exploration — NOT part of the implementation plan.
 > These are 25 additional enhancement ideas + 10 moonshot concepts. They sit outside the 37-item ENHANCEMENTS.md and 21-item IMPLEMENTATION_PLAN.md.
 >
-> Some are practical. Some are wild. All are meant to spark ideas.
+> ✅ = Built and shipped. Some are practical. Some are wild. All are meant to spark ideas.
 
 ---
 
@@ -20,7 +20,7 @@ Currently, the file uploader accepts one file. Let users drop multiple CSVs and 
 **3. Natural language date ranges**
 "Last month," "Q3 2024," "the week of Black Friday," "since the redesign launched" — parse these into actual date ranges using a lightweight date-parsing library (`dateparser`) and apply them as filters automatically.
 
-**4. Chat command palette**
+**4. Chat command palette** ✅
 Type `/` in the chat input to see a dropdown of pre-built queries: `/top-pages`, `/trend`, `/anomalies`, `/compare`, `/funnel`. Each inserts a templated prompt. Power users can create and save custom commands.
 
 **5. @-mention columns in chat**
@@ -42,7 +42,7 @@ A Plotly animation that plays through the date range day-by-day, showing bars gr
 **9. Word cloud of page titles**
 Extract words from `page_title` (if available), remove stop words, render a word cloud sized by frequency. "What topics dominate our traffic?" — instantly visible.
 
-**10. Funnel visualization**
+**10. Funnel visualization** ✅
 Define a conversion funnel: Homepage → Product Page → Cart → Checkout → Purchase. The app shows a narrowing bar chart with drop-off percentages at each step. Each bar is clickable for the underlying data.
 
 **11. Geospatial map**
@@ -71,7 +71,7 @@ A sidebar "Bookmarks" section where users save specific Q&A pairs. Each bookmark
 
 ### Data Intelligence
 
-**17. Data quality scorecard**
+**17. Data quality scorecard** ✅
 A card showing: completeness % (non-null cells), duplicate row %, outlier count, date range coverage. Grade the dataset A-F. "This data is only 68% complete — insights may be unreliable."
 
 **18. Automatic segmentation suggestions**
@@ -83,7 +83,7 @@ Not actual session replays (that's GA4's job), but a "typical user journey" narr
 **20. Cross-property benchmarking**
 Upload data from two GA4 properties (staging vs production, US vs EU site). Auto-detect that they're different properties and add a "Compare Properties" mode showing side-by-side metrics.
 
-**21. Metric forecasting**
+**21. Metric forecasting** ✅
 "Based on the last 90 days, sessions are projected to reach 12,400 next month (±8%)." Simple linear regression or Holt-Winters exponential smoothing on the daily sessions column. Shown as a dashed extension on line charts.
 
 **22. Cohort retention matrix**
@@ -92,7 +92,7 @@ Build a triangular retention table: rows are signup cohorts (by week), columns a
 **23. Channel attribution modeling**
 If the dataset has `source` or `channel` columns, run first-touch, last-touch, and linear attribution models. "Organic Search drives first visits, but Email drives conversions."
 
-**24. Custom metric builder**
+**24. Custom metric builder** ✅
 A formula bar where users define derived metrics: `Sessions per User = sessions / users`, `Bounce Rate % = bounces / sessions * 100`. Saved as virtual columns used throughout the app.
 
 **25. Data dictionary auto-generator**

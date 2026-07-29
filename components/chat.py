@@ -8,11 +8,12 @@ import streamlit as st
 from utils.prompt_templates import build_chat_prompt, detect_chart_request
 from utils.gemini_client import generate_response_stream, generate_response
 from utils.charts import generate_chart
+from utils.commands import resolve_command, get_command_pills
 
 
 def render_chat_section() -> None:
     """Render the full chat interface."""
-    df = st.session_state.df
+    df = st.session_state.get("custom_metrics_df") or st.session_state.df
 
     # ── Chat header + New Chat button ─────────────────────────────────────
     col_chat_header, col_new_chat = st.columns([4, 1])
@@ -53,8 +54,13 @@ def render_chat_section() -> None:
                             key=f"chart_{i}_{st.session_state.get('theme', 'dark')}",
                         )
 
+    # ── Command pills ───────────────────────────────────────────────────
+    _render_command_pills()
+
     # ── Chat input ───────────────────────────────────────────────────────
     if prompt := st.chat_input("e.g., which pages have the highest drop-off?"):
+        # Resolve /command shortcuts to full templates
+        resolved = resolve_command(prompt)
         # Rate limiting guard
         now = time.time()
         if now - st.session_state.last_api_call < 2.0:
@@ -65,7 +71,7 @@ def render_chat_section() -> None:
 
         st.session_state.chat_history.append(
             {
-                "question": prompt,
+                "question": resolved,
                 "response": "",
                 "chart": None,
             }
@@ -94,6 +100,41 @@ def render_chat_section() -> None:
             st.caption(
                 "⚠️ Charts missing from the report? " "Install kaleido: `pip install kaleido`"
             )
+
+
+def _render_command_pills() -> None:
+    """Render a row of clickable command shortcut pills above the chat input.
+
+    Each pill sends the command template directly to the chat — no /prefix needed.
+    Uses the BUG-005 pattern: `if st.button` instead of `on_click`.
+    """
+    pills = get_command_pills()
+    cols = st.columns(len(pills))
+    for i, (pill, col) in enumerate(zip(pills, cols)):
+        with col:
+            label = f"{pill['icon']} {pill['label']}"
+            if st.button(
+                label,
+                key=f"cmd_pill_{i}",
+                use_container_width=True,
+                help=pill["description"],
+            ):
+                # Rate limiting guard
+                now = time.time()
+                if now - st.session_state.last_api_call < 2.0:
+                    st.warning("⏳ Please wait a moment…")
+                    st.stop()
+                st.session_state.last_api_call = now
+                st.session_state.api_call_count += 1
+
+                st.session_state.chat_history.append(
+                    {
+                        "question": pill["template"],
+                        "response": "",
+                        "chart": None,
+                    }
+                )
+                st.rerun()
 
 
 def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> None:

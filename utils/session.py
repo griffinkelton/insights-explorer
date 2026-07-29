@@ -19,3 +19,13 @@ def clear_data() -> None:
     st.session_state.data_source = None
     # Reset tour so Quick Tour button reappears on empty state
     st.session_state.tour_step = 0
+    # Reset custom metrics so stale derived columns don't persist
+    st.session_state.custom_metrics = {}
+    st.session_state.custom_metrics_df = None
+    # Purge stale forecast keys to prevent session state bloat
+    for key in list(st.session_state.keys()):
+        if key.startswith("forecast_"):
+            del st.session_state[key]
+    # Reset funnel state so stale steps don't persist across data loads
+    st.session_state.funnel_steps = []
+    st.session_state.funnel_data = None

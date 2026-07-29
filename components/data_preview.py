@@ -10,15 +10,22 @@ from utils.data_loader import (
     smart_sample,
     detect_anomalies,
 )
+from utils.forecasting import forecast_metric, build_forecast_summary, build_forecast_prompt
+from utils.funnels import build_funnel_data
+from utils.charts import generate_forecast_chart, generate_funnel_chart
+from utils.gemini_client import generate_response
 
 
 def render_data_preview() -> None:
     """Render metrics row, preview table, quality card, and filter expander."""
-    df = st.session_state.df
+    df = st.session_state.get("custom_metrics_df") or st.session_state.df
     stats = st.session_state.stats
 
     # Use filtered data for metrics/preview if available
     display_df = st.session_state.filtered_df if st.session_state.filtered_df is not None else df
+
+    # Use augmented df for all operations except anomaly detection (which wants originals)
+    base_df = st.session_state.df
 
     st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
 
@@ -38,8 +45,10 @@ def render_data_preview() -> None:
         st.dataframe(smart_sample(display_df, max_rows=10), use_container_width=True)
 
     # ── Column type badges ───────────────────────────────────────────────
-    if st.session_state.df is not None and not st.session_state.df.empty:
-        col_types = detect_column_types(display_df)
+    if st.session_state.get("custom_metrics_df") is not None or (
+        st.session_state.df is not None and not st.session_state.df.empty
+    ):
+        col_types = detect_column_types(st.session_state.get("custom_metrics_df") or display_df)
         badge_css = {
             ColumnType.DATE: ("col-date", "📅"),
             ColumnType.NUMERIC: ("col-numeric", "🔢"),
@@ -59,12 +68,12 @@ def render_data_preview() -> None:
     if st.session_state.get("quality_report"):
         _render_quality_scorecard(st.session_state.quality_report)
 
-    # ── Anomaly detection table ──────────────────────────────────────────
-    if st.session_state.df is not None:
-        date_col = find_date_column(st.session_state.df)
-        metric_col = find_column(st.session_state.df, ["sessions", "users"])
-        if date_col and metric_col and len(st.session_state.df) >= 7:
-            anomaly_df = detect_anomalies(st.session_state.df, date_col, metric_col)
+    # ── Anomaly detection table (uses original df, not augmented) ───────
+    if base_df is not None:
+        date_col = find_date_column(base_df)
+        metric_col = find_column(base_df, ["sessions", "users"])
+        if date_col and metric_col and len(base_df) >= 7:
+            anomaly_df = detect_anomalies(base_df, date_col, metric_col)
             anomalies = anomaly_df[anomaly_df["is_anomaly"]]
             if not anomalies.empty:
                 with st.expander(
@@ -80,8 +89,14 @@ def render_data_preview() -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── Forecast card ────────────────────────────────────────────────────
+    _render_forecast_section(base_df)
+
+    # ── Funnel analysis ──────────────────────────────────────────────────
+    _render_funnel_section(base_df)
+
     # ── Data filters ─────────────────────────────────────────────────────
-    if st.session_state.df is not None:
+    if df is not None:
         with st.expander("🔍 Filter Data", expanded=False):
             _render_data_filters(df)
 
@@ -197,3 +212,185 @@ def _render_quality_scorecard(report) -> None:
 
             if not report.warnings:
                 st.success("No significant data quality issues detected.", icon="✅")
+
+
+def _render_forecast_section(base_df: pd.DataFrame | None) -> None:
+    """Render the metric forecasting card with chart + AI narrative."""
+    if base_df is None or base_df.empty:
+        return
+
+    date_col = find_date_column(base_df)
+    numeric_cols = base_df.select_dtypes(include=["number"]).columns.tolist()
+    if not date_col or not numeric_cols or len(base_df) < 7:
+        return
+
+    with st.expander("📈 Metric Forecast", expanded=False):
+        st.caption("Linear regression trend projection with 95% prediction intervals.")
+
+        col_metric, col_periods, col_btn = st.columns([2, 1, 1])
+        with col_metric:
+            metric_col = st.selectbox(
+                "Metric",
+                options=numeric_cols,
+                index=0,
+                key="forecast_metric",
+            )
+        with col_periods:
+            periods = st.selectbox(
+                "Periods",
+                options=[7, 14, 30, 60, 90],
+                index=2,
+                key="forecast_periods",
+            )
+        with col_btn:
+            st.markdown("<br>", unsafe_allow_html=True)
+            generate = st.button(
+                "🔮 Generate Forecast",
+                use_container_width=True,
+                key="forecast_btn",
+            )
+
+        # ── Cached forecast (recompute when params change) ────────────
+        forecast_key = f"forecast_{metric_col}_{periods}"
+        if generate or st.session_state.get(forecast_key):
+            if generate:
+                result = forecast_metric(base_df, date_col, metric_col, periods)
+                if result:
+                    st.session_state[forecast_key] = result
+                    # Generate AI narrative
+                    try:
+                        prompt = build_forecast_prompt(result)
+                        st.session_state[f"{forecast_key}_narrative"] = generate_response(prompt)
+                    except Exception:
+                        st.session_state[f"{forecast_key}_narrative"] = build_forecast_summary(
+                            result
+                        )
+                else:
+                    st.warning(f"Not enough data to forecast {metric_col}. Need at least 7 days.")
+                    st.session_state[forecast_key] = None
+
+            result = st.session_state.get(forecast_key)
+            if result:
+                # ── Forecast chart ───────────────────────────────────
+                theme = st.session_state.get("theme", "dark")
+                fig = generate_forecast_chart(result, theme=theme)
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True, key=f"fc_{forecast_key}")
+
+                # ── AI narrative ─────────────────────────────────────
+                narrative = st.session_state.get(
+                    f"{forecast_key}_narrative",
+                    build_forecast_summary(result),
+                )
+                with st.container(border=True):
+                    st.markdown("#### 🤖 AI Forecast Analysis")
+                    st.markdown(narrative)
+
+                    # ── Summary stats ────────────────────────────────
+                    st.caption(
+                        f"R² = {result.trend_strength} · "
+                        f"Confidence: {result.confidence} · "
+                        f"Trend: {result.trend_direction}"
+                    )
+
+
+def _render_funnel_section(base_df: pd.DataFrame | None) -> None:
+    """Render the funnel analysis section — define steps and see conversion path."""
+    if base_df is None or base_df.empty:
+        return
+
+    # Find a page/path column and a metric column
+    page_cols = [
+        c
+        for c in base_df.columns
+        if any(kw in c.lower() for kw in ["page", "path", "url", "landing", "screen"])
+    ]
+    numeric_cols = base_df.select_dtypes(include=["number"]).columns.tolist()
+    if not page_cols or not numeric_cols:
+        return
+
+    with st.expander("🔻 Funnel Analysis", expanded=False):
+        st.caption("Define a conversion path and visualize drop-off at each step.")
+
+        col_page, col_metric = st.columns(2)
+        with col_page:
+            page_col = st.selectbox(
+                "Page column",
+                options=page_cols,
+                key="funnel_page_col",
+            )
+        with col_metric:
+            metric_col = st.selectbox(
+                "Metric",
+                options=numeric_cols,
+                index=(
+                    0
+                    if "sessions" not in numeric_cols
+                    else numeric_cols.index("sessions") if "sessions" in numeric_cols else 0
+                ),
+                key="funnel_metric_col",
+            )
+
+        # ── Step manager ───────────────────────────────────────────────
+        funnel_steps = st.session_state.get("funnel_steps", [])
+
+        # Show existing steps with remove buttons
+        for i, step in enumerate(funnel_steps):
+            col_step, col_del = st.columns([5, 1])
+            with col_step:
+                st.markdown(f"**{i + 1}.** `{step}`")
+            with col_del:
+                if st.button("✕", key=f"del_step_{i}", help=f"Remove {step}"):
+                    st.session_state.funnel_steps.pop(i)
+                    st.rerun()
+
+        # Add new step
+        col_input, col_btn = st.columns([3, 1])
+        with col_input:
+            new_step = st.text_input(
+                "Add step (page pattern)",
+                placeholder="e.g., /home or product",
+                key="funnel_new_step",
+            )
+        with col_btn:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("➕ Add", use_container_width=True, key="funnel_add_step"):
+                if new_step.strip() and new_step not in funnel_steps:
+                    funnel_steps.append(new_step.strip())
+                    st.session_state.funnel_steps = funnel_steps
+                    st.session_state.funnel_new_step = ""
+                    st.rerun()
+                elif new_step in funnel_steps:
+                    st.warning("Step already in funnel.")
+
+        # Show available page values as hints
+        if page_col and len(funnel_steps) == 0:
+            sample_pages = base_df[page_col].dropna().astype(str).unique()[:8].tolist()
+            if sample_pages:
+                st.caption("Sample pages: " + ", ".join(f"`{p[:40]}`" for p in sample_pages))
+
+        # ── Generate button ────────────────────────────────────────────
+        if len(funnel_steps) >= 2:
+            if st.button("🔻 Generate Funnel", use_container_width=True, key="funnel_btn"):
+                funnel_data = build_funnel_data(base_df, page_col, metric_col, funnel_steps)
+                if funnel_data:
+                    st.session_state.funnel_data = funnel_data
+                else:
+                    st.warning(
+                        "No matches found for the defined steps. "
+                        "Try broader patterns or check the page column."
+                    )
+
+        # ── Render funnel chart ────────────────────────────────────────
+        funnel_data = st.session_state.get("funnel_data")
+        if funnel_data:
+            theme = st.session_state.get("theme", "dark")
+            fig = generate_funnel_chart(funnel_data, theme=theme)
+            if fig:
+                st.plotly_chart(fig, use_container_width=True, key="funnel_chart")
+
+            # Clear funnel button
+            if st.button("🗑️ Clear Funnel", use_container_width=True, key="clear_funnel"):
+                st.session_state.funnel_data = None
+                st.session_state.funnel_steps = []
+                st.rerun()

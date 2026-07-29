@@ -2,9 +2,9 @@
 
 > 30 actionable ideas across 7 categories, grounded in the current codebase.
 >
-> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available (all done! 🎉)</newString>
+> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available
 >
-> **Last updated:** 2026-07-28 — All 37 enhancements complete ✅. Pre-commit hooks ✅, Sphinx docs ✅, onboarding tour ✅. 37/37 done.</newString>
+> **Last updated:** 2026-07-28 — All 37 enhancements complete ✅. Plus 4 IDEAS items shipped this session: custom metrics (#24), metric forecasting (#21), funnel visualization (#10), chat command palette (#4). 346 tests.
 
 ---
 
@@ -32,7 +32,7 @@
 **Status:** ✅ Done
 
 ### 5. Progressive Onboarding Tour ⚠️
-**Status:** ⚠️ Optional, deferred — standalone mini-spec at [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md).
+**Status:** ✅ Done — standalone mini-spec at [plans/00-meta/✅ onboarding-tour.md](plans/00-meta/✅ onboarding-tour.md).
 **Why:** Empty states exist, but a 3-step guided tour on first visit would reduce bounce.
 **How:** Show a "🎓 Quick Tour" button. Step through tooltips anchored to: sidebar uploader, Generate Summary, chat input. Track `st.session_state.tour_step`.
 **Effort:** Small | **Files:** `app.py`
@@ -179,9 +179,7 @@
 
 ### 32. Pre-commit Hooks ✅
 **Status:** ✅ Done — `.pre-commit-config.yaml` with check-ast, ruff, black, trailing-whitespace, debug-statements.
-**Why:** Catch syntax errors, trailing whitespace, and formatting issues before they reach CI.</newString>
-**How:** Add `.pre-commit-config.yaml` with `black`, `ruff`, and `check-ast` hooks.
-**Effort:** Small | **Files:** `.pre-commit-config.yaml`
+**Why:** Catch syntax errors, trailing whitespace, and formatting issues before they reach CI.
 
 ---
 
@@ -203,9 +201,7 @@
 
 ### 37. API Documentation (Docstrings to Sphinx) ✅
 **Status:** ✅ Done — Sphinx setup with autodoc, napoleon, alabaster theme. `docs/` directory with conf.py, index.rst, auto-generated API docs. Build: `sphinx-build -b html docs docs/_build`.
-**Why:** All functions have docstrings but no generated API reference.</newString>
-**How:** Run `sphinx-quickstart` + `sphinx-apidoc` to generate HTML docs from existing docstrings. Host on GitHub Pages.
-**Effort:** Medium | **Files:** `docs/` directory
+**Why:** All functions have docstrings but no generated API reference.
 
 ---
 
@@ -224,14 +220,14 @@
 
 | Category | Total | Done | Remaining |
 |---|---|---|---|
-| UX | 7 | 6 | 1 |
+| UX | 7 | 7 | 0 |
 | Code | 6 | 6 | 0 |
 | Security | 6 | 6 | 0 |
 | AI | 4 | 4 | 0 |
 | Data Processing | 4 | 4 | 0 |
 | DevOps/CI | 5 | 5 | 0 |
 | Documentation | 5 | 5 | 0 |
-| **Total** | **37** | **37** | **0** |</newString>
+| **Total** | **37** | **37** | **0** |
 
 ---
 

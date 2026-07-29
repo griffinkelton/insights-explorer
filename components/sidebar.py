@@ -26,6 +26,10 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
         source: "file", "ga4", or "drive".
         missing: List of expected-but-missing column names.
     """
+    # Reset custom metrics when loading new data (columns may differ)
+    st.session_state.custom_metrics = {}
+    st.session_state.custom_metrics_df = None
+
     date_cols = [c for c in df.columns if "date" in c.lower()]
     if date_cols:
         try:
@@ -60,6 +64,7 @@ def render_sidebar() -> None:
         _render_privacy_notice()
         _render_clear_button()
         _render_compare_controls()
+        _render_custom_metrics()
         _render_api_counter()
         _render_learn_link()
         _render_theme_toggle()
@@ -237,6 +242,68 @@ def _render_theme_toggle() -> None:
     if st.button(label, use_container_width=True, key="theme_toggle"):
         st.session_state.theme = new_theme
         st.rerun()
+
+
+def _render_custom_metrics() -> None:
+    """Render custom metric builder — formula bar for derived columns."""
+    if st.session_state.df is None:
+        return
+
+    st.divider()
+    st.markdown(
+        '<p style="font-size:0.8rem;font-weight:600;color:#f0f0f5;margin-bottom:0.3rem;">'
+        "🧮 Custom Metrics</p>",
+        unsafe_allow_html=True,
+    )
+
+    # List existing custom metrics with delete buttons
+    metrics = st.session_state.custom_metrics
+    if metrics:
+        for name in list(metrics.keys()):
+            col_name, col_del = st.columns([5, 1])
+            with col_name:
+                st.caption(f"**{name}** = `{metrics[name]}`")
+            with col_del:
+                if st.button("✕", key=f"del_metric_{name}", help=f"Remove {name}"):
+                    del st.session_state.custom_metrics[name]
+                    st.session_state.custom_metrics_df = None
+                    st.rerun()
+
+    # Add new metric form
+    with st.expander("➕ Add Metric", expanded=not metrics):
+        new_name = st.text_input(
+            "Metric name",
+            placeholder="e.g., Sessions per User",
+            key="new_metric_name",
+        )
+        new_formula = st.text_input(
+            "Formula (use column names)",
+            placeholder="e.g., sessions / users",
+            key="new_metric_formula",
+        )
+        numeric_hint = ", ".join(
+            st.session_state.df.select_dtypes(include=["number"]).columns.tolist()[:5]
+        )
+        if numeric_hint:
+            st.caption(f"Available numeric columns: {numeric_hint}")
+
+        if st.button("Add", use_container_width=True, key="add_metric_btn"):
+            if not new_name.strip():
+                st.warning("Please enter a metric name.")
+            elif not new_formula.strip():
+                st.warning("Please enter a formula.")
+            elif new_name in st.session_state.custom_metrics:
+                st.warning(f"Metric '{new_name}' already exists. Delete it first.")
+            else:
+                # Validate formula by trying it on a small sample
+                try:
+                    test_df = st.session_state.df.head(5).copy()
+                    test_df[new_name] = test_df.eval(new_formula)
+                    st.session_state.custom_metrics[new_name] = new_formula
+                    st.session_state.custom_metrics_df = None
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Invalid formula: {e}")
 
 
 def _render_learn_link() -> None:

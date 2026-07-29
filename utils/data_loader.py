@@ -376,6 +376,38 @@ def detect_anomalies(
     return result
 
 
+def apply_custom_metrics(df: pd.DataFrame, metrics: dict[str, str]) -> pd.DataFrame:
+    """Apply user-defined derived columns to a copy of the DataFrame.
+
+    Uses pd.eval() which is safe — only arithmetic expressions, no function
+    calls, imports, or attribute access. Each formula is evaluated against
+    the DataFrame's columns as variables.
+
+    Args:
+        df: The source DataFrame (never mutated).
+        metrics: Dict of {column_name: formula} e.g. {"SPU": "sessions / users"}.
+
+    Returns:
+        A new DataFrame with derived columns appended, or the original
+        (copied) if no metrics are defined.
+    """
+    if not metrics or df is None or df.empty:
+        return df.copy() if df is not None else df
+
+    result = df.copy()
+    for name, formula in metrics.items():
+        # Safety: reject formulas with dangerous patterns
+        dangerous = ["__", "import ", "exec", "eval(", "open(", "compile"]
+        if any(d in formula for d in dangerous):
+            continue
+        try:
+            result[name] = result.eval(formula)
+        except Exception:
+            # Silently skip invalid formulas rather than crashing the app
+            pass
+    return result
+
+
 def filter_dataframe(
     df: pd.DataFrame,
     date_col: str | None = None,

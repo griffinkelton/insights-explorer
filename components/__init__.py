@@ -9,6 +9,7 @@ from components.chat import render_chat_section
 from utils.ga4_client import exchange_code, credentials_to_dict
 from utils.error_boundary import render_error_card
 from utils.onboarding import render_tour_step
+from utils.data_loader import apply_custom_metrics
 
 
 def render_all() -> None:
@@ -48,6 +49,14 @@ def _render_main_content() -> None:
 
         render_hero()
         st.stop()
+
+    # ── Apply custom metrics (cached until metrics change) ───────────────
+    if st.session_state.custom_metrics_df is None and st.session_state.custom_metrics:
+        st.session_state.custom_metrics_df = apply_custom_metrics(
+            st.session_state.df, st.session_state.custom_metrics
+        )
+    elif not st.session_state.custom_metrics:
+        st.session_state.custom_metrics_df = None
 
     render_data_preview()
     render_summary_section()

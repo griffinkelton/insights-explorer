@@ -70,6 +70,12 @@ if "compare_val_b" not in st.session_state:
     st.session_state.compare_val_b = ""
 if "tour_step" not in st.session_state:
     st.session_state.tour_step = 0  # 0=not started, 1-3=steps, 4=done
+if "custom_metrics" not in st.session_state:
+    st.session_state.custom_metrics = (
+        {}
+    )  # {name: formula} e.g. {"Sessions per User": "sessions / users"}
+if "custom_metrics_df" not in st.session_state:
+    st.session_state.custom_metrics_df = None  # augmented df with derived columns
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:
