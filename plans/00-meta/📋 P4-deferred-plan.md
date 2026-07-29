@@ -1,9 +1,8 @@
 # 📋 P4+ Deferred Items — Future Batches
 
 > **What:** Everything deferred from the [P4 Wave 1 + Streaming sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
-> **Status:** 🔵 Captured — awaiting P4 Wave 1 + Streaming completion before execution.
+> **Status:** ✅ Done — all batches (C–F) executed. Theme Toggle ✅, Component Refactor ✅, AI/Data Quick Wins ✅, AI/Data Complex ✅.
 > **Based on:** [P4 future plan](📋 P4-future-plan.md), user interview (3 rounds) + follow-up analysis (4 rounds), July 28, 2026.
-> **Predecessor:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) must be complete and stable first.
 > **Already deferred elsewhere:** #8 Onboarding tour → [Onboarding tour](🔵 onboarding-tour.md)
 
 ---
@@ -12,13 +11,13 @@
 
 | Batch | Item(s) | What | Effort | Why deferred |
 |---|---|---|---|---|
-| **Batch C** | #18/P3 | Light/dark theme toggle | 3-5 days | CSS-only — do after streaming stable per 📋 UNIFIED_PLAN.md order |
-| **Batch D** | #20/P5 | Component refactor | 3-5 days | Mechanical extraction — do after ALL features stable. "Refactoring while streaming and theming are still changing means every feature change requires updating both the original code AND the extracted component." |
-| **Batch E** | P6a, P6d, P6f | 3 easy AI/data items: column type detection, smart sampling, chart tokens | ~3-5 hrs | Quick wins after structural work is done |
-| **Batch F** | P6b, P6c, P6e | 3 complex AI/data items: JSON chart mapping, comparative mode, anomaly detection | ~10-15 hrs | Largest scope — last |
+| **Batch C** | #18/P3 | Light/dark theme toggle | 3-5 days | ✅ Done — Theme Toggle sprint |
+| **Batch D** | #20/P5 | Component refactor | 3-5 days | ✅ Done — Component Refactor sprint |
+| **Batch E** | P6a, P6d, P6f | 3 easy AI/data items: column type detection, smart sampling, chart tokens | ~3-5 hrs | ✅ Done — AI/Data sprint (v1.6.0) |
+| **Batch F** | P6b, P6c, P6e | 3 complex AI/data items: JSON chart mapping, comparative mode, anomaly detection | ~10-15 hrs | ✅ Done — AI/Data sprint (v1.6.0) |
 | — | Wave 3 weaknesses | API key fallback, app-level auth | Varies | Low priority — only if deployability becomes a goal |
 
-**Total deferred: ~20-35 additional days** after P4 Wave 1 + Streaming ships.
+**All deferred batches complete ✅ — 239 tests, 0 remaining deferred items.**
 
 ---
 

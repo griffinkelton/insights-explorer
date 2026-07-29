@@ -35,6 +35,9 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
     st.session_state.chat_history = []
     st.session_state.data_source = source
     st.session_state.data_cleared = False
+    # Auto-dismiss onboarding tour when data is loaded
+    if st.session_state.get("tour_step", 0) in (1, 2, 3):
+        st.session_state.tour_step = 4
 
 
 def render_sidebar() -> None:

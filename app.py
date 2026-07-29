@@ -68,6 +68,8 @@ if "compare_val_a" not in st.session_state:
     st.session_state.compare_val_a = ""
 if "compare_val_b" not in st.session_state:
     st.session_state.compare_val_b = ""
+if "tour_step" not in st.session_state:
+    st.session_state.tour_step = 0  # 0=not started, 1-3=steps, 4=done
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:

@@ -9,6 +9,20 @@ def render_hero() -> None:
 
     col_a, col_b, col_c = st.columns([1, 2, 1])
     with col_b:
+        # ── Quick Tour button ────────────────────────────────────────────
+        if st.session_state.get("tour_step", 0) == 0:
+            col_tour, _ = st.columns([1.5, 1])
+            with col_tour:
+                if st.button(
+                    "🎓 Quick Tour",
+                    type="secondary",
+                    use_container_width=True,
+                    help="Take a 3-step guided tour of the app",
+                ):
+                    st.session_state.tour_step = 1
+                    st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+
         st.markdown("""
         <div style="text-align:center;padding:3rem 2rem;">
             <div style="font-size:4rem;margin-bottom:1rem;filter:drop-shadow(0 8px 24px rgba(99,102,241,0.3));">

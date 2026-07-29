@@ -8,6 +8,7 @@ from components.summary import render_summary_section
 from components.chat import render_chat_section
 from utils.ga4_client import exchange_code, credentials_to_dict
 from utils.error_boundary import render_error_card
+from utils.onboarding import render_tour_step
 
 
 def render_all() -> None:
@@ -39,6 +40,12 @@ def _render_main_content() -> None:
     st.caption("Ask questions about your analytics data — powered by Gemini AI.")
 
     if st.session_state.df is None:
+        # ── Onboarding tour (replaces hero when active) ──────────────────
+        tour_step = st.session_state.get("tour_step", 0)
+        if tour_step in (1, 2, 3):
+            render_tour_step(tour_step)
+            st.stop()
+
         render_hero()
         st.stop()
 

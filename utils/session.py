@@ -17,3 +17,5 @@ def clear_data() -> None:
     st.session_state.missing_columns = []
     st.session_state.data_cleared = True
     st.session_state.data_source = None
+    # Reset tour so Quick Tour button reappears on empty state
+    st.session_state.tour_step = 0

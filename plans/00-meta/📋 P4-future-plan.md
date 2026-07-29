@@ -1,7 +1,7 @@
 # 📋 P4+ Future-Phase Plan — GA4 Insight Explorer
 
 > **What:** Capture document for all items beyond the current P1–P3 sprint — medium features, large investments, and unresolved repo weaknesses.
-> **Status:** 🟢 Partially done — Wave 1 + Streaming sprint executed ✅ (4/4 items). Remaining items (#18, #20, #21, Wave 3) deferred in [P4 deferred plan](📋 P4-deferred-plan.md).
+> **Status:** ✅ Done — Wave 1 ✅ (4/4 items), Wave 2 ✅ (#18 Theme Toggle, #19 Streaming, #20 Component Refactor, #21 AI/Data). Wave 3 weaknesses remain optional.
 > **Based on:** IMPLEMENTATION_PLAN.md (#15–21), 📋 UNIFIED_PLAN.md (P3–P6), ENHANCEMENTS.md, repo assessment weaknesses.
 > **Predecessor:** [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — completed. #8 tour deferred to [Onboarding tour](🔵 onboarding-tour.md).
 > **Current sprint:** [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — #15–17, #19 ✅ Done.
@@ -23,7 +23,9 @@ Everything deferred from the current sprint, organized into three waves:
 
 **Wave 1 (#15–17) + Streaming (#19)** — ✅ Done. See [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md).
 
-**Everything else** (#18, #20, #21, Wave 3 weaknesses) is captured in [P4 deferred plan](📋 P4-deferred-plan.md) for execution next.
+**Wave 2 (#18 Theme Toggle, #20 Component Refactor, #21 AI/Data)** — ✅ Done. See [P4 deferred plan](📋 P4-deferred-plan.md) and [CHANGELOG.md](../CHANGELOG.md).
+
+**Wave 3 weaknesses** remain optional — not yet addressed.
 
 The guardrails (file limits, rate limiting), quick wins (sidebar link, OAuth config), docs, and infra from P1–P3 are solid, so the medium-risk features that change the data flow can now proceed.
 

@@ -1,7 +1,7 @@
 # 🤖 AI & Data Processing Enhancements — Phase 5 Implementation Plan
 
 > **Roadmap ref:** IMPLEMENTATION_PLAN.md #21, ENHANCEMENTS.md #20, #22, #23, #25, #26, #27
-> **Effort:** Medium-High (varies per sub-item) | **Status:** 🔲 Planned — no code written
+> **Effort:** Medium-High (varies per sub-item) | **Status:** ✅ Done — all 6 sub-items implemented (v1.6.0, 239 tests)
 >
 > This file covers 6 sub-items. Each is a standalone enhancement with its own plan.
 

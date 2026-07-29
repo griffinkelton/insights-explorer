@@ -2,9 +2,9 @@
 
 > 30 actionable ideas across 7 categories, grounded in the current codebase.
 >
-> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available
+> ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available (only 3 remaining: #32 Pre-commit hooks, #37 Sphinx docs, plus #8 Onboarding tour is deferred)
 >
-> **Last updated:** 2026-07-28 — P4 Wave 1 + Streaming sprint executed ✅ (4/4 items: #19 streaming, #15 column picker, #16 conversation memory, #17 export). 26/37 done. P1-P3 sprint ✅, P1-P2 ✅.
+> **Last updated:** 2026-07-28 — All sprints complete ✅. P1-P3 sprint ✅, P4 Wave 1 + Streaming ✅, Theme Toggle ✅, Component Refactor ✅, AI/Data sprint ✅, Drive File Picker ✅. 34/37 done.
 
 ---
 
@@ -37,7 +37,8 @@
 **How:** Show a "🎓 Quick Tour" button. Step through tooltips anchored to: sidebar uploader, Generate Summary, chat input. Track `st.session_state.tour_step`.
 **Effort:** Small | **Files:** `app.py`
 
-### 6. Light/Dark Theme Toggle 🔲
+### 6. Light/Dark Theme Toggle ✅
+**Status:** ✅ Done — Theme Toggle sprint. Sidebar toggle, ~80 CSS variables, Plotly theme swap, learn page integration.
 **Why:** Hardcoded to dark mode. Many analysts prefer light mode.
 **How:** Sidebar toggle swapping CSS custom properties between palettes. Persist in `st.session_state`.
 **Effort:** Medium | **Files:** `app.py`, `utils/styles.py`
@@ -63,7 +64,8 @@
 ### 11. Use Streamlit's Native Caching ✅
 **Status:** ✅ Done — `@st.cache_data` on `validate_columns`, `get_dataset_stats`, `build_summary_prompt`.
 
-### 12. Refactor app.py into Modular Components 🔲
+### 12. Refactor app.py into Modular Components ✅
+**Status:** ✅ Done — Component Refactor sprint. app.py 809→78 lines, 7 new files in components/ + utils/charts.py + utils/session.py, 228 tests.
 **Why:** `app.py` is ~400 lines mixing CSS, session state, file processing, UI, and chart generation. Extracting `_render_main()` and `_render_hero()` was a start, but the sidebar, GA4 connect section, and chart helpers should be separate modules.
 **How:** Split into `components/sidebar.py`, `components/hero.py`, `components/data_preview.py`, `components/chat.py`, `utils/charts.py`.
 **Effort:** High | **Files:** New `components/` package
@@ -103,7 +105,8 @@
 
 ## 🤖 AI Enhancements
 
-### 20. Structured Chart Detection via Gemini 🔲
+### 20. Structured Chart Detection via Gemini ✅
+**Status:** ✅ Done in AI/Data sprint (P6a) — `[CHART:{json}]` token with keyword fallback + retry logic, 3 new tests.
 **Why:** Current `detect_chart_request()` uses brittle keyword matching, missing ~40% of chart-able responses.
 **How:** Add hidden prompt instruction: `"[SYSTEM] If a chart would help, append [CHART:line:sessions] or [CHART:bar:page_path]"`. Parse the token instead of keyword scanning.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
@@ -114,12 +117,14 @@
 **How:** Use `stream=True` in `generate_content()`. Return a generator. Use `st.write_stream()` in `app.py`.
 **Effort:** High | **Files:** `utils/gemini_client.py`, `app.py`
 
-### 22. Comparative Analysis Mode 🔲
+### 22. Comparative Analysis Mode ✅
+**Status:** ✅ Done in AI/Data sprint (P6c) — sidebar toggle, dual-panel charts, `build_comparison_prompt()`, 5 new session state vars.
 **Why:** Analysts constantly compare: "Q2 vs Q1" or "organic vs paid traffic."
 **How:** Add a "Compare" toggle in the sidebar. Construct specialized comparison prompts. Generate dual-panel charts.
 **Effort:** High | **Files:** `app.py`, `utils/prompt_templates.py`
 
-### 23. Gemini-Suggested Chart Mapping 🔲
+### 23. Gemini-Suggested Chart Mapping ✅
+**Status:** ✅ Done in AI/Data sprint (P6b) — JSON-first `detect_chart_request()`, column hallucination guard, 3 new tests.
 **Why:** Chart generation is limited to hardcoded "sessions over time" or "top pages by sessions."
 **How:** Ask Gemini to output JSON: `{"chart_type": "bar", "x": "device_category", "y": "users"}`. Parse with `json.loads` and map dynamically.
 **Effort:** Medium | **Files:** `utils/prompt_templates.py`, `app.py`
@@ -134,17 +139,20 @@
 **How:** Add `st.multiselect` for columns and `st.date_input` for date range filtering above the data preview. Filtered DataFrame replaces full one downstream.
 **Effort:** Medium | **Files:** `app.py`, `utils/data_loader.py`
 
-### 25. Automatic Column Type Detection 🔲
+### 25. Automatic Column Type Detection ✅
+**Status:** ✅ Done in AI/Data sprint (P6d) — `detect_column_types()` with 📅🔢🏷️📝 badges, `.col-badge` CSS, 4 new tests.
 **Why:** The app only looks for 5 hardcoded columns. GA4 exports can have 30+ columns.
 **How:** Detect: date-like columns, numeric metrics, string columns with <50 unique values (dimensions). Show as "detected dimensions/metrics" in data preview.
 **Effort:** Medium | **Files:** `utils/data_loader.py`, `app.py`
 
-### 26. Statistical Anomaly Detection 🔲
+### 26. Statistical Anomaly Detection ✅
+**Status:** ✅ Done in AI/Data sprint (P6e) — 7-day rolling Z-score, collapsible anomaly table, red X markers on charts, 3 new tests.
 **Why:** Gemini only sees a 5-row sample when asked to find anomalies. Real detection should run on actual data.
 **How:** Rolling Z-score function — flag dates where a metric deviates >2 std from 7-day rolling mean. Show as red markers on charts.
 **Effort:** Medium | **Files:** `utils/data_loader.py`, `app.py`
 
-### 27. Intelligent Sampling for Large Datasets 🔲
+### 27. Intelligent Sampling for Large Datasets ✅
+**Status:** ✅ Done in AI/Data sprint (P6f) — `smart_sample()` with stratified weekly sampling, replaces `head()` everywhere, 3 new tests.
 **Why:** `df.head(10)` is sent in every prompt regardless of dataset size.
 **How:** For >10k rows: stratified sampling (preserve date distribution). For >100k rows: only aggregate stats in prompts, never raw rows.
 **Effort:** Small | **Files:** `utils/prompt_templates.py`
@@ -214,14 +222,14 @@
 
 | Category | Total | Done | Remaining |
 |---|---|---|---|
-| UX | 7 | 5 | 2 |
-| Code | 6 | 4 | 2 |
+| UX | 7 | 6 | 1 |
+| Code | 6 | 6 | 0 |
 | Security | 6 | 6 | 0 |
-| AI | 4 | 1 | 3 |
-| Data Processing | 4 | 2 | 2 |
+| AI | 4 | 4 | 0 |
+| Data Processing | 4 | 4 | 0 |
 | DevOps/CI | 5 | 4 | 1 |
 | Documentation | 5 | 4 | 1 |
-| **Total** | **37** | **26** | **11** |
+| **Total** | **37** | **34** | **3** |
 
 ---
 

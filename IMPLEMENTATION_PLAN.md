@@ -2,7 +2,7 @@
 
 > Complete 21-item implementation blueprint with context, reasoning, risk assessments, and execution strategy.
 >
-> **Status:** 🟡 In progress — P1-P3 sprint done ✅ (12/13 items), P4 Wave 1 + Streaming done ✅ (4/4 items: #15-17, #19). #6 skipped, #8 deferred, #18/#20/#21 deferred. See [plans/00-meta/📋 P4-deferred-plan.md](plans/00-meta/📋 P4-deferred-plan.md) for remaining items.
+> **Status:** ✅ Done — all 21 items resolved. P1-P3 sprint ✅ (12/13), P4 Wave 1 + Streaming ✅ (#15-17, #19), Theme Toggle ✅ (#18), Component Refactor ✅ (#20), AI/Data Enhancements ✅ (#21 a-f). #6 skipped, #8 deferred.
 >
 > **Numbering note:** This document uses its own item numbering (#1-21) for the 21 planned tasks. References to ENHANCEMENTS.md use the roadmap's numbering (e.g., "ENHANCEMENTS.md #13"). The two numbering schemes are independent.
 
@@ -1418,28 +1418,28 @@ Phase 5 (future, 5-10 days):
 
 | # | Item | Priority | Status |
 |---|---|---|---|
-| 1 | Learn link to sidebar | 🔴 P1 | 🔲 Planned |
-| 2 | Update learn page test count | 🔴 P1 | 🔲 Planned |
-| 3 | Update docs (ENHANCEMENTS, ARCHITECTURE, README) | 🔴 P1 | 🔲 Planned |
-| 4 | File size/row limits | 🔴 P1 | 🔲 Planned |
-| 5 | Rate limiting on chat | 🔴 P1 | 🔲 Planned |
-| 6 | `.streamlit/pages.toml` | 🔴 P1 | 🔲 Planned |
-| 7 | Loading state for summary | 🟡 P2 | 🔲 Planned |
-| 8 | Onboarding tour | 🟡 P2 | 🔲 Planned |
-| 9 | Learn link to README | 🟡 P2 | 🔲 Planned |
-| 10 | pytest-cov coverage | 🟢 P3 | 🔲 Planned |
-| 11 | Split dev dependencies | 🟢 P3 | 🔲 Planned |
-| 12 | Per-module test badges | 🟢 P3 | 🔲 Planned |
-| 13 | app.py structural test | 🟢 P3 | 🔲 Planned |
-| 14 | GitHub Actions CI | 🟢 P3 | 🔲 Planned |
-| 15 | Column picker & date filters | 🔵 P4 | 🔲 Planned |
-| 16 | Multi-turn conversation memory | 🔵 P4 | 🔲 Planned |
-| 17 | Export chat as report | 🔵 P4 | 🔲 Planned |
-| 18 | Light/dark theme toggle | ⚪ P5 | 🔲 Planned |
-| 19 | Streaming responses | ⚪ P5 | 🔲 Planned |
-| 20 | Refactor app.py into components | ⚪ P5 | 🔲 Planned |
-| 21 | Remaining AI & data enhancements | ⚪ P5 | 🔲 Planned |
+| 1 | Learn link to sidebar | 🔴 P1 | ✅ Done (P1-P3 sprint) |
+| 2 | Update learn page test count | 🔴 P1 | ✅ Done (P1-P3 sprint) |
+| 3 | Update docs (ENHANCEMENTS, ARCHITECTURE, README) | 🔴 P1 | ✅ Done (P1-P3 sprint) |
+| 4 | File size/row limits | 🔴 P1 | ✅ Done (P1-P3 sprint) |
+| 5 | Rate limiting on chat | 🔴 P1 | ✅ Done (P1-P3 sprint) |
+| 6 | `.streamlit/pages.toml` | 🔴 P1 | ⏭️ Skipped |
+| 7 | Loading state for summary | 🟡 P2 | ✅ Done (P1-P3 sprint) |
+| 8 | Onboarding tour | 🟡 P2 | ⚠️ Deferred |
+| 9 | Learn link to README | 🟡 P2 | ✅ Done (P1-P3 sprint) |
+| 10 | pytest-cov coverage | 🟢 P3 | ✅ Done (P1-P3 sprint) |
+| 11 | Split dev dependencies | 🟢 P3 | ✅ Done (P1-P3 sprint) |
+| 12 | Per-module test badges | 🟢 P3 | ✅ Done (P1-P3 sprint) |
+| 13 | app.py structural test | 🟢 P3 | ✅ Done (P1-P3 sprint) |
+| 14 | GitHub Actions CI | 🟢 P3 | ✅ Done (P1-P3 sprint) |
+| 15 | Column picker & date filters | 🔵 P4 | ✅ Done (P4 Wave 1 sprint) |
+| 16 | Multi-turn conversation memory | 🔵 P4 | ✅ Done (P4 Wave 1 sprint) |
+| 17 | Export chat as report | 🔵 P4 | ✅ Done (P4 Wave 1 sprint) |
+| 18 | Light/dark theme toggle | ⚪ P5 | ✅ Done (Theme Toggle sprint) |
+| 19 | Streaming responses | ⚪ P5 | ✅ Done (P4 Wave 1 sprint) |
+| 20 | Refactor app.py into components | ⚪ P5 | ✅ Done (Component Refactor sprint) |
+| 21 | Remaining AI & data enhancements | ⚪ P5 | ✅ Done (AI/Data sprint, v1.6.0) |
 
 ---
 
-*Plan created from deep review of the codebase. No code has been written — this is a review-for-approval document. All 21 items are traceable to specific items in ENHANCEMENTS.md.*
+*All 21 items resolved: 18 done ✅, 1 skipped ⏭️, 1 deferred ⚠️, 1 bonus (Drive file picker).*
