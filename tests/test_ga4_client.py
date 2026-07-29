@@ -10,6 +10,7 @@ import utils.ga4_client as ga4
 
 # ── credential serialization tests ──────────────────────────────────────────
 
+
 class TestCredentialsSerialization:
     """Tests for credentials_to_dict() and credentials_from_dict()."""
 
@@ -31,37 +32,49 @@ class TestCredentialsSerialization:
 
     def test_to_dict_returns_all_expected_keys(self):
         """credentials_to_dict should include the standard OAuth keys."""
-        creds = ga4.credentials_from_dict({
-            "token": "t",
-            "refresh_token": "rt",
-            "token_uri": "https://example.com",
-            "client_id": "id",
-            "client_secret": "secret",
-            "scopes": ["scope1"],
-        })
+        creds = ga4.credentials_from_dict(
+            {
+                "token": "t",
+                "refresh_token": "rt",
+                "token_uri": "https://example.com",
+                "client_id": "id",
+                "client_secret": "secret",
+                "scopes": ["scope1"],
+            }
+        )
         d = ga4.credentials_to_dict(creds)
 
-        expected_keys = {"token", "refresh_token", "token_uri",
-                         "client_id", "client_secret", "scopes"}
+        expected_keys = {
+            "token",
+            "refresh_token",
+            "token_uri",
+            "client_id",
+            "client_secret",
+            "scopes",
+        }
         assert set(d.keys()) == expected_keys
 
     def test_from_dict_creates_credentials(self):
         """credentials_from_dict should return a Credentials object."""
-        creds = ga4.credentials_from_dict({
-            "token": "t",
-            "refresh_token": "rt",
-            "token_uri": "https://example.com",
-            "client_id": "id",
-            "client_secret": "secret",
-            "scopes": ["scope1"],
-        })
+        creds = ga4.credentials_from_dict(
+            {
+                "token": "t",
+                "refresh_token": "rt",
+                "token_uri": "https://example.com",
+                "client_id": "id",
+                "client_secret": "secret",
+                "scopes": ["scope1"],
+            }
+        )
         from google.oauth2.credentials import Credentials
+
         assert isinstance(creds, Credentials)
         assert creds.token == "t"
         assert creds.refresh_token == "rt"
 
 
 # ── OAuth flow tests ────────────────────────────────────────────────────────
+
 
 class TestOAuthFlow:
     """Tests for get_auth_url() and exchange_code()."""
@@ -130,6 +143,7 @@ class TestOAuthFlow:
 
 # ── pull_ga4_report tests ───────────────────────────────────────────────────
 
+
 class TestPullGa4Report:
     """Tests for pull_ga4_report() — success, empty, token refresh, date range."""
 
@@ -137,12 +151,8 @@ class TestPullGa4Report:
     def _make_mock_response(dimension_values, metric_values):
         """Helper: build a mock GA4 API response with one row."""
         mock_row = MagicMock()
-        mock_row.dimension_values = [
-            MagicMock(value=dv) for dv in dimension_values
-        ]
-        mock_row.metric_values = [
-            MagicMock(value=mv) for mv in metric_values
-        ]
+        mock_row.dimension_values = [MagicMock(value=dv) for dv in dimension_values]
+        mock_row.metric_values = [MagicMock(value=mv) for mv in metric_values]
         mock_response = MagicMock()
         mock_response.rows = [mock_row]
         return mock_response
@@ -241,8 +251,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        ga4.pull_ga4_report(mock_creds, "123456789",
-                            start_date="7daysAgo", end_date="yesterday")
+        ga4.pull_ga4_report(mock_creds, "123456789", start_date="7daysAgo", end_date="yesterday")
 
         call_args = mock_client.run_report.call_args[0][0]
         assert call_args.date_ranges[0].start_date == "7daysAgo"
@@ -280,8 +289,16 @@ class TestPullGa4Report:
 
         df = ga4.pull_ga4_report(mock_creds, "123456789")
 
-        expected = {"date", "page_path", "device_category", "sessions",
-                    "users", "active_users", "engagement_rate", "bounce_rate"}
+        expected = {
+            "date",
+            "page_path",
+            "device_category",
+            "sessions",
+            "users",
+            "active_users",
+            "engagement_rate",
+            "bounce_rate",
+        }
         assert set(df.columns) == expected
 
     @patch("utils.ga4_client.BetaAnalyticsDataClient")
@@ -323,19 +340,29 @@ class TestPullGa4Report:
         """Multiple response rows → all preserved in DataFrame."""
         mock_row1 = MagicMock()
         mock_row1.dimension_values = [
-            MagicMock(value="2024-01-01"), MagicMock(value="/a"), MagicMock(value="desktop")
+            MagicMock(value="2024-01-01"),
+            MagicMock(value="/a"),
+            MagicMock(value="desktop"),
         ]
         mock_row1.metric_values = [
-            MagicMock(value="10"), MagicMock(value="5"), MagicMock(value="4"),
-            MagicMock(value="0.5"), MagicMock(value="0.3"),
+            MagicMock(value="10"),
+            MagicMock(value="5"),
+            MagicMock(value="4"),
+            MagicMock(value="0.5"),
+            MagicMock(value="0.3"),
         ]
         mock_row2 = MagicMock()
         mock_row2.dimension_values = [
-            MagicMock(value="2024-01-02"), MagicMock(value="/b"), MagicMock(value="mobile")
+            MagicMock(value="2024-01-02"),
+            MagicMock(value="/b"),
+            MagicMock(value="mobile"),
         ]
         mock_row2.metric_values = [
-            MagicMock(value="20"), MagicMock(value="12"), MagicMock(value="10"),
-            MagicMock(value="0.6"), MagicMock(value="0.4"),
+            MagicMock(value="20"),
+            MagicMock(value="12"),
+            MagicMock(value="10"),
+            MagicMock(value="0.6"),
+            MagicMock(value="0.4"),
         ]
 
         mock_client = MagicMock()

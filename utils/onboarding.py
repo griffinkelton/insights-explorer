@@ -7,8 +7,7 @@ TOUR_STEPS = [
         "icon": "📂",
         "title": "Upload your data",
         "body": (
-            "👈 Upload a CSV or XLSX file in the sidebar, "
-            "or connect live via Google sign‑in."
+            "👈 Upload a CSV or XLSX file in the sidebar, " "or connect live via Google sign‑in."
         ),
     },
     {

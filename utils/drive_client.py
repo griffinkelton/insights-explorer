@@ -75,7 +75,8 @@ def download_drive_file(
     try:
         if mime_type == "application/vnd.google-apps.spreadsheet":
             request = service.files().export_media(
-                fileId=file_id, mimeType="text/csv",
+                fileId=file_id,
+                mimeType="text/csv",
             )
         else:
             request = service.files().get_media(fileId=file_id)

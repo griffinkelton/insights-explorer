@@ -10,9 +10,9 @@
 ## The Original Prompt
 
 ```
-Build a Streamlit web app called "GA4 Insight Explorer" for analyzing 
-de-identified Google Analytics 4 export data using the Gemini API. 
-This is an experimental prototype, so prioritize simplicity and working 
+Build a Streamlit web app called "GA4 Insight Explorer" for analyzing
+de-identified Google Analytics 4 export data using the Gemini API.
+This is an experimental prototype, so prioritize simplicity and working
 functionality over polish.
 
 TECH STACK:
@@ -35,79 +35,79 @@ CORE FEATURES:
 
 1. File Upload
    - Sidebar file uploader accepting CSV or XLSX
-   - Validate that required columns exist (e.g., date, page_path, 
-     sessions, engagement_rate, users) but handle missing columns 
+   - Validate that required columns exist (e.g., date, page_path,
+     sessions, engagement_rate, users) but handle missing columns
      gracefully with a warning, not a crash
-   - Show a preview table (first 10 rows) and basic stats (row count, 
+   - Show a preview table (first 10 rows) and basic stats (row count,
      date range, column list) after upload
 
 2. Data Summary Panel
-   - Auto-generate a plain-language summary of the uploaded dataset 
-     using Gemini (row count, date range, top pages by sessions, 
+   - Auto-generate a plain-language summary of the uploaded dataset
+     using Gemini (row count, date range, top pages by sessions,
      any obvious anomalies like sudden drops)
    - Display this summary in a card/expander above the chat
 
 3. Chat Interface
-   - A text input box where the user can ask natural language 
-     questions about the uploaded data (e.g., "which pages have the 
+   - A text input box where the user can ask natural language
+     questions about the uploaded data (e.g., "which pages have the
      highest drop-off?")
-   - On submit, construct a prompt that includes: the user's question, 
-     a compact representation of the relevant data (aggregate 
-     statistics or a sample, NOT the full raw dataset if it's large), 
-     and instructions for Gemini to answer concisely and flag any 
+   - On submit, construct a prompt that includes: the user's question,
+     a compact representation of the relevant data (aggregate
+     statistics or a sample, NOT the full raw dataset if it's large),
+     and instructions for Gemini to answer concisely and flag any
      data limitations (e.g., small sample sizes)
    - Send this to Gemini 2.5 Flash via the API
-   - Display the response in a chat-style message thread that 
-     persists across multiple questions in the session (use 
+   - Display the response in a chat-style message thread that
+     persists across multiple questions in the session (use
      st.session_state)
 
 4. Auto-Chart Generation
-   - After each Gemini response, attempt to detect if the answer 
-     references a specific metric or comparison that could be 
+   - After each Gemini response, attempt to detect if the answer
+     references a specific metric or comparison that could be
      visualized (e.g., "sessions over time," "top 5 pages")
-   - If so, generate a corresponding Plotly chart (line, bar, or 
-     table) below the chat response using the actual uploaded data, 
+   - If so, generate a corresponding Plotly chart (line, bar, or
+     table) below the chat response using the actual uploaded data,
      not fabricated numbers
    - If no chart is applicable, skip this step silently
 
 5. Session Data Handling (IMPORTANT — privacy requirement)
    - Do NOT persist uploaded data to disk or any database
-   - Store the dataframe only in Streamlit's in-memory session_state 
+   - Store the dataframe only in Streamlit's in-memory session_state
      for the duration of the session
-   - Add a "Clear Data" button that wipes the session state and 
+   - Add a "Clear Data" button that wipes the session state and
      uploaded file from memory
-   - Add a visible disclaimer in the sidebar: "Data is processed 
+   - Add a visible disclaimer in the sidebar: "Data is processed
      in-memory only and is not stored or used to train any model."
 
 6. Gemini API Configuration
    - Read GEMINI_API_KEY from environment variable, never hardcode
-   - Use the gemini-2.5-flash model by default, exposed as a 
-     configurable constant at the top of gemini_client.py so it's 
+   - Use the gemini-2.5-flash model by default, exposed as a
+     configurable constant at the top of gemini_client.py so it's
      easy to swap models later
-   - Wrap API calls in try/except with a user-friendly error message 
+   - Wrap API calls in try/except with a user-friendly error message
      if the key is missing or a rate limit is hit
-   - Set generation parameters conservatively (temperature 0.3) for 
+   - Set generation parameters conservatively (temperature 0.3) for
      more consistent analytical responses
 
 7. Error Handling and Empty States
-   - If no file is uploaded, show a friendly placeholder message and 
+   - If no file is uploaded, show a friendly placeholder message and
      disable the chat input
-   - If the CSV fails to parse, show a specific error (not a raw 
+   - If the CSV fails to parse, show a specific error (not a raw
      Python traceback)
 
 DOCUMENTATION:
-- In README.md, include: how to get a free Gemini API key from Google 
-  AI Studio, how to install dependencies (pip install -r 
-  requirements.txt), how to set the .env file, and how to run the 
+- In README.md, include: how to get a free Gemini API key from Google
+  AI Studio, how to install dependencies (pip install -r
+  requirements.txt), how to set the .env file, and how to run the
   app (streamlit run app.py)
-- Add inline comments only where logic is non-obvious (e.g., prompt 
+- Add inline comments only where logic is non-obvious (e.g., prompt
   construction, chart-detection logic)
 
 CONSTRAINTS:
-- Do not add authentication, user accounts, or any database — this 
+- Do not add authentication, user accounts, or any database — this
   is a local single-user prototype
 - Do not add any analytics/telemetry SDKs to this app itself
-- Keep the entire app runnable with a single `streamlit run app.py` 
+- Keep the entire app runnable with a single `streamlit run app.py`
   command after dependency install
 ```
 

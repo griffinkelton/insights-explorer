@@ -31,15 +31,20 @@ def generate_chart(
             if sessions_col:
                 daily = df.groupby(date_col)[sessions_col].sum().reset_index().sort_values(date_col)
                 fig = px.line(
-                    daily, x=date_col, y=sessions_col,
-                    title="Sessions Over Time", markers=True,
+                    daily,
+                    x=date_col,
+                    y=sessions_col,
+                    title="Sessions Over Time",
+                    markers=True,
                     template=template,
                     color_discrete_sequence=["#818cf8"],
                 )
                 fig.update_traces(line=dict(width=2.5), marker=dict(size=6))
                 fig.update_layout(
-                    xaxis_title="Date", yaxis_title="Sessions",
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    xaxis_title="Date",
+                    yaxis_title="Sessions",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                     font=dict(color=font_color, size=12),
                     margin=dict(l=20, r=20, t=40, b=20),
                     hovermode="x unified",
@@ -52,7 +57,10 @@ def generate_chart(
             if page_col and sessions_col:
                 top = df.groupby(page_col)[sessions_col].sum().nlargest(10).reset_index()
                 fig = px.bar(
-                    top, x=sessions_col, y=page_col, orientation="h",
+                    top,
+                    x=sessions_col,
+                    y=page_col,
+                    orientation="h",
                     title=f"Top Pages by {sessions_col.replace('_', ' ').title()}",
                     template=template,
                     color_discrete_sequence=["#818cf8"],
@@ -61,7 +69,8 @@ def generate_chart(
                 fig.update_traces(textposition="outside", textfont=dict(color=font_color, size=11))
                 fig.update_layout(
                     yaxis={"categoryorder": "total ascending"},
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                     font=dict(color=font_color, size=12),
                     margin=dict(l=20, r=40, t=40, b=20),
                 )
@@ -74,13 +83,17 @@ def generate_chart(
             cat_col, num_col = categorical_cols[0], numeric_cols[0]
             agg = df.groupby(cat_col)[num_col].sum().nlargest(10).reset_index()
             fig = px.bar(
-                agg, x=num_col, y=cat_col, orientation="h",
+                agg,
+                x=num_col,
+                y=cat_col,
+                orientation="h",
                 title=f"{num_col.replace('_', ' ').title()} by {cat_col.replace('_', ' ').title()}",
                 template=template,
                 color_discrete_sequence=["#818cf8"],
             )
             fig.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(color=font_color, size=12),
             )
             return {"fig": fig, "type": "bar"}

@@ -60,10 +60,10 @@ def _render_main_content() -> None:
     st.divider()
     st.markdown(
         '<p style="text-align:center;color:#686880;font-size:0.75rem;">'
-        'GA4 Insight Explorer · Data processed in-memory only · '
+        "GA4 Insight Explorer · Data processed in-memory only · "
         '<a href="https://aistudio.google.com/apikey" style="color:#818cf8;">Gemini API Key</a> · '
         '<a href="https://console.cloud.google.com/apis/credentials" style="color:#818cf8;">GCP OAuth Setup</a>'
-        '</p>',
+        "</p>",
         unsafe_allow_html=True,
     )
 

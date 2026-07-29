@@ -129,16 +129,18 @@ def pull_ga4_report(
     # Build DataFrame from response rows
     rows = []
     for row in response.rows:
-        rows.append({
-            "date": row.dimension_values[0].value,
-            "page_path": row.dimension_values[1].value,
-            "device_category": row.dimension_values[2].value,
-            "sessions": int(row.metric_values[0].value),
-            "users": int(row.metric_values[1].value),
-            "active_users": int(row.metric_values[2].value),
-            "engagement_rate": float(row.metric_values[3].value),
-            "bounce_rate": float(row.metric_values[4].value),
-        })
+        rows.append(
+            {
+                "date": row.dimension_values[0].value,
+                "page_path": row.dimension_values[1].value,
+                "device_category": row.dimension_values[2].value,
+                "sessions": int(row.metric_values[0].value),
+                "users": int(row.metric_values[1].value),
+                "active_users": int(row.metric_values[2].value),
+                "engagement_rate": float(row.metric_values[3].value),
+                "bounce_rate": float(row.metric_values[4].value),
+            }
+        )
 
     if not rows:
         return pd.DataFrame()

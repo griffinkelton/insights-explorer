@@ -5,7 +5,7 @@ import time
 from typing import Any
 import pandas as pd
 import streamlit as st
-from utils.prompt_templates import build_chat_prompt, detect_chart_request, build_comparison_prompt
+from utils.prompt_templates import build_chat_prompt, detect_chart_request
 from utils.gemini_client import generate_response_stream, generate_response
 from utils.charts import generate_chart
 
@@ -21,7 +21,7 @@ def render_chat_section() -> None:
             '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
             '<h3 style="margin:0;">💬 Ask Questions</h3>'
             '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
-            '</div>',
+            "</div>",
             unsafe_allow_html=True,
         )
     with col_new_chat:
@@ -63,18 +63,17 @@ def render_chat_section() -> None:
         st.session_state.last_api_call = now
         st.session_state.api_call_count += 1
 
-        st.session_state.chat_history.append({
-            "question": prompt,
-            "response": "",
-            "chart": None,
-        })
+        st.session_state.chat_history.append(
+            {
+                "question": prompt,
+                "response": "",
+                "chart": None,
+            }
+        )
         st.rerun()
 
     # ── Export button ────────────────────────────────────────────────────
-    if any(
-        e.get("response") and e["response"] != ""
-        for e in st.session_state.chat_history
-    ):
+    if any(e.get("response") and e["response"] != "" for e in st.session_state.chat_history):
         st.divider()
         if st.button("📥 Export Report", use_container_width=True):
             # Lazy import — kaleido may not be installed; error handled below
@@ -93,8 +92,7 @@ def render_chat_section() -> None:
                 mime="text/markdown",
             )
             st.caption(
-                "⚠️ Charts missing from the report? "
-                "Install kaleido: `pip install kaleido`"
+                "⚠️ Charts missing from the report? " "Install kaleido: `pip install kaleido`"
             )
 
 
@@ -121,7 +119,7 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
         chart_config = detect_chart_request(full_text)
 
         # Clean [CHART:...] token from displayed response
-        cleaned_response = re.sub(r'\[CHART:.*?\]', '', full_text).strip()
+        cleaned_response = re.sub(r"\[CHART:.*?\]", "", full_text).strip()
         if cleaned_response:
             full_text = cleaned_response
             entry["response"] = cleaned_response
@@ -132,7 +130,7 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                     "Extract a chart suggestion from this analysis. "
                     "Output ONLY a JSON block like "
                     '{"type":"bar","x":"page","y":"sessions","title":"..."}. '
-                    "If no chart applies, output {\"type\":\"none\"}.\n\n"
+                    'If no chart applies, output {"type":"none"}.\n\n'
                     f"Analysis:\n{full_text[:2000]}"
                 )
                 retry_response = generate_response(retry_prompt)
@@ -158,22 +156,30 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                     theme = st.session_state.get("theme", "dark")
                     with col_a:
                         chart_a = generate_chart(
-                            df_a, chart_config, full_text, entry["question"],
+                            df_a,
+                            chart_config,
+                            full_text,
+                            entry["question"],
                             theme=theme,
                         )
                         if chart_a:
                             st.plotly_chart(
-                                chart_a["fig"], use_container_width=True,
+                                chart_a["fig"],
+                                use_container_width=True,
                                 key=f"comp_a_{i}_{theme}",
                             )
                     with col_b:
                         chart_b = generate_chart(
-                            df_b, chart_config, full_text, entry["question"],
+                            df_b,
+                            chart_config,
+                            full_text,
+                            entry["question"],
                             theme=theme,
                         )
                         if chart_b:
                             st.plotly_chart(
-                                chart_b["fig"], use_container_width=True,
+                                chart_b["fig"],
+                                use_container_width=True,
                                 key=f"comp_b_{i}_{theme}",
                             )
                     entry["chart"] = {"fig": None, "type": "compare"}
@@ -183,7 +189,10 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                     st.warning(f"No data for {dimension}={val_b}")
             else:
                 chart_data = generate_chart(
-                    df, chart_config, full_text, entry["question"],
+                    df,
+                    chart_config,
+                    full_text,
+                    entry["question"],
                     theme=st.session_state.get("theme", "dark"),
                 )
                 if chart_data:

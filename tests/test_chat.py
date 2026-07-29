@@ -19,6 +19,7 @@ class TestChatSyntax:
 class TestChatImport:
     def test_module_imports_without_error(self):
         from components.chat import render_chat_section
+
         assert callable(render_chat_section)
 
 
@@ -36,7 +37,7 @@ class TestChatStructure:
         lines = source.split("\n")
         for i, line in enumerate(lines):
             if "except Exception" in line and "pass" in line:
-                context = "\n".join(lines[max(0, i - 1):i + 1])
+                context = "\n".join(lines[max(0, i - 1) : i + 1])
                 assert "#" in context, f"except Exception: pass without comment at line {i + 1}"
 
     def test_stream_chat_has_side_effect_docstring(self):

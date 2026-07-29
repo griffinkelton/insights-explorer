@@ -76,17 +76,13 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
     except Exception as e:
         error_msg = str(e).lower()
         if "rate" in error_msg and "limit" in error_msg:
-            raise RuntimeError(
-                "Rate limit hit. Please wait a moment and try again."
-            ) from e
+            raise RuntimeError("Rate limit hit. Please wait a moment and try again.") from e
         elif "quota" in error_msg:
             raise RuntimeError(
                 "API quota exceeded. Check your Google Cloud quota or try again later."
             ) from e
         else:
-            raise RuntimeError(
-                f"Gemini API error: {str(e)}"
-            ) from e
+            raise RuntimeError(f"Gemini API error: {str(e)}") from e
 
 
 def generate_response_stream(
@@ -118,14 +114,10 @@ def generate_response_stream(
     except Exception as e:
         error_msg = str(e).lower()
         if "rate" in error_msg and "limit" in error_msg:
-            raise RuntimeError(
-                "Rate limit hit. Please wait a moment and try again."
-            ) from e
+            raise RuntimeError("Rate limit hit. Please wait a moment and try again.") from e
         elif "quota" in error_msg:
             raise RuntimeError(
                 "API quota exceeded. Check your Google Cloud quota or try again later."
             ) from e
         else:
-            raise RuntimeError(
-                f"Gemini API error: {str(e)}"
-            ) from e
+            raise RuntimeError(f"Gemini API error: {str(e)}") from e

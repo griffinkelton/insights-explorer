@@ -19,6 +19,7 @@ class TestHeroSyntax:
 class TestHeroImport:
     def test_module_imports_without_error(self):
         from components.hero import render_hero
+
         assert callable(render_hero)
 
 
@@ -38,5 +39,5 @@ class TestHeroStructure:
         for i, line in enumerate(lines):
             if "except Exception" in line and "pass" in line:
                 # Check nearby lines for a comment explaining the reason
-                context = "\n".join(lines[max(0, i - 1):i + 1])
+                context = "\n".join(lines[max(0, i - 1) : i + 1])
                 assert "#" in context, f"except Exception: pass without comment at line {i + 1}"

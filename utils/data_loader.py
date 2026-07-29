@@ -26,16 +26,17 @@ EXPECTED_COLUMNS = [
 @dataclass
 class DataQualityReport:
     """Structured data quality assessment."""
-    completeness_pct: float       # % of non-null cells
-    duplicate_pct: float          # % of duplicate rows
-    duplicate_count: int          # absolute duplicate count
-    outlier_count: int            # rows with z-score > 3 on any numeric column
-    date_range_days: int | None   # days between first and last date
-    date_gaps: int                # number of missing days in date range
-    column_count: int             # total columns
-    missing_columns: list[str]    # expected columns that are absent
-    grade: str                    # "A" through "F"
-    warnings: list[str]           # human-readable warnings
+
+    completeness_pct: float  # % of non-null cells
+    duplicate_pct: float  # % of duplicate rows
+    duplicate_count: int  # absolute duplicate count
+    outlier_count: int  # rows with z-score > 3 on any numeric column
+    date_range_days: int | None  # days between first and last date
+    date_gaps: int  # number of missing days in date range
+    column_count: int  # total columns
+    missing_columns: list[str]  # expected columns that are absent
+    grade: str  # "A" through "F"
+    warnings: list[str]  # human-readable warnings
 
 
 def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
@@ -53,10 +54,14 @@ def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
 
     # Size check
     if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
-        return None, (
-            f"File too large ({file_size / 1024 / 1024:.1f} MB). "
-            f"Maximum is {MAX_FILE_SIZE_MB} MB."
-        ), None
+        return (
+            None,
+            (
+                f"File too large ({file_size / 1024 / 1024:.1f} MB). "
+                f"Maximum is {MAX_FILE_SIZE_MB} MB."
+            ),
+            None,
+        )
 
     try:
         if filename.endswith(".csv"):
@@ -64,7 +69,11 @@ def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
         elif filename.endswith(".xlsx"):
             df = pd.read_excel(BytesIO(file_bytes), engine="openpyxl")
         else:
-            return None, f"Unsupported file type: {file.name}. Please upload a CSV or XLSX file.", None
+            return (
+                None,
+                f"Unsupported file type: {file.name}. Please upload a CSV or XLSX file.",
+                None,
+            )
     except Exception as e:
         return None, f"Failed to parse file: {str(e)}", None
 
@@ -124,7 +133,9 @@ def get_dataset_stats(df: pd.DataFrame) -> dict[str, Any]:
     return stats
 
 
-def assess_data_quality(df: pd.DataFrame, missing_cols: list[str] | None = None) -> DataQualityReport:
+def assess_data_quality(
+    df: pd.DataFrame, missing_cols: list[str] | None = None
+) -> DataQualityReport:
     """Analyze a DataFrame and produce a quality report card.
 
     Args:
@@ -166,15 +177,18 @@ def assess_data_quality(df: pd.DataFrame, missing_cols: list[str] | None = None)
             # Count missing days in the range (sample to avoid huge range computation)
             if date_range_days <= 365 * 3:  # Only compute gaps for ranges up to 3 years
                 all_days = set(dates.dt.date)
-                full_range = set(
-                    d.date() for d in pd.date_range(dates.min(), dates.max())
-                )
+                full_range = set(d.date() for d in pd.date_range(dates.min(), dates.max()))
                 date_gaps = len(full_range - all_days)
 
     # Grade calculation
     grade, warnings = _calculate_grade(
-        completeness, duplicate_pct, outlier_count,
-        missing_cols, date_range_days, date_gaps, len(df),
+        completeness,
+        duplicate_pct,
+        outlier_count,
+        missing_cols,
+        date_range_days,
+        date_gaps,
+        len(df),
     )
 
     return DataQualityReport(
@@ -218,7 +232,9 @@ def _calculate_grade(
     # Duplicate penalty
     if duplicate_pct > 20:
         score -= 30
-        warnings.append(f"{duplicate_pct:.0f}% of rows are exact duplicates — data may be corrupted.")
+        warnings.append(
+            f"{duplicate_pct:.0f}% of rows are exact duplicates — data may be corrupted."
+        )
     elif duplicate_pct > 5:
         score -= 15
         warnings.append(f"{duplicate_pct:.0f}% duplicate rows detected.")
@@ -255,11 +271,9 @@ def _calculate_grade(
 
     # Convert score to grade
     grade = (
-        "A" if score >= 90 else
-        "B" if score >= 75 else
-        "C" if score >= 55 else
-        "D" if score >= 35 else
-        "F"
+        "A"
+        if score >= 90
+        else "B" if score >= 75 else "C" if score >= 55 else "D" if score >= 35 else "F"
     )
 
     return grade, warnings
@@ -353,17 +367,11 @@ def detect_anomalies(
     result = df.copy()
     result[date_col] = pd.to_datetime(result[date_col], errors="coerce")
     result = result.sort_values(date_col)
-    result["rolling_mean"] = (
-        result[metric_col].rolling(window=window, min_periods=window).mean()
-    )
-    result["rolling_std"] = (
-        result[metric_col].rolling(window=window, min_periods=window).std()
-    )
+    result["rolling_mean"] = result[metric_col].rolling(window=window, min_periods=window).mean()
+    result["rolling_std"] = result[metric_col].rolling(window=window, min_periods=window).std()
     # Guard against zero std (constant values produce Inf Z-scores)
     result["rolling_std"] = result["rolling_std"].replace(0, float("nan"))
-    result["z_score"] = (
-        (result[metric_col] - result["rolling_mean"]) / result["rolling_std"]
-    )
+    result["z_score"] = (result[metric_col] - result["rolling_mean"]) / result["rolling_std"]
     result["is_anomaly"] = result["z_score"].abs() > threshold_std
     return result
 

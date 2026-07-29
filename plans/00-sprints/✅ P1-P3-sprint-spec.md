@@ -333,7 +333,7 @@ Covered by `test_app.py` structural test (#13) once written. No standalone test 
 
 Update the progress table. Current: "15/37 done". Items completed since last update:
 - #4 Keyboard shortcuts
-- #8 CSS extraction  
+- #8 CSS extraction
 - #9 Type hints
 - #10 Test suite
 - #11 Streamlit caching

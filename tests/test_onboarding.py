@@ -33,10 +33,12 @@ class TestOnboardingStructure:
 
     def test_tour_steps_has_three_items(self):
         from utils.onboarding import TOUR_STEPS
+
         assert len(TOUR_STEPS) == 3
 
     def test_tour_steps_have_required_keys(self):
         from utils.onboarding import TOUR_STEPS
+
         for i, step in enumerate(TOUR_STEPS, 1):
             assert "icon" in step, f"Step {i} missing 'icon'"
             assert "title" in step, f"Step {i} missing 'title'"
@@ -44,6 +46,7 @@ class TestOnboardingStructure:
 
     def test_render_tour_step_is_callable(self):
         from utils.onboarding import render_tour_step
+
         assert callable(render_tour_step)
 
     def test_has_progress_bar(self):

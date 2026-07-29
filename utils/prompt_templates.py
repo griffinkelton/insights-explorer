@@ -5,7 +5,7 @@ import json
 import re
 import pandas as pd
 import streamlit as st
-from utils.data_loader import smart_sample, detect_anomalies, find_date_column
+from utils.data_loader import smart_sample
 
 
 def _sanitize_question(question: str) -> str:
@@ -45,9 +45,7 @@ def build_summary_prompt(
     missing = stats.get("missing_columns", [])
     date_info = ""
     if stats.get("date_range_start"):
-        date_info = (
-            f"Date range: {stats['date_range_start']} to {stats['date_range_end']}."
-        )
+        date_info = f"Date range: {stats['date_range_start']} to {stats['date_range_end']}."
 
     # Sample the first few rows for context (compact representation)
     sample_rows = smart_sample(df, max_rows=5).to_string(index=False)
@@ -88,9 +86,7 @@ Keep it concise — about 3-5 bullet points. Flag any data limitations explicitl
                 f"({quality_report.date_gaps} missing days)\n"
             )
         if quality_report.warnings:
-            quality_info += (
-                f"- Data warnings: {'; '.join(quality_report.warnings)}\n"
-            )
+            quality_info += f"- Data warnings: {'; '.join(quality_report.warnings)}\n"
         prompt += quality_info
 
     return prompt
@@ -128,9 +124,7 @@ def build_chat_prompt(
 
     date_info = ""
     if stats.get("date_range_start"):
-        date_info = (
-            f"Date range: {stats['date_range_start']} to {stats['date_range_end']}."
-        )
+        date_info = f"Date range: {stats['date_range_start']} to {stats['date_range_end']}."
 
     sanitized = _sanitize_question(user_question)
 
@@ -138,8 +132,7 @@ def build_chat_prompt(
     history_block = ""
     if conversation_history:
         history_entries = [
-            h for h in conversation_history[-5:]
-            if h.get("response") and h["response"] != ""
+            h for h in conversation_history[-5:] if h.get("response") and h["response"] != ""
         ]
         if history_entries:
             lines = []
@@ -149,9 +142,7 @@ def build_chat_prompt(
                 lines.append("")
             history_block = (
                 "\nCONVERSATION HISTORY (for context only — "
-                "answer the CURRENT question, not these):\n"
-                + "\n".join(lines)
-                + "\n"
+                "answer the CURRENT question, not these):\n" + "\n".join(lines) + "\n"
             )
 
     # Build with explicit triple-quote delimiters around the user question
@@ -180,8 +171,8 @@ def build_chat_prompt(
         f"be statistically significant.\n"
         f"- Suggest a follow-up question the user might find helpful.\n"
         f"- After your answer, if a chart would help, append exactly:\n"
-        f"  [CHART:{{\"type\":\"line\",\"x\":\"date\",\"y\":\"sessions\","
-        f"\"title\":\"Sessions Over Time\"}}]\n"
+        f'  [CHART:{{"type":"line","x":"date","y":"sessions",'
+        f'"title":"Sessions Over Time"}}]\n'
         f"  Valid types: line, bar. x and y are column names from the data.\n"
         f"  If no chart would help, omit this entirely.\n"
     )
@@ -199,7 +190,7 @@ def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
         return None
 
     # Try JSON config first
-    json_match = re.search(r'\[CHART:(\{.*?\})\]', gemini_response)
+    json_match = re.search(r"\[CHART:(\{.*?\})\]", gemini_response)
     if json_match:
         try:
             config = json.loads(json_match.group(1))
@@ -218,18 +209,47 @@ def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
     text_lower = gemini_response.lower()
 
     time_phrases = [
-        "over time", "trend", "over the period", "day", "week", "month",
-        "per day", "daily", "by date", "timeline", "increase", "decrease",
-        "growing", "declining", "spike", "drop", "sessions over",
+        "over time",
+        "trend",
+        "over the period",
+        "day",
+        "week",
+        "month",
+        "per day",
+        "daily",
+        "by date",
+        "timeline",
+        "increase",
+        "decrease",
+        "growing",
+        "declining",
+        "spike",
+        "drop",
+        "sessions over",
     ]
     if any(phrase in text_lower for phrase in time_phrases):
         return {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     rank_phrases = [
-        "top 5", "top 10", "top", "highest", "lowest", "most", "least",
-        "ranking", "ranked", "top pages", "breakdown", "compare",
-        "comparison", "across", "distribution", "by page", "by source",
-        "by channel", "by device",
+        "top 5",
+        "top 10",
+        "top",
+        "highest",
+        "lowest",
+        "most",
+        "least",
+        "ranking",
+        "ranked",
+        "top pages",
+        "breakdown",
+        "compare",
+        "comparison",
+        "across",
+        "distribution",
+        "by page",
+        "by source",
+        "by channel",
+        "by device",
     ]
     if any(phrase in text_lower for phrase in rank_phrases):
         return {"chart_type": "bar", "reason": "ranking", "method": "keyword"}

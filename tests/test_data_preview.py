@@ -19,6 +19,7 @@ class TestDataPreviewSyntax:
 class TestDataPreviewImport:
     def test_module_imports_without_error(self):
         from components.data_preview import render_data_preview
+
         assert callable(render_data_preview)
 
 
@@ -36,5 +37,5 @@ class TestDataPreviewStructure:
         lines = source.split("\n")
         for i, line in enumerate(lines):
             if "except Exception" in line and "pass" in line:
-                context = "\n".join(lines[max(0, i - 1):i + 1])
+                context = "\n".join(lines[max(0, i - 1) : i + 1])
                 assert "#" in context, f"except Exception: pass without comment at line {i + 1}"

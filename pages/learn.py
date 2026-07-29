@@ -15,7 +15,8 @@ inject_custom_css(theme=st.session_state.get("theme", "dark"))
 inject_favicon_meta(theme=st.session_state.get("theme", "dark"))
 
 # ── Hero ─────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <div style="text-align:center;padding:2rem 1rem 1.5rem 1rem;">
     <div style="font-size:3.5rem;margin-bottom:0.5rem;">📚</div>
     <h1 style="font-size:2.2rem;margin-bottom:0.3rem;">Learn Python by Exploring This App</h1>
@@ -24,7 +25,9 @@ st.markdown("""
         Below, we break down the concepts, patterns, and libraries that power it.
     </p>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ── Back to app ──────────────────────────────────────────────────────────────
 st.page_link(
@@ -51,77 +54,97 @@ topics = [
 
 for i, (icon, title, desc) in enumerate(topics):
     with cols[i % 4]:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="concept-card">
             <div class="icon">{icon}</div>
             <h4>{title}</h4>
             <p>{desc}</p>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Tabs for detailed walkthroughs ───────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-    "🏗️ Streamlit",
-    "🐼 Pandas",
-    "📈 Plotly",
-    "🤖 Gemini API",
-    "🔐 OAuth + GA4",
-    "🏷️ Type Hints",
-    "⚡ Caching",
-    "🧪 Testing",
-])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+    [
+        "🏗️ Streamlit",
+        "🐼 Pandas",
+        "📈 Plotly",
+        "🤖 Gemini API",
+        "🔐 OAuth + GA4",
+        "🏷️ Type Hints",
+        "⚡ Caching",
+        "🧪 Testing",
+    ]
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STREAMLIT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab1:
     st.markdown("## 🏗️ Streamlit — Python to Web App in Minutes")
-    st.markdown("""
+    st.markdown(
+        """
     Streamlit is the backbone of this app. It handles the **UI, state, routing, and rendering** —
     no HTML, CSS, or JavaScript required (though we sprinkle some in for polish).
-    """)
+    """
+    )
 
     st.markdown("### Core concepts used in this app")
 
     col_a, col_b = st.columns(2)
     with col_a:
-        st.markdown("""
+        st.markdown(
+            """
         **`st.set_page_config()`** <span class="file-badge">app.py:29</span>
 
         Sets the browser tab title, icon, and layout mode.
         `layout="wide"` gives us the full-width layout.
-        """)
-        st.code('''st.set_page_config(
+        """
+        )
+        st.code(
+            """st.set_page_config(
     page_title="GA4 Insight Explorer",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
-)''', language="python")
+)""",
+            language="python",
+        )
 
-        st.markdown("""
+        st.markdown(
+            """
         **`st.session_state`** <span class="file-badge">app.py:41-59</span>
 
         Python dict that survives reruns. Think of it as the app's
         short-term memory — stores the dataframe, chat history, and
         GA4 credentials across user interactions.
-        """)
-        st.code('''# Initialize session state on first run
+        """
+        )
+        st.code(
+            """# Initialize session state on first run
 if "df" not in st.session_state:
     st.session_state.df = None
 
 # Read it anywhere later
-df = st.session_state.df''', language="python")
+df = st.session_state.df""",
+            language="python",
+        )
 
     with col_b:
-        st.markdown("""
+        st.markdown(
+            """
         **`st.chat_input()` + `st.chat_message()`** <span class="file-badge">app.py:230-252</span>
 
         Built-in chat UI components. `st.chat_input()` renders the text
         box at the bottom, and `st.chat_message()` renders each bubble.
-        """)
-        st.code('''# Chat input at the bottom of the page
+        """
+        )
+        st.code(
+            """# Chat input at the bottom of the page
 if prompt := st.chat_input("Ask about your data..."):
     st.session_state.chat_history.append({
         "question": prompt, "response": None
@@ -132,19 +155,27 @@ for entry in st.session_state.chat_history:
     with st.chat_message("user"):
         st.markdown(entry["question"])
     with st.chat_message("assistant"):
-        st.markdown(entry["response"])''', language="python")
+        st.markdown(entry["response"])""",
+            language="python",
+        )
 
-        st.markdown("""
+        st.markdown(
+            """
         **`st.sidebar`** <span class="file-badge">app.py:105</span>
 
         Everything inside `with st.sidebar:` renders in the left panel —
         file uploader, GA4 connect, privacy notice, clear data button.
-        """)
+        """
+        )
 
-    st.markdown('<div class="tip-box"><strong>💡 Key insight:</strong> Streamlit reruns your entire Python script on every interaction (button click, text input, etc.). That\'s why we use <code>st.session_state</code> to persist data across reruns and <code>@st.cache_data</code> to skip expensive recomputation.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Key insight:</strong> Streamlit reruns your entire Python script on every interaction (button click, text input, etc.). That\'s why we use <code>st.session_state</code> to persist data across reruns and <code>@st.cache_data</code> to skip expensive recomputation.</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### App architecture")
-    st.code('''ga4-insight-explorer/
+    st.code(
+        """ga4-insight-explorer/
 ├── app.py                  # Main entrypoint — UI layout, routing, callbacks
 ├── pages/
 │   └── learn.py            # This page! Multi-page via pages/ directory
@@ -154,7 +185,9 @@ for entry in st.session_state.chat_history:
 │   ├── gemini_client.py    # Gemini API wrapper + key validation
 │   ├── ga4_client.py       # OAuth flow + Analytics Data API
 │   └── prompt_templates.py # Prompt construction, sanitization, chart detection
-└── tests/                  # pytest unit tests''', language="text")
+└── tests/                  # pytest unit tests""",
+        language="text",
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PANDAS
@@ -162,13 +195,16 @@ for entry in st.session_state.chat_history:
 with tab2:
     st.markdown("## 🐼 Pandas — Data Manipulation at Scale")
 
-    st.markdown("""
+    st.markdown(
+        """
     Pandas is the swiss army knife of data in Python. This app uses it to
     **load, validate, clean, and aggregate** GA4 export data.
-    """)
+    """
+    )
 
-    st.markdown("### 1. Reading files <span class=\"file-badge\">utils/data_loader.py:20</span>")
-    st.code('''def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
+    st.markdown('### 1. Reading files <span class="file-badge">utils/data_loader.py:20</span>')
+    st.code(
+        """def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
     filename = file.name.lower()
     if filename.endswith(".csv"):
         df = pd.read_csv(file)          # pd.read_csv handles CSV parsing
@@ -178,12 +214,15 @@ with tab2:
         return None, "Unsupported file type."
     if df.empty:
         return None, "The uploaded file is empty."
-    return df, None''', language="python")
+    return df, None""",
+        language="python",
+    )
 
     st.markdown("### 2. DataFrame basics")
     col_a, col_b = st.columns(2)
     with col_a:
-        st.code('''# Create a DataFrame from a dict
+        st.code(
+            """# Create a DataFrame from a dict
 df = pd.DataFrame({
     "date": ["2024-01-01", "2024-01-02"],
     "page_path": ["/home", "/about"],
@@ -195,9 +234,12 @@ df = pd.DataFrame({
 df.head()        # First 5 rows
 df.columns       # Column names
 len(df)          # Row count
-df.describe()    # Stats (count, mean, std, etc.)''', language="python")
+df.describe()    # Stats (count, mean, std, etc.)""",
+            language="python",
+        )
     with col_b:
-        st.code('''# Filter rows
+        st.code(
+            """# Filter rows
 df[df["sessions"] > 90]
 
 # Select columns
@@ -210,10 +252,13 @@ df.groupby("page_path")["sessions"].sum()
 df.sort_values("sessions", ascending=False)
 
 # Convert types
-pd.to_datetime(df["date"])''', language="python")
+pd.to_datetime(df["date"])""",
+            language="python",
+        )
 
-    st.markdown("### 3. Column validation <span class=\"file-badge\">utils/data_loader.py:36</span>")
-    st.code('''EXPECTED_COLUMNS = ["date", "page_path", "sessions", "engagement_rate", "users"]
+    st.markdown('### 3. Column validation <span class="file-badge">utils/data_loader.py:36</span>')
+    st.code(
+        """EXPECTED_COLUMNS = ["date", "page_path", "sessions", "engagement_rate", "users"]
 
 def validate_columns(df: pd.DataFrame) -> list[str]:
     # Case-insensitive matching — "Date" and "date" both work
@@ -222,10 +267,15 @@ def validate_columns(df: pd.DataFrame) -> list[str]:
     for col in EXPECTED_COLUMNS:
         if col not in df_cols_lower:
             missing.append(col)
-    return missing   # e.g., ["engagement_rate"]''', language="python")
+    return missing   # e.g., ["engagement_rate"]""",
+        language="python",
+    )
 
-    st.markdown("### 4. Date parsing & range detection <span class=\"file-badge\">utils/data_loader.py:55</span>")
-    st.code('''# Find columns with "date" in the name (case-insensitive)
+    st.markdown(
+        '### 4. Date parsing & range detection <span class="file-badge">utils/data_loader.py:55</span>'
+    )
+    st.code(
+        """# Find columns with "date" in the name (case-insensitive)
 date_cols = [c for c in df.columns if "date" in c.lower()]
 
 if date_cols:
@@ -235,17 +285,27 @@ if date_cols:
     valid_dates = parsed.dropna()
     if not valid_dates.empty:
         start = valid_dates.min().strftime("%Y-%m-%d")
-        end = valid_dates.max().strftime("%Y-%m-%d")''', language="python")
+        end = valid_dates.max().strftime("%Y-%m-%d")""",
+        language="python",
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Key insight:</strong> <code>pd.to_datetime(..., errors="coerce")</code> is your friend — it turns garbage dates into <code>NaT</code> (Not a Time) instead of crashing. Always use it when reading user-uploaded data.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Key insight:</strong> <code>pd.to_datetime(..., errors="coerce")</code> is your friend — it turns garbage dates into <code>NaT</code> (Not a Time) instead of crashing. Always use it when reading user-uploaded data.</div>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("### 5. Selecting numeric columns for stats <span class=\"file-badge\">utils/prompt_templates.py:84</span>")
-    st.code('''# select_dtypes filters columns by their data type
+    st.markdown(
+        '### 5. Selecting numeric columns for stats <span class="file-badge">utils/prompt_templates.py:84</span>'
+    )
+    st.code(
+        """# select_dtypes filters columns by their data type
 numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
 
 if numeric_cols:
     # describe() generates count, mean, std, min, 25%, 50%, 75%, max
-    desc = df[numeric_cols].describe().to_string()''', language="python")
+    desc = df[numeric_cols].describe().to_string()""",
+        language="python",
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PLOTLY
@@ -253,13 +313,16 @@ if numeric_cols:
 with tab3:
     st.markdown("## 📈 Plotly — Charts from Real Data")
 
-    st.markdown("""
+    st.markdown(
+        """
     This app never charts AI-generated numbers — every chart is built from the
     **actual DataFrame**. Plotly Express (`px`) does the heavy lifting.
-    """)
+    """
+    )
 
-    st.markdown("### Line chart: Sessions over time <span class=\"file-badge\">app.py:294</span>")
-    st.code('''import plotly.express as px
+    st.markdown('### Line chart: Sessions over time <span class="file-badge">app.py:294</span>')
+    st.code(
+        """import plotly.express as px
 
 # Group sessions by date
 daily = df.groupby(date_col)["sessions"].sum().reset_index()
@@ -287,10 +350,13 @@ fig.update_layout(
 )
 
 # Render in Streamlit
-st.plotly_chart(fig, use_container_width=True)''', language="python")
+st.plotly_chart(fig, use_container_width=True)""",
+        language="python",
+    )
 
-    st.markdown("### Horizontal bar chart: Top pages <span class=\"file-badge\">app.py:307</span>")
-    st.code('''# Aggregate sessions per page, take top 10
+    st.markdown('### Horizontal bar chart: Top pages <span class="file-badge">app.py:307</span>')
+    st.code(
+        """# Aggregate sessions per page, take top 10
 top = df.groupby(page_col)["sessions"].sum().nlargest(10).reset_index()
 
 fig = px.bar(
@@ -306,14 +372,21 @@ fig = px.bar(
 # Sort bars largest → smallest
 fig.update_layout(yaxis={"categoryorder": "total ascending"})
 
-st.plotly_chart(fig, use_container_width=True)''', language="python")
+st.plotly_chart(fig, use_container_width=True)""",
+        language="python",
+    )
 
-    st.markdown("### Chart detection heuristics <span class=\"file-badge\">utils/prompt_templates.py:120</span>")
-    st.markdown("""
+    st.markdown(
+        '### Chart detection heuristics <span class="file-badge">utils/prompt_templates.py:120</span>'
+    )
+    st.markdown(
+        """
     After Gemini answers, we scan its response for keywords to decide
     **which chart to render** — without asking the user to choose.
-    """)
-    st.code('''def detect_chart_request(gemini_response: str) -> dict | None:
+    """
+    )
+    st.code(
+        """def detect_chart_request(gemini_response: str) -> dict | None:
     text = gemini_response.lower()
 
     # Line chart triggers — words suggesting time patterns
@@ -326,9 +399,14 @@ st.plotly_chart(fig, use_container_width=True)''', language="python")
     if any(phrase in text for phrase in rank_phrases):
         return {"chart_type": "bar", "reason": "ranking"}
 
-    return None  # No chart needed''', language="python")
+    return None  # No chart needed""",
+        language="python",
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Design pattern:</strong> The chart detection runs <em>after</em> the AI response, using <em>heuristic keyword matching</em> on the response text — not by asking the LLM to decide. This keeps charts deterministic and based on real data, not AI hallucination.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Design pattern:</strong> The chart detection runs <em>after</em> the AI response, using <em>heuristic keyword matching</em> on the response text — not by asking the LLM to decide. This keeps charts deterministic and based on real data, not AI hallucination.</div>',
+        unsafe_allow_html=True,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GEMINI API
@@ -336,14 +414,17 @@ st.plotly_chart(fig, use_container_width=True)''', language="python")
 with tab4:
     st.markdown("## 🤖 Gemini API — Structured Prompts & Error Handling")
 
-    st.markdown("""
+    st.markdown(
+        """
     This app uses the **`google-genai`** SDK (v2.x) to call Gemini 2.5 Flash.
     The key pattern: construct a rich prompt with **data context**, send it,
     and handle every failure mode gracefully.
-    """)
+    """
+    )
 
-    st.markdown("### Client initialization <span class=\"file-badge\">utils/gemini_client.py</span>")
-    st.code('''from google import genai
+    st.markdown('### Client initialization <span class="file-badge">utils/gemini_client.py</span>')
+    st.code(
+        """from google import genai
 from google.genai.types import GenerateContentConfig
 import os
 
@@ -358,10 +439,15 @@ def _get_client():
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment.")
         _client = genai.Client(api_key=api_key)
-    return _client''', language="python")
+    return _client""",
+        language="python",
+    )
 
-    st.markdown("### generate_response() — the core API call <span class=\"file-badge\">utils/gemini_client.py</span>")
-    st.code('''def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
+    st.markdown(
+        '### generate_response() — the core API call <span class="file-badge">utils/gemini_client.py</span>'
+    )
+    st.code(
+        """def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
     try:
         client = _get_client()
         response = client.models.generate_content(
@@ -385,16 +471,21 @@ def _get_client():
         if "quota" in error_msg:
             raise RuntimeError("API quota exceeded — check your Google Cloud billing.")
         # Unknown error
-        raise RuntimeError(f"Gemini API error: {e}")''', language="python")
+        raise RuntimeError(f"Gemini API error: {e}")""",
+        language="python",
+    )
 
-    st.markdown("### Prompt construction <span class=\"file-badge\">utils/prompt_templates.py</span>")
-    st.markdown("""
+    st.markdown('### Prompt construction <span class="file-badge">utils/prompt_templates.py</span>')
+    st.markdown(
+        """
     The secret to good AI responses is **structured prompts**. We give Gemini:
     1. A clear role ("You are a data analyst assistant")
     2. Context (row count, columns, date range, sample data)
     3. Specific instructions (be concise, flag limitations, suggest follow-ups)
-    """)
-    st.code('''def build_chat_prompt(user_question, df, stats):
+    """
+    )
+    st.code(
+        '''def build_chat_prompt(user_question, df, stats):
     sanitized = _sanitize_question(user_question)  # Security hardening
 
     prompt = (
@@ -412,19 +503,29 @@ def _get_client():
         f"- Be concise. Flag limitations.\n"
         f"- Suggest a follow-up question.\n"
     )
-    return prompt''', language="python")
+    return prompt''',
+        language="python",
+    )
 
-    st.markdown("### Prompt injection hardening <span class=\"file-badge\">utils/prompt_templates.py:8</span>")
-    st.code('''def _sanitize_question(question: str) -> str:
+    st.markdown(
+        '### Prompt injection hardening <span class="file-badge">utils/prompt_templates.py:8</span>'
+    )
+    st.code(
+        """def _sanitize_question(question: str) -> str:
     sanitized = question.strip()
     # Remove code blocks that could carry injection payloads
     sanitized = re.sub(r"```[\\s\\S]*?```", "[code block removed]", sanitized)
     sanitized = re.sub(r"`[^`]+`", "[code removed]", sanitized)
     # Collapse excessive newlines
     sanitized = re.sub(r"\\n{3,}", "\\n\\n", sanitized)
-    return sanitized''', language="python")
+    return sanitized""",
+        language="python",
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Key pattern:</strong> Wrap the user question in <code>""" ... """</code> delimiters and add a <code>⚠️ SECURITY</code> guardrail instruction. This creates a clear boundary between system instructions and user input, making prompt injection much harder.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Key pattern:</strong> Wrap the user question in <code>""" ... """</code> delimiters and add a <code>⚠️ SECURITY</code> guardrail instruction. This creates a clear boundary between system instructions and user input, making prompt injection much harder.</div>',
+        unsafe_allow_html=True,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # OAUTH + GA4
@@ -432,22 +533,30 @@ def _get_client():
 with tab5:
     st.markdown("## 🔐 OAuth + GA4 — Live Data Connection")
 
-    st.markdown("""
+    st.markdown(
+        """
     The GA4 live connection uses the **OAuth 2.0 web flow** and the
     **Google Analytics Data API**. Here's how it works step-by-step.
-    """)
+    """
+    )
 
     st.markdown("### OAuth flow diagram")
-    st.code('''User clicks            Google shows            User approves
+    st.code(
+        """User clicks            Google shows            User approves
 "Sign in with  ──────►  consent screen  ──────►  & is redirected
 Google"                                          back to localhost
 
 Google redirects       App exchanges            Access token stored
 to localhost:8501      code for token           in st.session_state
-?code=abc123     ──────►  exchange_code() ──────►  ga4_creds (dict)''', language="text")
+?code=abc123     ──────►  exchange_code() ──────►  ga4_creds (dict)""",
+        language="text",
+    )
 
-    st.markdown("### Step 1: Generate the auth URL <span class=\"file-badge\">utils/ga4_client.py</span>")
-    st.code('''from google_auth_oauthlib.flow import Flow
+    st.markdown(
+        '### Step 1: Generate the auth URL <span class="file-badge">utils/ga4_client.py</span>'
+    )
+    st.code(
+        """from google_auth_oauthlib.flow import Flow
 
 CLIENT_SECRETS_FILE = os.getenv(
     "GA4_CLIENT_SECRETS_PATH", "client_secrets.json"
@@ -464,20 +573,30 @@ def get_auth_url(redirect_uri: str) -> tuple[str, Flow]:
         access_type="offline",    # Get a refresh token
         include_granted_scopes="true",
     )
-    return auth_url, flow   # flow stored in st.session_state for step 3''', language="python")
+    return auth_url, flow   # flow stored in st.session_state for step 3""",
+        language="python",
+    )
 
-    st.markdown("### Step 2: User approves & is redirected <span class=\"file-badge\">app.py:73</span>")
-    st.code('''# Streamlit detects the OAuth callback via query params
+    st.markdown(
+        '### Step 2: User approves & is redirected <span class="file-badge">app.py:73</span>'
+    )
+    st.code(
+        """# Streamlit detects the OAuth callback via query params
 if "code" in st.query_params and st.session_state.ga4_auth_flow is not None:
     creds = exchange_code(
         st.session_state.ga4_auth_flow,
         code=st.query_params["code"],   # The auth code from Google
     )
     # Serialize credentials for session state (Flow objects can't be pickled)
-    st.session_state.ga4_creds = credentials_to_dict(creds)''', language="python")
+    st.session_state.ga4_creds = credentials_to_dict(creds)""",
+        language="python",
+    )
 
-    st.markdown("### Step 3: Pull data from GA4 <span class=\"file-badge\">utils/ga4_client.py</span>")
-    st.code('''from google.analytics.data_v1beta import BetaAnalyticsDataClient
+    st.markdown(
+        '### Step 3: Pull data from GA4 <span class="file-badge">utils/ga4_client.py</span>'
+    )
+    st.code(
+        """from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange, Dimension, Metric, RunReportRequest,
 )
@@ -513,9 +632,14 @@ def pull_ga4_report(credentials, property_id, start_date="90daysAgo"):
             "users": int(row.metric_values[1].value),
             # ... more metrics
         })
-    return pd.DataFrame(rows)''', language="python")
+    return pd.DataFrame(rows)""",
+        language="python",
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Key pattern:</strong> OAuth tokens expire, but <code>access_type="offline"</code> gives us a refresh token. The <code>credentials_from_dict()</code> helper automatically refreshes expired tokens when you use them.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Key pattern:</strong> OAuth tokens expire, but <code>access_type="offline"</code> gives us a refresh token. The <code>credentials_from_dict()</code> helper automatically refreshes expired tokens when you use them.</div>',
+        unsafe_allow_html=True,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPE HINTS
@@ -523,16 +647,19 @@ def pull_ga4_report(credentials, property_id, start_date="90daysAgo"):
 with tab6:
     st.markdown("## 🏷️ Type Hints — Modern Python Annotations")
 
-    st.markdown("""
+    st.markdown(
+        """
     Type hints make code **self-documenting** and let your editor catch bugs
     before you run anything. This app uses Python 3.10+ union syntax (`X | None`)
     instead of the older `Optional[X]`.
-    """)
+    """
+    )
 
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("### Before (no types)")
-        st.code('''def load_file(file):
+        st.code(
+            """def load_file(file):
     # What does this return? A DataFrame?
     # A string? Both? Who knows!
     filename = file.name.lower()
@@ -540,21 +667,27 @@ with tab6:
         df = pd.read_csv(file)
     else:
         return None, "Unsupported"
-    return df, None''', language="python")
+    return df, None""",
+            language="python",
+        )
 
     with col_b:
         st.markdown("### After (typed)")
-        st.code('''def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
+        st.code(
+            """def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None]:
     \"\"\"Returns (df, error_message). If successful, error_message is None.\"\"\"
     filename = file.name.lower()
     if filename.endswith(".csv"):
         df = pd.read_csv(file)
     else:
         return None, "Unsupported"
-    return df, None''', language="python")
+    return df, None""",
+            language="python",
+        )
 
     st.markdown("### Type hint cheatsheet (used throughout this app)")
-    st.code('''from typing import Any
+    st.code(
+        """from typing import Any
 
 # Basic types
 def greet(name: str) -> str: ...
@@ -571,10 +704,13 @@ def clear_data() -> None: ...
 
 # Complex dicts
 def get_stats(df: pd.DataFrame) -> dict[str, Any]:
-    return {"row_count": len(df), "columns": list(df.columns)}''', language="python")
+    return {"row_count": len(df), "columns": list(df.columns)}""",
+        language="python",
+    )
 
     st.markdown("### Where type hints appear in this project")
-    st.markdown("""
+    st.markdown(
+        """
     | File | Functions typed |
     |---|---|
     | `app.py` | `clear_data()`, `_generate_summary()`, `_generate_chart()`, `_find_column()`, `_find_date_column()` |
@@ -582,9 +718,13 @@ def get_stats(df: pd.DataFrame) -> dict[str, Any]:
     | `utils/prompt_templates.py` | `build_summary_prompt()`, `build_chat_prompt()`, `detect_chart_request()`, `_sanitize_question()` |
     | `utils/gemini_client.py` | `generate_response()`, `validate_api_key()` |
     | `utils/ga4_client.py` | `credentials_to_dict()`, `credentials_from_dict()`, `pull_ga4_report()` |
-    """)
+    """
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Pro tip:</strong> Use <code>X | None</code> instead of <code>Optional[X]</code> — it\'s cleaner, requires no import, and is the standard since Python 3.10.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Pro tip:</strong> Use <code>X | None</code> instead of <code>Optional[X]</code> — it\'s cleaner, requires no import, and is the standard since Python 3.10.</div>',
+        unsafe_allow_html=True,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CACHING
@@ -592,32 +732,41 @@ def get_stats(df: pd.DataFrame) -> dict[str, Any]:
 with tab7:
     st.markdown("## ⚡ Streamlit Caching — Skip Expensive Recomputations")
 
-    st.markdown("""
+    st.markdown(
+        """
     Streamlit reruns your script on every interaction. Without caching,
     every rerun would re-parse the CSV, recompute stats, and rebuild prompts.
     **`@st.cache_data`** memoizes function results so they're only computed once.
-    """)
+    """
+    )
 
     st.markdown("### The problem")
-    st.code('''# Without caching — runs on EVERY button click, chat message, etc.
+    st.code(
+        """# Without caching — runs on EVERY button click, chat message, etc.
 def get_dataset_stats(df):
     # Parse dates, compute aggregates...
     return stats
 
 # Every rerun: parse dates again, group again, describe again...
-stats = get_dataset_stats(df)''', language="python")
+stats = get_dataset_stats(df)""",
+        language="python",
+    )
 
     st.markdown("### The fix")
-    st.code('''@st.cache_data(ttl=600, show_spinner=False)
+    st.code(
+        """@st.cache_data(ttl=600, show_spinner=False)
 def get_dataset_stats(df):
     # Only runs when df actually changes
     return stats
 
 # First call: computes. Subsequent calls: returns cache.
-stats = get_dataset_stats(df)''', language="python")
+stats = get_dataset_stats(df)""",
+        language="python",
+    )
 
     st.markdown("### Cache configuration in this app")
-    st.code('''# utils/data_loader.py
+    st.code(
+        """# utils/data_loader.py
 @st.cache_data(ttl=600, show_spinner=False)  # 10 min TTL
 def validate_columns(df): ...                # Fast hash-based lookup
 
@@ -626,18 +775,25 @@ def get_dataset_stats(df): ...               # Medium-cost computation
 
 # utils/prompt_templates.py
 @st.cache_data(ttl=300, show_spinner=False)  # 5 min TTL (shorter — prompts
-def build_summary_prompt(df, stats): ...     # might be regenerated more often)''', language="python")
+def build_summary_prompt(df, stats): ...     # might be regenerated more often)""",
+        language="python",
+    )
 
     st.markdown("### Key parameters")
-    st.markdown("""
+    st.markdown(
+        """
     | Parameter | What it does | Our choice |
     |---|---|---|
     | `ttl` | Max seconds before cache invalidates | 600 for data, 300 for prompts |
     | `show_spinner` | Show a loading spinner during computation | `False` — these are fast |
     | Hash key | Auto-derived from function arguments | DataFrame content + dict values |
-    """)
+    """
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 When NOT to cache:</strong> Don\'t cache functions with side effects (writing files, API calls with changing results). Don\'t cache functions whose output depends on external state that isn\'t in the arguments. For API calls, cache the <em>prompt construction</em> but not the API response itself.</div>', unsafe_allow_html=True)
+    st.markdown(
+        "<div class=\"tip-box\"><strong>💡 When NOT to cache:</strong> Don't cache functions with side effects (writing files, API calls with changing results). Don't cache functions whose output depends on external state that isn't in the arguments. For API calls, cache the <em>prompt construction</em> but not the API response itself.</div>",
+        unsafe_allow_html=True,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TESTING
@@ -645,30 +801,41 @@ def build_summary_prompt(df, stats): ...     # might be regenerated more often)'
 with tab8:
     st.markdown("## 🧪 Testing — pytest with Mocks")
 
-    st.markdown("""
+    st.markdown(
+        """
     This project has **171 unit tests** covering data loading, prompt construction,
     chart detection, sanitization, Gemini API calls, and API key validation.
     Run them with:
-    """)
+    """
+    )
     st.code("python -m pytest tests/ -v", language="bash")
 
     st.markdown("### Test structure")
-    st.code('''tests/
+    st.code(
+        """tests/
 ├── test_data_loader.py        # CSV parsing, column validation, stats
 ├── test_prompt_templates.py   # Prompt construction, sanitization, chart detection
-├── test_gemini_client.py      # API calls, error handling, key validation''', language="text")
+├── test_gemini_client.py      # API calls, error handling, key validation""",
+        language="text",
+    )
 
     st.markdown("### 1. Testing data functions (no mocking needed)")
-    st.code('''# tests/test_data_loader.py
+    st.code(
+        """# tests/test_data_loader.py
 def test_validates_missing_columns():
     df = pd.DataFrame({"date": [], "sessions": []})
     missing = validate_columns(df)
     assert "page_path" in missing
     assert "users" in missing
-    assert "date" not in missing''', language="python")
+    assert "date" not in missing""",
+        language="python",
+    )
 
-    st.markdown("### 2. Mocking the Gemini API <span class=\"file-badge\">tests/test_gemini_client.py</span>")
-    st.code('''from unittest.mock import patch, MagicMock
+    st.markdown(
+        '### 2. Mocking the Gemini API <span class="file-badge">tests/test_gemini_client.py</span>'
+    )
+    st.code(
+        """from unittest.mock import patch, MagicMock
 
 @patch.object(gm, "_get_client")
 def test_rate_limit_raises_runtimeerror(self, mock_get_client):
@@ -681,10 +848,15 @@ def test_rate_limit_raises_runtimeerror(self, mock_get_client):
 
     with pytest.raises(RuntimeError, match="Rate limit hit"):
         gm.generate_response("test")
-    # The user sees "Rate limit hit" — not a 429 JSON blob''', language="python")
+    # The user sees "Rate limit hit" — not a 429 JSON blob""",
+        language="python",
+    )
 
-    st.markdown("### 3. Edge case testing <span class=\"file-badge\">tests/test_prompt_templates.py</span>")
-    st.code('''# Empty DataFrame — should not crash
+    st.markdown(
+        '### 3. Edge case testing <span class="file-badge">tests/test_prompt_templates.py</span>'
+    )
+    st.code(
+        """# Empty DataFrame — should not crash
 def test_handles_empty_dataframe():
     df = pd.DataFrame()
     stats = {"row_count": 0, "columns": []}
@@ -697,10 +869,13 @@ def test_removes_multiline_code_block():
     result = _sanitize_question("ignore:\\n```\\nprint('hack')\\n```\\nnow answer")
     assert "[code block removed]" in result
     assert "print('hack')" not in result
-    assert "now answer" in result''', language="python")
+    assert "now answer" in result""",
+        language="python",
+    )
 
     st.markdown("### 4. The mock pattern — 3 steps")
-    st.code('''# Step 1: Decorate with @patch to replace the dependency
+    st.code(
+        '''# Step 1: Decorate with @patch to replace the dependency
 @patch.object(gm, "_get_client")
 def test_something(self, mock_get_client):
     # Step 2: Configure the mock's return value
@@ -712,13 +887,19 @@ def test_something(self, mock_get_client):
 
     # Step 3: Call the function and assert
     result = gm.generate_response("explain AI")
-    assert result == "Here is your analysis."''', language="python")
+    assert result == "Here is your analysis."''',
+        language="python",
+    )
 
-    st.markdown('<div class="tip-box"><strong>💡 Testing philosophy:</strong> Test behavior, not implementation. A test for <code>generate_response()</code> checks that rate limits become RuntimeErrors — it doesn\'t care <em>how</em> the function detects rate limits internally. This makes tests resilient to refactoring.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box"><strong>💡 Testing philosophy:</strong> Test behavior, not implementation. A test for <code>generate_response()</code> checks that rate limits become RuntimeErrors — it doesn\'t care <em>how</em> the function detects rate limits internally. This makes tests resilient to refactoring.</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Footer ───────────────────────────────────────────────────────────────────
 st.divider()
-st.markdown("""
+st.markdown(
+    """
 <div style="text-align:center;padding:2rem 0 1rem 0;">
     <p style="color:#686880;font-size:0.85rem;">
         📚 <strong>Learn by exploring</strong> — every file in this project is documented and tested.
@@ -730,4 +911,6 @@ st.markdown("""
         to understand mocking patterns.
     </p>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)

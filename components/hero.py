@@ -23,7 +23,8 @@ def render_hero() -> None:
                     st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("""
+        st.markdown(
+            """
         <div style="text-align:center;padding:3rem 2rem;">
             <div style="font-size:4rem;margin-bottom:1rem;filter:drop-shadow(0 8px 24px rgba(99,102,241,0.3));">
                 📊
@@ -64,11 +65,13 @@ def render_hero() -> None:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
     st.divider()
     st.markdown(
         '<p style="text-align:center;color:#686880;font-size:0.85rem;">'
-        '📂 Upload a file in the sidebar to get started</p>',
+        "📂 Upload a file in the sidebar to get started</p>",
         unsafe_allow_html=True,
     )

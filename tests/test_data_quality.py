@@ -1,7 +1,6 @@
 """Tests for data quality assessment — assess_data_quality, _calculate_grade, DataQualityReport."""
 
 import pandas as pd
-import pytest
 from utils.data_loader import DataQualityReport, assess_data_quality, _calculate_grade
 
 
@@ -94,9 +93,7 @@ class TestAssessDataQuality:
     def test_missing_columns_drop_grade(self):
         df = _make_df()
         # 3 missing cols = -15 points, drops 100→85 = B
-        report = assess_data_quality(
-            df, missing_cols=["engagement_rate", "users", "page_path"]
-        )
+        report = assess_data_quality(df, missing_cols=["engagement_rate", "users", "page_path"])
         assert report.grade == "B"
         assert any("missing expected columns" in w.lower() for w in report.warnings)
 
@@ -113,7 +110,7 @@ class TestAssessDataQuality:
         report = assess_data_quality(df)
         # Should not crash on single row
         assert report.grade is not None
-        assert report.row_count == 1 if hasattr(report, 'row_count') else True
+        assert report.row_count == 1 if hasattr(report, "row_count") else True
         # Should warn about small sample size
         assert any("small sample" in w.lower() for w in report.warnings)
 
@@ -144,7 +141,10 @@ class TestAssessDataQuality:
         df = pd.concat([df] * 20, ignore_index=True)
         report = assess_data_quality(df)
         assert report.duplicate_pct > 90
-        assert all("duplicate" in w.lower() or "duplicates" in w.lower() for w in report.warnings) or len(report.warnings) > 0
+        assert (
+            all("duplicate" in w.lower() or "duplicates" in w.lower() for w in report.warnings)
+            or len(report.warnings) > 0
+        )
 
 
 class TestCalculateGrade:

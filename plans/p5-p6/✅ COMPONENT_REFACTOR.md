@@ -547,7 +547,7 @@ def generate_chart(
     user_question: str,
 ) -> dict[str, Any] | None:
     """Generate a Plotly chart based on detected chart config.
-    
+
     Returns {"fig": go.Figure, "type": "line"|"bar"} or None.
     """
     # ... (existing _generate_chart logic from app.py)

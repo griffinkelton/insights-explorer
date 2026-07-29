@@ -17,6 +17,7 @@ def reset_client():
 
 # ── generate_response tests ─────────────────────────────────────────────────
 
+
 class TestGenerateResponse:
     """Tests for generate_response() — success and all error paths."""
 
@@ -91,9 +92,7 @@ class TestGenerateResponse:
     def test_generic_api_error_raises_runtimeerror(self, mock_get_client):
         """Unknown API error → generic RuntimeError."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception(
-            "Internal server error"
-        )
+        mock_client.models.generate_content.side_effect = Exception("Internal server error")
         mock_get_client.return_value = mock_client
 
         with pytest.raises(RuntimeError, match="Gemini API error"):
@@ -103,9 +102,7 @@ class TestGenerateResponse:
     def test_valueerror_from_api_propagates(self, mock_get_client):
         """If the API raises ValueError directly, it's re-raised (not wrapped)."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = ValueError(
-            "Invalid prompt"
-        )
+        mock_client.models.generate_content.side_effect = ValueError("Invalid prompt")
         mock_get_client.return_value = mock_client
 
         with pytest.raises(ValueError, match="Invalid prompt"):
@@ -115,9 +112,7 @@ class TestGenerateResponse:
     def test_rate_limit_case_insensitive(self, mock_get_client):
         """'Rate Limit' in any casing should be caught."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception(
-            "RATE LIMIT EXCEEDED"
-        )
+        mock_client.models.generate_content.side_effect = Exception("RATE LIMIT EXCEEDED")
         mock_get_client.return_value = mock_client
 
         with pytest.raises(RuntimeError, match="Rate limit hit"):
@@ -125,6 +120,7 @@ class TestGenerateResponse:
 
 
 # ── validate_api_key tests ───────────────────────────────────────────────────
+
 
 class TestValidateApiKey:
     """Tests for validate_api_key() — valid, invalid, and transient errors."""
@@ -144,9 +140,7 @@ class TestValidateApiKey:
     @patch.object(gm, "_get_client")
     def test_missing_key(self, mock_get_client):
         """Missing key → (False, message)."""
-        mock_get_client.side_effect = ValueError(
-            "GEMINI_API_KEY not found. ..."
-        )
+        mock_get_client.side_effect = ValueError("GEMINI_API_KEY not found. ...")
 
         is_valid, msg = gm.validate_api_key()
 
@@ -185,9 +179,7 @@ class TestValidateApiKey:
     def test_network_error_treated_as_valid(self, mock_get_client):
         """Network errors are transient → (True, '') so key check retries later."""
         mock_client = MagicMock()
-        mock_client.models.list.side_effect = Exception(
-            "Connection timeout"
-        )
+        mock_client.models.list.side_effect = Exception("Connection timeout")
         mock_get_client.return_value = mock_client
 
         is_valid, msg = gm.validate_api_key()
@@ -200,9 +192,7 @@ class TestValidateApiKey:
     def test_bad_key_api_key_keyword(self, mock_get_client):
         """Error containing 'api_key' keyword → treated as bad key."""
         mock_client = MagicMock()
-        mock_client.models.list.side_effect = Exception(
-            "Invalid api_key: malformed"
-        )
+        mock_client.models.list.side_effect = Exception("Invalid api_key: malformed")
         mock_get_client.return_value = mock_client
 
         is_valid, msg = gm.validate_api_key()

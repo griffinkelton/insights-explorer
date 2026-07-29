@@ -48,7 +48,7 @@ def detect_chart_request(gemini_response: str) -> dict[str, str] | None:
         chart_type = match.group(1)
         target = match.group(2) or ""
         return {"chart_type": chart_type, "reason": target, "method": "gemini"}
-    
+
     # Fallback to keyword heuristics for backward compatibility
     # (existing keyword scanning logic)
 ```
@@ -99,7 +99,7 @@ def detect_chart_from_json(gemini_response: str) -> dict | None:
     match = re.search(r'```json\s*(.*?)\s*```', gemini_response, re.DOTALL)
     if not match:
         return None
-    
+
     try:
         config = json.loads(match.group(1))
         # Validate required fields
@@ -117,26 +117,26 @@ def generate_chart_from_config(df: pd.DataFrame, config: dict) -> go.Figure | No
     chart_type = config["chart_type"]
     x_col = find_column(df, [config.get("x", "")])
     y_col = find_column(df, [config["y"]])
-    
+
     if not y_col:
         return None
-    
+
     if chart_type == "bar":
         if x_col:
             data = df.groupby(x_col)[y_col].sum().nlargest(10).reset_index()
             return px.bar(data, x=y_col, y=x_col, orientation="h", title=config.get("title", ""))
         else:
             return px.bar(df, y=y_col, title=config.get("title", ""))
-    
+
     elif chart_type == "line":
         date_col = find_date_column(df)
         if date_col:
             data = df.groupby(date_col)[y_col].sum().reset_index()
             return px.line(data, x=date_col, y=y_col, title=config.get("title", ""))
-    
+
     elif chart_type == "table":
         return None  # Tables are rendered natively in Streamlit, not with Plotly
-    
+
     return None
 ```
 
@@ -183,10 +183,10 @@ def split_for_comparison(df, dimension, value_a, value_b):
 def build_comparison_prompt(question, df_a, df_b, label_a, label_b, stats_a, stats_b):
     return f"""
     Compare {label_a} vs {label_b} for the question: {question}
-    
+
     {label_a} data ({stats_a['row_count']} rows): {df_a.head(5).to_string()}
     {label_b} data ({stats_b['row_count']} rows): {df_b.head(5).to_string()}
-    
+
     Provide a comparison with specific numbers and percentages.
     """
 ```
@@ -233,17 +233,17 @@ class ColumnType(Enum):
 def detect_column_types(df: pd.DataFrame) -> dict[str, ColumnType]:
     """Classify each column. Returns {column_name: ColumnType}."""
     types = {}
-    
+
     for col in df.columns:
         # Check for date columns
         if "date" in col.lower() or "time" in col.lower() or "day" in col.lower():
             types[col] = ColumnType.DATE
             continue
-        
+
         if pd.api.types.is_numeric_dtype(df[col]):
             types[col] = ColumnType.NUMERIC
             continue
-        
+
         if pd.api.types.is_string_dtype(df[col]) or pd.api.types.is_object_dtype(df[col]):
             unique_count = df[col].nunique()
             total_count = len(df)
@@ -253,10 +253,10 @@ def detect_column_types(df: pd.DataFrame) -> dict[str, ColumnType]:
             else:
                 types[col] = ColumnType.TEXT
             continue
-        
+
         # Fallback
         types[col] = ColumnType.TEXT
-    
+
     return types
 ```
 
@@ -310,7 +310,7 @@ def detect_anomalies(
     threshold_std: float = 2.0,
 ) -> pd.DataFrame:
     """Flag anomalies using rolling Z-score.
-    
+
     Returns a DataFrame with the same rows as df, plus:
     - rolling_mean: 7-day rolling mean
     - rolling_std: 7-day rolling std
@@ -320,12 +320,12 @@ def detect_anomalies(
     result = df.copy()
     result[date_col] = pd.to_datetime(result[date_col])
     result = result.sort_values(date_col)
-    
+
     result["rolling_mean"] = result[metric_col].rolling(window=window, min_periods=window).mean()
     result["rolling_std"] = result[metric_col].rolling(window=window, min_periods=window).std()
     result["z_score"] = (result[metric_col] - result["rolling_mean"]) / result["rolling_std"]
     result["is_anomaly"] = result["z_score"].abs() > threshold_std
-    
+
     return result
 ```
 
@@ -374,35 +374,35 @@ The current approach sends `df.head(10)` to Gemini in every prompt. For 1M-row d
 ```python
 def smart_sample(df: pd.DataFrame, max_rows: int = 50) -> pd.DataFrame:
     """Return a representative sample of the DataFrame.
-    
+
     - If len(df) <= max_rows: return all rows
     - If len(df) <= 10k: return head(max_rows)
     - If len(df) > 10k: stratified sample preserving date distribution
     """
     n = len(df)
-    
+
     if n <= max_rows:
         return df
-    
+
     if n <= 10_000:
         return df.head(max_rows)
-    
+
     # Large dataset: stratified sampling
     date_col = find_date_column(df)
     if date_col:
         df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
-        
+
         # Create date buckets (weekly)
         df["_week"] = df[date_col].dt.to_period("W")
         weeks = df["_week"].nunique()
-        
+
         # Allocate rows per week proportionally
         sample = df.groupby("_week", group_keys=False).apply(
             lambda g: g.sample(n=min(len(g), max(1, max_rows // weeks)), random_state=42)
         )
         sample = sample.drop(columns=["_week"])
         return sample.head(max_rows)
-    
+
     # No date column: random sample
     return df.sample(n=min(max_rows, n), random_state=42)
 ```

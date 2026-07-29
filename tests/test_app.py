@@ -1,7 +1,6 @@
 """Structural tests for app.py — AST parsing only, no Streamlit runtime."""
 
 import ast
-import pytest
 
 APP = "app.py"
 
@@ -52,9 +51,10 @@ class TestAppStructure:
         assert "GA4 Insight Explorer" in source
 
     def test_has_clear_data_import(self):
-        source = _read_source()
+        _source = _read_source()
         # clear_data() is now in utils/session.py, imported by components not app.py
         # app.py doesn't need it directly; verify it exists somewhere accessible
+        assert "clear_data" in open("utils/session.py").read()
         with open("utils/session.py") as f:
             session_src = f.read()
         assert "def clear_data()" in session_src

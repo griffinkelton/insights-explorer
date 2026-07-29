@@ -32,6 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 # Helpers
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def _parse(path: str) -> ast.Module:
     """Parse a Python file into an AST."""
     with open(path) as f:
@@ -96,6 +97,7 @@ def _call_target_name(node: ast.Call) -> str | None:
 # Pattern 4: def-before-call (BUG-002)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestDefBeforeCall:
     """Verify every function definition appears before its first call site.
 
@@ -138,7 +140,8 @@ class TestDefBeforeCall:
         `def _render_main()` appears later in the file. The linter must
         recurse into Try nodes (and If, With, etc.) to find these calls.
         """
-        source = textwrap.dedent("""\
+        source = textwrap.dedent(
+            """\
             import streamlit as st
 
             try:
@@ -148,7 +151,8 @@ class TestDefBeforeCall:
 
             def _render_main():
                 st.write("Hello")
-        """)
+        """
+        )
         tree = ast.parse(source)
         defs = _find_defs(tree)
         calls = _find_module_level_calls(tree)
@@ -168,7 +172,8 @@ class TestDefBeforeCall:
 
     def test_synthetic_correct_order_passes(self):
         """Def-before-call (the normal case) should produce no violations."""
-        source = textwrap.dedent("""\
+        source = textwrap.dedent(
+            """\
             import streamlit as st
 
             def _render_main():
@@ -178,23 +183,20 @@ class TestDefBeforeCall:
                 _render_main()
             except Exception:
                 st.error("Something went wrong")
-        """)
+        """
+        )
         tree = ast.parse(source)
         defs = _find_defs(tree)
         calls = _find_module_level_calls(tree)
 
-        violations = [
-            (name, line) for name, line in calls
-            if name in defs and line < defs[name]
-        ]
-        assert not violations, (
-            f"Correctly-ordered code flagged as violation: {violations}"
-        )
+        violations = [(name, line) for name, line in calls if name in defs and line < defs[name]]
+        assert not violations, f"Correctly-ordered code flagged as violation: {violations}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Pattern 3: file I/O guard (BUG-006)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestFileIOGuard:
     """Verify file-I/O patterns don't consume buffers before pandas reads.
@@ -262,6 +264,7 @@ class TestFileIOGuard:
 # ═══════════════════════════════════════════════════════════════════════════
 # Pattern 1: except Exception Streamlit guard (BUG-001)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestStreamlitExceptionGuard:
     """Verify `except Exception` blocks in app.py re-raise Streamlit exceptions.
@@ -414,14 +417,16 @@ class TestStreamlitExceptionGuard:
 
     def test_synthetic_missing_guard_detected(self):
         """Prove the linter catches a missing guard."""
-        source = textwrap.dedent("""\
+        source = textwrap.dedent(
+            """\
             import streamlit as st
 
             try:
                 st.stop()
             except Exception as e:
                 st.error(f"Error: {e}")
-        """)
+        """
+        )
         tree = ast.parse(source)
         # The try body has st.stop() at module level — the handler
         # catches Exception but doesn't re-raise Streamlit exceptions.
@@ -429,10 +434,7 @@ class TestStreamlitExceptionGuard:
         for stmt in tree.body:
             if isinstance(stmt, ast.Try):
                 for handler in stmt.handlers:
-                    has_guard = any(
-                        self._is_streamlit_guard(node)
-                        for node in ast.walk(handler)
-                    )
+                    has_guard = any(self._is_streamlit_guard(node) for node in ast.walk(handler))
                     assert not has_guard, (
                         "Expected no Streamlit guard, but _is_streamlit_guard "
                         "returned True — st.error() is not the guard pattern"
@@ -440,7 +442,8 @@ class TestStreamlitExceptionGuard:
 
     def test_synthetic_guard_present_passes(self):
         """Prove the linter accepts a correct guard."""
-        source = textwrap.dedent("""\
+        source = textwrap.dedent(
+            """\
             import streamlit as st
 
             try:
@@ -449,15 +452,13 @@ class TestStreamlitExceptionGuard:
                 if e.__class__.__module__.startswith("streamlit"):
                     raise
                 st.error(f"Error: {e}")
-        """)
+        """
+        )
         tree = ast.parse(source)
         for stmt in tree.body:
             if isinstance(stmt, ast.Try):
                 for handler in stmt.handlers:
-                    has_guard = any(
-                        self._is_streamlit_guard(node)
-                        for node in ast.walk(handler)
-                    )
+                    has_guard = any(self._is_streamlit_guard(node) for node in ast.walk(handler))
                     assert has_guard, (
                         "_is_streamlit_guard should detect the re-raise pattern: "
                         'if e.__class__.__module__.startswith("streamlit"): raise'
@@ -467,6 +468,7 @@ class TestStreamlitExceptionGuard:
 # ═══════════════════════════════════════════════════════════════════════════
 # Pattern 2: on_click anti-pattern (BUG-005)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestOnClickAntiPattern:
     """Detect `on_click` callbacks that trigger slow operations.
@@ -549,4 +551,3 @@ class TestOnClickAntiPattern:
     def _read(self) -> str:
         with open(self.APP_PATH) as f:
             return f.read()
-

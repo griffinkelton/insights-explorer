@@ -42,7 +42,8 @@ def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
     """
     try:
         summary_prompt = build_summary_prompt(
-            df, stats,
+            df,
+            stats,
             quality_report=st.session_state.get("quality_report"),
         )
         st.session_state.summary = generate_response(summary_prompt)

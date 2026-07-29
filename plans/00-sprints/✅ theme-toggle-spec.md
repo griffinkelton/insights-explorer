@@ -137,7 +137,7 @@ The secondary button hover uses a hardcoded `#2a2a3a`:
 #### 1d: Light mode code block background
 
 ```css
-[data-theme="light"] .stCode, 
+[data-theme="light"] .stCode,
 [data-theme="light"] .stCodeBlock {
     background: #f5f5fa !important;
     border-color: rgba(0, 0, 0, 0.08) !important;
@@ -228,7 +228,7 @@ def _render_theme_toggle() -> None:
     current = st.session_state.theme
     new_theme = "light" if current == "dark" else "dark"
     label = "☀️ Light Mode" if current == "dark" else "🌙 Dark Mode"
-    
+
     st.divider()
     if st.button(label, use_container_width=True, key="theme_toggle"):
         st.session_state.theme = new_theme
@@ -252,7 +252,7 @@ def render_sidebar() -> None:
         _render_learn_link()
         _render_theme_toggle()    # ← NEW
         _render_footer()
-    
+
     if uploaded_file is not None:
         _process_uploaded_file(uploaded_file)
 ```
@@ -281,7 +281,7 @@ def generate_chart(
     """Generate a Plotly chart. Uses theme-aware template and font colors."""
     template = "plotly_dark" if theme == "dark" else "plotly_light"
     font_color = "#9898b0" if theme == "dark" else "#4b5563"
-    
+
     # ... use template=template, font=dict(color=font_color) throughout
 ```
 

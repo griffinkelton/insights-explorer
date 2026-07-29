@@ -7,12 +7,14 @@ from utils.charts import generate_chart, find_column, find_date_column
 
 @pytest.fixture
 def sample_df():
-    return pd.DataFrame({
-        "date": pd.date_range("2026-01-01", periods=5),
-        "sessions": [100, 200, 150, 300, 250],
-        "page_path": ["/home", "/about", "/home", "/contact", "/about"],
-        "category": ["A", "B", "A", "C", "B"],
-    })
+    return pd.DataFrame(
+        {
+            "date": pd.date_range("2026-01-01", periods=5),
+            "sessions": [100, 200, 150, 300, 250],
+            "page_path": ["/home", "/about", "/home", "/contact", "/about"],
+            "category": ["A", "B", "A", "C", "B"],
+        }
+    )
 
 
 class TestGenerateChart:
@@ -31,9 +33,7 @@ class TestGenerateChart:
             assert result["type"] == "bar"
 
     def test_returns_line_chart(self, sample_df):
-        result = generate_chart(
-            sample_df, {"chart_type": "line"}, "sessions over time", "trend?"
-        )
+        result = generate_chart(sample_df, {"chart_type": "line"}, "sessions over time", "trend?")
         if result is not None:
             assert "fig" in result
             assert result["type"] == "line"

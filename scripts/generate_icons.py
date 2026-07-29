@@ -109,9 +109,16 @@ def generate_og_image() -> None:
     draw.text(((1200 - tw) // 2, 340), "GA4 Insight Explorer", fill="#f0f0f5", font=title_font)
 
     # Subtitle
-    bbox = draw.textbbox((0, 0), "Analyze GA4 data with natural language — powered by Gemini AI", font=subtitle_font)
+    bbox = draw.textbbox(
+        (0, 0), "Analyze GA4 data with natural language — powered by Gemini AI", font=subtitle_font
+    )
     sw = bbox[2] - bbox[0]
-    draw.text(((1200 - sw) // 2, 420), "Analyze GA4 data with natural language — powered by Gemini AI", fill="#9898b0", font=subtitle_font)
+    draw.text(
+        ((1200 - sw) // 2, 420),
+        "Analyze GA4 data with natural language — powered by Gemini AI",
+        fill="#9898b0",
+        font=subtitle_font,
+    )
 
     img.save(OG_IMAGE_PATH)
     print(f"  ✓ {OG_IMAGE_PATH.name}")

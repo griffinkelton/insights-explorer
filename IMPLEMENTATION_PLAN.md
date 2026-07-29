@@ -346,7 +346,7 @@ Estimated total time: **~2.5 hours**
 ### #7: Loading state for summary button ✅ DONE
 
 > **Status:** ✅ Implemented. The `st.spinner` wrapper is in `app.py` — `if st.button(...): with st.spinner(...): _generate_summary(df, stats); st.rerun()`.
-> 
+>
 > Original issue (fixed): The Generate Summary button used `on_click` callback — UI froze for 3-5 seconds with zero feedback during Gemini API calls.
 
 ---
@@ -1029,7 +1029,7 @@ Add between the chat header and the chat history:
 ```python
 col_chat_header, col_new_chat = st.columns([4, 1])
 with col_new_chat:
-    if st.button("🆕 New Chat", use_container_width=True, 
+    if st.button("🆕 New Chat", use_container_width=True,
                  help="Clear chat history but keep your data"):
         st.session_state.chat_history = []
         st.rerun()

@@ -1,8 +1,6 @@
 """Tests for utils/error_boundary.py — verify error cards render correctly."""
 
-import traceback
-from unittest.mock import patch, MagicMock, call
-import pytest
+from unittest.mock import patch, MagicMock
 
 import utils.error_boundary as eb
 
@@ -180,5 +178,3 @@ class TestRenderErrorCard:
         error_text = mocks["error"].call_args[0][0]
         assert "RuntimeError" in error_text
         assert long_msg in error_text
-
-

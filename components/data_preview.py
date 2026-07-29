@@ -4,8 +4,11 @@ import pandas as pd
 import streamlit as st
 from utils.charts import find_date_column, find_column
 from utils.data_loader import (
-    filter_dataframe, detect_column_types, ColumnType,
-    smart_sample, detect_anomalies,
+    filter_dataframe,
+    detect_column_types,
+    ColumnType,
+    smart_sample,
+    detect_anomalies,
 )
 
 
@@ -38,10 +41,10 @@ def render_data_preview() -> None:
     if st.session_state.df is not None and not st.session_state.df.empty:
         col_types = detect_column_types(display_df)
         badge_css = {
-            ColumnType.DATE:        ("col-date",      "📅"),
-            ColumnType.NUMERIC:     ("col-numeric",   "🔢"),
-            ColumnType.CATEGORICAL: ("col-category",  "🏷️"),
-            ColumnType.TEXT:        ("col-text",      "📝"),
+            ColumnType.DATE: ("col-date", "📅"),
+            ColumnType.NUMERIC: ("col-numeric", "🔢"),
+            ColumnType.CATEGORICAL: ("col-category", "🏷️"),
+            ColumnType.TEXT: ("col-text", "📝"),
         }
         badges = " ".join(
             f'<span class="col-badge {badge_css[t][0]}">{badge_css[t][1]} {col}</span>'
@@ -166,7 +169,7 @@ def _render_quality_scorecard(report) -> None:
                 f'line-height:1;">{report.grade}</div>'
                 f'<div style="font-size:0.7rem;color:#686880;text-transform:uppercase;'
                 f'letter-spacing:0.08em;">Data Quality</div>'
-                f'</div>',
+                f"</div>",
                 unsafe_allow_html=True,
             )
 
@@ -187,9 +190,7 @@ def _render_quality_scorecard(report) -> None:
                 )
 
             if report.missing_columns:
-                st.caption(
-                    f"Missing expected columns: {', '.join(report.missing_columns)}"
-                )
+                st.caption(f"Missing expected columns: {', '.join(report.missing_columns)}")
 
             for warning in report.warnings:
                 st.warning(warning, icon="⚠️")

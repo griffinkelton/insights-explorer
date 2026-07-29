@@ -81,12 +81,9 @@ if st.session_state.api_key_valid is None:
 # ── API key banner (persistent, shows on every page if key is bad) ───────────
 if st.session_state.api_key_valid is False:
     st.error(
-        f"🔑 **Gemini API Key Issue** — "
-        f"{st.session_state.get('api_key_error', 'Invalid key.')}"
+        f"🔑 **Gemini API Key Issue** — " f"{st.session_state.get('api_key_error', 'Invalid key.')}"
     )
-    st.caption(
-        "[Get a free key → Google AI Studio](https://aistudio.google.com/apikey)"
-    )
+    st.caption("[Get a free key → Google AI Studio](https://aistudio.google.com/apikey)")
 
 # ── Render all UI ────────────────────────────────────────────────────────────
 render_all()

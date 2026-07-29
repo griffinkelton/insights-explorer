@@ -13,16 +13,19 @@ from utils.prompt_templates import (
 
 # ── Shared fixtures ──────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def simple_df():
     """A minimal GA4-like DataFrame."""
-    return pd.DataFrame({
-        "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
-        "page_path": ["/home", "/about", "/contact"],
-        "sessions": [100, 80, 60],
-        "engagement_rate": [0.5, 0.4, 0.35],
-        "users": [50, 40, 30],
-    })
+    return pd.DataFrame(
+        {
+            "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
+            "page_path": ["/home", "/about", "/contact"],
+            "sessions": [100, 80, 60],
+            "engagement_rate": [0.5, 0.4, 0.35],
+            "users": [50, 40, 30],
+        }
+    )
 
 
 @pytest.fixture
@@ -48,6 +51,7 @@ def stats_no_dates():
 
 
 # ── build_summary_prompt tests ───────────────────────────────────────────────
+
 
 class TestBuildSummaryPrompt:
     """Tests for build_summary_prompt()."""
@@ -98,6 +102,7 @@ class TestBuildSummaryPrompt:
 
 # ── build_chat_prompt tests ──────────────────────────────────────────────────
 
+
 class TestBuildChatPrompt:
     """Tests for build_chat_prompt()."""
 
@@ -131,10 +136,12 @@ class TestBuildChatPrompt:
         assert "Date range:" not in prompt
 
     def test_handles_no_numeric_columns(self, full_stats):
-        df = pd.DataFrame({
-            "page_path": ["/home", "/about"],
-            "channel": ["organic", "paid"],
-        })
+        df = pd.DataFrame(
+            {
+                "page_path": ["/home", "/about"],
+                "channel": ["organic", "paid"],
+            }
+        )
         stats = {"row_count": 2, "columns": list(df.columns)}
         prompt = build_chat_prompt("test", df, stats)
         # Should not crash — falls back to "No numeric columns available"
@@ -147,11 +154,13 @@ class TestBuildChatPrompt:
 
     def test_large_dataset_uses_head(self, full_stats):
         # Create a DataFrame larger than 10 rows — prompt should still use head(10)
-        df = pd.DataFrame({
-            "date": [f"2024-01-{i:02d}" for i in range(1, 51)],
-            "page_path": [f"/page{i}" for i in range(50)],
-            "sessions": list(range(50, 100)),
-        })
+        df = pd.DataFrame(
+            {
+                "date": [f"2024-01-{i:02d}" for i in range(1, 51)],
+                "page_path": [f"/page{i}" for i in range(50)],
+                "sessions": list(range(50, 100)),
+            }
+        )
         prompt = build_chat_prompt("test", df, {**full_stats, "row_count": 50})
         # head(10) should limit sample — we check that page40+ don't appear
         assert "/page40" not in prompt
@@ -168,10 +177,12 @@ class TestBuildChatPrompt:
     def test_handles_empty_numeric_dataframe(self):
         """Edge case: DataFrame with numeric columns but 0 rows.
         Hits the df.describe() path — pandas handles this gracefully."""
-        df = pd.DataFrame({
-            "sessions": pd.Series(dtype="int64"),
-            "users": pd.Series(dtype="int64"),
-        })
+        df = pd.DataFrame(
+            {
+                "sessions": pd.Series(dtype="int64"),
+                "users": pd.Series(dtype="int64"),
+            }
+        )
         stats = {"row_count": 0, "columns": ["sessions", "users"]}
         prompt = build_chat_prompt("how many sessions?", df, stats)
         # Should not crash and should include numeric summary area
@@ -182,6 +193,7 @@ class TestBuildChatPrompt:
 
 
 # ── _sanitize_question tests ─────────────────────────────────────────────────
+
 
 class TestSanitizeQuestion:
     """Tests for _sanitize_question() — code blocks, backticks, whitespace."""
@@ -283,6 +295,7 @@ class TestSanitizeQuestion:
 
 # ── detect_chart_request tests ───────────────────────────────────────────────
 
+
 class TestDetectChartRequest:
     """Tests for detect_chart_request() — JSON + keyword hybrid detection."""
 
@@ -360,9 +373,7 @@ class TestDetectChartRequest:
 
     def test_invalid_json_falls_back_to_keyword(self):
         """Malformed JSON should fall back to keyword detection."""
-        result = detect_chart_request(
-            'Top pages trend [CHART:{bad json}] over time'
-        )
+        result = detect_chart_request("Top pages trend [CHART:{bad json}] over time")
         assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     # ── No chart triggers ──
@@ -384,17 +395,19 @@ class TestDetectChartRequest:
 
     def test_line_before_bar_precedence(self):
         """When both triggers appear, line should take precedence (checked first)."""
-        result = detect_chart_request(
-            "The top pages trended downward over time."
-        )
+        result = detect_chart_request("The top pages trended downward over time.")
         assert result == {"chart_type": "line", "reason": "trend", "method": "keyword"}
 
     def test_case_insensitive(self):
         assert detect_chart_request("Trend Over Time") == {
-            "chart_type": "line", "reason": "trend", "method": "keyword"
+            "chart_type": "line",
+            "reason": "trend",
+            "method": "keyword",
         }
         assert detect_chart_request("Top 10 Pages") == {
-            "chart_type": "bar", "reason": "ranking", "method": "keyword"
+            "chart_type": "bar",
+            "reason": "ranking",
+            "method": "keyword",
         }
 
     def test_partial_word_boundary(self):

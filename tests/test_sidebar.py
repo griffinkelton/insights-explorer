@@ -19,6 +19,7 @@ class TestSidebarSyntax:
 class TestSidebarImport:
     def test_module_imports_without_error(self):
         from components.sidebar import render_sidebar
+
         assert callable(render_sidebar)
 
 
@@ -35,18 +36,17 @@ class TestSidebarStructure:
     def test_clear_button_no_on_click_anti_pattern(self):
         """BUG-005: _render_clear_button uses `if st.button`, not `on_click=`."""
         import re
+
         source = open(MODULE).read()
         # Extract the _render_clear_button function body
         idx = source.find("def _render_clear_button")
         assert idx > 0, "Missing _render_clear_button function"
         next_def = source.find("\ndef ", idx + 1)
-        func_source = source[idx:next_def if next_def > 0 else len(source)]
+        func_source = source[idx : next_def if next_def > 0 else len(source)]
         # Strip docstrings and comments before checking for on_click=
-        code = re.sub(r'""".*?"""', '', func_source, flags=re.DOTALL)
-        code = re.sub(r'#.*$', '', code, flags=re.MULTILINE)
-        assert "on_click=" not in code, (
-            "BUG-005: on_click= anti-pattern in _render_clear_button"
-        )
+        code = re.sub(r'""".*?"""', "", func_source, flags=re.DOTALL)
+        code = re.sub(r"#.*$", "", code, flags=re.MULTILINE)
+        assert "on_click=" not in code, "BUG-005: on_click= anti-pattern in _render_clear_button"
 
     def test_has_drive_picker_function(self):
         """Drive picker: _render_drive_picker must exist in sidebar."""

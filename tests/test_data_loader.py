@@ -1,13 +1,13 @@
 """Unit tests for utils/data_loader.py — CSV/XLSX parsing, validation, and stats."""
 
 import io
-import pytest
 import pandas as pd
 
 from utils.data_loader import load_file, validate_columns, get_dataset_stats, EXPECTED_COLUMNS
 
 
 # ── Helper: create an in-memory UploadedFile-like object ─────────────────────
+
 
 class FakeUploadedFile(io.BytesIO):
     """Mimics Streamlit's UploadedFile — a BytesIO subclass with .name and .size."""
@@ -33,6 +33,7 @@ def _make_xlsx(df: pd.DataFrame) -> FakeUploadedFile:
 
 # ── load_file tests ──────────────────────────────────────────────────────────
 
+
 class TestLoadFile:
     """Tests for load_file()."""
 
@@ -44,11 +45,13 @@ class TestLoadFile:
         assert list(df.columns) == ["date", "page_path", "sessions"]
 
     def test_load_valid_xlsx(self):
-        df_in = pd.DataFrame({
-            "date": ["2024-01-01"],
-            "page_path": ["/home"],
-            "sessions": [100],
-        })
+        df_in = pd.DataFrame(
+            {
+                "date": ["2024-01-01"],
+                "page_path": ["/home"],
+                "sessions": [100],
+            }
+        )
         df, err, _ = load_file(_make_xlsx(df_in))
         assert err is None
         assert len(df) == 1
@@ -79,6 +82,7 @@ class TestLoadFile:
 
 
 # ── validate_columns tests ────────────────────────────────────────────────────
+
 
 class TestValidateColumns:
     """Tests for validate_columns()."""
@@ -130,25 +134,30 @@ class TestValidateColumns:
 
 # ── get_dataset_stats tests ───────────────────────────────────────────────────
 
+
 class TestGetDatasetStats:
     """Tests for get_dataset_stats()."""
 
     def test_basic_stats(self):
-        df = pd.DataFrame({
-            "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
-            "page_path": ["/home", "/about", "/contact"],
-            "sessions": [100, 80, 60],
-        })
+        df = pd.DataFrame(
+            {
+                "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
+                "page_path": ["/home", "/about", "/contact"],
+                "sessions": [100, 80, 60],
+            }
+        )
         stats = get_dataset_stats(df)
         assert stats["row_count"] == 3
         assert stats["column_count"] == 3
         assert stats["columns"] == ["date", "page_path", "sessions"]
 
     def test_date_range(self):
-        df = pd.DataFrame({
-            "date": ["2024-01-01", "2024-01-15", "2024-01-31"],
-            "sessions": [100, 80, 60],
-        })
+        df = pd.DataFrame(
+            {
+                "date": ["2024-01-01", "2024-01-15", "2024-01-31"],
+                "sessions": [100, 80, 60],
+            }
+        )
         stats = get_dataset_stats(df)
         assert stats["date_range_start"] == "2024-01-01"
         assert stats["date_range_end"] == "2024-01-31"
@@ -161,10 +170,12 @@ class TestGetDatasetStats:
         assert "date_range_end" not in stats
 
     def test_date_column_with_invalid_values(self):
-        df = pd.DataFrame({
-            "date": ["2024-01-01", "not-a-date", None, "2024-06-15"],
-            "sessions": [10, 20, 30, 40],
-        })
+        df = pd.DataFrame(
+            {
+                "date": ["2024-01-01", "not-a-date", None, "2024-06-15"],
+                "sessions": [10, 20, 30, 40],
+            }
+        )
         stats = get_dataset_stats(df)
         # Should parse only valid dates
         assert stats["date_range_start"] == "2024-01-01"
@@ -172,10 +183,12 @@ class TestGetDatasetStats:
 
     def test_does_not_mutate_dataframe(self):
         """Regression: get_dataset_stats must not modify the original DataFrame."""
-        df = pd.DataFrame({
-            "date": ["2024-01-01", "2024-01-02"],
-            "sessions": [100, 80],
-        })
+        df = pd.DataFrame(
+            {
+                "date": ["2024-01-01", "2024-01-02"],
+                "sessions": [100, 80],
+            }
+        )
         original_dtypes = df.dtypes.copy()
         get_dataset_stats(df)
         # After calling, the DataFrame should have identical dtypes

@@ -19,6 +19,7 @@ class TestInitSyntax:
 class TestInitImport:
     def test_module_imports_without_error(self):
         from components import render_all
+
         assert callable(render_all)
 
 

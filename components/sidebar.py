@@ -3,7 +3,14 @@
 import os
 import pandas as pd
 import streamlit as st
-from utils.data_loader import load_file, validate_columns, get_dataset_stats, assess_data_quality, detect_column_types, ColumnType
+from utils.data_loader import (
+    load_file,
+    validate_columns,
+    get_dataset_stats,
+    assess_data_quality,
+    detect_column_types,
+    ColumnType,
+)
 from utils.drive_client import list_drive_files, load_drive_file_as_df
 from utils.ga4_client import get_auth_url, credentials_from_dict, pull_ga4_report
 from utils.session import clear_data
@@ -65,7 +72,8 @@ def render_sidebar() -> None:
 
 def _render_logo() -> None:
     """Render the app logo and title in the sidebar."""
-    st.markdown("""
+    st.markdown(
+        """
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
         <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
                     display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📊</div>
@@ -74,7 +82,9 @@ def _render_logo() -> None:
             <div style="font-size:0.75rem;color:#9898b0;">GA4 Analytics + AI</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def _render_file_uploader():
@@ -90,7 +100,7 @@ def _render_ga4_connect() -> None:
     """Render the GA4 live connection: sign-in, property ID, pull data, disconnect."""
     st.markdown(
         '<p style="font-size:0.8rem;font-weight:600;color:#f0f0f5;margin-bottom:0.3rem;">'
-        '🔗 Google Analytics 4 (Live)</p>',
+        "🔗 Google Analytics 4 (Live)</p>",
         unsafe_allow_html=True,
     )
 
@@ -173,14 +183,17 @@ def _render_ga4_connect() -> None:
 
 def _render_privacy_notice() -> None:
     """Render the privacy disclaimer card."""
-    st.markdown("""
+    st.markdown(
+        """
     <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
         <div style="font-size:0.78rem;color:#9898b0;line-height:1.5;">
             🔒 <b>Privacy</b><br>Data is processed in-memory only and is not stored or used to train any model.
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def _render_clear_button() -> None:
@@ -248,19 +261,14 @@ def _render_compare_controls() -> None:
     if compare_mode:
         col_types = detect_column_types(st.session_state.df)
         categorical_cols = [
-            c for c, t in col_types.items()
-            if t in (ColumnType.CATEGORICAL, ColumnType.TEXT)
+            c for c, t in col_types.items() if t in (ColumnType.CATEGORICAL, ColumnType.TEXT)
         ]
         if categorical_cols:
-            dimension = st.selectbox(
-                "Split by", categorical_cols, key="compare_dimension"
-            )
-            unique_vals = sorted(
-                st.session_state.df[dimension].dropna().unique().tolist()
-            )
+            dimension = st.selectbox("Split by", categorical_cols, key="compare_dimension")
+            unique_vals = sorted(st.session_state.df[dimension].dropna().unique().tolist())
             if len(unique_vals) >= 2:
                 val_a = st.selectbox("Value A", unique_vals, key="compare_val_a")
-                val_b = st.selectbox(
+                st.selectbox(
                     "Value B",
                     [v for v in unique_vals if v != val_a],
                     key="compare_val_b",
@@ -346,7 +354,9 @@ def _process_uploaded_file(uploaded_file) -> None:
     """Parse uploaded file and populate session state."""
     file_id = f"{uploaded_file.name}-{uploaded_file.size}"
     is_new_file = file_id != st.session_state.last_file_id
-    should_process = (st.session_state.df is None and not st.session_state.data_cleared) or is_new_file
+    should_process = (
+        st.session_state.df is None and not st.session_state.data_cleared
+    ) or is_new_file
 
     if not should_process:
         return

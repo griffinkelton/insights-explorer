@@ -14,7 +14,7 @@ def render_error_card(error: Exception, context: str = "") -> None:
     error_type = type(error).__name__
 
     st.error(
-        f"### 😣 Something went wrong"
+        "### 😣 Something went wrong"
         + (f" while {context}" if context else "")
         + f"\n\n**{error_type}:** {error}"
     )
