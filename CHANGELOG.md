@@ -8,6 +8,40 @@
 
 ---
 
+---
+
+### OAuth Security Hardening & Code Quality Remediation
+
+**Date:** 2026-07-29 | **Status:** ✅ Done | **Tests:** 351 → 359
+
+| Change | Type | Related Docs |
+|---|---|---|
+| OAuth scope reduced from full `drive` to `drive.readonly` + `drive.file` — minimal blast radius (BUG-009) | Security | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) |
+| Token revocation on scope migration — `_revoke_token()` calls Google's `/revoke` endpoint, invalidates entire grant | Security | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) |
+| OAuth state file permission hardening — `chmod(0o600)` on PKCE code_verifier JSON files (BUG-010) | Security | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) |
+| Scope migration banner — `needs_scope_migration()` auto-detects stale cached credentials, persistent sidebar re-auth prompt | Feature | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) |
+| Shared error classification — `_classify_api_error()` pure function (HTTP status codes 429/403/500, emoji-prefixed messages) | Refactor | [utils/gemini_client.py](utils/gemini_client.py) |
+| Thought + cached token tracking — `_track_usage()` extracts `thoughts_token_count` + `cached_content_token_count` | Feature | [utils/gemini_client.py](utils/gemini_client.py) |
+| Flash-only model constraint — removed `gemini-2.5-pro` from `AVAILABLE_MODELS`; all models free-tier | Fix | [utils/gemini_client.py](utils/gemini_client.py) |
+| Dead code cleanup — removed `ga4_auth_flow` from `app.py`, `components/sidebar.py`, `components/__init__.py` | Refactor | [utils/ga4_client.py](utils/ga4_client.py) |
+| 8 smoke tests — new `tests/test_exports.py` (4 error classification + 2 Excel + 2 PDF export tests) | Testing | [tests/test_exports.py](tests/test_exports.py) |
+| BUG-009 & BUG-010 — OAuth scope over-privilege + PKCE state persistence lost across Streamlit redirect | Docs | [BUGLOG.md](BUGLOG.md) |
+| File reorganization — `plans/maintenance/` for post-phase-6 maintenance; IMPLEMENTATION_PLAN.md + ENHANCEMENTS.md + PROJECT_COMPLETE.md → `plans/00-meta/` | Docs | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) |
+
+**Key decisions (8 from remediation spec):**
+- Scope detection: `issubset()` — future-proof, only missing scopes flag stale
+- Re-auth UX: clear creds + rerun (not direct OAuth flow trigger from banner)
+- Error classification: HTTP status codes (429/403/500) — stable taxonomy
+- Streaming errors: yield + return (not raise) — avoids generator exception issues
+- Token revocation: one call (prefer refresh token) — Google's /revoke invalidates entire grant
+- File permissions: `if os.name != "nt": chmod(0o600)` + `try/except OSError` — best-effort
+- Model constraint: flash-only — all free tier, no paid-model footgun
+- Token tracking: thought tokens shown conditionally (non-zero only); cached tokens tracked but hidden
+
+**Related:** [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md)
+
+---
+
 ### Theme Toggle Executed — 4 phases, light/dark mode, 231 tests
 
 **Date:** 2026-07-28 | **Status:** ✅ Done
@@ -550,13 +584,13 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 43 |
-| Date range | July 25–28, 2026 |
-| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon |
-| Tests | 0 → 228 across 17 modules |
+| Total commits tracked | 50 |
+| Date range | July 25–29, 2026 |
+| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening |
+| Tests | 0 → 359 across 19 modules |
 | CI/CD | Cloud Build + smoke test |
 | Documentation | 18 MD files totaling 100+ KB |
-| Plans | 21-item IMPLEMENTATION_PLAN + 6 UNIFIED plans + 3 derived sprint plans |
+| Plans | 21-item IMPLEMENTATION_PLAN + 6 UNIFIED plans + 3 derived sprint plans + 1 maintenance round (7 commits) |
 
 ---
 
@@ -567,6 +601,7 @@
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
 - [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
+- [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) — Post-phase-6 OAuth security hardening & code quality remediation
 
 ---
 

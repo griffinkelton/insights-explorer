@@ -258,6 +258,74 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 
 ---
 
+### BUG-009: OAuth scope over-privileged (full `drive` instead of `drive.file`)
+
+**Date:** 2026-07-29
+**Severity:** 🟠 High (privacy/security exposure, not yet shipped)
+**Found during:** Code Review
+**Fixed:** ✅
+
+**The Problem:**
+The Drive write-back feature requested the full `https://www.googleapis.com/auth/drive`
+scope, granting read/write access to the user's entire Google Drive rather than just
+files the app creates.
+
+**Root Cause:**
+The scope was expanded from `drive.readonly` to `drive` to enable write-back features
+(Sheets export, Drive file writes) without evaluating whether a narrower scope would
+suffice.
+
+**The Fix:**
+Changed to `drive.readonly` (for existing Drive picker reads) + `drive.file` (for
+write-back to files the app creates), together covering the full use case with
+minimal blast radius. Added `needs_scope_migration()` to detect stale cached
+credentials, show a persistent re-auth banner in the sidebar, and actively revoke
+the old broad-scope grant via Google's revocation endpoint before clearing local
+state — so the old over-privileged token is killed server-side, not just discarded.
+
+**Learnings:**
+- **For this project:** Any scope expansion should default to the narrowest scope
+  that satisfies the concrete use case, not the broadest scope that "just works."
+- **For future projects:** OAuth scope creep is easy to introduce incrementally —
+  audit scope changes as carefully as dependency additions.
+- **Pattern alert:** This is the OAuth analog of "wildcard IAM permissions" — always
+  ask "what's the minimum grant this feature actually needs?"
+
+---
+
+### BUG-010: OAuth code_verifier lost across Streamlit redirect
+
+**Date:** 2026-07-29
+**Severity:** 🟠 High (breaks Drive auth flow entirely)
+**Found during:** Development
+**Fixed:** ✅
+
+**The Problem:**
+Google's OAuth redirect destroys Streamlit's in-memory `st.session_state`, so the PKCE
+`code_verifier` generated before redirect was unavailable when exchanging the
+authorization code after redirect.
+
+**Root Cause:**
+Streamlit session state is tied to the browser session/WebSocket connection, which does
+not survive a full-page navigation to Google's consent screen and back.
+
+**The Fix:**
+Persist `code_verifier`, `redirect_uri`, and `state` to temporary JSON files keyed by
+the OAuth `state` parameter, with file permissions restricted to the owner (POSIX only)
+and automatic pruning of files older than 10 minutes.
+
+**Learnings:**
+- **For this project:** Any Streamlit flow requiring an external redirect needs
+  filesystem or external persistence — session state alone is insufficient.
+- **For future projects:** OAuth state that must survive a redirect should never live
+  only in-memory; treat it as data requiring the same persistence rigor as a database
+  write.
+- **Pattern alert:** Sensitive data written to temp files needs explicit permission
+  hardening — `chmod(0o600)` with `try/except OSError` for best-effort across
+  filesystem types.
+
+---
+
 ## 📊 Summary
 
 ### By Severity
@@ -265,9 +333,9 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 | Severity | Count | Fixed | Planned |
 |---|---|---|
 | 🔴 Critical | 2 | 2 | 0 |
-| 🟠 High | 1 | 1 | 0 |
+| 🟠 High | 3 | 3 | 0 |
 | 🟡 Medium | 5 | 3 | 2 |
-| **Total** | **8** | **6** | **2** |
+| **Total** | **10** | **8** | **2** |
 
 ### By Root Cause Category
 
@@ -301,7 +369,7 @@ Code review of the plan. The reviewer asked: "Does this cosmetic feature justify
 
 ---
 
-*Last updated: 2026-07-28 after Patterns 1 & 2 linter implementation. 8 bugs documented, 6 fixed, 2 pending implementation. All 4 BUGLOG patterns now CI-gated via tests/test_static_analysis.py (7 linter tests across 4 pattern classes).*
+*Last updated: 2026-07-29 after OAuth scope reduction & PKCE state persistence remediation. 10 bugs documented, 8 fixed, 2 pending. All 4 BUGLOG patterns CI-gated via tests/test_static_analysis.py.*
 
 ---
 

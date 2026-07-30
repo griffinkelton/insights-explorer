@@ -337,9 +337,9 @@ These were identified in the repo assessment but are out of scope for P1–P3. T
 - [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) — **Current sprint:** #15-17, #19 (~6-7 days)
 - [P4 deferred plan](✅ P4-deferred-plan.md) — Deferred: #18, #20, #21, Wave 3 (~20-35 days)
 - [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Completed sprint (must complete first)
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source 21-item plan
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Source 21-item plan
 - [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan with detailed P3–P6 breakdowns
-- [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) — Detailed theme toggle plan (5 phases)
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — **Standalone mini-spec** for #20 (deferred)

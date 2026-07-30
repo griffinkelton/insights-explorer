@@ -1,9 +1,39 @@
-"""Report exporter — builds downloadable Markdown reports from chat sessions."""
+"""Report exporter — builds downloadable Markdown, Excel, and PDF reports."""
 
 import base64
+from io import BytesIO
 from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
+
+# Lazy import for openpyxl — may not be installed in all environments
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+
+# Lazy import for reportlab — may not be installed in all environments
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+        HRFlowable,
+    )
+
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
 
 
 def build_markdown_report(
@@ -12,11 +42,7 @@ def build_markdown_report(
     stats: dict[str, Any],
     data_source: str | None = None,
 ) -> str:
-    """Build a Markdown report from the current session.
-
-    Includes dataset overview, AI summary (if available), and Q&A with
-    embedded chart PNGs (if kaleido is installed).
-    """
+    """Build a Markdown report from the current session."""
     lines: list[str] = []
 
     lines.append("# 📊 GA4 Insight Explorer — Report")
@@ -66,14 +92,281 @@ def build_markdown_report(
     return "\n".join(lines)
 
 
-def _chart_to_base64(fig: go.Figure) -> str | None:
-    """Convert Plotly figure to base64 PNG. Requires kaleido.
+def build_excel_report(
+    df: pd.DataFrame | None = None,
+    summary: str | None = None,
+    stats: dict[str, Any] | None = None,
+    chat_history: list[dict[str, Any]] | None = None,
+    data_source: str | None = None,
+) -> bytes:
+    """Build a formatted Excel workbook with Dashboard, Data, and Q&A sheets."""
+    if not HAS_OPENPYXL:
+        raise RuntimeError(
+            "openpyxl is required for Excel export. Install it with: pip install openpyxl"
+        )
 
-    Returns None if kaleido is not installed or conversion fails.
+    if stats is None:
+        stats = {}
+
+    wb = Workbook()
+
+    # ── Styling ──
+    header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    title_font = Font(name="Calibri", bold=True, size=14)
+    subtitle_font = Font(name="Calibri", bold=True, size=11, color="6B7280")
+    thin_border = Border(
+        left=Side(style="thin", color="D1D5DB"),
+        right=Side(style="thin", color="D1D5DB"),
+        top=Side(style="thin", color="D1D5DB"),
+        bottom=Side(style="thin", color="D1D5DB"),
+    )
+
+    # ── Dashboard sheet ──
+    ws = wb.active
+    ws.title = "Dashboard"
+    ws.column_dimensions["A"].width = 25
+    ws.column_dimensions["B"].width = 50
+
+    ws["A1"] = "📊 GA4 Insight Explorer — Report"
+    ws["A1"].font = title_font
+    ws["A3"] = "Generated:"
+    ws["B3"] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
+    ws["A4"] = "Data Source:"
+    ws["B4"] = data_source or "Unknown"
+    ws["A6"] = "📋 Dataset Overview"
+    ws["A6"].font = subtitle_font
+    ws["A7"] = "Total Rows:"
+    ws["B7"] = stats.get("row_count", "N/A")
+    ws["A8"] = "Columns:"
+    ws["B8"] = stats.get("column_count", "N/A")
+    ws["A9"] = "Date Range:"
+    ws["B9"] = f"{stats.get('date_range_start', 'N/A')} → {stats.get('date_range_end', 'N/A')}"
+
+    if summary:
+        ws["A11"] = "🤖 AI Summary"
+        ws["A11"].font = subtitle_font
+        for i, line in enumerate(summary.split("\n")[:20], start=12):
+            ws[f"A{i}"] = line[:100]
+            ws.merge_cells(f"A{i}:B{i}")
+
+    # ── Data sheet ──
+    ws_data = wb.create_sheet("Data")
+    if df is not None and not df.empty:
+        for col_idx, col_name in enumerate(df.columns, start=1):
+            cell = ws_data.cell(row=1, column=col_idx, value=col_name)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+            cell.border = thin_border
+
+        max_rows = min(len(df), 1000)
+        for row_idx, row in enumerate(df.head(max_rows).itertuples(index=False), start=2):
+            for col_idx, value in enumerate(row, start=1):
+                cell = ws_data.cell(row=row_idx, column=col_idx, value=value)
+                cell.border = thin_border
+
+        for col_idx, col_name in enumerate(df.columns, start=1):
+            max_len = max(len(str(col_name)), df[col_name].astype(str).str.len().max())
+            letter = get_column_letter(col_idx)
+            ws_data.column_dimensions[letter].width = min(max_len + 2, 30)
+
+    # ── Q&A sheet ──
+    ws_qa = wb.create_sheet("Q&A")
+    ws_qa.column_dimensions["A"].width = 30
+    ws_qa.column_dimensions["B"].width = 70
+    ws_qa["A1"] = "Question"
+    ws_qa["B1"] = "AI Response"
+    ws_qa["A1"].font = header_font
+    ws_qa["A1"].fill = header_fill
+    ws_qa["B1"].font = header_font
+    ws_qa["B1"].fill = header_fill
+
+    row_num = 2
+    for entry in chat_history or []:
+        if entry.get("response") and entry["response"] != "":
+            ws_qa.cell(row=row_num, column=1, value=entry["question"][:200])
+            ws_qa.cell(row=row_num, column=2, value=entry["response"][:500])
+            row_num += 1
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def build_pdf_report(
+    summary: str | None = None,
+    stats: dict[str, Any] | None = None,
+    chat_history: list[dict[str, Any]] | None = None,
+    data_source: str | None = None,
+) -> bytes:
+    """Build a professional PDF report with styled sections.
+
+    Returns PDF as bytes for download.
+    Requires reportlab to be installed.
     """
+    if not HAS_REPORTLAB:
+        raise RuntimeError(
+            "reportlab is required for PDF export. Install it with: pip install reportlab"
+        )
+
+    if stats is None:
+        stats = {}
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter, topMargin=0.75 * inch, bottomMargin=0.75 * inch
+    )
+
+    # ── Styles ──
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "CustomTitle",
+        parent=styles["Title"],
+        fontSize=20,
+        spaceAfter=6,
+        textColor=colors.HexColor("#4F46E5"),
+    )
+    subtitle_style = ParagraphStyle(
+        "CustomSubtitle",
+        parent=styles["Normal"],
+        fontSize=10,
+        textColor=colors.HexColor("#6B7280"),
+        spaceAfter=20,
+    )
+    heading_style = ParagraphStyle(
+        "CustomHeading",
+        parent=styles["Heading2"],
+        fontSize=14,
+        textColor=colors.HexColor("#1F2937"),
+        spaceBefore=16,
+        spaceAfter=8,
+    )
+    body_style = ParagraphStyle(
+        "CustomBody",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor("#374151"),
+        spaceAfter=6,
+    )
+    qa_question_style = ParagraphStyle(
+        "QAQuestion",
+        parent=styles["Normal"],
+        fontSize=10,
+        textColor=colors.HexColor("#4F46E5"),
+        fontName="Helvetica-Bold",
+        spaceBefore=12,
+        spaceAfter=4,
+    )
+    qa_answer_style = ParagraphStyle(
+        "QAAnswer",
+        parent=styles["Normal"],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor("#374151"),
+        leftIndent=12,
+        spaceAfter=8,
+    )
+
+    elements: list = []
+
+    # ── Title ──
+    elements.append(Paragraph("📊 GA4 Insight Explorer — Report", title_style))
+    elements.append(
+        Paragraph(
+            f"Generated on {pd.Timestamp.now().strftime('%Y-%m-%d at %H:%M')} · "
+            f"Data source: {data_source or 'Unknown'}",
+            subtitle_style,
+        )
+    )
+    elements.append(HRFlowable(width="100%", color=colors.HexColor("#E5E7EB"), spaceAfter=12))
+
+    # ── Dataset Overview ──
+    elements.append(Paragraph("📋 Dataset Overview", heading_style))
+
+    overview_data = [
+        ["Metric", "Value"],
+        [
+            "Total Rows",
+            (
+                f"{stats.get('row_count', 'N/A'):,}"
+                if isinstance(stats.get("row_count"), int)
+                else str(stats.get("row_count", "N/A"))
+            ),
+        ],
+        ["Columns", str(stats.get("column_count", "N/A"))],
+        [
+            "Date Range",
+            f"{stats.get('date_range_start', 'N/A')} → {stats.get('date_range_end', 'N/A')}",
+        ],
+    ]
+
+    overview_table = Table(overview_data, colWidths=[2.5 * inch, 4 * inch])
+    overview_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4F46E5")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+    elements.append(overview_table)
+    elements.append(Spacer(1, 16))
+
+    # ── AI Summary ──
+    if summary:
+        elements.append(Paragraph("🤖 AI-Generated Summary", heading_style))
+        for line in summary.split("\n"):
+            if line.strip():
+                elements.append(Paragraph(line.strip(), body_style))
+        elements.append(Spacer(1, 16))
+
+    # ── Q&A ──
+    valid_qa = [e for e in (chat_history or []) if e.get("response") and e["response"] != ""]
+    if valid_qa:
+        elements.append(HRFlowable(width="100%", color=colors.HexColor("#E5E7EB"), spaceAfter=8))
+        elements.append(Paragraph("💬 Q&A Session", heading_style))
+
+        for i, entry in enumerate(valid_qa, 1):
+            elements.append(Paragraph(f"Q{i}: {entry['question']}", qa_question_style))
+            # Truncate long answers for PDF readability
+            answer = entry["response"][:1000]
+            if len(entry["response"]) > 1000:
+                answer += "..."
+            elements.append(Paragraph(answer, qa_answer_style))
+
+    # ── Footer ──
+    elements.append(Spacer(1, 24))
+    elements.append(HRFlowable(width="100%", color=colors.HexColor("#E5E7EB"), spaceAfter=8))
+    elements.append(
+        Paragraph(
+            "<i>Report generated by GA4 Insight Explorer</i>",
+            ParagraphStyle(
+                "Footer", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#9CA3AF")
+            ),
+        )
+    )
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def _chart_to_base64(fig: go.Figure) -> str | None:
+    """Convert Plotly figure to base64 PNG. Requires kaleido."""
     try:
         img_bytes = fig.to_image(format="png", scale=2)
         b64 = base64.b64encode(img_bytes).decode("utf-8")
         return f"data:image/png;base64,{b64}"
     except Exception:
-        return None  # Silently skip if kaleido isn't installed
+        return None

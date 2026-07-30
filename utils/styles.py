@@ -84,19 +84,254 @@ def inject_custom_css(theme: str = "dark") -> None:
     /* ── Light theme overrides ── */
     [data-theme="light"] {{
         --bg-primary: #ffffff;
-        --bg-secondary: #f5f5fa;
+        --bg-secondary: #f8f9fa;
         --bg-card: #ffffff;
-        --bg-elevated: #f0f0f5;
-        --text-primary: #1a1a2e;
-        --text-secondary: #686880;
-        --text-muted: #9898b0;
+        --bg-elevated: #f0f1f3;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
         --accent: #4f46e5;
         --accent-hover: #6366f1;
         --accent-soft: rgba(79, 70, 229, 0.08);
         --success: #059669;
         --warning: #d97706;
         --danger: #dc2626;
-        --border: rgba(0, 0, 0, 0.08);
+        --border: rgba(0, 0, 0, 0.1);
+    }}
+
+    /* ── Light theme: App background ── */
+    [data-theme="light"] .stApp {{
+        background: var(--bg-primary) !important;
+    }}
+    [data-theme="light"] .main .block-container {{
+        background: var(--bg-primary) !important;
+    }}
+
+    /* ── Light theme: Sidebar ── */
+    [data-theme="light"] [data-testid="stSidebar"] {{
+        background: var(--bg-secondary) !important;
+        border-right: 1px solid var(--border) !important;
+    }}
+    [data-theme="light"] [data-testid="stSidebar"] .stMarkdown h1 {{
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] [data-testid="stSidebar"] .stMarkdown p {{
+        color: var(--text-secondary) !important;
+    }}
+
+    /* ── Light theme: Text colors ── */
+    [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3 {{
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] p, [data-theme="light"] span, [data-theme="light"] div {{
+        color: var(--text-primary);
+    }}
+    [data-theme="light"] .stMarkdown p {{
+        color: var(--text-secondary) !important;
+    }}
+    [data-theme="light"] .stCaption {{
+        color: var(--text-muted) !important;
+    }}
+
+    /* ── Light theme: Buttons ── */
+    [data-theme="light"] .stButton > button[kind="primary"] {{
+        background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+        color: white !important;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+    }}
+    [data-theme="light"] .stButton > button[kind="primary"]:hover {{
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        transform: translateY(-1px);
+    }}
+    [data-theme="light"] .stButton > button[kind="secondary"] {{
+        background: var(--bg-elevated) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border) !important;
+    }}
+    [data-theme="light"] .stButton > button[kind="secondary"]:hover {{
+        background: #e5e7eb !important;
+        border-color: rgba(0, 0, 0, 0.15) !important;
+    }}
+
+    /* ── Light theme: Metrics ── */
+    [data-theme="light"] [data-testid="stMetric"] {{
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }}
+    [data-theme="light"] [data-testid="stMetric"]:hover {{
+        border-color: rgba(79, 70, 229, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }}
+    [data-theme="light"] [data-testid="stMetric"] label {{
+        color: var(--text-muted) !important;
+    }}
+    [data-theme="light"] [data-testid="stMetric"] div[data-testid="stMetricValue"] {{
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] [data-testid="stMetric"] div[data-testid="stMetricDelta"] {{
+        color: var(--text-secondary) !important;
+    }}
+
+    /* ── Light theme: Expanders ── */
+    [data-theme="light"] .streamlit-expanderHeader {{
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] .streamlit-expanderContent {{
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+    }}
+
+    /* ── Light theme: DataFrames ── */
+    [data-theme="light"] [data-testid="stDataFrame"] th {{
+        background: var(--bg-elevated) !important;
+        color: var(--text-secondary) !important;
+    }}
+    [data-theme="light"] [data-testid="stDataFrame"] td {{
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+    }}
+    [data-theme="light"] [data-testid="stDataFrame"] tr:hover td {{
+        background: var(--bg-elevated) !important;
+    }}
+
+    /* ── Light theme: Chat messages ── */
+    [data-theme="light"] [data-testid="stChatMessage"] {{
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+    }}
+    [data-theme="light"] [data-testid="stChatMessage"] p {{
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] [data-testid="stChatMessage"] .stMarkdown p {{
+        color: var(--text-primary) !important;
+    }}
+
+    /* ── Light theme: Chat input ── */
+    [data-theme="light"] [data-testid="stChatInput"] textarea {{
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] [data-testid="stChatInput"] textarea:focus {{
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }}
+    [data-theme="light"] [data-testid="stChatInput"] textarea::placeholder {{
+        color: var(--text-muted) !important;
+    }}
+
+    /* ── Light theme: Alerts ── */
+    [data-theme="light"] div[data-testid="stAlert"][kind="info"] {{
+        background: rgba(79, 70, 229, 0.06) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] div[data-testid="stAlert"][kind="warning"] {{
+        background: rgba(217, 119, 6, 0.06) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] div[data-testid="stAlert"][kind="error"] {{
+        background: rgba(220, 38, 38, 0.06) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] div[data-testid="stAlert"][kind="success"] {{
+        background: rgba(5, 150, 105, 0.06) !important;
+        color: var(--text-primary) !important;
+    }}
+
+    /* ── Light theme: File uploader ── */
+    [data-theme="light"] [data-testid="stFileUploader"] section {{
+        background: var(--bg-card) !important;
+        border-color: var(--border) !important;
+    }}
+    [data-theme="light"] [data-testid="stFileUploader"] section:hover {{
+        border-color: rgba(79, 70, 229, 0.3) !important;
+        background: rgba(79, 70, 229, 0.02) !important;
+    }}
+
+    /* ── Light theme: Select boxes and inputs ── */
+    [data-theme="light"] .stSelectbox [data-baseweb="select"] {{
+        background: var(--bg-card) !important;
+        border-color: var(--border) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] .stTextInput input {{
+        background: var(--bg-card) !important;
+        border-color: var(--border) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-theme="light"] .stTextInput input::placeholder {{
+        color: var(--text-muted) !important;
+    }}
+    [data-theme="light"] .stTextArea textarea {{
+        background: var(--bg-card) !important;
+        border-color: var(--border) !important;
+        color: var(--text-primary) !important;
+    }}
+
+    /* ── Light theme: Tabs ── */
+    [data-theme="light"] .stTabs [data-baseweb="tab"] {{
+        color: var(--text-secondary) !important;
+    }}
+    [data-theme="light"] .stTabs [aria-selected="true"] {{
+        background: rgba(79, 70, 229, 0.1) !important;
+        color: var(--accent) !important;
+    }}
+    [data-theme="light"] .stTabs [data-baseweb="tab-list"] {{
+        background: var(--bg-elevated) !important;
+    }}
+
+    /* ── Light theme: Dividers ── */
+    [data-theme="light"] hr {{
+        border-color: var(--border) !important;
+    }}
+
+    /* ── Light theme: Code blocks ── */
+    [data-theme="light"] .stCode,
+    [data-theme="light"] .stCodeBlock {{
+        background: #f3f4f6 !important;
+        border-color: var(--border) !important;
+    }}
+    [data-theme="light"] code {{
+        background: #f3f4f6 !important;
+        color: var(--text-primary) !important;
+    }}
+
+    /* ── Light theme: Scrollbar ── */
+    [data-theme="light"] ::-webkit-scrollbar-thumb {{
+        background: #d1d5db;
+    }}
+    [data-theme="light"] ::-webkit-scrollbar-thumb:hover {{
+        background: #9ca3af;
+    }}
+
+    /* ── Light theme: Tooltips ── */
+    [data-theme="light"] .stTooltip {{
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border) !important;
+    }}
+
+    /* ── Light theme: Concept cards ── */
+    [data-theme="light"] .concept-card {{
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+    }}
+    [data-theme="light"] .concept-card h4 {{
+        color: var(--text-primary);
+    }}
+    [data-theme="light"] .concept-card p {{
+        color: var(--text-secondary);
+    }}
+
+    /* ── Light theme: Tip box ── */
+    [data-theme="light"] .tip-box {{
+        background: rgba(217, 119, 6, 0.05);
+        border-color: rgba(217, 119, 6, 0.15);
+        color: var(--text-primary);
     }}
 
     .stApp {{

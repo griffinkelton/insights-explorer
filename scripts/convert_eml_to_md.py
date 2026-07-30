@@ -10,7 +10,6 @@ import re
 import html
 from pathlib import Path
 
-
 EMAIL_DIR = Path("email")
 
 # Characters that should not appear in the decoded text after proper decoding

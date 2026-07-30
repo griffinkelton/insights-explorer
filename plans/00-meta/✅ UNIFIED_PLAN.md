@@ -1,11 +1,11 @@
 # 🗺️ Unified Implementation Plan — GA4 Insight Explorer
 
-> **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
+> **Purpose:** Single-source execution blueprint for all plans in the `plans/` directory. These plans are **additive** to the 21 items in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — P3–P6 here are the detailed breakdowns of IMPL items #18–#21. P1 and P2 are bonus items not in the implementation plan.
 >
 > **Status:** ✅ Done — all 6 phase plans complete. P1–P2 ✅, P3 Theme Toggle ✅, P4 Streaming ✅, P5 Component Refactor ✅, P6 AI/Data Enhancements ✅.
 > **Last updated:** 2026-07-28 (all phases complete; 239 tests)
 >
-> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](✅ P4-deferred-plan.md) (✅ done), [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
+> **Relationship to other docs:** This consolidates 6 plan files into one execution blueprint. It's referenced from [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). The 21 items in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) cover smaller, faster changes; the 6 plans here cover larger, multi-day features. Derived planning docs: [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) (✅ done), [P4 Wave 1 sprint spec](✅ P4-wave1-streaming-sprint-spec.md) (✅ done), [P4 deferred plan](✅ P4-deferred-plan.md) (✅ done), [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) (✅ done).
 
 ---
 
@@ -17,10 +17,10 @@
 |---|---|---|---|---|---|---|
 | P1 | [✅ APP_ICON.md](✅ APP_ICON.md) | Custom app icon + favicon (SVG, 8 sizes, PWA manifest, OG image) | 2-3 hrs | Low | None | Bonus |
 | P2 | [✅ BONUS_DATA_QUALITY_SCORECARD.md](✅ BONUS_DATA_QUALITY_SCORECARD.md) | A-F data quality card (completeness, duplicates, outliers, date gaps) | 2-4 hrs | Low | None | Bonus ✅ |
-| P3 | [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) | Light/dark theme toggle (CSS variables, JS sync, Plotly swap) | 3-5 days | High | None | [#18](../IMPLEMENTATION_PLAN.md) ✅ |
-| P4 | [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](../IMPLEMENTATION_PLAN.md) ✅ |
-| P5 | [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](../IMPLEMENTATION_PLAN.md) ✅ |
-| P6 | [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items (chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling) | Varies | Medium-High | None | [#21](../IMPLEMENTATION_PLAN.md) ✅ |
+| P3 | [p3-p4/✅ THEME_TOGGLE.md](p3-p4/✅ THEME_TOGGLE.md) | Light/dark theme toggle (CSS variables, JS sync, Plotly swap) | 3-5 days | High | None | [#18](IMPLEMENTATION_PLAN.md) ✅ |
+| P4 | [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) | Token-by-token streaming chat (generator, st.write_stream, error recovery) | 3-5 days | High | None | [#19](IMPLEMENTATION_PLAN.md) ✅ |
+| P5 | [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) | Split app.py into components/ package (7 new files) | 3-5 days | Medium | None | [#20](IMPLEMENTATION_PLAN.md) ✅ |
+| P6 | [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) | 6 AI/data sub-items (chart tokens, JSON mapping, comparative mode, type detection, anomaly detection, smart sampling) | Varies | Medium-High | None | [#21](IMPLEMENTATION_PLAN.md) ✅ |
 
 ### Sprint & Future-Phase Plans (derived from IMPLEMENTATION_PLAN.md)
 
@@ -264,4 +264,4 @@ After each item, the agent will:
 
 ---
 
-*This unified plan consolidates all 6 plans in the `plans/` directory. Each plan has its own detailed file — this document is the master index, execution order, and progress tracker. For smaller, faster changes (under 1 hour each), see [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).*
+*This unified plan consolidates all 6 plans in the `plans/` directory. Each plan has its own detailed file — this document is the master index, execution order, and progress tracker. For smaller, faster changes (under 1 hour each), see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).*

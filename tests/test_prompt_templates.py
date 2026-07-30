@@ -10,7 +10,6 @@ from utils.prompt_templates import (
     detect_chart_request,
 )
 
-
 # ── Shared fixtures ──────────────────────────────────────────────────────────
 
 

@@ -15,12 +15,14 @@ inject_custom_css(theme=st.session_state.get("theme", "dark"))
 inject_favicon_meta(theme=st.session_state.get("theme", "dark"))
 
 # ── Hero ─────────────────────────────────────────────────────────────────────
+_theme = st.session_state.get("theme", "dark")
+_hero_color = "#6b7280" if _theme == "light" else "#9898b0"
 st.markdown(
-    """
+    f"""
 <div style="text-align:center;padding:2rem 1rem 1.5rem 1rem;">
     <div style="font-size:3.5rem;margin-bottom:0.5rem;">📚</div>
     <h1 style="font-size:2.2rem;margin-bottom:0.3rem;">Learn Python by Exploring This App</h1>
-    <p style="color:#9898b0;font-size:1rem;max-width:600px;margin:0 auto;line-height:1.6;">
+    <p style="color:{_hero_color};font-size:1rem;max-width:600px;margin:0 auto;line-height:1.6;">
         Every line of code in the <strong>GA4 Insight Explorer</strong> is a lesson.
         Below, we break down the concepts, patterns, and libraries that power it.
     </p>
@@ -578,14 +580,15 @@ def get_auth_url(redirect_uri: str) -> tuple[str, Flow]:
     )
 
     st.markdown(
-        '### Step 2: User approves & is redirected <span class="file-badge">app.py:73</span>'
+        '### Step 2: User approves & is redirected <span class="file-badge">components/__init__.py</span>'
     )
     st.code(
         """# Streamlit detects the OAuth callback via query params
-if "code" in st.query_params and st.session_state.ga4_auth_flow is not None:
+if "code" in st.query_params:
     creds = exchange_code(
-        st.session_state.ga4_auth_flow,
-        code=st.query_params["code"],   # The auth code from Google
+        code=st.query_params["code"],
+        redirect_uri=REDIRECT_URI,
+        state=st.query_params.get("state"),
     )
     # Serialize credentials for session state (Flow objects can't be pickled)
     st.session_state.ga4_creds = credentials_to_dict(creds)""",
@@ -897,17 +900,21 @@ def test_something(self, mock_get_client):
     )
 
 # ── Footer ───────────────────────────────────────────────────────────────────
+_theme = st.session_state.get("theme", "dark")
+_footer_color = "#9ca3af" if _theme == "light" else "#686880"
+_footer_color2 = "#6b7280" if _theme == "light" else "#9898b0"
+_code_bg = "#f3f4f6" if _theme == "light" else "#1a1a26"
 st.divider()
 st.markdown(
-    """
+    f"""
 <div style="text-align:center;padding:2rem 0 1rem 0;">
-    <p style="color:#686880;font-size:0.85rem;">
+    <p style="color:{_footer_color};font-size:0.85rem;">
         📚 <strong>Learn by exploring</strong> — every file in this project is documented and tested.
     </p>
-    <p style="color:#9898b0;font-size:0.82rem;">
-        <strong>Next:</strong> Read through <code style="background:#1a1a26;padding:2px 6px;border-radius:4px;">utils/data_loader.py</code>
+    <p style="color:{_footer_color2};font-size:0.82rem;">
+        <strong>Next:</strong> Read through <code style="background:{_code_bg};padding:2px 6px;border-radius:4px;">utils/data_loader.py</code>
         to see how file parsing works, or
-        <code style="background:#1a1a26;padding:2px 6px;border-radius:4px;">tests/test_gemini_client.py</code>
+        <code style="background:{_code_bg};padding:2px 6px;border-radius:4px;">tests/test_gemini_client.py</code>
         to understand mocking patterns.
     </p>
 </div>

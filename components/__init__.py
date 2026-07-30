@@ -1,15 +1,16 @@
 """GA4 Insight Explorer — UI component orchestration."""
 
 import streamlit as st
-from components.sidebar import render_sidebar
-from components.hero import render_hero
-from components.data_preview import render_data_preview
-from components.summary import render_summary_section
+
 from components.chat import render_chat_section
-from utils.ga4_client import exchange_code, credentials_to_dict
-from utils.error_boundary import render_error_card
-from utils.onboarding import render_tour_step
+from components.data_preview import render_data_preview
+from components.hero import render_hero
+from components.sidebar import render_sidebar
+from components.summary import render_summary_section
 from utils.data_loader import apply_custom_metrics
+from utils.error_boundary import render_error_card
+from utils.ga4_client import credentials_to_dict, exchange_code
+from utils.onboarding import render_tour_step
 
 
 def render_all() -> None:
@@ -78,22 +79,24 @@ def _render_main_content() -> None:
 
 
 def _handle_oauth_callback() -> None:
-    """Handle Google OAuth redirect (?code=...).
+    """Handle Google OAuth redirect (?code=...&state=...).
 
     Called at the very start of render_all(), before any UI renders.
     After exchanging the code for credentials, calls st.rerun() to
     clean the URL of query params and start a fresh render cycle with
     the authenticated state.
     """
-    if "code" not in st.query_params or st.session_state.ga4_auth_flow is None:
+    if "code" not in st.query_params:
         return
     try:
+        from components.sidebar import REDIRECT_URI
+
         creds = exchange_code(
-            st.session_state.ga4_auth_flow,
             code=st.query_params["code"],
+            redirect_uri=REDIRECT_URI,
+            state=st.query_params.get("state"),
         )
         st.session_state.ga4_creds = credentials_to_dict(creds)
-        st.session_state.ga4_auth_flow = None
         st.query_params.clear()
         # Rerun immediately: strips ?code= from the browser URL and
         # starts a clean render cycle where the sidebar shows "✅ Connected".
@@ -102,5 +105,4 @@ def _handle_oauth_callback() -> None:
         st.rerun()
     except Exception as e:
         st.error(f"Authentication failed: {e}")
-        st.session_state.ga4_auth_flow = None
         st.query_params.clear()

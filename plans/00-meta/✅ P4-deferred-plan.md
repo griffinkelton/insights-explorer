@@ -214,5 +214,5 @@ Gemini outputs structured JSON chart configs. Parse with `json.loads` and map dy
 - [p5-p6/✅ COMPONENT_REFACTOR.md](p5-p6/✅ COMPONENT_REFACTOR.md) — Detailed refactor plan (7 phases, code samples)
 - [p5-p6/✅ AI_DATA_ENHANCEMENTS.md](p5-p6/✅ AI_DATA_ENHANCEMENTS.md) — Detailed AI/data plan (6 sub-items)
 - [✅ onboarding-tour.md](✅ onboarding-tour.md) — Onboarding tour completion doc
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
 - [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan

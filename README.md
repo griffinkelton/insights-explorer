@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/streamlit-1.60+-red?logo=streamlit" alt="Streamlit">
   <img src="https://img.shields.io/badge/AI-Gemini%202.5%20Flash-purple?logo=googlegemini" alt="Gemini 2.5 Flash">
-  <img src="https://img.shields.io/badge/tests-194%20passed-success?logo=pytest" alt="194 tests">
+  <img src="https://img.shields.io/badge/tests-359%20passed-success?logo=pytest" alt="359 tests">
   <img src="https://github.com/griffinkelton/insights-explorer/actions/workflows/test.yml/badge.svg" alt="GitHub Actions">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
@@ -91,7 +91,7 @@ python -m pytest tests/ --cov=utils --cov=pages --cov-report=term -v
 | `test_gemini_client.py` | 14 | `generate_response`, `validate_api_key` |
 | `test_error_boundary.py` | 14 | `render_error_card` rendering scenarios |
 | `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O, Streamlit guard, on_click |
-| **Total** | **194** | All util modules + pages + app structure + static analysis |
+| **Total** | **359** | All util modules + components + pages + app structure + exports + static analysis |
 
 ---
 
@@ -133,10 +133,13 @@ python -m pytest tests/ --cov=utils --cov=pages --cov-report=term -v
 ├── .env.example                # API key template
 ├── requirements.txt            # Python dependencies
 ├── .gitignore
-├── BUGLOG.md                   # Structured bug log (8 bugs, patterns, rules)
+├── BUGLOG.md                   # Structured bug log (10 bugs, patterns, rules)
 ├── ORIGINAL_SPEC.md            # Initial spec + 26-item compliance checklist
-├── ENHANCEMENTS.md             # 37-item enhancement roadmap
-├── IMPLEMENTATION_PLAN.md      # 21-item execution blueprint
+├── plans/
+│   ├── 00-meta/                # Archived meta-planning (UNIFIED_PLAN, IMPLEMENTATION_PLAN, ENHANCEMENTS)
+│   ├── 00-sprints/             # Archived sprint specs (all ✅)
+│   ├── p1-p2/, p3-p4/, p5-p6/  # Archived phase completion docs (all ✅)
+│   └── maintenance/            # Post-phase-6 maintenance (active)
 ├── IDEAS.md                    # 25 bonus enhancements + 10 moonshots
 ├── DOCUMENTATION_INDEX.md      # Central index of all docs
 ├── ARCHITECTURE.md             # Architecture & design decisions
@@ -399,7 +402,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (171 unit tests across 8 modules) |
+| Testing | pytest (359 unit tests across 19 modules) |
 | CI/CD | Google Cloud Build (`cloudbuild.yaml`) |
 | Data | Pandas |
 | Charts | Plotly |
@@ -447,9 +450,10 @@ MIT — experimental prototype, use at your own risk.
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Full architecture, design decisions, build log
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + 26-item compliance checklist
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap across 7 categories
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Detailed 21-item execution blueprint with sprint plan
+- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap across 7 categories
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — Detailed 21-item execution blueprint with sprint plan
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project documentation
-- [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
+- [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings (10 bugs)
+- [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) — Post-phase-6 OAuth security hardening & code quality remediation
 - [Learn Page](http://localhost:8501/learn) — Interactive Python tutorials (app must be running)

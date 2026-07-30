@@ -1,18 +1,25 @@
 """Sidebar — file uploader, GA4 connect, privacy notice, navigation."""
 
 import os
+
 import pandas as pd
 import streamlit as st
+
 from utils.data_loader import (
-    load_file,
-    validate_columns,
-    get_dataset_stats,
+    ColumnType,
     assess_data_quality,
     detect_column_types,
-    ColumnType,
+    get_dataset_stats,
+    load_file,
+    validate_columns,
 )
 from utils.drive_client import list_drive_files, load_drive_file_as_df
-from utils.ga4_client import get_auth_url, credentials_from_dict, pull_ga4_report
+from utils.ga4_client import (
+    credentials_from_dict,
+    get_auth_url,
+    needs_scope_migration,
+    pull_ga4_report,
+)
 from utils.session import clear_data
 
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
@@ -65,6 +72,7 @@ def render_sidebar() -> None:
         _render_clear_button()
         _render_compare_controls()
         _render_custom_metrics()
+        _render_model_selector()
         _render_api_counter()
         _render_learn_link()
         _render_theme_toggle()
@@ -77,14 +85,17 @@ def render_sidebar() -> None:
 
 def _render_logo() -> None:
     """Render the app logo and title in the sidebar."""
+    theme = st.session_state.get("theme", "dark")
+    title_color = "#1f2937" if theme == "light" else "#f0f0f5"
+    subtitle_color = "#6b7280" if theme == "light" else "#9898b0"
     st.markdown(
-        """
+        f"""
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
         <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
                     display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📊</div>
         <div>
-            <div style="font-weight:700;font-size:1.1rem;color:#f0f0f5;line-height:1.3;">Insight Explorer</div>
-            <div style="font-size:0.75rem;color:#9898b0;">GA4 Analytics + AI</div>
+            <div style="font-weight:700;font-size:1.1rem;color:{title_color};line-height:1.3;">Insight Explorer</div>
+            <div style="font-size:0.75rem;color:{subtitle_color};">GA4 Analytics + AI</div>
         </div>
     </div>
     """,
@@ -103,9 +114,11 @@ def _render_file_uploader():
 
 def _render_ga4_connect() -> None:
     """Render the GA4 live connection: sign-in, property ID, pull data, disconnect."""
+    theme = st.session_state.get("theme", "dark")
+    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
     st.markdown(
-        '<p style="font-size:0.8rem;font-weight:600;color:#f0f0f5;margin-bottom:0.3rem;">'
-        "🔗 Google Analytics 4 (Live)</p>",
+        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
+        f"🔗 Google Analytics 4 (Live)</p>",
         unsafe_allow_html=True,
     )
 
@@ -113,8 +126,7 @@ def _render_ga4_connect() -> None:
         # Not connected — show sign-in
         if st.button("🔐 Sign in with Google", use_container_width=True, type="primary"):
             try:
-                auth_url, flow = get_auth_url(REDIRECT_URI)
-                st.session_state.ga4_auth_flow = flow
+                auth_url, _ = get_auth_url(REDIRECT_URI)
                 st.markdown(
                     f'<meta http-equiv="refresh" content="0;url={auth_url}">'
                     f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
@@ -132,6 +144,23 @@ def _render_ga4_connect() -> None:
             "with `http://localhost:8501` as an authorized redirect URI."
         )
     else:
+        # ── Scope migration banner ──
+        creds = credentials_from_dict(st.session_state.ga4_creds)
+        if needs_scope_migration(creds):
+            from utils.ga4_client import _revoke_token
+
+            st.warning(
+                "🔐 We've updated Drive permissions for better security. "
+                "Please reconnect your Google account to continue using Drive features."
+            )
+            if st.button("🔄 Reconnect Google Account", use_container_width=True):
+                _revoke_token(creds)
+                st.session_state.ga4_creds = None
+                st.session_state.drive_files_cache = None
+                st.rerun()
+            # Return early — don't show connected controls until migration done
+            return
+
         # Connected — show controls
         st.success("✅ Connected to Google")
 
@@ -178,7 +207,6 @@ def _render_ga4_connect() -> None:
         with col_disc:
             if st.button("✕ Disconnect", use_container_width=True):
                 st.session_state.ga4_creds = None
-                st.session_state.ga4_auth_flow = None
                 st.session_state.ga4_property_id = ""
                 st.session_state.drive_files_cache = None
                 if st.session_state.data_source == "ga4":
@@ -188,11 +216,15 @@ def _render_ga4_connect() -> None:
 
 def _render_privacy_notice() -> None:
     """Render the privacy disclaimer card."""
+    theme = st.session_state.get("theme", "dark")
+    privacy_bg = "rgba(79,70,229,0.04)" if theme == "light" else "rgba(99,102,241,0.06)"
+    privacy_border = "rgba(79,70,229,0.1)" if theme == "light" else "rgba(99,102,241,0.12)"
+    privacy_text = "#6b7280" if theme == "light" else "#9898b0"
     st.markdown(
-        """
-    <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);
+        f"""
+    <div style="background:{privacy_bg};border:1px solid {privacy_border};
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
-        <div style="font-size:0.78rem;color:#9898b0;line-height:1.5;">
+        <div style="font-size:0.78rem;color:{privacy_text};line-height:1.5;">
             🔒 <b>Privacy</b><br>Data is processed in-memory only and is not stored or used to train any model.
         </div>
     </div>
@@ -217,6 +249,59 @@ def _render_clear_button() -> None:
             st.rerun()
 
 
+def _render_model_selector() -> None:
+    """Render the AI model selector with tooltips."""
+    from utils.gemini_client import AVAILABLE_MODELS, DEFAULT_MODEL
+
+    st.divider()
+    theme = st.session_state.get("theme", "dark")
+    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
+    st.markdown(
+        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
+        f"🤖 AI Model</p>",
+        unsafe_allow_html=True,
+    )
+
+    model_keys = list(AVAILABLE_MODELS.keys())
+    model_labels = [AVAILABLE_MODELS[k]["label"] for k in model_keys]
+
+    # Default to gemini-2.5-flash index
+    current_model = st.session_state.get("selected_model", DEFAULT_MODEL)
+    try:
+        current_idx = model_keys.index(current_model)
+    except ValueError:
+        current_idx = 0
+
+    selected_label = st.selectbox(
+        "Model",
+        options=model_labels,
+        index=current_idx,
+        key="model_selector",
+        label_visibility="collapsed",
+    )
+
+    # Map back to model key
+    selected_key = model_keys[model_labels.index(selected_label)]
+    st.session_state.selected_model = selected_key
+
+    # Show tooltip/info for selected model
+    model_info = AVAILABLE_MODELS[selected_key]
+    tier_color = "#059669" if model_info["tier"] == "Free" else "#d97706"
+    st.markdown(
+        f'<div style="background:var(--bg-card);border:1px solid var(--border);'
+        f'border-radius:8px;padding:0.6rem 0.8rem;margin-top:0.3rem;">'
+        f'<div style="font-size:0.72rem;color:var(--text-secondary);line-height:1.5;">'
+        f'{model_info["tooltip"]}</div>'
+        f'<div style="display:flex;gap:0.8rem;margin-top:0.4rem;">'
+        f'<span style="font-size:0.65rem;color:{tier_color};font-weight:600;">'
+        f'{model_info["tier"]}</span>'
+        f'<span style="font-size:0.65rem;color:var(--text-muted);">'
+        f'{model_info["context_window"]} context</span>'
+        f"</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _render_api_counter() -> None:
     """Render API call counter (only when calls have been made)."""
     if st.session_state.api_call_count > 0:
@@ -226,8 +311,10 @@ def _render_api_counter() -> None:
 def _render_footer() -> None:
     """Render the sidebar footer."""
     st.divider()
+    theme = st.session_state.get("theme", "dark")
+    footer_color = "#9ca3af" if theme == "light" else "#686880"
     st.markdown(
-        '<div style="font-size:0.72rem;color:#686880;">Built with ❤️ using Streamlit + Gemini</div>',
+        f'<div style="font-size:0.72rem;color:{footer_color};">Built with ❤️ using Streamlit + Gemini</div>',
         unsafe_allow_html=True,
     )
 
@@ -250,9 +337,11 @@ def _render_custom_metrics() -> None:
         return
 
     st.divider()
+    theme = st.session_state.get("theme", "dark")
+    metrics_color = "#1f2937" if theme == "light" else "#f0f0f5"
     st.markdown(
-        '<p style="font-size:0.8rem;font-weight:600;color:#f0f0f5;margin-bottom:0.3rem;">'
-        "🧮 Custom Metrics</p>",
+        f'<p style="font-size:0.8rem;font-weight:600;color:{metrics_color};margin-bottom:0.3rem;">'
+        f"🧮 Custom Metrics</p>",
         unsafe_allow_html=True,
     )
 

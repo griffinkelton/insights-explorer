@@ -20,19 +20,24 @@ insights-explorer/
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py           # CSV/XLSX parsing, column validation, stats
-│   ├── gemini_client.py         # Gemini API wrapper (error handling, key validation)
-│   ├── ga4_client.py            # GA4 live connection (OAuth + Analytics Data API)
+│   ├── gemini_client.py         # Gemini API wrapper (error handling, key validation, token tracking)
+│   ├── ga4_client.py            # GA4 live connection (OAuth + Analytics Data API, PKCE state persistence)
 │   ├── prompt_templates.py      # Prompt construction, sanitization, chart detection
-│   └── styles.py                # Custom CSS theme + keyboard shortcut JS
+│   └── styles.py                # Custom CSS theme (light/dark) + keyboard shortcut JS
+├── components/
+│   ├── __init__.py              # UI orchestrator + OAuth callback handler
+│   ├── sidebar.py               # File upload, GA4 connect, Drive picker, model selector
+│   ├── chat.py                  # Chat interface, streaming, chart rendering, export
+│   ├── summary.py               # AI summary generation + display
+│   ├── data_preview.py          # Data metrics, filters, quality scorecard
+│   └── hero.py                  # Empty-state hero + onboarding
 ├── tests/
 │   ├── test_data_loader.py      # 20 tests — file parsing, validation, stats
 │   ├── test_gemini_client.py    # 14 tests — API calls, error handling, key validation
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
-│   ├── test_ga4_client.py       # 18 tests — OAuth flow, credentials, GA4 report pull
-│   ├── test_learn_page.py       # 19 tests — learn page structure, content, tabs
-│   ├── test_error_boundary.py   # 14 tests — error card rendering, exception types, edge cases
-│   ├── test_data_quality.py     # 18 tests — quality scoring, grade calculation, edge cases
-│   └── test_static_analysis.py  # 5 tests — def-before-call AST linter, file I/O guard
+│   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
+│   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
+│   └── ...                      # 11 additional test modules (359 total)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -48,12 +53,18 @@ insights-explorer/
 ├── .env.example                 # API key template + GA4 OAuth path
 ├── requirements.txt             # Python dependencies
 ├── .gitignore
-├── BUGLOG.md                    # Structured bug log
+├── BUGLOG.md                    # Structured bug log (10 bugs)
 ├── ORIGINAL_SPEC.md             # Initial spec + compliance checklist
 ├── IDEAS.md                     # 25 bonus ideas + 10 moonshots
 ├── DOCUMENTATION_INDEX.md       # Central docs index
-├── ENHANCEMENTS.md              # 37-item enhancement roadmap
-├── IMPLEMENTATION_PLAN.md       # 21-item execution blueprint
+├── plans/
+│   ├── 00-meta/                 # Archived meta-planning (UNIFIED_PLAN, IMPLEMENTATION_PLAN, ENHANCEMENTS)
+│   ├── 00-sprints/              # Archived sprint specs (all ✅)
+│   ├── p1-p2/, p3-p4/, p5-p6/   # Archived phase completion docs (all ✅)
+│   └── maintenance/             # Post-phase-6 maintenance (active)
+│       ├── ✅ 2026-07-29-oauth-scope-remediation-spec.md
+│       ├── 🔵 2026-07-29-drive-scope-remediation-plan.md
+│       └── ✅ 2026-07-29-drive-export-model-selector-session.md
 ├── ARCHITECTURE.md              # This file
 └── README.md                    # Setup guide + GA4 connection walkthrough
 ```
@@ -93,6 +104,22 @@ insights-explorer/
 ### 8. CI/CD: Google Cloud Build
 **Decision:** Use `cloudbuild.yaml` with GCP Cloud Build triggers on every push.
 **Rationale:** The project already uses GCP for OAuth and GA4 API. Cloud Build integrates natively and has a generous free tier (120 build-minutes/day). The build installs deps in a venv and runs the full 171-test suite.
+
+### 9. OAuth State Persistence: Filesystem-Based PKCE
+**Decision:** Persist PKCE `code_verifier` and `redirect_uri` in temp JSON files keyed by the OAuth `state` parameter.
+**Rationale:** Streamlit destroys `st.session_state` when Google redirects the browser away for OAuth consent. The filesystem bridge survives the redirect. Files are pruned after 10 minutes, restricted to `chmod(0o600)` (POSIX only), and deleted on one-time-use read.
+
+### 10. Scope Migration Banner: Self-Correcting Re-Auth Flow
+**Decision:** Detect stale cached credentials (old broad `drive` scope) via `needs_scope_migration()` using `issubset()`. Show a persistent sidebar warning with a "Reconnect Google Account" button that revokes the old grant server-side before clearing local state.
+**Rationale:** Future-proof — any scope change automatically flags stale credentials. Self-correcting: banner disappears once user re-authenticates with new scopes. Server-side revocation ensures the old over-privileged token is dead, not just discarded.
+
+### 11. Shared Error Classification: HTTP Status Code-Based
+**Decision:** Use a pure function `_classify_api_error()` that classifies Gemini exceptions by HTTP status code (429/403/500) into emoji-prefixed user-facing messages.
+**Rationale:** HTTP status codes are a stable taxonomy — `"429" in str(e)` won't break when Google changes error message text. Emoji prefixes make errors visually parseable. Non-streaming callers `raise RuntimeError(msg) from e`; streaming callers `yield msg; return` to avoid generator exception issues.
+
+### 12. Flash-Only Model Constraint
+**Decision:** Restrict `AVAILABLE_MODELS` to free-tier Flash models only (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`). Pro models removed.
+**Rationale:** The app is designed for the free tier. Including Pro models creates a footgun — a user selects Pro, gets a billing error, and has no clear path back. The selector should only offer what's guaranteed to work without payment.
 
 ---
 
@@ -157,6 +184,10 @@ insights-explorer/
 | **Error details** | `showErrorDetails = false` — prevents source leakage |
 | **File upload** | Capped at 200 MB via `maxUploadSize` |
 | **OAuth secrets** | `client_secrets.json` in `.gitignore`; read from env-configurable path |
+| **OAuth scope** | `drive.readonly` + `drive.file` (not full `drive`) — minimal blast radius; only app-created files get write access |
+| **Token revocation** | `_revoke_token()` calls Google's `/revoke` endpoint on scope migration, invalidating the old broad-scope grant server-side |
+| **OAuth state files** | `chmod(0o600)` on state JSON files (POSIX) — prevents other users on shared systems from reading `code_verifier` |
+| **Model access** | `AVAILABLE_MODELS` restricted to free-tier Flash models — no paid-model footgun |
 
 ---
 
@@ -167,13 +198,15 @@ insights-explorer/
 | `test_data_loader.py` | 20 | `load_file` (6), `validate_columns` (8), `get_dataset_stats` (6) |
 | `test_prompt_templates.py` | 58 | `build_summary_prompt` (9), `build_chat_prompt` (11), `_sanitize_question` (18), `detect_chart_request` (20) |
 | `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
-| `test_ga4_client.py` | 18 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (5), `pull_ga4_report` (10) |
+| `test_ga4_client.py` | 28 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (5), `pull_ga4_report` (10), `TestOAuthStateStore` (10) |
+| `test_exports.py` | 8 | `TestClassifyApiError` (4), `TestExcelExport` (2), `TestPdfExport` (2) |
 | `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
 | `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
 | `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern |
 | `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
-| **Total** | **194** | All util modules + pages + error boundary + data quality + static analysis + app structure |
+| _11 additional modules_ | _222_ | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init` |
+| **Total** | **359** | All util modules + components + pages + error boundary + data quality + static analysis + app structure |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -190,14 +223,17 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | `python-dotenv` | ≥1.0 | Env var management |
 | `openpyxl` | ≥3.1 | XLSX file support |
 | `google-analytics-data` | ≥0.18 | GA4 Data API |
+| `google-api-python-client` | ≥2.0 | Drive API client (file picker, Sheets) |
 | `google-auth-oauthlib` | ≥1.0 | OAuth 2.0 flow |
+| `requests` | (transitive) | HTTP client — used directly by `_revoke_token()` for Google's OAuth revocation endpoint |
+| `reportlab` | (optional) | PDF report generation — lazy-imported with `HAS_REPORTLAB` guard |
 | `pytest` | ≥8.0 | Testing framework |
 | `cairosvg` | ≥2.7 | SVG-to-PNG rasterization (icon generation script) |
 | `pillow` (Pillow) | ≥10.0 | Image manipulation (ICO generation, OG image) |
 
 ---
 
-## 📝 Build Log (Today)
+## 📝 Build Log (2026-07-29)
 
 | # | Change | Type |
 |---|---|---|
@@ -257,6 +293,7 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 54 | P4 Wave 1 + Streaming: #15 column picker & date filters (filter_dataframe, _render_data_filters) | Feature |
 | 55 | P4 Wave 1 + Streaming: #16 conversation memory (last 5 exchanges in build_chat_prompt, New Chat button) | Feature |
 | 56 | P4 Wave 1 + Streaming: #17 export chat as Markdown report (report_exporter.py, kaleido) | Feature |
+| 57-63 | OAuth security hardening: scope reduction (drive→drive.readonly+drive.file), PKCE state persistence with chmod hardening, scope migration banner with server-side token revocation, shared error classification (_classify_api_error), thought/cached token tracking, 8 smoke tests (test_exports.py), dead code cleanup (ga4_auth_flow, Pro model), BUG-009 & BUG-010, file reorganization (plans/maintenance/) | Remediation |
 
 ---
 
@@ -264,12 +301,13 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 
 - [README.md](README.md) — Setup guide, features, quick start
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
+- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
-- [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings
+- [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings (10 bugs)
 - [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived sprint plans)
+- [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) — OAuth security hardening & code quality remediation spec
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint (#15–17, #19)

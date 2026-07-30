@@ -636,6 +636,6 @@ Verify + Update:
 - [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Predecessor sprint (must be complete first)
 - [P4 future plan](✅ P4-future-plan.md) — Future-phase plan this sprint derives from
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
+- [IMPLEMENTATION_PLAN.md](../00-meta/IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec

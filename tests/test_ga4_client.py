@@ -1,12 +1,12 @@
 """Unit tests for utils/ga4_client.py — OAuth flow, credentials, GA4 report pull."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
+import pytest
 
 import utils.ga4_client as ga4
-
 
 # ── credential serialization tests ──────────────────────────────────────────
 
@@ -27,8 +27,8 @@ class TestCredentialsSerialization:
         creds = ga4.credentials_from_dict(original)
         result = ga4.credentials_to_dict(creds)
 
-        for key in original:
-            assert result[key] == original[key], f"Field '{key}' mismatch"
+        for key, expected_val in original.items():
+            assert result[key] == expected_val, f"Field '{key}' mismatch"
 
     def test_to_dict_returns_all_expected_keys(self):
         """credentials_to_dict should include the standard OAuth keys."""
@@ -79,11 +79,13 @@ class TestCredentialsSerialization:
 class TestOAuthFlow:
     """Tests for get_auth_url() and exchange_code()."""
 
+    @patch("utils.ga4_client.save_oauth_state")
     @patch("utils.ga4_client.Flow")
     @patch.object(Path, "exists", return_value=True)
-    def test_get_auth_url_returns_url_and_flow(self, mock_exists, mock_flow_class):
-        """get_auth_url should return (url, flow) tuple."""
+    def test_get_auth_url_returns_url_and_flow(self, mock_exists, mock_flow_class, mock_save):
+        """get_auth_url should return (url, flow) tuple and persist state."""
         mock_flow = MagicMock()
+        mock_flow.code_verifier = "verifier-123"
         mock_flow.authorization_url.return_value = (
             "https://accounts.google.com/o/oauth2/auth?...",
             "state-abc",
@@ -94,10 +96,12 @@ class TestOAuthFlow:
 
         assert url == "https://accounts.google.com/o/oauth2/auth?..."
         assert flow is mock_flow
+        mock_save.assert_called_once_with("state-abc", "verifier-123", "http://localhost:8501")
 
+    @patch("utils.ga4_client.save_oauth_state")
     @patch("utils.ga4_client.Flow")
     @patch.object(Path, "exists", return_value=True)
-    def test_get_auth_url_uses_offline_access(self, mock_exists, mock_flow_class):
+    def test_get_auth_url_uses_offline_access(self, mock_exists, mock_flow_class, mock_save):
         """OAuth flow should request offline access for refresh tokens."""
         mock_flow = MagicMock()
         mock_flow.authorization_url.return_value = ("http://auth", "state")
@@ -110,9 +114,10 @@ class TestOAuthFlow:
             prompt="consent",
         )
 
+    @patch("utils.ga4_client.save_oauth_state")
     @patch("utils.ga4_client.Flow")
     @patch.object(Path, "exists", return_value=True)
-    def test_get_auth_url_passes_redirect_uri(self, mock_exists, mock_flow_class):
+    def test_get_auth_url_passes_redirect_uri(self, mock_exists, mock_flow_class, mock_save):
         """Redirect URI should be passed through to the Flow constructor."""
         mock_flow = MagicMock()
         mock_flow.authorization_url.return_value = ("http://auth", "state")
@@ -130,15 +135,65 @@ class TestOAuthFlow:
             ga4.get_auth_url("http://localhost:8501")
 
     def test_exchange_code_returns_credentials(self):
-        """exchange_code should fetch token and return credentials."""
+        """exchange_code should recreate the flow, fetch token, and return credentials."""
         mock_flow = MagicMock()
         mock_flow.credentials = MagicMock()
         mock_flow.credentials.token = "new-token"
 
-        creds = ga4.exchange_code(mock_flow, "auth-code-xyz")
+        with patch(
+            "utils.ga4_client.load_oauth_state", return_value={"code_verifier": "verifier-123"}
+        ), patch("utils.ga4_client.Flow") as mock_flow_class:
+            mock_flow_class.from_client_secrets_file.return_value = mock_flow
 
-        mock_flow.fetch_token.assert_called_once_with(code="auth-code-xyz")
-        assert creds is mock_flow.credentials
+            creds = ga4.exchange_code("auth-code-xyz", "http://localhost:8501", "state-abc")
+
+            mock_flow_class.from_client_secrets_file.assert_called_once()
+            _, call_kwargs = mock_flow_class.from_client_secrets_file.call_args
+            assert call_kwargs["code_verifier"] == "verifier-123"
+            mock_flow.fetch_token.assert_called_once_with(code="auth-code-xyz")
+            assert creds is mock_flow.credentials
+
+    def test_exchange_code_requires_state(self):
+        """exchange_code should raise if the OAuth state is missing."""
+        with pytest.raises(ValueError, match="state"):
+            ga4.exchange_code("auth-code-xyz", "http://localhost:8501", "")
+
+    def test_exchange_code_missing_state_raises(self):
+        """exchange_code should raise if the OAuth state cannot be found."""
+        with patch("utils.ga4_client.load_oauth_state", return_value=None), pytest.raises(
+            ValueError, match="state not found"
+        ):
+            ga4.exchange_code("auth-code-xyz", "http://localhost:8501", "state-abc")
+
+
+class TestOAuthStateStore:
+    """Tests for save_oauth_state / load_oauth_state persistence."""
+
+    def test_round_trip_persists_code_verifier(self, tmp_path, monkeypatch):
+        """save then load should return the stored verifier and redirect URI."""
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
+
+        ga4.save_oauth_state("state-123", "verifier-456", "http://localhost:8501")
+        data = ga4.load_oauth_state("state-123")
+
+        assert data["code_verifier"] == "verifier-456"
+        assert data["redirect_uri"] == "http://localhost:8501"
+        assert "created_at" in data
+
+    def test_load_removes_file(self, tmp_path, monkeypatch):
+        """load_oauth_state should remove the state file after reading."""
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
+
+        ga4.save_oauth_state("state-789", "verifier", "http://localhost:8501")
+        ga4.load_oauth_state("state-789")
+
+        assert not (tmp_path / "state-789.json").exists()
+
+    def test_load_missing_state_returns_none(self, tmp_path, monkeypatch):
+        """load_oauth_state should return None for an unknown state."""
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
+
+        assert ga4.load_oauth_state("unknown-state") is None
 
 
 # ── pull_ga4_report tests ───────────────────────────────────────────────────

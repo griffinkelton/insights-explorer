@@ -1,10 +1,12 @@
 """GA4 Insight Explorer — Streamlit web app for analyzing GA4 export data with Gemini."""
 
 import os
+
 import streamlit as st
-from utils.styles import inject_custom_css, inject_favicon_meta
-from utils.gemini_client import validate_api_key
+
 from components import render_all
+from utils.gemini_client import validate_api_key
+from utils.styles import inject_custom_css, inject_favicon_meta
 
 # OAuth redirect URI — configurable via env var for non-localhost deployments
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
@@ -41,8 +43,6 @@ if "ga4_creds" not in st.session_state:
     st.session_state.ga4_creds = None
 if "ga4_property_id" not in st.session_state:
     st.session_state.ga4_property_id = ""
-if "ga4_auth_flow" not in st.session_state:
-    st.session_state.ga4_auth_flow = None
 if "data_source" not in st.session_state:
     st.session_state.data_source = None  # "file" or "ga4"
 if "quality_report" not in st.session_state:
@@ -76,6 +76,20 @@ if "custom_metrics" not in st.session_state:
     )  # {name: formula} e.g. {"Sessions per User": "sessions / users"}
 if "custom_metrics_df" not in st.session_state:
     st.session_state.custom_metrics_df = None  # augmented df with derived columns
+# Model selection
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = "gemini-2.5-flash"
+# Token usage tracking
+if "total_input_tokens" not in st.session_state:
+    st.session_state.total_input_tokens = 0
+if "total_output_tokens" not in st.session_state:
+    st.session_state.total_output_tokens = 0
+if "total_tokens_used" not in st.session_state:
+    st.session_state.total_tokens_used = 0
+if "total_thought_tokens" not in st.session_state:
+    st.session_state.total_thought_tokens = 0
+if "total_cached_tokens" not in st.session_state:
+    st.session_state.total_cached_tokens = 0
 
 # ── API key validation on first run ──────────────────────────────────────────
 if st.session_state.api_key_valid is None:

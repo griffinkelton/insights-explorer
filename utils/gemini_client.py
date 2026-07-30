@@ -2,8 +2,9 @@
 
 import os
 from collections.abc import Generator
-from google import genai
+
 from dotenv import load_dotenv
+from google import genai
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,6 +13,28 @@ load_dotenv()
 DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_TEMPERATURE = 0.3  # Conservative for analytical consistency
 DEFAULT_MAX_OUTPUT_TOKENS = 2048
+
+# Available models with metadata for the model selector
+AVAILABLE_MODELS = {
+    "gemini-2.5-flash": {
+        "label": "Gemini 2.5 Flash",
+        "tooltip": "Reliable flash model with multimodal support. 10 RPM, 1,500 RPD free tier. Good balance of speed and quality.",
+        "context_window": "1M tokens",
+        "tier": "Free",
+    },
+    "gemini-2.0-flash": {
+        "label": "Gemini 2.0 Flash",
+        "tooltip": "Previous-gen flash model. Fast responses, good for simple queries. 10 RPM, 1,500 RPD free tier.",
+        "context_window": "1M tokens",
+        "tier": "Free",
+    },
+    "gemini-1.5-flash": {
+        "label": "Gemini 1.5 Flash",
+        "tooltip": "Legacy flash model. Still capable for most tasks. 15 RPM, 1,500 RPD free tier.",
+        "context_window": "1M tokens",
+        "tier": "Free",
+    },
+}
 
 # Lazy-initialized client
 _client: genai.Client | None = None
@@ -56,6 +79,23 @@ def _get_client() -> genai.Client:
     return _client
 
 
+def _classify_api_error(e: Exception) -> str:
+    """Classify a Gemini API exception into a user-facing message.
+
+    Pure function — no side effects. Trivially testable.
+    Uses HTTP status codes (429, 403, 500) for stable classification
+    rather than substring-matching on English error text.
+    """
+    msg = str(e)
+    if "429" in msg:
+        return "⏱️ Rate limit exceeded. Please wait a moment and try again."
+    if "403" in msg:
+        return "🔑 API key invalid or missing permissions."
+    if "500" in msg:
+        return "⚠️ Gemini service error. Please try again shortly."
+    return f"⚠️ Unexpected error: {e}"
+
+
 def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
     """Send a prompt to Gemini and return the text response.
 
@@ -70,19 +110,86 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
                 "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
             },
         )
+        # Track token usage if available
+        _track_usage(response)
         return response.text
     except ValueError:
         raise  # API key errors propagate as-is
     except Exception as e:
-        error_msg = str(e).lower()
-        if "rate" in error_msg and "limit" in error_msg:
-            raise RuntimeError("Rate limit hit. Please wait a moment and try again.") from e
-        elif "quota" in error_msg:
-            raise RuntimeError(
-                "API quota exceeded. Check your Google Cloud quota or try again later."
-            ) from e
-        else:
-            raise RuntimeError(f"Gemini API error: {str(e)}") from e
+        raise RuntimeError(_classify_api_error(e)) from e
+
+
+def _track_usage(response) -> None:
+    """Extract token usage from Gemini response and store in session state."""
+    try:
+        import streamlit as st
+    except ImportError:
+        return
+
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None:
+        return
+
+    if "total_input_tokens" not in st.session_state:
+        st.session_state.total_input_tokens = 0
+    if "total_output_tokens" not in st.session_state:
+        st.session_state.total_output_tokens = 0
+    if "total_tokens_used" not in st.session_state:
+        st.session_state.total_tokens_used = 0
+    if "total_thought_tokens" not in st.session_state:
+        st.session_state.total_thought_tokens = 0
+    if "total_cached_tokens" not in st.session_state:
+        st.session_state.total_cached_tokens = 0
+
+    st.session_state.total_input_tokens += getattr(usage, "prompt_token_count", 0) or 0
+    st.session_state.total_output_tokens += getattr(usage, "candidates_token_count", 0) or 0
+    st.session_state.total_thought_tokens += getattr(usage, "thoughts_token_count", 0) or 0
+    st.session_state.total_cached_tokens += getattr(usage, "cached_content_token_count", 0) or 0
+    st.session_state.total_tokens_used += getattr(usage, "total_token_count", 0) or 0
+
+
+def analyze_file_with_gemini(
+    file_bytes: bytes,
+    mime_type: str,
+    prompt: str = "Analyze this file and provide key insights.",
+    model: str = DEFAULT_MODEL,
+) -> str:
+    """Analyze a file (image, PDF, etc.) directly with Gemini's multimodal capabilities.
+
+    Passes raw bytes inline without needing the Files API upload step.
+    Supports: images (JPEG, PNG, GIF, WebP), PDFs, and other document types.
+
+    Args:
+        file_bytes: Raw file content as bytes.
+        mime_type: MIME type of the file (e.g., 'image/png', 'application/pdf').
+        prompt: The analysis prompt to send alongside the file.
+        model: Gemini model to use.
+
+    Returns:
+        The text analysis from Gemini.
+
+    Raises:
+        ValueError: For missing API key.
+        RuntimeError: For API failures.
+    """
+    try:
+        response = _get_client().models.generate_content(
+            model=model,
+            contents=[
+                prompt,
+                {"data": file_bytes, "mime_type": mime_type},
+            ],
+            config={
+                "temperature": DEFAULT_TEMPERATURE,
+                "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+            },
+        )
+        _track_usage(response)
+        return response.text
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError(_classify_api_error(e)) from e
 
 
 def generate_response_stream(
@@ -109,15 +216,12 @@ def generate_response_stream(
         for chunk in response:
             if chunk.text:
                 yield chunk.text
+            # Track usage from final chunk
+            usage = getattr(chunk, "usage_metadata", None)
+            if usage is not None:
+                _track_usage(chunk)
     except ValueError:
         raise  # API key errors propagate as-is
     except Exception as e:
-        error_msg = str(e).lower()
-        if "rate" in error_msg and "limit" in error_msg:
-            raise RuntimeError("Rate limit hit. Please wait a moment and try again.") from e
-        elif "quota" in error_msg:
-            raise RuntimeError(
-                "API quota exceeded. Check your Google Cloud quota or try again later."
-            ) from e
-        else:
-            raise RuntimeError(f"Gemini API error: {str(e)}") from e
+        yield f"\n\n{_classify_api_error(e)}"
+        return

@@ -2,6 +2,7 @@
 
 > **Status:** Creative exploration — NOT part of the implementation plan.
 > These are 25 additional enhancement ideas + 10 moonshot concepts. They sit outside the 37-item ENHANCEMENTS.md and 21-item IMPLEMENTATION_PLAN.md.
+> The original 6-phase plan is complete. Active maintenance is tracked in [plans/maintenance/](plans/maintenance/) — the July 2026 OAuth security hardening & code quality remediation is the first post-phase-6 maintenance round.
 >
 > ✅ = Built and shipped. Some are practical. Some are wild. All are meant to spark ideas.
 
@@ -257,12 +258,13 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 
 ## 📖 Related Docs
 
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
-- [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
+- [BUGLOG.md](BUGLOG.md) — Structured bug log (10 bugs, patterns, rules)
+- [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) — Post-phase-6 OAuth security hardening & code quality remediation
 - [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec

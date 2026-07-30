@@ -7,7 +7,6 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-
 # File size and row limits
 MAX_FILE_SIZE_MB = 100
 MAX_ROWS = 50_000

@@ -263,7 +263,7 @@ Add Open Graph meta tags:
 
 - **Smoke test:** Verify the favicon appears in the browser tab after running `streamlit run app.py`
 - **Unit test:** No unit test for visual assets (they're binary files)
-- **Structural test:** Verify `app.py` and `pages/learn.py` have `page_icon` set to `"assets/favicon.ico"` (update `test_learn_page.py`; `test_app.py` is planned as [IMPL #13](../IMPLEMENTATION_PLAN.md) — add the assertion there once it exists)
+- **Structural test:** Verify `app.py` and `pages/learn.py` have `page_icon` set to `"assets/favicon.ico"` (update `test_learn_page.py`; `test_app.py` is planned as [IMPL #13](../00-meta/IMPLEMENTATION_PLAN.md) — add the assertion there once it exists)
 
 ---
 

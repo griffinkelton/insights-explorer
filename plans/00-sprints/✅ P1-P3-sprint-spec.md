@@ -652,7 +652,7 @@ Batch 5 — Infra (~2 hrs):
 
 ## 📖 Related Docs
 
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) — Source plan with detailed per-item breakdowns
+- [IMPLEMENTATION_PLAN.md](../00-meta/IMPLEMENTATION_PLAN.md) — Source plan with detailed per-item breakdowns
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [✅ UNIFIED_PLAN.md](✅ UNIFIED_PLAN.md) — Master execution plan (P1-P6 phase plans)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — Design decisions, data flow, security model

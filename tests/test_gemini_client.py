@@ -1,7 +1,8 @@
 """Unit tests for utils/gemini_client.py — API calls, error handling, key validation."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 # Reset the module-level client singleton before each test module
 import utils.gemini_client as gm
@@ -48,11 +49,11 @@ class TestGenerateResponse:
         mock_client.models.generate_content.return_value = mock_response
         mock_get_client.return_value = mock_client
 
-        gm.generate_response("test", model="gemini-2.5-pro")
+        gm.generate_response("test", model="gemini-2.0-flash")
 
         mock_client.models.generate_content.assert_called_once()
         call_kwargs = mock_client.models.generate_content.call_args.kwargs
-        assert call_kwargs["model"] == "gemini-2.5-pro"
+        assert call_kwargs["model"] == "gemini-2.0-flash"
 
     @patch.object(gm, "_get_client")
     def test_missing_api_key_raises_valueerror(self, mock_get_client):
@@ -73,29 +74,29 @@ class TestGenerateResponse:
         )
         mock_get_client.return_value = mock_client
 
-        with pytest.raises(RuntimeError, match="Rate limit hit"):
+        with pytest.raises(RuntimeError, match="Rate limit"):
             gm.generate_response("test")
 
     @patch.object(gm, "_get_client")
     def test_quota_exceeded_raises_runtimeerror(self, mock_get_client):
-        """Quota exceeded → friendly RuntimeError."""
+        """Quota exceeded (429) → friendly RuntimeError."""
         mock_client = MagicMock()
         mock_client.models.generate_content.side_effect = Exception(
-            "Quota exceeded for this project"
+            "429 Quota exceeded for this project"
         )
         mock_get_client.return_value = mock_client
 
-        with pytest.raises(RuntimeError, match="quota exceeded"):
+        with pytest.raises(RuntimeError, match="Rate limit"):
             gm.generate_response("test")
 
     @patch.object(gm, "_get_client")
     def test_generic_api_error_raises_runtimeerror(self, mock_get_client):
         """Unknown API error → generic RuntimeError."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception("Internal server error")
+        mock_client.models.generate_content.side_effect = Exception("500 Internal server error")
         mock_get_client.return_value = mock_client
 
-        with pytest.raises(RuntimeError, match="Gemini API error"):
+        with pytest.raises(RuntimeError, match="service error"):
             gm.generate_response("test")
 
     @patch.object(gm, "_get_client")
@@ -110,12 +111,14 @@ class TestGenerateResponse:
 
     @patch.object(gm, "_get_client")
     def test_rate_limit_case_insensitive(self, mock_get_client):
-        """'Rate Limit' in any casing should be caught."""
+        """429 in error string should be caught regardless of surrounding text."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception("RATE LIMIT EXCEEDED")
+        mock_client.models.generate_content.side_effect = Exception(
+            "Error 429: RATE LIMIT EXCEEDED"
+        )
         mock_get_client.return_value = mock_client
 
-        with pytest.raises(RuntimeError, match="Rate limit hit"):
+        with pytest.raises(RuntimeError, match="Rate limit"):
             gm.generate_response("test")
 
 

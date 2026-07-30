@@ -3,12 +3,14 @@
 import re
 import time
 from typing import Any
+
 import pandas as pd
 import streamlit as st
-from utils.prompt_templates import build_chat_prompt, detect_chart_request
-from utils.gemini_client import generate_response_stream, generate_response
+
 from utils.charts import generate_chart
-from utils.commands import resolve_command, get_command_pills
+from utils.commands import get_command_pills, resolve_command
+from utils.gemini_client import DEFAULT_MODEL, generate_response, generate_response_stream
+from utils.prompt_templates import build_chat_prompt, detect_chart_request
 
 
 def render_chat_section() -> None:
@@ -16,13 +18,15 @@ def render_chat_section() -> None:
     df = st.session_state.get("custom_metrics_df") or st.session_state.df
 
     # ── Chat header + New Chat button ─────────────────────────────────────
+    _theme = st.session_state.get("theme", "dark")
+    _hint_color = "#9ca3af" if _theme == "light" else "#686880"
     col_chat_header, col_new_chat = st.columns([4, 1])
     with col_chat_header:
         st.markdown(
-            '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
-            '<h3 style="margin:0;">💬 Ask Questions</h3>'
-            '<span class="kb-shortcut">⌘K</span> <span style="color:#686880;font-size:0.7rem;">focus chat</span>'
-            "</div>",
+            f'<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
+            f'<h3 style="margin:0;">💬 Ask Questions</h3>'
+            f'<span class="kb-shortcut">⌘K</span> <span style="color:{_hint_color};font-size:0.7rem;">focus chat</span>'
+            f"</div>",
             unsafe_allow_html=True,
         )
     with col_new_chat:
@@ -78,28 +82,111 @@ def render_chat_section() -> None:
         )
         st.rerun()
 
+    # ── Usage stats below chat ───────────────────────────────────────────
+    _render_usage_stats()
+
     # ── Export button ────────────────────────────────────────────────────
     if any(e.get("response") and e["response"] != "" for e in st.session_state.chat_history):
         st.divider()
-        if st.button("📥 Export Report", use_container_width=True):
-            # Lazy import — kaleido may not be installed; error handled below
-            from utils.report_exporter import build_markdown_report
+        col_md, col_xl, col_pdf = st.columns(3)
+        with col_md:
+            if st.button("📄 Markdown", use_container_width=True):
+                from utils.report_exporter import build_markdown_report
 
-            report = build_markdown_report(
-                summary=st.session_state.summary,
-                chat_history=st.session_state.chat_history,
-                stats=st.session_state.stats or {},
-                data_source=st.session_state.data_source,
-            )
-            st.download_button(
-                label="⬇️ Download Markdown Report",
-                data=report,
-                file_name=f"ga4_insight_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.md",
-                mime="text/markdown",
-            )
-            st.caption(
-                "⚠️ Charts missing from the report? " "Install kaleido: `pip install kaleido`"
-            )
+                report = build_markdown_report(
+                    summary=st.session_state.summary,
+                    chat_history=st.session_state.chat_history,
+                    stats=st.session_state.stats or {},
+                    data_source=st.session_state.data_source,
+                )
+                st.download_button(
+                    label="⬇️ Download .md",
+                    data=report,
+                    file_name=f"ga4_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.md",
+                    mime="text/markdown",
+                    key="dl_markdown",
+                )
+        with col_xl:
+            if st.button("📊 Excel", use_container_width=True):
+                from utils.report_exporter import build_excel_report
+
+                excel_bytes = build_excel_report(
+                    df=df,
+                    summary=st.session_state.summary,
+                    stats=st.session_state.stats or {},
+                    data_source=st.session_state.data_source,
+                )
+                st.download_button(
+                    label="⬇️ Download .xlsx",
+                    data=excel_bytes,
+                    file_name=f"ga4_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="dl_excel",
+                )
+        with col_pdf:
+            if st.button("📑 PDF", use_container_width=True):
+                from utils.report_exporter import build_pdf_report
+
+                pdf_bytes = build_pdf_report(
+                    summary=st.session_state.summary,
+                    stats=st.session_state.stats or {},
+                    chat_history=st.session_state.chat_history,
+                    data_source=st.session_state.data_source,
+                )
+                st.download_button(
+                    label="⬇️ Download .pdf",
+                    data=pdf_bytes,
+                    file_name=f"ga4_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.pdf",
+                    mime="application/pdf",
+                    key="dl_pdf",
+                )
+
+
+def _render_usage_stats() -> None:
+    """Render token usage and context stats below the chat input."""
+    theme = st.session_state.get("theme", "dark")
+    muted_color = "#9ca3af" if theme == "light" else "#686880"
+    accent_color = "#6366f1" if theme == "dark" else "#4f46e5"
+
+    total_input = st.session_state.get("total_input_tokens", 0)
+    total_output = st.session_state.get("total_output_tokens", 0)
+    total_tokens = st.session_state.get("total_tokens_used", 0)
+    total_thought = st.session_state.get("total_thought_tokens", 0)
+    call_count = st.session_state.get("api_call_count", 0)
+    model = st.session_state.get("selected_model", "gemini-2.5-flash")
+
+    # Estimate context usage: assume ~4 chars per token for prompt overhead
+    df = st.session_state.get("df")
+    estimated_prompt_tokens = 0
+    if df is not None:
+        estimated_prompt_tokens = min(len(df) * len(df.columns) * 2, 500000)
+
+    context_pct = min(100, int((estimated_prompt_tokens / 1_000_000) * 100))
+
+    st.markdown(
+        f'<div style="display:flex;flex-wrap:wrap;gap:0.8rem;align-items:center;'
+        f'padding:0.4rem 0.2rem;margin-top:0.2rem;">'
+        f'<span style="font-size:0.65rem;color:{muted_color};">'
+        f"🤖 {model}</span>"
+        f'<span style="font-size:0.65rem;color:{muted_color};">'
+        f"📞 {call_count} calls</span>"
+        f'<span style="font-size:0.65rem;color:{muted_color};">'
+        f"⬅️ {total_input:,} in</span>"
+        f'<span style="font-size:0.65rem;color:{muted_color};">'
+        f"➡️ {total_output:,} out</span>"
+        f'<span style="font-size:0.65rem;color:{muted_color};">'
+        f"Σ {total_tokens:,} total</span>"
+        + (
+            f'<span style="font-size:0.65rem;color:{accent_color};font-weight:500;">'
+            f"💭 {total_thought:,} thoughts</span>"
+            if total_thought > 0
+            else ""
+        )
+        + f'<span style="font-size:0.65rem;color:{accent_color};font-weight:500;">'
+        f"📊 ~{context_pct}% context</span>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def _render_command_pills() -> None:
@@ -152,8 +239,9 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
         conversation_history=st.session_state.chat_history[:-1],
     )
 
+    _model = st.session_state.get("selected_model", DEFAULT_MODEL)
     try:
-        full_text = st.write_stream(generate_response_stream(chat_prompt))
+        full_text = st.write_stream(generate_response_stream(chat_prompt, model=_model))
         entry["response"] = full_text
 
         # Detect chart config from ORIGINAL response (before cleaning)
@@ -174,7 +262,7 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                     'If no chart applies, output {"type":"none"}.\n\n'
                     f"Analysis:\n{full_text[:2000]}"
                 )
-                retry_response = generate_response(retry_prompt)
+                retry_response = generate_response(retry_prompt, model=_model)
                 chart_config = detect_chart_request(retry_response)
                 st.session_state.api_call_count += 1
                 st.session_state.last_api_call = time.time()
