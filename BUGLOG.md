@@ -421,8 +421,8 @@ Systematic `ripgrep` search for `except Exception` across all `.py` files, trigg
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (8 bugs, patterns, rules)
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
 - [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived plans)
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — P1–P3 sprint spec ✅
 - [plans/00-sprints/✅ P1-P3-completion.md](plans/00-sprints/✅ P1-P3-completion.md) — Sprint completion tracker

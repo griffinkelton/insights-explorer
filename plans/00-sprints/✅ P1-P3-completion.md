@@ -54,7 +54,7 @@
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| **#8** | Onboarding tour | ⚠️ Deferred | Full implementation in [Onboarding tour](🔵 onboarding-tour.md). |
+| **#8** | Onboarding tour | ⚠️ Deferred | Full implementation in [Onboarding tour](✅ onboarding-tour.md). |
 
 ---
 
@@ -89,6 +89,6 @@
 ## 📖 Related Docs
 
 - [P1-P3 sprint spec](✅ P1-P3-sprint-spec.md) — Full implementation details
-- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
+- [Onboarding tour](✅ onboarding-tour.md) — Deferred #8 mini-spec
 - [P4 future plan](✅ P4-future-plan.md) — Remaining items
 - [CHANGELOG.md](../CHANGELOG.md) — All changes tracked

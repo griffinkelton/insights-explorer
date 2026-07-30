@@ -42,4 +42,4 @@ class TestInitStructure:
 
     def test_has_footer(self):
         source = open(MODULE).read()
-        assert "Data processed in-memory only" in source
+        assert "AI calls sent to Gemini API" in source

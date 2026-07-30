@@ -1,10 +1,13 @@
 """Gemini API client wrapper for GA4 Insight Explorer."""
 
+import logging
 import os
 from collections.abc import Generator
 
 from dotenv import load_dotenv
 from google import genai
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -56,9 +59,10 @@ def validate_api_key() -> tuple[bool, str]:
             "Get a free key at https://aistudio.google.com/apikey"
         )
     except Exception as e:
+        logger.debug("API key validation error", exc_info=True)
         error_msg = str(e).lower()
         if "api_key" in error_msg or "unauthorized" in error_msg or "permission" in error_msg:
-            return False, f"API key rejected: {e}"
+            return False, "API key was rejected. Check your GEMINI_API_KEY in .env."
         # Other errors (network, etc.) don't necessarily mean the key is bad
         return True, ""
 
@@ -93,7 +97,8 @@ def _classify_api_error(e: Exception) -> str:
         return "🔑 API key invalid or missing permissions."
     if "500" in msg:
         return "⚠️ Gemini service error. Please try again shortly."
-    return f"⚠️ Unexpected error: {e}"
+    logger.debug("Unclassified Gemini API error: %s", msg)
+    return "⚠️ Gemini could not complete that request. Please try again shortly."
 
 
 def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
@@ -223,5 +228,4 @@ def generate_response_stream(
     except ValueError:
         raise  # API key errors propagate as-is
     except Exception as e:
-        yield f"\n\n{_classify_api_error(e)}"
-        return
+        raise RuntimeError(_classify_api_error(e)) from e

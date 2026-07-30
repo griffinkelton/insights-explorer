@@ -5,7 +5,7 @@ import streamlit as st
 
 def render_hero() -> None:
     """Render the hero / empty state when no data is loaded."""
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("")
 
     col_a, col_b, col_c = st.columns([1, 2, 1])
     with col_b:
@@ -21,7 +21,7 @@ def render_hero() -> None:
                 ):
                     st.session_state.tour_step = 1
                     st.rerun()
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("")
 
         st.markdown(
             """

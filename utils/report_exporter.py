@@ -6,6 +6,8 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from utils.sanitize import safe_spreadsheet_value, safe_pdf_text
+
 # Lazy import for openpyxl — may not be installed in all environments
 try:
     from openpyxl import Workbook
@@ -163,7 +165,9 @@ def build_excel_report(
         max_rows = min(len(df), 1000)
         for row_idx, row in enumerate(df.head(max_rows).itertuples(index=False), start=2):
             for col_idx, value in enumerate(row, start=1):
-                cell = ws_data.cell(row=row_idx, column=col_idx, value=value)
+                cell = ws_data.cell(
+                    row=row_idx, column=col_idx, value=safe_spreadsheet_value(value)
+                )
                 cell.border = thin_border
 
         for col_idx, col_name in enumerate(df.columns, start=1):
@@ -185,8 +189,8 @@ def build_excel_report(
     row_num = 2
     for entry in chat_history or []:
         if entry.get("response") and entry["response"] != "":
-            ws_qa.cell(row=row_num, column=1, value=entry["question"][:200])
-            ws_qa.cell(row=row_num, column=2, value=entry["response"][:500])
+            ws_qa.cell(row=row_num, column=1, value=safe_spreadsheet_value(entry["question"][:200]))
+            ws_qa.cell(row=row_num, column=2, value=safe_spreadsheet_value(entry["response"][:500]))
             row_num += 1
 
     buffer = BytesIO()
@@ -273,11 +277,13 @@ def build_pdf_report(
     elements: list = []
 
     # ── Title ──
-    elements.append(Paragraph("📊 GA4 Insight Explorer — Report", title_style))
+    elements.append(Paragraph(safe_pdf_text("📊 GA4 Insight Explorer — Report"), title_style))
     elements.append(
         Paragraph(
-            f"Generated on {pd.Timestamp.now().strftime('%Y-%m-%d at %H:%M')} · "
-            f"Data source: {data_source or 'Unknown'}",
+            safe_pdf_text(
+                f"Generated on {pd.Timestamp.now().strftime('%Y-%m-%d at %H:%M')} · "
+                f"Data source: {data_source or 'Unknown'}"
+            ),
             subtitle_style,
         )
     )
@@ -328,7 +334,7 @@ def build_pdf_report(
         elements.append(Paragraph("🤖 AI-Generated Summary", heading_style))
         for line in summary.split("\n"):
             if line.strip():
-                elements.append(Paragraph(line.strip(), body_style))
+                elements.append(Paragraph(safe_pdf_text(line.strip()), body_style))
         elements.append(Spacer(1, 16))
 
     # ── Q&A ──
@@ -338,12 +344,14 @@ def build_pdf_report(
         elements.append(Paragraph("💬 Q&A Session", heading_style))
 
         for i, entry in enumerate(valid_qa, 1):
-            elements.append(Paragraph(f"Q{i}: {entry['question']}", qa_question_style))
+            elements.append(
+                Paragraph(safe_pdf_text(f"Q{i}: {entry['question']}"), qa_question_style)
+            )
             # Truncate long answers for PDF readability
             answer = entry["response"][:1000]
             if len(entry["response"]) > 1000:
                 answer += "..."
-            elements.append(Paragraph(answer, qa_answer_style))
+            elements.append(Paragraph(safe_pdf_text(answer), qa_answer_style))
 
     # ── Footer ──
     elements.append(Spacer(1, 24))

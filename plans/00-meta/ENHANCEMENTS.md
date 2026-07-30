@@ -248,6 +248,6 @@
 - [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) — Active sprint spec (#15–17, #19)
 - [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan
 - [plans/00-meta/✅ P4-deferred-plan.md](plans/00-meta/✅ P4-deferred-plan.md) — Deferred items (Batches C–F)
-- [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) — Standalone mini-spec for #8
+- [plans/00-meta/✅ onboarding-tour.md](plans/00-meta/✅ onboarding-tour.md) — Standalone mini-spec for #8
 - [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) — Standalone mini-spec for #20
 - [CHANGELOG.md](CHANGELOG.md) — Unified change history

@@ -1,5 +1,4 @@
-"""Sidebar — file uploader, GA4 connect, privacy notice, navigation."""
-
+import logging
 import os
 
 import pandas as pd
@@ -23,6 +22,7 @@ from utils.ga4_client import (
 from utils.session import clear_data
 
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
+logger = logging.getLogger(__name__)
 
 
 def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> None:
@@ -135,8 +135,9 @@ def _render_ga4_connect() -> None:
                     unsafe_allow_html=True,
                 )
                 st.stop()
-            except FileNotFoundError as e:
-                st.error(str(e))
+            except FileNotFoundError:
+                st.error("Configuration file not found. Please check your OAuth setup.")
+                logger.warning("OAuth configuration file missing", exc_info=True)
 
         st.caption(
             "Connect live to your GA4 property. "
@@ -201,8 +202,11 @@ def _render_ga4_connect() -> None:
 
                                 _populate_data_state(df, "ga4", missing)
                                 st.rerun()
-                        except Exception as e:
-                            st.error(f"Failed to pull GA4 data: {e}")
+                        except Exception:
+                            st.error(
+                                "Failed to pull GA4 data. Check your Property ID and try again."
+                            )
+                            logger.warning("GA4 pull error", exc_info=True)
 
         with col_disc:
             if st.button("✕ Disconnect", use_container_width=True):
@@ -225,7 +229,11 @@ def _render_privacy_notice() -> None:
     <div style="background:{privacy_bg};border:1px solid {privacy_border};
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
         <div style="font-size:0.78rem;color:{privacy_text};line-height:1.5;">
-            🔒 <b>Privacy</b><br>Data is processed in-memory only and is not stored or used to train any model.
+            🔒 <b>Privacy</b><br>
+            Uploaded analytics data is processed in the active session. AI features send
+            relevant data context to Google's Gemini API. OAuth uses temporary
+            authorization state stored briefly to complete sign-in. Exports and Drive
+            actions occur only when you choose them.
         </div>
     </div>
     """,
@@ -462,8 +470,9 @@ def _render_drive_picker() -> None:
                     ["text/csv", "application/vnd.google-apps.spreadsheet"],
                 )
                 st.session_state.drive_files_cache = files
-            except Exception as e:
-                st.error(f"Drive error: {e}")
+            except Exception:
+                st.error("Drive error. Please try again or refresh the connection.")
+                logger.warning("Drive error", exc_info=True)
                 return
 
     files = st.session_state.drive_files_cache

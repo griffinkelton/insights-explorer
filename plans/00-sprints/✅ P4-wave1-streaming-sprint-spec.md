@@ -27,7 +27,7 @@
 | **E** | P6d,P6f,P6a | AI/data quick wins | 3-5 hrs | After structural work |
 | **F** | P6e,P6b,P6c | AI/data complex | 10-15 hrs | Last |
 | — | Wave 3 | Repo weaknesses | Varies | If deployability needed |
-| — | #8 | Onboarding tour | ~1 hr | [Onboarding tour](🔵 onboarding-tour.md) |
+| — | #8 | Onboarding tour | ~1 hr | [Onboarding tour](✅ onboarding-tour.md) |
 
 ---
 
@@ -638,4 +638,4 @@ Verify + Update:
 - [p3-p4/✅ STREAMING_RESPONSES.md](p3-p4/✅ STREAMING_RESPONSES.md) — Detailed streaming plan (4 phases)
 - [IMPLEMENTATION_PLAN.md](../00-meta/IMPLEMENTATION_PLAN.md) — Original 21-item blueprint
 - [ENHANCEMENTS.md](../ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [Onboarding tour](🔵 onboarding-tour.md) — Deferred #8 mini-spec
+- [Onboarding tour](✅ onboarding-tour.md) — Deferred #8 mini-spec

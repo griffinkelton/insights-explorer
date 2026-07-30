@@ -307,7 +307,7 @@
 | Change | Type | Related Docs |
 |---|---|---|
 | ✅ APP_ICON.md, ✅ BONUS_DATA_QUALITY_SCORECARD.md, DOCUMENTATION_INDEX.md created | Docs | [plans/](plans/) |
-| Cross-references and IMPLEMENTATION_PLAN fixes | Docs | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
+| Cross-references and IMPLEMENTATION_PLAN fixes | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) |
 
 ---
 
@@ -338,7 +338,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 21-item plan with file-level precision, risk assessments, sprint plan | Docs | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
+| 21-item plan with file-level precision, risk assessments, sprint plan | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) |
 
 ---
 
@@ -348,7 +348,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Complete v2 rewrite with progress summary and related docs | Docs | [ENHANCEMENTS.md](ENHANCEMENTS.md) |
+| Complete v2 rewrite with progress summary and related docs | Docs | [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) |
 
 ---
 
@@ -562,7 +562,7 @@
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Initial ENHANCEMENTS.md — 25 ideas across 5 categories | Docs | [ENHANCEMENTS.md](ENHANCEMENTS.md) |
+| Initial ENHANCEMENTS.md — 25 ideas across 5 categories | Docs | [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) |
 
 ---
 

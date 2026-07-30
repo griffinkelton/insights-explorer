@@ -7,6 +7,7 @@ import re
 import tempfile
 import time
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 import pandas as pd
@@ -47,7 +48,12 @@ CLIENT_SECRETS_FILE = os.getenv(
 
 def _state_store_dir() -> Path:
     dir_path = Path(os.getenv("GA4_OAUTH_STATE_DIR", tempfile.gettempdir())) / "ga4_insight_oauth"
-    dir_path.mkdir(parents=True, exist_ok=True)
+    dir_path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        try:
+            dir_path.chmod(0o700)
+        except OSError:
+            pass
     return dir_path
 
 
@@ -56,14 +62,43 @@ def _safe_state_filename(state: str) -> str:
 
 
 def _prune_state_store(max_age_seconds: float = 600) -> None:
+    """Remove expired state files. Enforces both age and a hard file-count cap."""
+    logger = logging.getLogger(__name__)
     now = time.time()
-    for file_path in _state_store_dir().iterdir():
-        if file_path.is_file():
+    store_dir = _state_store_dir()
+    state_files = sorted(
+        [f for f in store_dir.iterdir() if f.is_file() and f.suffix == ".json"],
+        key=lambda f: f.stat().st_mtime,
+    )
+
+    # Hard cap: keep at most 100 state files, remove oldest first
+    MAX_STATE_FILES = 100
+    while len(state_files) > MAX_STATE_FILES:
+        oldest = state_files.pop(0)
+        try:
+            oldest.unlink()
+        except OSError:
+            pass
+
+    for file_path in state_files:
+        try:
+            # Verify both filesystem age AND parsed created_at timestamp
+            file_age = now - file_path.stat().st_mtime
+            if file_age > max_age_seconds:
+                file_path.unlink()
+                continue
+            # Double-check parsed timestamp for defense-in-depth
             try:
-                if now - file_path.stat().st_mtime > max_age_seconds:
+                data = json.loads(file_path.read_text())
+                created = data.get("created_at", 0)
+                if now - created > max_age_seconds:
                     file_path.unlink()
-            except OSError:
-                pass
+            except (json.JSONDecodeError, OSError):
+                # Malformed file — remove it
+                file_path.unlink()
+                logger.debug("Removed malformed OAuth state file: %s", file_path.name)
+        except OSError:
+            pass
 
 
 def save_oauth_state(state: str, code_verifier: str, redirect_uri: str) -> None:
@@ -83,12 +118,31 @@ def save_oauth_state(state: str, code_verifier: str, redirect_uri: str) -> None:
         "created_at": time.time(),
     }
     file_path = _state_store_dir() / f"{_safe_state_filename(state)}.json"
-    file_path.write_text(json.dumps(data))
-    if os.name != "nt":
-        try:
-            file_path.chmod(0o600)
-        except OSError:
-            pass  # Best-effort; some filesystems (network mounts, etc.) may not support chmod
+    # Atomic write: write to temp file, set permissions, then replace
+    try:
+        with NamedTemporaryFile(
+            mode="w",
+            dir=_state_store_dir(),
+            prefix=".tmp_",
+            suffix=".json",
+            delete=False,
+        ) as tmp:
+            json.dump(data, tmp)
+            tmp_path = Path(tmp.name)
+        if os.name != "nt":
+            try:
+                tmp_path.chmod(0o600)
+            except OSError:
+                pass
+        os.replace(tmp_path, file_path)
+    except OSError:
+        # Last-resort: fall back to direct write if atomic path fails
+        file_path.write_text(json.dumps(data))
+        if os.name != "nt":
+            try:
+                file_path.chmod(0o600)
+            except OSError:
+                pass
 
 
 def load_oauth_state(state: str) -> dict[str, Any] | None:
@@ -179,20 +233,21 @@ def _revoke_token(credentials: Credentials) -> None:
     you pass — only one call is needed. Prefers the refresh token (longer-lived)
     over the access token.
 
-    Best-effort — failures are logged to stderr (visible in the developer's
-    terminal but invisible to the user) and never block re-authentication.
+    Best-effort — failures are logged and never block re-authentication.
     """
     logger = logging.getLogger(__name__)
     token = credentials.refresh_token or credentials.token
     if not token:
         return
     try:
-        requests.post(
+        response = requests.post(
             "https://oauth2.googleapis.com/revoke",
-            params={"token": token},
+            data={"token": token},
             headers={"content-type": "application/x-www-form-urlencoded"},
             timeout=5,
         )
+        if not response.ok:
+            logger.warning("OAuth revocation returned HTTP %s", response.status_code)
     except requests.RequestException as e:
         logger.warning("Token revocation failed (non-critical): %s", e)
 
@@ -217,7 +272,8 @@ def exchange_code(
         A Google OAuth ``Credentials`` instance.
 
     Raises:
-        ValueError: If the OAuth state is missing or expired.
+        ValueError: If the OAuth state is missing, expired, or the
+            redirect URI doesn't match the stored value.
     """
     if not state:
         raise ValueError(
@@ -228,10 +284,17 @@ def exchange_code(
     if not stored:
         raise ValueError("OAuth state not found or expired. Please sign in again.")
 
+    # Validate redirect URI matches stored value (bind callback to original URI)
+    if "redirect_uri" in stored and redirect_uri != stored["redirect_uri"]:
+        raise ValueError("OAuth callback configuration changed. Please sign in again.")
+
+    # Use stored redirect_uri for flow reconstruction
+    flow_redirect_uri = stored.get("redirect_uri", redirect_uri)
+
     flow = Flow.from_client_secrets_file(
         str(Path(CLIENT_SECRETS_FILE)),
         scopes=SCOPES,
-        redirect_uri=redirect_uri,
+        redirect_uri=flow_redirect_uri,
         code_verifier=stored["code_verifier"],
     )
     flow.fetch_token(code=code)

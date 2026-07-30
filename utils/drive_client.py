@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError
 
 # Limits — imported from data_loader for consistency
 from utils.data_loader import MAX_FILE_SIZE_MB, MAX_ROWS
+from utils.sanitize import safe_spreadsheet_value
 
 
 def _build_drive_service(credentials: Credentials):
@@ -165,7 +166,9 @@ def write_dataframe_to_drive(
     folder_id: str | None = None,
 ) -> str:
     """Export a DataFrame as CSV and upload to Google Drive."""
-    csv_content = df.to_csv(index=False)
+    # Apply formula-escaping to all cell values before CSV export
+    sanitized = df.map(safe_spreadsheet_value)
+    csv_content = sanitized.to_csv(index=False)
     return write_drive_file(
         credentials,
         filename=filename,
@@ -218,7 +221,7 @@ def create_google_sheet(
 
     # ── Populate Dashboard ──
     dashboard_values = [
-        ["📊 GA4 Insight Explorer — Report"],
+        [safe_spreadsheet_value("📊 GA4 Insight Explorer — Report")],
         [""],
         ["Generated:", pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")],
         ["Data Source:", "GA4 Insight Explorer"],
@@ -229,17 +232,17 @@ def create_google_sheet(
     ]
     if summary:
         dashboard_values.append([""])
-        dashboard_values.append(["🤖 AI Summary"])
+        dashboard_values.append([safe_spreadsheet_value("🤖 AI Summary")])
         for line in summary.split("\n")[:15]:
             if line.strip():
-                dashboard_values.append([line[:100]])
+                dashboard_values.append([safe_spreadsheet_value(line[:100])])
 
     # ── Populate Data ──
     data_values = []
     if df is not None and not df.empty:
-        data_values.append([str(col) for col in df.columns])
+        data_values.append([safe_spreadsheet_value(str(col)) for col in df.columns])
         for _, row in df.head(1000).iterrows():
-            data_values.append([str(v) if pd.notna(v) else "" for v in row])
+            data_values.append([safe_spreadsheet_value(str(v)) if pd.notna(v) else "" for v in row])
 
     # ── Populate Q&A ──
     qa_values = [["Question", "AI Response"]]
@@ -247,8 +250,8 @@ def create_google_sheet(
         if entry.get("response") and entry["response"] != "":
             qa_values.append(
                 [
-                    entry["question"][:200],
-                    entry["response"][:500],
+                    safe_spreadsheet_value(entry["question"][:200]),
+                    safe_spreadsheet_value(entry["response"][:500]),
                 ]
             )
 

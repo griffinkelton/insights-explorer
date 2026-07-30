@@ -204,8 +204,8 @@ The project grew significantly beyond the initial prompt. Here's what was added:
 ## 📖 Related Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
-- [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)

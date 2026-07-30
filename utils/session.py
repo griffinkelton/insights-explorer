@@ -1,6 +1,22 @@
 """Shared session state management — extracted from app.py."""
 
+import pandas as pd
 import streamlit as st
+
+
+def active_dataframe() -> pd.DataFrame | None:
+    """Return the analysis DataFrame respecting the full precedence chain.
+
+    Precedence: filtered_df (if filters_active) > custom_metrics_df > raw df.
+    Returns None if no data is loaded. Preserves a valid empty DataFrame
+    when a filter yields zero rows.
+    """
+    if st.session_state.get("filters_active") and st.session_state.get("filtered_df") is not None:
+        return st.session_state.filtered_df
+    custom_df = st.session_state.get("custom_metrics_df")
+    if custom_df is not None:
+        return custom_df
+    return st.session_state.get("df")
 
 
 def clear_data() -> None:
@@ -17,6 +33,9 @@ def clear_data() -> None:
     st.session_state.missing_columns = []
     st.session_state.data_cleared = True
     st.session_state.data_source = None
+    st.session_state.last_file_id = None
+    st.session_state.filters_active = False
+    st.session_state.filtered_df = None
     # Reset tour so Quick Tour button reappears on empty state
     st.session_state.tour_step = 0
     # Reset custom metrics so stale derived columns don't persist

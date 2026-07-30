@@ -1,11 +1,14 @@
 """GA4 data loading, validation, and preview utilities."""
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from typing import Any
 import pandas as pd
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 # File size and row limits
 MAX_FILE_SIZE_MB = 100
@@ -73,8 +76,13 @@ def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
                 f"Unsupported file type: {file.name}. Please upload a CSV or XLSX file.",
                 None,
             )
-    except Exception as e:
-        return None, f"Failed to parse file: {str(e)}", None
+    except Exception:
+        logger.warning("File parse error", exc_info=True)
+        return (
+            None,
+            "We couldn't read this file. Confirm that it is a valid CSV or XLSX export and try again.",
+            None,
+        )
 
     if df.empty:
         return None, "The uploaded file is empty.", None

@@ -1363,7 +1363,7 @@ Each of these is described in detail in [ENHANCEMENTS.md](ENHANCEMENTS.md) with 
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (7 bugs, patterns, rules)
 - [plans/00-sprints/✅ P1-P3-sprint-spec.md](plans/00-sprints/✅ P1-P3-sprint-spec.md) — Current sprint spec (Batches 1–5, items #1–14 + OAuth redirect)
 - [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) — Future-phase plan for deferred items (#15–21, P3–P6, repo weaknesses)
-- [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
+- [plans/00-meta/✅ onboarding-tour.md](plans/00-meta/✅ onboarding-tour.md) — Standalone mini-spec for #8 (deferred until post-P1-P3)
 - [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 plans, 2/6 done)
 
 ---

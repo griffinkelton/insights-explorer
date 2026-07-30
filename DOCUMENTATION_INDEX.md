@@ -37,7 +37,7 @@
 | [plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md](plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md) | See how streaming chat, column filters, conversation memory, and export were built | #15–17 Wave 1 + #19 Streaming (2 phases, ~6-7 days) | ✅ Done (4/4 items, 194 tests) |
 | [plans/00-meta/✅ P4-future-plan.md](plans/00-meta/✅ P4-future-plan.md) | Understand what comes next: medium features, large investments, and repo weaknesses | IMPL items #15–21 + P3–P6 + repo weaknesses (3 waves) | 🔵 Partially spec'd |
 | [plans/00-meta/✅ P4-deferred-plan.md](plans/00-meta/✅ P4-deferred-plan.md) | See the full catalog of work still waiting: theme, refactor, and 6 AI/data items | #18 Theme, #20 Component refactor, #21 AI/data (Batches C–F, ~20-35 days) | 🔵 Captured |
-| [plans/00-meta/🔵 onboarding-tour.md](plans/00-meta/🔵 onboarding-tour.md) | Eliminate the "cold start" problem — guide first-time users through the app in 30 seconds | 3-step guided tour: upload → summary → chat, with auto-dismiss | ⚠️ Deferred (~1 hr) |
+| [plans/00-meta/✅ onboarding-tour.md](plans/00-meta/✅ onboarding-tour.md) | Eliminate the "cold start" problem — guide first-time users through the app in 30 seconds | 3-step guided tour: upload → summary → chat, with auto-dismiss | ⚠️ Deferred (~1 hr) |
 | [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) | Clean up technical debt: turn the 809-line monolith into maintainable modules | Design decisions, target architecture, 7-phase extraction plan (IMPL #20, UNIFIED P5) | ✅ Done (78-line app.py, 228 tests) |
 | [plans/00-sprints/✅ component-refactor-spec.md](plans/00-sprints/✅ component-refactor-spec.md) | The implementation spec derived from 5 interview rounds — exact decisions, code samples, test patterns | Full Phase 1-7 execution spec with design table, code samples, test impact, edge cases | ✅ Done (see plan above) |
 | [plans/p3-p4/✅ THEME_TOGGLE.md](plans/p3-p4/✅ THEME_TOGGLE.md) | Give users a light mode option — the single most-requested visual improvement | CSS variables, JS sync, Plotly chart swapping (IMPL #18, UNIFIED P3) | ✅ Done (231 tests) |
@@ -83,7 +83,7 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
         ├──► plans/00-meta/✅ P4-deferred-plan.md ── "Deferred (Batches C–F)"
         │           └──► plans/p5-p6/✅ COMPONENT_REFACTOR.md ── "#20 mini-spec"
         │
-        ├──► plans/00-meta/🔵 onboarding-tour.md ── "#8 mini-spec (deferred)"
+        ├──► plans/00-meta/✅ onboarding-tour.md ── "#8 mini-spec (deferred)"
         │
         ├──► plans/00-meta/✅ UNIFIED_PLAN.md ── "Master index"
         │
@@ -128,7 +128,7 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 | plans/00-sprints/✅ P4-wave1-streaming-sprint-spec.md | P4 Wave 1 + Streaming sprint spec (completed) | ✅ Done | 2026-07-29 |
 | plans/00-meta/✅ P4-future-plan.md | Future-phase plan for all deferred items | 🔵 Partially spec'd | 2026-07-29 |
 | plans/00-meta/✅ P4-deferred-plan.md | Deferred items catalog: Batches C–F | 🔵 Captured | 2026-07-29 |
-| plans/00-meta/🔵 onboarding-tour.md | How to build a 3-step guided tour for first-time users | ⚠️ Deferred | 2026-07-29 |
+| plans/00-meta/✅ onboarding-tour.md | How to build a 3-step guided tour for first-time users | ⚠️ Deferred | 2026-07-29 |
 | plans/p5-p6/✅ COMPONENT_REFACTOR.md | How to split app.py into 7 clean component files (merged from mini-spec) | ✅ Done | 2026-07-29 |
 | plans/00-sprints/✅ component-refactor-spec.md | Interview-derived implementation spec with exact decisions and test patterns | ✅ Done | 2026-07-29 |
 | plans/p3-p4/✅ THEME_TOGGLE.md | Light/dark mode plan: CSS variables, JS sync, Plotly chart swapping | ✅ Done | 2026-07-29 |

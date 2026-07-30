@@ -29,11 +29,11 @@ class TestClassifyApiError:
         assert "service error" in result
 
     def test_unknown_error_fallback(self):
-        """Unknown errors should return a generic message with the original text."""
+        """Unknown errors should return a generic message without raw internals."""
         e = Exception("something completely unexpected")
         result = _classify_api_error(e)
-        assert "Unexpected error" in result
-        assert "something completely unexpected" in result
+        assert "Gemini could not complete" in result
+        assert "something completely unexpected" not in result
 
 
 class TestExcelExport:

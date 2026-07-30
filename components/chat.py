@@ -1,5 +1,6 @@
 """Chat interface — message history, chat input, streaming, chart rendering, export."""
 
+import logging
 import re
 import time
 from typing import Any
@@ -12,23 +13,20 @@ from utils.commands import get_command_pills, resolve_command
 from utils.gemini_client import DEFAULT_MODEL, generate_response, generate_response_stream
 from utils.prompt_templates import build_chat_prompt, detect_chart_request
 
+logger = logging.getLogger(__name__)
+
 
 def render_chat_section() -> None:
     """Render the full chat interface."""
-    df = st.session_state.get("custom_metrics_df") or st.session_state.df
+    from utils.session import active_dataframe
+
+    df = active_dataframe() or st.session_state.df
 
     # ── Chat header + New Chat button ─────────────────────────────────────
-    _theme = st.session_state.get("theme", "dark")
-    _hint_color = "#9ca3af" if _theme == "light" else "#686880"
     col_chat_header, col_new_chat = st.columns([4, 1])
     with col_chat_header:
-        st.markdown(
-            f'<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">'
-            f'<h3 style="margin:0;">💬 Ask Questions</h3>'
-            f'<span class="kb-shortcut">⌘K</span> <span style="color:{_hint_color};font-size:0.7rem;">focus chat</span>'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown("### 💬 Ask Questions")
+        st.caption("⌘K to focus chat")
     with col_new_chat:
         if st.button(
             "🆕 New Chat",
@@ -47,6 +45,9 @@ def render_chat_section() -> None:
             if entry["response"] == "":
                 # Stream new message
                 _stream_chat_response(entry, df, i)
+            elif entry.get("error"):
+                # Error entry — render as error, skip in history
+                st.error(entry["error"])
             else:
                 # Render historical message
                 st.markdown(entry["response"])
@@ -144,10 +145,6 @@ def render_chat_section() -> None:
 
 def _render_usage_stats() -> None:
     """Render token usage and context stats below the chat input."""
-    theme = st.session_state.get("theme", "dark")
-    muted_color = "#9ca3af" if theme == "light" else "#686880"
-    accent_color = "#6366f1" if theme == "dark" else "#4f46e5"
-
     total_input = st.session_state.get("total_input_tokens", 0)
     total_output = st.session_state.get("total_output_tokens", 0)
     total_tokens = st.session_state.get("total_tokens_used", 0)
@@ -155,38 +152,17 @@ def _render_usage_stats() -> None:
     call_count = st.session_state.get("api_call_count", 0)
     model = st.session_state.get("selected_model", "gemini-2.5-flash")
 
-    # Estimate context usage: assume ~4 chars per token for prompt overhead
-    df = st.session_state.get("df")
-    estimated_prompt_tokens = 0
-    if df is not None:
-        estimated_prompt_tokens = min(len(df) * len(df.columns) * 2, 500000)
-
-    context_pct = min(100, int((estimated_prompt_tokens / 1_000_000) * 100))
-
-    st.markdown(
-        f'<div style="display:flex;flex-wrap:wrap;gap:0.8rem;align-items:center;'
-        f'padding:0.4rem 0.2rem;margin-top:0.2rem;">'
-        f'<span style="font-size:0.65rem;color:{muted_color};">'
-        f"🤖 {model}</span>"
-        f'<span style="font-size:0.65rem;color:{muted_color};">'
-        f"📞 {call_count} calls</span>"
-        f'<span style="font-size:0.65rem;color:{muted_color};">'
-        f"⬅️ {total_input:,} in</span>"
-        f'<span style="font-size:0.65rem;color:{muted_color};">'
-        f"➡️ {total_output:,} out</span>"
-        f'<span style="font-size:0.65rem;color:{muted_color};">'
-        f"Σ {total_tokens:,} total</span>"
-        + (
-            f'<span style="font-size:0.65rem;color:{accent_color};font-weight:500;">'
-            f"💭 {total_thought:,} thoughts</span>"
-            if total_thought > 0
-            else ""
-        )
-        + f'<span style="font-size:0.65rem;color:{accent_color};font-weight:500;">'
-        f"📊 ~{context_pct}% context</span>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    # Usage stats — only show sourced values, no fabricated context meter
+    parts = [
+        f"🤖 {model}",
+        f"📞 {call_count} calls",
+        f"⬅️ {total_input:,} in",
+        f"➡️ {total_output:,} out",
+        f"Σ {total_tokens:,} total",
+    ]
+    if total_thought > 0:
+        parts.append(f"💭 {total_thought:,} thoughts")
+    st.caption(" · ".join(parts))
 
 
 def _render_command_pills() -> None:
@@ -334,8 +310,12 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                         )
 
     except ValueError as e:
-        entry["response"] = f"🔑 Configuration error: {e}"
+        entry["error"] = f"🔑 Configuration error: {e}"
+        entry["response"] = ""
     except RuntimeError as e:
-        entry["response"] = f"⚠️ API error: {e}"
+        entry["error"] = f"⚠️ API error: {e}"
+        entry["response"] = ""
     except Exception as e:
-        entry["response"] = f"⚠️ An unexpected error occurred: {e}"
+        entry["error"] = f"⚠️ An unexpected error occurred: {e}"
+        entry["response"] = ""
+        logger.warning("Chat streaming error", exc_info=True)

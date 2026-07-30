@@ -2,7 +2,7 @@
 
 > **Status:** ✅ Done — implemented across 6 files, 239 tests pass.
 > **From:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) #8, [ENHANCEMENTS.md](ENHANCEMENTS.md) #5
-> **Mini-spec:** [🔵 onboarding-tour.md](🔵 onboarding-tour.md)
+> **Mini-spec:** [✅ onboarding-tour.md](✅ onboarding-tour.md)
 > **Date:** 2026-07-28
 
 ---
@@ -71,5 +71,5 @@ No new tests (UI state machine, not logic). All 239 existing tests pass. Minor r
 
 - [Implementation Plan](IMPLEMENTATION_PLAN.md) #8
 - [Enhancement Roadmap](ENHANCEMENTS.md) #5
-- [Onboarding Tour Mini-Spec](🔵 onboarding-tour.md) — original deferred plan
+- [Onboarding Tour Mini-Spec](✅ onboarding-tour.md) — original deferred plan
 - [CHANGELOG.md](../../CHANGELOG.md)

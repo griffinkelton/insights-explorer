@@ -18,16 +18,18 @@ from utils.gemini_client import generate_response
 
 def render_data_preview() -> None:
     """Render metrics row, preview table, quality card, and filter expander."""
-    df = st.session_state.get("custom_metrics_df") or st.session_state.df
+    custom_df = st.session_state.get("custom_metrics_df")
+    df = custom_df if custom_df is not None else st.session_state.get("df")
     stats = st.session_state.stats
 
-    # Use filtered data for metrics/preview if available
-    display_df = st.session_state.filtered_df if st.session_state.filtered_df is not None else df
+    # Use filtered data for metrics/preview if filters are active
+    filters_active = st.session_state.get("filters_active", False)
+    display_df = st.session_state.get("filtered_df") if filters_active else df
 
     # Use augmented df for all operations except anomaly detection (which wants originals)
     base_df = st.session_state.df
 
-    st.markdown('<div style="margin-top:1rem;"></div>', unsafe_allow_html=True)
+    st.markdown("")
 
     # ── Metrics row ──────────────────────────────────────────────────────
     col1, col2, col3, col4 = st.columns(4)
@@ -142,6 +144,8 @@ def _render_data_filters(df: pd.DataFrame) -> None:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔄 Reset Filters", use_container_width=True):
             st.session_state.filter_columns = all_columns
+            st.session_state.filters_active = False
+            st.session_state.filtered_df = None
             if date_col and not dates.empty:
                 st.session_state.filter_dates = (min_date, max_date)
             st.rerun()
@@ -157,9 +161,11 @@ def _render_data_filters(df: pd.DataFrame) -> None:
 
     if filtered_df.empty:
         st.warning("⚠️ No rows match your filters. Try a wider date range or select more columns.")
-        st.session_state.filtered_df = None
+        st.session_state.filtered_df = filtered_df
+        st.session_state.filters_active = True
     else:
         st.session_state.filtered_df = filtered_df
+        st.session_state.filters_active = True
         st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
 
 

@@ -1,5 +1,7 @@
 """GA4 Insight Explorer — UI component orchestration."""
 
+import logging
+
 import streamlit as st
 
 from components.chat import render_chat_section
@@ -11,6 +13,8 @@ from utils.data_loader import apply_custom_metrics
 from utils.error_boundary import render_error_card
 from utils.ga4_client import credentials_to_dict, exchange_code
 from utils.onboarding import render_tour_step
+
+logger = logging.getLogger(__name__)
 
 
 def render_all() -> None:
@@ -68,13 +72,10 @@ def _render_main_content() -> None:
 
     # ── Footer ───────────────────────────────────────────────────────────
     st.divider()
-    st.markdown(
-        '<p style="text-align:center;color:#686880;font-size:0.75rem;">'
-        "GA4 Insight Explorer · Data processed in-memory only · "
-        '<a href="https://aistudio.google.com/apikey" style="color:#818cf8;">Gemini API Key</a> · '
-        '<a href="https://console.cloud.google.com/apis/credentials" style="color:#818cf8;">GCP OAuth Setup</a>'
-        "</p>",
-        unsafe_allow_html=True,
+    st.caption(
+        "GA4 Insight Explorer · Data processed in session · AI calls sent to Gemini API · "
+        "[Gemini API Key](https://aistudio.google.com/apikey) · "
+        "[GCP OAuth Setup](https://console.cloud.google.com/apis/credentials)"
     )
 
 
@@ -103,6 +104,7 @@ def _handle_oauth_callback() -> None:
         # Without this, the callback and page render share a cycle, and
         # the browser URL retains the single-use auth code on refresh.
         st.rerun()
-    except Exception as e:
-        st.error(f"Authentication failed: {e}")
+    except Exception:
+        st.error("Authentication failed. Please sign in again.")
+        logger.warning("OAuth callback error", exc_info=True)
         st.query_params.clear()
