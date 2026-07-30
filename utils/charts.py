@@ -82,7 +82,7 @@ def generate_chart(
 
         # Fallback
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=["object"]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=["object", "string"]).columns.tolist()
         if numeric_cols and categorical_cols:
             cat_col, num_col = categorical_cols[0], numeric_cols[0]
             if cat_col not in df.columns or num_col not in df.columns:
