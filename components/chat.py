@@ -20,7 +20,7 @@ def render_chat_section() -> None:
     """Render the full chat interface."""
     from utils.session import active_dataframe
 
-    df = active_dataframe() or st.session_state.df
+    df = active_dataframe()
 
     # ── Chat header + New Chat button ─────────────────────────────────────
     col_chat_header, col_new_chat = st.columns([4, 1])

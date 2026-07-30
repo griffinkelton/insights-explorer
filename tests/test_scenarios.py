@@ -41,71 +41,98 @@ class SessionStateMock(dict):
 
 
 class TestActiveDataframePrecedence:
-    """active_dataframe() must respect: filtered → custom_metrics → raw df."""
+    """active_dataframe() now reads DataContext.active_df (v0.2.0 bridge)."""
 
     def test_raw_df_only(self, monkeypatch):
-        """With only raw data loaded, return raw df."""
+        """With DataContext loaded, return active_df."""
         import streamlit as st
 
-        monkeypatch.setattr(st, "session_state", SessionStateMock({"df": pd.DataFrame({"a": [1]})}))
+        from utils.data_context import DataContext
+
+        ctx = DataContext(
+            source_id="test:1",
+            version=0,
+            raw_df=pd.DataFrame({"a": [1]}),
+            base_df=pd.DataFrame({"a": [1]}),
+            active_df=pd.DataFrame({"a": [1]}),
+        )
+        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
         result = active_dataframe()
         assert result is not None
         assert list(result.columns) == ["a"]
 
     def test_custom_metrics_preferred(self, monkeypatch):
-        """Custom metrics df takes precedence over raw df."""
+        """DataContext.active_df reflects custom metrics (applied via sidebar)."""
         import streamlit as st
+
+        from utils.data_context import DataContext
 
         raw = pd.DataFrame({"x": [1]})
         custom = pd.DataFrame({"y": [2]})
-        monkeypatch.setattr(
-            st, "session_state", SessionStateMock({"df": raw, "custom_metrics_df": custom})
+        ctx = DataContext(
+            source_id="test:1",
+            version=1,
+            raw_df=raw,
+            base_df=custom,
+            active_df=custom,
         )
+        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
         result = active_dataframe()
         assert result is not None
         assert list(result.columns) == ["y"]
 
     def test_filtered_preferred_over_custom(self, monkeypatch):
-        """Filtered df takes precedence over custom metrics."""
+        """DataContext.active_df reflects active filters over base."""
         import streamlit as st
 
+        from utils.data_context import DataContext, FilterState
+
         raw = pd.DataFrame({"x": [1]})
-        custom = pd.DataFrame({"y": [2]})
-        filt = pd.DataFrame({"z": [3]})
-        monkeypatch.setattr(
-            st,
-            "session_state",
-            SessionStateMock(
-                {
-                    "df": raw,
-                    "custom_metrics_df": custom,
-                    "filtered_df": filt,
-                    "filters_active": True,
-                }
-            ),
+        base = pd.DataFrame({"y": [2]})  # custom metrics applied
+        filt = pd.DataFrame({"z": [3]})  # filtered
+        ctx = DataContext(
+            source_id="test:1",
+            version=2,
+            raw_df=raw,
+            base_df=base,
+            active_df=filt,
+            filters=FilterState(descriptions=("test",), is_active=True, row_count=1),
         )
+        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
         result = active_dataframe()
         assert result is not None
         assert list(result.columns) == ["z"]
 
     def test_filters_inactive_skips_filtered(self, monkeypatch):
-        """When filters_active is False, skip filtered_df even if present."""
+        """When DataContext.filters.is_active is False, active_df equals base_df."""
         import streamlit as st
+
+        from utils.data_context import DataContext
 
         raw = pd.DataFrame({"x": [1]})
         filt = pd.DataFrame({"z": [3]})
+        # DataContext with filters inactive: active_df should be base_df (raw)
+        ctx = DataContext(
+            source_id="test:1",
+            version=0,
+            raw_df=raw,
+            base_df=raw.copy(),
+            active_df=raw.copy(),
+        )
         monkeypatch.setattr(
             st,
             "session_state",
-            SessionStateMock({"df": raw, "filtered_df": filt, "filters_active": False}),
+            SessionStateMock(
+                {"data_context": ctx, "df": raw, "filtered_df": filt, "filters_active": False}
+            ),
         )
         result = active_dataframe()
         assert result is not None
-        # filters_active=False → skip filtered, fall to raw
+        # DataContext.active_df = base_df (not filtered_df, since no filters active)
         assert list(result.columns) == ["x"]
 
     def test_no_data_returns_none(self, monkeypatch):
-        """No data at all → None."""
+        """No DataContext and no legacy df → None."""
         import streamlit as st
 
         monkeypatch.setattr(st, "session_state", SessionStateMock({}))
@@ -426,20 +453,24 @@ class TestEmptyFilterSemantics:
     """Zero-row filters must preserve an empty DataFrame, not fall to None."""
 
     def test_empty_filtered_df_not_none(self, monkeypatch):
-        """Zero-row filter → empty DataFrame preserved, filters_active=True."""
+        """Zero-row filter → empty active_df preserved in DataContext."""
         import streamlit as st
 
+        from utils.data_context import DataContext, FilterState
+
         empty_df = pd.DataFrame(columns=["a", "b"])
+        ctx = DataContext(
+            source_id="test:1",
+            version=1,
+            raw_df=pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
+            base_df=pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
+            active_df=empty_df,
+            filters=FilterState(descriptions=("empty",), is_active=True, row_count=0),
+        )
         monkeypatch.setattr(
             st,
             "session_state",
-            SessionStateMock(
-                {
-                    "df": pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
-                    "filtered_df": empty_df,
-                    "filters_active": True,
-                }
-            ),
+            SessionStateMock({"data_context": ctx, "df": pd.DataFrame({"a": [1, 2], "b": [3, 4]})}),
         )
 
         result = active_dataframe()

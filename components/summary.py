@@ -11,7 +11,7 @@ def render_summary_section() -> None:
     """Render the AI-generated summary card and generate button."""
     from utils.session import active_dataframe
 
-    df = active_dataframe() or st.session_state.df
+    df = active_dataframe()
     stats = st.session_state.stats
 
     st.markdown("### 🤖 AI-Generated Summary")

@@ -1,22 +1,19 @@
 """Shared session state management — extracted from app.py."""
 
-import pandas as pd
 import streamlit as st
 
 
-def active_dataframe() -> pd.DataFrame | None:
-    """Return the analysis DataFrame respecting the full precedence chain.
+def active_dataframe():
+    """Return the current analysis DataFrame from DataContext.
 
-    Precedence: filtered_df (if filters_active) > custom_metrics_df > raw df.
-    Returns None if no data is loaded. Preserves a valid empty DataFrame
-    when a filter yields zero rows.
+    TEMPORARY migration bridge — reads DataContext.active_df which already
+    respects the full precedence chain (filters > custom metrics > raw).
+    Will be deleted at Phase 1 Step 4 completion.
+
+    Returns None if no DataContext is loaded.
     """
-    if st.session_state.get("filters_active") and st.session_state.get("filtered_df") is not None:
-        return st.session_state.filtered_df
-    custom_df = st.session_state.get("custom_metrics_df")
-    if custom_df is not None:
-        return custom_df
-    return st.session_state.get("df")
+    ctx = st.session_state.get("data_context")
+    return ctx.active_df if ctx else None
 
 
 def clear_data() -> None:

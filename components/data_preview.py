@@ -3,6 +3,7 @@
 import pandas as pd
 import streamlit as st
 from utils.charts import find_date_column, find_column
+from utils.data_context import with_filtered_data, with_filters_cleared
 from utils.data_loader import (
     filter_dataframe,
     detect_column_types,
@@ -18,21 +19,22 @@ from utils.gemini_client import generate_response
 
 def render_data_preview() -> None:
     """Render metrics row, preview table, quality card, and filter expander."""
-    custom_df = st.session_state.get("custom_metrics_df")
-    df = custom_df if custom_df is not None else st.session_state.get("df")
+    ctx = st.session_state.get("data_context")
+    df = ctx.active_df if ctx else st.session_state.get("df")  # REMOVE legacy fallback after Step 4
     stats = st.session_state.stats
 
     # Use filtered data for metrics/preview if filters are active
-    filters_active = st.session_state.get("filters_active", False)
-    display_df = st.session_state.get("filtered_df") if filters_active else df
+    display_df = ctx.active_df if ctx else df
 
-    # Use augmented df for all operations except anomaly detection (which wants originals)
-    base_df = st.session_state.df
+    # Use raw_df for anomaly detection (wants originals, not augmented)
+    base_df = (
+        ctx.raw_df if ctx else st.session_state.get("df")
+    )  # REMOVE legacy fallback after Step 4
 
     st.markdown("")
 
     # ── GA4 truncation warning ──────────────────────────────────────────
-    if st.session_state.get("ga4_truncated", False):
+    if ctx and ctx.truncated:
         st.warning(
             "⚠️ This dataset was truncated at 500,000 rows (GA4 hard cap). "
             "Summary, forecasts, and AI analysis may be based on a partial dataset. "
@@ -55,10 +57,8 @@ def render_data_preview() -> None:
         st.dataframe(smart_sample(display_df, max_rows=10), use_container_width=True)
 
     # ── Column type badges ───────────────────────────────────────────────
-    if st.session_state.get("custom_metrics_df") is not None or (
-        st.session_state.df is not None and not st.session_state.df.empty
-    ):
-        col_types = detect_column_types(st.session_state.get("custom_metrics_df") or display_df)
+    if df is not None and not df.empty:
+        col_types = detect_column_types(display_df)
         badge_css = {
             ColumnType.DATE: ("col-date", "📅"),
             ColumnType.NUMERIC: ("col-numeric", "🔢"),
@@ -152,13 +152,16 @@ def _render_data_filters(df: pd.DataFrame) -> None:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔄 Reset Filters", use_container_width=True):
             st.session_state.filter_columns = all_columns
+            # v0.2.0: Update DataContext (dual-write with legacy keys)
+            if st.session_state.data_context is not None:
+                st.session_state.data_context = with_filters_cleared(st.session_state.data_context)
             st.session_state.filters_active = False
             st.session_state.filtered_df = None
             if date_col and not dates.empty:
                 st.session_state.filter_dates = (min_date, max_date)
             st.rerun()
 
-    # Apply filters and store result
+    # Apply filters and store result (dual-write: DataContext + legacy keys)
     filtered_df = filter_dataframe(
         df,
         date_col=date_col,
@@ -166,6 +169,22 @@ def _render_data_filters(df: pd.DataFrame) -> None:
         end_date=end_date,
         selected_columns=selected_columns,
     )
+
+    # Build filter descriptions for provenance (from user-facing filter choices)
+    filter_descriptions: tuple[str, ...] = ()
+    if selected_columns != all_columns:
+        filter_descriptions += (f"columns:{len(selected_columns)}/{len(all_columns)}",)
+    if start_date and end_date:
+        filter_descriptions += (f"date:{start_date}:{end_date}",)
+
+    # Update DataContext if filters are active (dual-write with legacy keys)
+    if filter_descriptions and st.session_state.data_context is not None:
+        st.session_state.data_context = with_filtered_data(
+            st.session_state.data_context, filtered_df, filter_descriptions
+        )
+    elif not filter_descriptions and st.session_state.data_context is not None:
+        # No active filter conditions — clear any previous filters
+        st.session_state.data_context = with_filters_cleared(st.session_state.data_context)
 
     if filtered_df.empty:
         st.warning("⚠️ No rows match your filters. Try a wider date range or select more columns.")

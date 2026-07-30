@@ -45,7 +45,7 @@ def _render_main_content() -> None:
     )
     st.caption("Ask questions about your analytics data — powered by Gemini AI.")
 
-    if st.session_state.df is None:
+    if st.session_state.data_context is None and st.session_state.df is None:
         # ── Onboarding tour (replaces hero when active) ──────────────────
         tour_step = st.session_state.get("tour_step", 0)
         if tour_step in (1, 2, 3):
@@ -56,12 +56,16 @@ def _render_main_content() -> None:
         st.stop()
 
     # ── Apply custom metrics (cached until metrics change) ───────────────
-    if st.session_state.custom_metrics_df is None and st.session_state.custom_metrics:
-        st.session_state.custom_metrics_df = apply_custom_metrics(
-            st.session_state.df, st.session_state.custom_metrics
-        )
-    elif not st.session_state.custom_metrics:
-        st.session_state.custom_metrics_df = None
+    # Apply custom metrics (sidebar writer handles DataContext path)
+    ctx = st.session_state.get("data_context")
+    if ctx is None:
+        # Legacy path — only active when DataContext is absent
+        if st.session_state.custom_metrics_df is None and st.session_state.custom_metrics:
+            st.session_state.custom_metrics_df = apply_custom_metrics(
+                st.session_state.df, st.session_state.custom_metrics
+            )
+        elif not st.session_state.custom_metrics:
+            st.session_state.custom_metrics_df = None
 
     render_data_preview()
     render_summary_section()
