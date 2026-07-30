@@ -1,5 +1,6 @@
 """Unit tests for utils/ga4_client.py — OAuth flow, credentials, GA4 report pull."""
 
+import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -165,6 +166,18 @@ class TestOAuthFlow:
         ):
             ga4.exchange_code("auth-code-xyz", "http://localhost:8501", "state-abc")
 
+    def test_exchange_code_redirect_uri_mismatch_raises(self):
+        """exchange_code should raise if stored redirect_uri doesn't match."""
+        with patch(
+            "utils.ga4_client.load_oauth_state",
+            return_value={
+                "code_verifier": "verifier-123",
+                "redirect_uri": "http://localhost:8501",
+                "created_at": 9999999999,
+            },
+        ), pytest.raises(ValueError, match="configuration changed"):
+            ga4.exchange_code("auth-code-xyz", "http://evil.example.com", "state-abc")
+
 
 class TestOAuthStateStore:
     """Tests for save_oauth_state / load_oauth_state persistence."""
@@ -194,6 +207,40 @@ class TestOAuthStateStore:
         monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
 
         assert ga4.load_oauth_state("unknown-state") is None
+
+    def test_malformed_state_json_returns_none(self, tmp_path, monkeypatch):
+        """load_oauth_state should return None for malformed JSON."""
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
+        (tmp_path / "bad-state.json").write_text("not valid json {{{{{")
+
+        assert ga4.load_oauth_state("bad-state") is None
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX-only permission test")
+    def test_save_oauth_state_preserves_state_dir_permissions(self, tmp_path, monkeypatch):
+        """save_oauth_state should preserve restrictive directory permissions (0o700)."""
+        import stat
+
+        store = tmp_path / "custom_state"
+        # Ensure directory exists before patching (prune iterates it)
+        store.mkdir(parents=True, exist_ok=True, mode=0o700)
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: store)
+
+        ga4.save_oauth_state("perm-state", "verifier", "http://localhost:8501")
+
+        mode = store.stat().st_mode
+        assert stat.S_IMODE(mode) == 0o700, f"Expected 0o700, got {oct(stat.S_IMODE(mode))}"
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX-only permission test")
+    def test_state_file_permissions(self, tmp_path, monkeypatch):
+        """Saved state file should have 0o600 permissions on POSIX."""
+        import stat
+
+        monkeypatch.setattr(ga4, "_state_store_dir", lambda: tmp_path)
+        ga4.save_oauth_state("file-perm", "verifier", "http://localhost:8501")
+
+        file_path = tmp_path / "file-perm.json"
+        mode = file_path.stat().st_mode
+        assert stat.S_IMODE(mode) == 0o600, f"Expected 0o600, got {oct(stat.S_IMODE(mode))}"
 
 
 # ── pull_ga4_report tests ───────────────────────────────────────────────────

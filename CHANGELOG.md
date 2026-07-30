@@ -6,6 +6,69 @@
 
 ---
 
+## v0.1.0 — Hardening Release
+
+**Date:** 2026-07-30 | **Status:** ✅ Released | **Tests:** 389 | **Tag:** `v0.1.0`
+
+> Full-scope hardening release based on GPT-5.6 12-batch audit (~85 findings).
+> 4 phased PRs: repository safety → P0 application safety → data contract & integrations → documentation & release.
+
+### PR 0: Repository Safety
+
+| Change | Type |
+|---|---|
+| History scrub of `email/` + `drive-download-*/` via `git filter-repo` | Security |
+| `.gitignore` rules: `email/`, `*.eml`, `data/`, `uploads/`, `exports/` | Config |
+| `tests/fixtures/README.md` with synthetic-data provenance policy | Docs |
+
+### PR 1: P0 Application Safety (12 files)
+
+| Change | Type |
+|---|---|
+| OAuth security: callback binding, atomic writes, bounded cleanup, revocation logging | Security |
+| Export escaping: `sanitize.py` with `safe_spreadsheet_value` + `safe_pdf_text` | Security |
+| Error redaction: `SHOW_DEBUG_DETAILS`, UUID error IDs, generic messages | Security |
+| HTML safety: replaced raw HTML with Streamlit primitives | Security |
+| `active_dataframe()` helper with filter → custom → raw precedence | Fix |
+| Empty-filter semantics: zero-row filters preserve empty DataFrame | Fix |
+| Clear Data reload fix: `last_file_id = None` | Fix |
+
+### PR 2: Data Contract & Integrations (17 files)
+
+| Change | Type |
+|---|---|
+| Drive scope removal: `drive.readonly` removed, 3 read functions deleted | Security |
+| GA4 pagination: offset + limit, 500k cap, dedup, `ga4_truncated` flag | Feature |
+| Privacy notices: precise Gemini terms, updated footer | Docs |
+| Funnel → "Page-Path Aggregation": literal matching, 8-step cap, caveats | Fix |
+| Forecast → "Linear Trend Projection": daily calendar, elapsed days, caveats | Fix |
+| API telemetry: success/failure/attempt counters, context meter removed | Refactor |
+| Chart extraction opt-in, summary model selection, data quality fixes | Fix |
+| UI safety: system fonts, keyboard guard, reduced-motion | Accessibility |
+
+### PR 3: Documentation & Release
+
+| Change | Type |
+|---|---|
+| README rewrite, LICENSE (MIT), SECURITY.md, RELEASE_CHECKLIST.md | Docs |
+| Dependency consolidation: base.txt / dev.txt / requirements.txt | Config |
+| CI standardization: dev.txt install, pip caching, lint + coverage | Config |
+| .gitignore/.env.example expansion, pre-commit hardening, Sphinx cleanup | Config |
+
+### PR 4: Testing & Validation Gates
+
+| Change | Type |
+|---|---|
+| Theme validation: `VALID_THEMES = {"dark", "light"}` in styles.py | Security |
+| OAuth binding tests: redirect-URI mismatch, POSIX permissions | Testing |
+| Static analysis expanded: `drive.readonly` gate, silent except:pass scanner | Testing |
+| Scenario tests: 11 groups (dataframe, clear, forecast, exports, funnel, streaming, model, GA4) | Testing |
+| 3 silent except:pass blocks documented with justifying comments | Docs |
+
+**Related:** [plans/audit/✅ v0.1.0-hardening-spec.md](plans/audit/✅%20v0.1.0-hardening-spec.md)
+
+---
+
 ---
 
 ---

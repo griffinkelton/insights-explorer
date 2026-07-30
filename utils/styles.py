@@ -2,12 +2,16 @@
 
 import streamlit as st
 
+# Allowed theme values — validate before interpolation into HTML/CSS/JS templates.
+VALID_THEMES = {"dark", "light"}
+
 
 def inject_favicon_meta(theme: str = "dark") -> None:
     """Inject favicon, Apple Touch Icon, and Open Graph meta tags into the page head.
 
     Args:
         theme: "dark" (default) or "light". Controls the theme-color meta tag.
+            Raises ValueError for unknown theme values.
 
     Call this once per page after st.set_page_config().
 
@@ -17,6 +21,8 @@ def inject_favicon_meta(theme: str = "dark") -> None:
     base64 encoding. The HTML tags activate in production behind
     nginx, Cloud Run, or any proper static file server.
     """
+    if theme not in VALID_THEMES:
+        raise ValueError(f"Unknown theme '{theme}'. Valid themes: {sorted(VALID_THEMES)}")
     theme_color = "#0a0a0f" if theme == "dark" else "#ffffff"
     st.markdown(
         f"""
@@ -52,7 +58,10 @@ def inject_custom_css(theme: str = "dark") -> None:
     Args:
         theme: "dark" (default) or "light". Sets data-theme on the
             document element via a hidden div + JS snippet.
+            Raises ValueError for unknown theme values.
     """
+    if theme not in VALID_THEMES:
+        raise ValueError(f"Unknown theme '{theme}'. Valid themes: {sorted(VALID_THEMES)}")
     st.markdown(
         f"""<div id="theme-data" data-theme="{theme}" style="display:none;"></div>
 <style>

@@ -12,6 +12,10 @@
 | [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) | The initial project prompt + 26-item compliance checklist | To understand what was asked for vs what was built |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Design decisions, data flow, security model, dependencies, build log | To understand how the app is structured and why |
 | [BUGLOG.md](BUGLOG.md) | Structured bug log — every error encountered, root cause, fix, and learnings (10 bugs) | When debugging, after encountering an error, or reviewing patterns |
+| [CHANGELOG.md](CHANGELOG.md) | Unified change history with commit hashes, dates, and related doc links | To see what changed in each release |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting process | Before reporting a vulnerability |
+| [LICENSE](LICENSE) | MIT License | To understand usage rights |
+| [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | v0.1.0 release checklist with evidence and sign-off | Release verification |
 
 ---
 
@@ -142,4 +146,4 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 
 ---
 
-*This index should be updated whenever a new MD file is added or an existing one is significantly revised.*
+*This index was last updated 2026-07-30 for the v0.1.0 hardening release.*

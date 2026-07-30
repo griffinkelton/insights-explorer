@@ -113,9 +113,7 @@ def build_chat_prompt(
             desc = df[numeric_cols].describe().to_string()
             agg_stats["numeric_summary"] = desc
         except Exception:
-            pass
-
-    # Top 10 rows (or fewer if the dataset is small)
+            pass  # describe() may fail on empty or constant-only numeric columns (or fewer if the dataset is small)
     sample_size = min(10, len(df))
     sample = smart_sample(df, max_rows=10).to_string(index=False)
 

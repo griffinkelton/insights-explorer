@@ -41,9 +41,7 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
         try:
             df[date_cols[0]] = pd.to_datetime(df[date_cols[0]], errors="coerce")
         except Exception:
-            pass
-
-    st.session_state.df = df
+            pass  # Mixed-format or invalid dates are expected — coerce handles them gracefully
     st.session_state.missing_columns = missing
     st.session_state.stats = get_dataset_stats(df)
     st.session_state.stats["missing_columns"] = missing

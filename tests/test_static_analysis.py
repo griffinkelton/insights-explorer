@@ -1,23 +1,29 @@
 """Static analysis linters — catches structural bugs that AST parsing alone misses.
 
 Pattern 4 (BUG-002): Verifies function definitions appear BEFORE their
-    first call site at the module level in app.py. Streamlit scripts
-    execute top-to-bottom, so `def _render_main()` after `_render_main()`
-    is a NameError at runtime. ast.parse doesn't catch this.
+    first call site at the module level in Streamlit scripts (.py files
+    that execute top-to-bottom). Currently scans app.py and pages/learn.py.
 
 Pattern 3 (BUG-006): Verifies that file-I/O functions like
-    `load_file()` don't mix `file.read()` with `pd.read_csv(file)` on
+    ``load_file()`` don't mix ``file.read()`` with ``pd.read_csv(file)`` on
     the same file object (which consumes the buffer). Checks that
     BytesIO is used as a wrapper when both operations exist.
 
-Pattern 1 (BUG-001): Verifies that every `except Exception` at the
-    module level in app.py that wraps Streamlit control flow calls
-    (st.stop, st.rerun) properly re-raises Streamlit's internal
+Pattern 1 (BUG-001): Verifies that every ``except Exception`` at the
+    module level in Streamlit scripts that wraps Streamlit control flow
+    calls (st.stop, st.rerun) properly re-raises Streamlit's internal
     exceptions instead of treating them as unhandled errors.
 
-Pattern 2 (BUG-005): Detects `on_click` callback anti-patterns —
+Pattern 2 (BUG-005): Detects ``on_click`` callback anti-patterns —
     callbacks that trigger slow operations (API calls) should use
-    `if st.button` + `st.spinner()` instead of `on_click`.
+    ``if st.button`` + ``st.spinner()`` instead of ``on_click``.
+
+Pattern 5 (hardening gate): Verifies that no ``drive.readonly`` string
+    remains in runtime source code after PR 2 Drive scope removal.
+
+Pattern 6 (hardening gate): Verifies that no bare ``except Exception:
+    pass`` blocks exist without a justifying comment across all runtime
+    source files.
 """
 
 import ast
@@ -550,3 +556,134 @@ class TestOnClickAntiPattern:
     def _read(self) -> str:
         with open(self.APP_PATH) as f:
             return f.read()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pattern 5: drive.readonly string must not appear in runtime source
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestDriveReadonlyRemoved:
+    """Verify no ``drive.readonly`` string survives in runtime source.
+
+    After PR 2 Drive scope removal, the app should only reference
+    ``drive.file`` for exports — never ``drive.readonly`` (browsing).
+    Scans all .py files under utils/, components/, pages/, and app.py.
+    """
+
+    _RUNTIME_DIRS = ["utils", "components", "pages"]
+    _RUNTIME_FILES = ["app.py"]
+
+    def test_no_drive_readonly_in_source(self):
+        """No .py file under runtime dirs should contain drive.readonly."""
+        violations: list[str] = []
+
+        for dir_name in self._RUNTIME_DIRS:
+            dir_path = os.path.join(ROOT, dir_name)
+            if not os.path.isdir(dir_path):
+                continue
+            for root, _dirs, files in os.walk(dir_path):
+                for fname in files:
+                    if fname.endswith(".py") and not fname.startswith("test_"):
+                        fpath = os.path.join(root, fname)
+                        if self._contains_drive_readonly(fpath):
+                            violations.append(
+                                f"{os.path.relpath(fpath, ROOT)}: contains 'drive.readonly'"
+                            )
+
+        for fname in self._RUNTIME_FILES:
+            fpath = os.path.join(ROOT, fname)
+            if os.path.isfile(fpath) and self._contains_drive_readonly(fpath):
+                violations.append(f"{fname}: contains 'drive.readonly'")
+
+        if violations:
+            raise AssertionError(
+                "drive.readonly references found in runtime source after PR 2:\n  "
+                + "\n  ".join(violations)
+                + "\n\nReplace with drive.file only or remove entirely."
+            )
+
+    def _contains_drive_readonly(self, path: str) -> bool:
+        with open(path) as f:
+            return "drive.readonly" in f.read()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pattern 6: expand silent except: pass scanning to all runtime files
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestSilentExceptPass:
+    """Verify no bare ``except Exception: pass`` blocks exist without
+    a justifying comment across all runtime source files.
+
+    Scans utils/, components/, pages/, and app.py.
+    """
+
+    _RUNTIME_DIRS = ["utils", "components", "pages"]
+    _RUNTIME_FILES = ["app.py"]
+
+    def test_no_undocumented_silent_pass(self):
+        """No silent except:pass blocks should exist without a justifying
+        comment on the same line or the preceding 3 lines."""
+        violations: list[str] = []
+
+        all_files: list[str] = []
+        for dir_name in self._RUNTIME_DIRS:
+            dir_path = os.path.join(ROOT, dir_name)
+            if not os.path.isdir(dir_path):
+                continue
+            for root, _dirs, files in os.walk(dir_path):
+                for fname in files:
+                    if fname.endswith(".py") and not fname.startswith("test_"):
+                        all_files.append(os.path.join(root, fname))
+
+        for fname in self._RUNTIME_FILES:
+            fpath = os.path.join(ROOT, fname)
+            if os.path.isfile(fpath):
+                all_files.append(fpath)
+
+        for fpath in all_files:
+            rel = os.path.relpath(fpath, ROOT)
+            with open(fpath) as f:
+                lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                # Look for bare except: or except Exception:
+                is_except = (
+                    stripped == "except:"
+                    or stripped == "except Exception:"
+                    or stripped == "except Exception as e:"
+                )
+                if not is_except:
+                    continue
+
+                # Check if the next non-empty line is just 'pass'
+                next_line = ""
+                for j in range(i + 1, min(i + 4, len(lines))):
+                    nl = lines[j].strip()
+                    if nl:
+                        next_line = nl
+                        break
+
+                if next_line != "pass":
+                    continue  # Not a silent pass
+
+                # Check if there's a justifying comment nearby
+                has_justification = "#" in line or "#" in next_line
+                # Also check 3 preceding lines for comments
+                for j in range(max(0, i - 3), i):
+                    if "#" in lines[j]:
+                        has_justification = True
+                        break
+
+                if not has_justification:
+                    violations.append(f"{rel}:{i + 1} — silent except:pass")
+
+        if violations:
+            raise AssertionError(
+                "Undocumented silent except:pass blocks found:\n  "
+                + "\n  ".join(violations)
+                + "\n\nAdd a comment explaining why the exception is intentionally swallowed."
+            )

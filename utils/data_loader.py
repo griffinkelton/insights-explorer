@@ -135,7 +135,7 @@ def get_dataset_stats(df: pd.DataFrame) -> dict[str, Any]:
                 stats["date_range_start"] = valid_dates.min().strftime("%Y-%m-%d")
                 stats["date_range_end"] = valid_dates.max().strftime("%Y-%m-%d")
         except Exception:
-            pass
+            pass  # Non-date columns or mixed-format dates are expected in arbitrary datasets
 
     return stats
 
