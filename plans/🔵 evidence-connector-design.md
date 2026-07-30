@@ -49,6 +49,34 @@ The future public demo is a **separate deployment mode**, not a configuration fl
 
 A public demo letting visitors upload their own GA4 CSV or connect their own GA4 property via OAuth is a separate security, privacy, and legal workstream — requiring terms, privacy notice, consent language, retention/deletion behavior, abuse controls, and incident path. Defer until that is a deliberate product objective.
 
+### Encryption Reality Check
+
+For a local first version, **do not build custom file encryption.** Use the operating system and device-management controls:
+- Run only on a company-managed device with full-disk encryption enabled: FileVault on macOS or BitLocker on Windows.
+- Ensure the device requires a strong login and locks automatically.
+- Keep backups encrypted and avoid personal sync destinations such as personal iCloud Drive, Dropbox, Google Drive, or OneDrive.
+- Store dashboard credentials in the OS keychain/keyring; never in `.env`, source configuration, a notebook, or the local database.
+- Use HTTPS with certificate verification for every dashboard download.
+
+If a future policy requires database-level encryption in addition to disk encryption, adopt an approved product/service then. **Avoid inventing a cryptography scheme inside the app.**
+
+### Session-Only vs. Local Persistence Analysis
+
+This connector requires a deliberate shift from session-only to persistence. The current product promises active-session processing and clearing data wipes state, while the Evidence design assumes private staged extracts, sync metadata, and a credential reference — those are incompatible with a pure session-only architecture.
+
+| Option | Description | Best for | Trade-offs |
+|---|---|---|---|
+| **A — Remain session-only** | Sync, validate, and analyze within one session; discard on close | Early single-user experiment; minimal retained data | Slow repeat use; no refresh history; no durable audit trail |
+| **B — Local encrypted store** | Data persisted on the analyst's own encrypted device (OS app-data dir) | Single authorized analyst; internal experimentation; direct control | You are responsible for device security, backups, retention, and deletion |
+| **C — Managed encrypted storage** | Company-approved cloud database/object store with RBAC and formal audit | Multiple approved users; scheduled syncs; reliable backups | More engineering overhead; organization approval required |
+
+**Decision for v0.4:** Choose a staged approach:
+- **v0.4 Phase A:** Manual initiation, no retained raw data — session-only is acceptable.
+- **v0.4 Phase B+:** Use **Option B** (local encrypted staging) only after the data owner confirms retention on an encrypted company-managed device is allowed.
+- **Option C** only if this becomes a shared or scheduled operational tool.
+
+Keep raw GA4 uploads and normal analysis session-only. Permit opt-in local persistence for non-data metadata only: saved recipes, annotations, and source configuration references. When the Evidence connector arrives, add a separate encrypted staging subsystem with an explicit retention policy; do not quietly expand ordinary Streamlit session state into a data store.
+
 ---
 
 ## Roadmap Context
@@ -62,10 +90,25 @@ This connector is correctly sequenced **after** the following releases, which es
 | **v0.4.0** | Governed GA4 + Evidence aggregate analysis | This connector |
 
 **v0.3.0 features that directly benefit v0.4.0:**
-- **Data dictionary** — gives a place to document Evidence metric definitions, grain, QA status, and unknowns.
-- **Saved analysis recipes** — provides the format for reproducible overlay analysis: both source versions, filters, content mapping version, suppression policy, methodology.
-- **Annotations / context events** — lets an analyst mark relaunches, campaign starts, tracking changes — essential for interpreting a GA4 + Evidence overlay.
-- **Natural-language dates** → visible deterministic filters — transfers cleanly to time-grain joins.
+- **Data dictionary generator** — Column profiles (type, coverage, uniqueness, examples) for every loaded dataset. User-editable definitions, exportable dictionary, and explicit distinction between observed inference and confirmed definition. Gives a place to document Evidence metric definitions, grain, QA status, and unknowns before AI or overlay analysis.
+- **Saved analysis recipes** — Export/import local JSON recipes preserving source, filters, mapping version, methodology, and chart configuration without storing raw data. Establishes the template for reproducible overlay analysis and later Evidence source configurations.
+- **Annotations / context events** — Local, exportable annotation layer for marking relaunches, campaign starts, tracking changes, content migrations, and data backfills. Essential for interpreting pre/post-relaunch overlays. Single-user only; team-synced comments deferred.
+- **Natural-language date ranges** — Support phrases like "last month," "Q3 2024," or "since the redesign launched," translating them into visible, editable, deterministic filter criteria. Transfers cleanly to GA4/Evidence time-grain joins.
+- **Sankey journey visualization** *(optional — only if v0.2 reader migration reveals a clean page-transition input contract)* — Navigation flow visualization aligned with the available Evidence `page_transitions` dataset and existing GA4 page-path capabilities. Does not claim user identity resolution or individual-level attribution.
+
+### Deferred from v0.3.0 (Do Not Prioritize Yet)
+
+These IDEAS.md items are explicitly deferred until after v0.4 or later:
+
+| Item | Rationale for deferral |
+|---|---|
+| Automatic segmentation / clustering | Adds opaque modeling; misleading without careful feature selection and stability checks |
+| Cohort retention | Requires durable user identifiers and rigorous cohort definitions — does not match ordinary aggregate GA4 export data |
+| Channel attribution modeling | Easily overstates causal credit; needs a clear conversion/event model first |
+| Cross-property benchmarking | Requires multi-source state, comparable metric definitions, normalization, and likely persistence |
+| Public share links, team annotations, Slack | Turns a session-local, privacy-first tool into a collaboration/distribution product requiring identity, persistence, access-control, and retention model |
+| BigQuery bridge | Introduces security, cost-control, query-sandboxing, and provenance concerns |
+| Autonomous AI agent | Introduces security, cost-control, query-sandboxing, and provenance concerns |
 
 ### v0.4 In Scope / Out of Scope
 
@@ -634,7 +677,12 @@ Every cache key must include both source IDs and versions, mapping version, and 
 ### Phase A — Validate Source *(v0.4 start gate: v0.3.0 complete)*
 
 - Build an admin-only test screen (not visible in main Explorer)
-- Show a human gate checklist: data ownership confirmed, permitted use confirmed, retention period confirmed, named users confirmed — "Enable Source" button requires all four
+- **Admin human-gate checklist:** Use a Streamlit expander in the admin-only area that forces acknowledgment of all four items before the "Enable Source" button activates:
+  1. ☐ Data ownership confirmed
+  2. ☐ Permitted use confirmed
+  3. ☐ Retention period confirmed
+  4. ☐ Approved/named users confirmed
+  - This turns a documentation requirement into a product guardrail that Codebuff can implement.
 - Test authentication without storing secrets in code
 - Fetch manifest; display dataset names, current asset hashes, sizes, and schemas
 - **Do NOT yet expose data in the Explorer or write any local files**
@@ -674,6 +722,20 @@ Every cache key must include both source IDs and versions, mapping version, and 
 
 ---
 
+## `st.cache_data` Audit Gate (Pre-Phase B)
+
+> **Required before writing any connector code.**
+
+The v0.1.0 release added `@st.cache_data` to `validate_columns`, `get_dataset_stats`, and `build_summary_prompt`. This design explicitly prohibits `st.cache_data` for credentialed responses and proprietary Evidence data. Before Phase B implementation:
+
+1. Audit **all** existing `@st.cache_data` decorators in the codebase.
+2. Ensure no Evidence fetch path can accidentally flow through a cached function.
+3. Ensure no confidential DataFrame can be cached under a key that a GA4-only session could hit.
+4. The `_assert_prompt_safe()` guard must fire **before** the `@st.cache_data` path is hit, not inside it.
+5. Add a CI test that verifies no new `@st.cache_data` decorator is introduced on any Evidence connector module.
+
+---
+
 ## What NOT to Build Yet
 
 - Arbitrary "connect any website" support
@@ -684,6 +746,32 @@ Every cache key must include both source IDs and versions, mapping version, and 
 - Automated AI analysis over confidential source data
 - Public or broadly shared exports
 - Hosted/cloud staging store (defer until shared multi-user deployment is a deliberate product decision)
+
+---
+
+## Codebuff `/plan` Reference
+
+When ready to implement Phase A, give Codebuff the design doc plus this context block:
+
+```
+## v0.4.0 Evidence Connector — /plan constraints
+
+Source: plans/🔵 evidence-connector-design.md (updated 2026-07-30)
+
+Phase A only. New files to scaffold:
+- utils/connector_types.py          — DataConnector Protocol + 5 result dataclasses
+- utils/evidence_connector.py       — EvidenceStaticConnector (Phase A: test_connection + discover_datasets + preview_schema only)
+- utils/local_staging_store.py      — LocalStagingStore with OS app-data paths + assert_outside_repo()
+- utils/sync_metadata.py            — SyncRecord dataclass
+- utils/content_key_mapping.py      — MAPPING_VERSION, normalize_path(), PATH_OVERRIDES stub (TODO: manual audit)
+- tests/test_evidence_connector.py  — mock manifest, allowlist, SSRF rejection, schema validation
+- tests/test_local_staging_store.py — assert_outside_repo() raises for repo-root paths
+- tests/test_data_context_backwards_compat.py — v0.2 fields only still construct correctly
+
+No changes to: DataContext, components, Explorer UI, prompt_templates.py in Phase A.
+PATH_OVERRIDES in content_key_mapping.py must stay as a TODO stub — do not populate.
+LocalStagingStore.assert_outside_repo() must be called in every sync path and tested in CI.
+```
 
 ---
 
@@ -699,6 +787,7 @@ Every cache key must include both source IDs and versions, mapping version, and 
 | Catalog bypass | `validate_catalog_entry()` required before `active_df`; failure → quarantine, not partial load |
 | Small-cell disclosure | Suppress n < 10; round/bucket sparse intersections |
 | Proprietary data in AI | `_assert_prompt_safe()` fires before cache path; `classification == "confidential"` blocks AI |
+| Cache leakage | Audit all `@st.cache_data` decorators before Phase B; no Evidence fetch path may flow through a cached function |
 | Unauthorized export | Disable CSV export for confidential source-level tables |
 | Retention | Cleanup command; 30-day raw / 90-day curated defaults pending data-owner confirmation |
 
