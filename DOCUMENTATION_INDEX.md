@@ -106,6 +106,14 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
                  ├── ✅ 2026-07-29-oauth-scope-remediation-spec.md
                  ├── ✅ 2026-07-29-drive-scope-remediation-plan.md
                  └── ✅ 2026-07-29-drive-export-model-selector-session.md
+        │
+        ├──► plans/🔵 v0.2.0-plan.md ── "Post-hardening roadmap (d1–d7, 5 phases)"
+        │
+        └──► plans/audit/ (all ✅ — v0.1.0 hardening artifacts)
+                 ├── ✅ v0.1.0-closeout.md ── "What v0.1.0 delivered + baseline"
+                 ├── ✅ v0.1.0-hardening-spec.md
+                 ├── ✅ v0.1.0-hardening-plan.md
+                 └── ✅ chatgpt-6.3-terra-feedback.md
 ```
 ```
 
@@ -143,7 +151,12 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 | plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md | Post-phase-6 OAuth security hardening & code quality remediation spec | ✅ Done | 2026-07-29 |
 | plans/maintenance/✅ 2026-07-29-drive-scope-remediation-plan.md | Original remediation plan — predecessor to the spec above | ✅ Done | 2026-07-29 |
 | plans/maintenance/✅ 2026-07-29-drive-export-model-selector-session.md | Session summary: Drive write-back, model selector, export formats, multimodal support | ✅ Done | 2026-07-29 |
+| plans/🔵 v0.2.0-plan.md | Post-hardening roadmap: 7 deferred items (d1–d7), 5 phases, ~10-16 days | 🔵 Planning | 2026-07-30 |
+| plans/audit/✅ v0.1.0-closeout.md | v0.1.0 close-out: what was delivered, deferred items, audit baseline, release evidence | ✅ Final | 2026-07-30 |
+| plans/audit/✅ v0.1.0-hardening-spec.md | Hardening implementation spec — PR 0–4 acceptance criteria, security gates | ✅ Done | 2026-07-30 |
+| plans/audit/✅ v0.1.0-hardening-plan.md | GPT-5.6 full codebase audit + v0.1.0 hardening plan | ✅ Done | 2026-07-30 |
+| plans/audit/✅ chatgpt-6.3-terra-feedback.md | Original GPT-6.3 audit feedback — 12 batches of findings | ✅ Done | 2026-07-30 |
 
 ---
 
-*This index was last updated 2026-07-30 for the v0.1.0 hardening release (389 tests, 0 warnings).*
+*This index was last updated 2026-07-30 for the v0.1.0 hardening release (417 tests, 0 warnings, 100% coverage on session + styles + sanitize + error_boundary + commands + forecasting + funnels).*
