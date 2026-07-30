@@ -26,7 +26,7 @@ insights-explorer/
 │   └── styles.py                # Custom CSS theme (light/dark) + keyboard shortcut JS
 ├── components/
 │   ├── __init__.py              # UI orchestrator + OAuth callback handler
-│   ├── sidebar.py               # File upload, GA4 connect, Drive picker, model selector
+│   ├── sidebar.py               # File upload, GA4 connect, model selector
 │   ├── chat.py                  # Chat interface, streaming, chart rendering, export
 │   ├── summary.py               # AI summary generation + display
 │   ├── data_preview.py          # Data metrics, filters, quality scorecard
@@ -37,7 +37,7 @@ insights-explorer/
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
 │   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
-│   └── ...                      # 11 additional test modules (359 total)
+│   └── ...                      # 13 additional test modules (389 total)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -178,16 +178,18 @@ insights-explorer/
 | **API key** | Never hardcoded; read from `.env` via `python-dotenv` |
 | **Prompt injection** | `_sanitize_question()` strips code blocks/backticks; triple-quote delimiters + `⚠️ SECURITY` guardrail |
 | **Key validation** | `validate_api_key()` runs on startup; persistent error banner if invalid |
-| **Data privacy** | All in-memory only; no disk, database, or model training |
+| **Data privacy** | Processed in active session; AI calls sent to Gemini API; exports via Google Sheets & Drive |
 | **XSRF** | `enableXsrfProtection = true` in `.streamlit/config.toml` |
 | **CORS** | `enableCORS = false` — localhost only |
 | **Error details** | `showErrorDetails = false` — prevents source leakage |
 | **File upload** | Capped at 200 MB via `maxUploadSize` |
 | **OAuth secrets** | `client_secrets.json` in `.gitignore`; read from env-configurable path |
-| **OAuth scope** | `drive.readonly` + `drive.file` (not full `drive`) — minimal blast radius; only app-created files get write access |
+| **OAuth scope** | `analytics.readonly` for GA4 data pulls + `drive.file` for user-initiated exports only |
 | **Token revocation** | `_revoke_token()` calls Google's `/revoke` endpoint on scope migration, invalidating the old broad-scope grant server-side |
 | **OAuth state files** | `chmod(0o600)` on state JSON files (POSIX) — prevents other users on shared systems from reading `code_verifier` |
 | **Model access** | `AVAILABLE_MODELS` restricted to free-tier Flash models — no paid-model footgun |
+| **Export escaping** | `sanitize.py`: formula injection prevention for Excel/Sheets + PDF XML escaping |
+| **Error redaction** | Production mode (`SHOW_DEBUG_DETAILS=false`) hides tracebacks; UUID error IDs shown instead |
 
 ---
 
@@ -198,15 +200,15 @@ insights-explorer/
 | `test_data_loader.py` | 20 | `load_file` (6), `validate_columns` (8), `get_dataset_stats` (6) |
 | `test_prompt_templates.py` | 58 | `build_summary_prompt` (9), `build_chat_prompt` (11), `_sanitize_question` (18), `detect_chart_request` (20) |
 | `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
-| `test_ga4_client.py` | 28 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (5), `pull_ga4_report` (10), `TestOAuthStateStore` (10) |
+| `test_ga4_client.py` | 28 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (7), `pull_ga4_report` (10), `TestOAuthStateStore` (8) |
 | `test_exports.py` | 8 | `TestClassifyApiError` (4), `TestExcelExport` (2), `TestPdfExport` (2) |
 | `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
 | `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
-| `test_static_analysis.py` | 10 | All 4 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern |
+| `test_static_analysis.py` | 12 | All 6 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern, drive.readonly gate, silent except:pass scanner |
 | `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
-| _11 additional modules_ | _222_ | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init` |
-| **Total** | **359** | All util modules + components + pages + error boundary + data quality + static analysis + app structure |
+| _13 additional modules_ | _251_ | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init`, `test_session`, `test_scenarios` |
+| **Total** | **389** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -293,7 +295,7 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 54 | P4 Wave 1 + Streaming: #15 column picker & date filters (filter_dataframe, _render_data_filters) | Feature |
 | 55 | P4 Wave 1 + Streaming: #16 conversation memory (last 5 exchanges in build_chat_prompt, New Chat button) | Feature |
 | 56 | P4 Wave 1 + Streaming: #17 export chat as Markdown report (report_exporter.py, kaleido) | Feature |
-| 57-63 | OAuth security hardening: scope reduction (drive→drive.readonly+drive.file), PKCE state persistence with chmod hardening, scope migration banner with server-side token revocation, shared error classification (_classify_api_error), thought/cached token tracking, 8 smoke tests (test_exports.py), dead code cleanup (ga4_auth_flow, Pro model), BUG-009 & BUG-010, file reorganization (plans/maintenance/) | Remediation |
+| 57-63 | OAuth security hardening: scope reduction (drive→analytics.readonly+drive.file), PKCE state persistence with chmod hardening, scope migration banner with server-side token revocation, shared error classification (_classify_api_error), thought/cached token tracking, 8 smoke tests (test_exports.py), dead code cleanup (ga4_auth_flow, Pro model), BUG-009 & BUG-010, file reorganization (plans/maintenance/) | Remediation |
 
 ---
 

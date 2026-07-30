@@ -52,8 +52,6 @@ if "api_key_valid" not in st.session_state:
 # Rate limiting state
 if "last_api_call" not in st.session_state:
     st.session_state.last_api_call = 0.0
-if "api_call_count" not in st.session_state:
-    st.session_state.api_call_count = 0
 if "filtered_df" not in st.session_state:
     st.session_state.filtered_df = None
 if "theme" not in st.session_state:

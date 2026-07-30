@@ -72,7 +72,6 @@ class TestAppStructure:
         """Rate limiting session state keys must be initialized."""
         source = _read_source()
         assert '"last_api_call"' in source
-        assert '"api_call_count"' in source
 
 
 class TestAppSessionState:
@@ -101,4 +100,3 @@ class TestAppSessionState:
     def test_rate_limiting_state_initialized(self):
         source = _read_source()
         assert '"last_api_call"' in source
-        assert '"api_call_count"' in source

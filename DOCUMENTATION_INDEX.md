@@ -146,4 +146,4 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 
 ---
 
-*This index was last updated 2026-07-30 for the v0.1.0 hardening release.*
+*This index was last updated 2026-07-30 for the v0.1.0 hardening release (389 tests).*

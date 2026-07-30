@@ -4,7 +4,7 @@
 >
 > ✅ = Completed &nbsp;|&nbsp; ⚠️ = Optional/Deferred &nbsp;|&nbsp; 🔲 = Available
 >
-> **Last updated:** 2026-07-28 — All 37 enhancements complete ✅. Plus 4 IDEAS items shipped this session: custom metrics (#24), metric forecasting (#21), funnel visualization (#10), chat command palette (#4). 346 tests.
+> **Last updated:** 2026-07-30 — All 37 enhancements complete ✅. v0.1.0 hardening release: 389 tests.
 
 ---
 
@@ -59,7 +59,7 @@
 **Status:** ✅ Done — `X | None` syntax across all `.py` files.
 
 ### 10. Unit Test Suite with pytest ✅
-**Status:** ✅ Done — 194 tests across 9 modules (data_loader, prompt_templates, gemini_client, ga4_client, learn_page, error_boundary, data_quality, static_analysis, app).
+**Status:** ✅ Done — 389 tests across 25 modules.
 
 ### 11. Use Streamlit's Native Caching ✅
 **Status:** ✅ Done — `@st.cache_data` on `validate_columns`, `get_dataset_stats`, `build_summary_prompt`.
@@ -70,10 +70,8 @@
 **How:** Split into `components/sidebar.py`, `components/hero.py`, `components/data_preview.py`, `components/chat.py`, `utils/charts.py`.
 **Effort:** High | **Files:** New `components/` package
 
-### 13. Split Dependencies (dev vs prod) 🔲
-**Why:** `requirements.txt` mixes runtime deps with `pytest`. CI installs all of them.
-**How:** Create `requirements/dev.txt` (pytest, pytest-cov, pytest-mock) and keep `requirements.txt` for production deps only.
-**Effort:** Small | **Files:** `requirements/` directory
+### 13. Split Dependencies (dev vs prod) ✅
+**Status:** ✅ Done in PR 3 — `requirements/base.txt` (runtime) + `requirements/dev.txt` (tests/lint/docs), CI installs from dev.txt.
 
 ---
 
