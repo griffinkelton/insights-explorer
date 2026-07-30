@@ -17,6 +17,7 @@ from utils.data_context import (
     create_context_from_ga4,
     create_context_from_upload,
     fingerprint_frame,
+    rebuild_metrics_context,
     with_custom_metrics,
     with_filtered_data,
     with_filters_cleared,
@@ -908,3 +909,91 @@ class TestDefaultFilterSemantics:
         cleared = with_filters_cleared(filtered)
         assert cleared is not filtered
         assert cleared.filters.is_active is False
+
+
+# ── Step 4.1 Regression: Custom-Metrics Lifecycle ────────────────────────────
+
+
+class TestCustomMetricsLifecycle:
+    """Custom metrics must derive from base_df, never active_df.
+
+    Regression tests for the bug where filtering then adding a metric would
+    discard filtered-out rows from the new analytical base.
+    """
+
+    @pytest.fixture
+    def multi_segment_df(self):
+        return pd.DataFrame(
+            {
+                "segment": ["A", "A", "B", "B", "C", "C"],
+                "sessions": [100, 200, 300, 400, 500, 600],
+                "users": [10, 20, 30, 40, 50, 60],
+            }
+        )
+
+    def test_add_metric_after_filter_preserves_all_rows(self, multi_segment_df):
+        """Filter to segment A → add metric → filters clear → all 6 rows remain."""
+        ctx = create_context_from_upload(
+            multi_segment_df, multi_segment_df.to_csv(index=False).encode()
+        )
+        # Filter to segment A
+        filtered = ctx.base_df[ctx.base_df["segment"] == "A"]
+        ctx = with_filtered_data(ctx, filtered, ("segment==A",))
+        assert len(ctx.active_df) == 2
+
+        # Add a custom metric — must derive from base_df, NOT active_df
+        ctx = rebuild_metrics_context(ctx, {"sessions_per_user": "sessions / users"})
+
+        # Filters cleared by rebuild_metrics_context (via with_custom_metrics)
+        assert not ctx.filters.is_active
+        assert len(ctx.active_df) == 6  # all rows preserved
+        assert "sessions_per_user" in ctx.base_df.columns
+        assert "sessions_per_user" in ctx.active_df.columns
+
+    def test_remove_metric_removes_column_from_base(self, multi_segment_df):
+        """Add metric → remove it → column gone from both base_df and active_df."""
+        ctx = create_context_from_upload(
+            multi_segment_df, multi_segment_df.to_csv(index=False).encode()
+        )
+        # Add metric
+        ctx = rebuild_metrics_context(ctx, {"ratio": "sessions / users"})
+        assert "ratio" in ctx.base_df.columns
+
+        # Remove it (rebuild with empty formulas)
+        ctx = rebuild_metrics_context(ctx, {})
+        assert "ratio" not in ctx.base_df.columns
+        assert "ratio" not in ctx.active_df.columns
+        assert ctx.base_df.equals(ctx.raw_df)  # back to original
+
+    def test_dependent_metrics_rebuild_deterministically(self, multi_segment_df):
+        """Add two dependent metrics → remove first → second rebuilt correctly."""
+        ctx = create_context_from_upload(
+            multi_segment_df, multi_segment_df.to_csv(index=False).encode()
+        )
+        # Add two metrics where the second depends on the first
+        ctx = rebuild_metrics_context(
+            ctx, {"ratio": "sessions / users", "double_ratio": "ratio * 2"}
+        )
+        assert "ratio" in ctx.base_df.columns
+        assert "double_ratio" in ctx.base_df.columns
+
+        # Remove the first (dependency) → second formula should fail
+        with pytest.raises(ValueError, match="Invalid formula"):
+            rebuild_metrics_context(ctx, {"double_ratio": "ratio * 2"})
+
+    def test_filter_to_zero_then_add_metric_from_base(self, multi_segment_df):
+        """Filter to zero rows → add metric → base comes from raw_df, not empty."""
+        ctx = create_context_from_upload(
+            multi_segment_df, multi_segment_df.to_csv(index=False).encode()
+        )
+        # Filter to nothing
+        empty = ctx.base_df[ctx.base_df["segment"] == "NONEXISTENT"]
+        ctx = with_filtered_data(ctx, empty, ("segment==NONEXISTENT",))
+        assert ctx.active_df.empty
+        assert ctx.filters.is_active
+
+        # Add metric — must succeed, deriving from full base_df
+        ctx = rebuild_metrics_context(ctx, {"ratio": "sessions / users"})
+        assert not ctx.filters.is_active
+        assert len(ctx.active_df) == 6  # all rows back
+        assert "ratio" in ctx.base_df.columns

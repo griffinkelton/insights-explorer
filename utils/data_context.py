@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import NamedTuple
 
@@ -402,3 +403,47 @@ def with_filters_cleared(context: DataContext) -> DataContext:
         filters=FilterState(),
         provenance=(*context.provenance, "filters:cleared"),
     )
+
+
+def rebuild_metrics_context(
+    context: DataContext,
+    formulas: Mapping[str, str],
+) -> DataContext:
+    """Rebuild the analytical base from raw_df with the given custom metrics.
+
+    Always starts from raw_df (the immutable ground truth), applies all
+    formulas in insertion order, then delegates to with_custom_metrics().
+    This is the single entry point for both adding and deleting custom
+    metrics — it guarantees that:
+
+    - Adding a metric retains every row from the analytical base (never
+      derives from a potentially filtered active_df).
+    - Deleting a metric actually removes its column and deterministically
+      rebuilds all remaining metrics.
+
+    If formulas reference prior custom-metric columns (chained metrics),
+    the rebuild order must match registration order — as dict insertion
+    order guarantees in Python 3.7+.
+
+    Args:
+        context: Existing DataContext.
+        formulas: Ordered mapping of {name: formula_string}. An empty
+                  dict means "no custom metrics" (reverts base to raw).
+
+    Returns:
+        New DataContext with base_df rebuilt and filters cleared.
+
+    Raises:
+        ValueError: if a formula references an unknown column.
+    """
+    if not isinstance(formulas, Mapping):
+        raise TypeError("formulas must be a Mapping")
+
+    metrics_df = context.raw_df.copy(deep=True)
+    for name, formula in formulas.items():
+        try:
+            metrics_df[name] = metrics_df.eval(formula)
+        except Exception as e:
+            raise ValueError(f"Invalid formula '{formula}' for metric '{name}': {e}") from e
+
+    return with_custom_metrics(context, metrics_df)

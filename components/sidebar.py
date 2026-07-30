@@ -27,8 +27,7 @@ from utils.ga4_client import (
 from utils.data_context import (
     create_context_from_ga4,
     create_context_from_upload,
-    with_custom_metrics,
-    with_filters_cleared,
+    rebuild_metrics_context,
 )
 from utils.session import clear_data
 
@@ -47,7 +46,8 @@ def _populate_data_state(
 ) -> None:
     """Populate session state with loaded data — shared by upload and GA4 paths.
 
-    v0.2.0: Creates a DataContext alongside legacy keys (dual-write for migration).
+    v0.2.0: Creates a DataContext — the sole owner of loaded, filtered, and
+    custom-metric state.
 
     Args:
         df: The loaded DataFrame.
@@ -78,7 +78,7 @@ def _populate_data_state(
     if st.session_state.get("tour_step", 0) in (1, 2, 3):
         st.session_state.tour_step = 4
 
-    # v0.2.0: Create DataContext (dual-write with legacy keys)
+    # v0.2.0: Create DataContext — sole owner of data state
     if source == "ga4":
         if ga4_metadata is not None:
             st.session_state.data_context = create_context_from_ga4(
@@ -295,7 +295,7 @@ def _render_privacy_notice() -> None:
 def _render_clear_button() -> None:
     """Render the Clear Data button. Only shown when data is loaded.
 
-    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+    v0.2.0: DataContext is the sole data-state owner.
 
     FIX (BUG-005): Uses `if st.button` pattern instead of `on_click=clear_data`
     to comply with the anti-pattern guard.
@@ -396,7 +396,8 @@ def _render_theme_toggle() -> None:
 def _render_custom_metrics() -> None:
     """Render custom metric builder — formula bar for derived columns.
 
-    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+    v0.2.0: DataContext is the sole data-state owner. Custom metrics derive
+    from raw_df (via rebuild_metrics_context), never from active_df.
     """
     if st.session_state.data_context is None:
         return
@@ -420,8 +421,9 @@ def _render_custom_metrics() -> None:
             with col_del:
                 if st.button("✕", key=f"del_metric_{name}", help=f"Remove {name}"):
                     del st.session_state.custom_metrics[name]
-                    st.session_state.data_context = with_filters_cleared(
-                        st.session_state.data_context
+                    st.session_state.data_context = rebuild_metrics_context(
+                        st.session_state.data_context,
+                        st.session_state.custom_metrics,
                     )
                     st.rerun()
 
@@ -438,9 +440,7 @@ def _render_custom_metrics() -> None:
             key="new_metric_formula",
         )
         ctx = st.session_state.data_context
-        numeric_hint = ", ".join(
-            ctx.active_df.select_dtypes(include=["number"]).columns.tolist()[:5]
-        )
+        numeric_hint = ", ".join(ctx.base_df.select_dtypes(include=["number"]).columns.tolist()[:5])
         if numeric_hint:
             st.caption(f"Available numeric columns: {numeric_hint}")
 
@@ -455,13 +455,13 @@ def _render_custom_metrics() -> None:
                 # Validate formula by trying it on a small sample
                 try:
                     ctx = st.session_state.data_context
-                    test_df = ctx.active_df.head(5).copy()
+                    test_df = ctx.base_df.head(5).copy()
                     test_df[new_name] = test_df.eval(new_formula)
+                    # Register formula and rebuild from raw_df
                     st.session_state.custom_metrics[new_name] = new_formula
-                    # v0.2.0: Update DataContext with custom metrics
-                    metrics_df = ctx.active_df.copy()
-                    metrics_df[new_name] = metrics_df.eval(new_formula)
-                    st.session_state.data_context = with_custom_metrics(ctx, metrics_df)
+                    st.session_state.data_context = rebuild_metrics_context(
+                        ctx, st.session_state.custom_metrics
+                    )
                     st.rerun()
                 except Exception as e:
                     st.error(f"Invalid formula: {e}")
@@ -481,7 +481,7 @@ def _render_learn_link() -> None:
 def _render_compare_controls() -> None:
     """Render the Compare mode toggle + dimension/value selectors.
 
-    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+    v0.2.0: DataContext is the sole data-state owner.
     """
     if st.session_state.data_context is None:
         return
