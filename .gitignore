@@ -6,6 +6,20 @@ __pycache__/
 client_secrets.json
 FREEBUFF_CONVERSATION*.md
 
+# Cache & coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Security
+.streamlit/secrets.toml
+oauth_state_*.json
+
+# Build artifacts
+docs/_build/
+
 # Artifact paths (PR 0 — prevent recurrence of committed data)
 email/
 *.eml

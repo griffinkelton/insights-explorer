@@ -17,12 +17,12 @@ steps:
 
         echo "=== Installing dependencies ==="
         pip install --upgrade pip --quiet
-        pip install -r requirements.txt --progress-bar off
+        pip install -r requirements/dev.txt --progress-bar off
 
         echo "=== Running tests with coverage ==="
-        python -m pytest tests/ -v --tb=short --cov=utils --cov=pages --cov-report=term
+        python -m pytest tests/ -v --tb=short --cov=utils --cov=components --cov=pages --cov-report=term
 
-# ── Timeout (default is 10 min — more than enough for 171 tests) ─────────────
+# ── Timeout (default is 10 min) ────────────────────────────────────────────
 timeout: 600s
 
 # ── Substitutions (override via gcloud builds submit --substitutions) ────────
