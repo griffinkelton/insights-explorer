@@ -26,6 +26,11 @@ def render_data_preview() -> None:
     # Use filtered data for metrics/preview if filters are active
     display_df = ctx.active_df if ctx else df
 
+    # Filter source: always base_df (unfiltered analytical base). This prevents
+    # filter-compounding — changing dates must recalculate from base_df, not
+    # from an already-filtered active_df (Step 3.1 correction).
+    filter_source_df = ctx.base_df if ctx else df
+
     # Use raw_df for anomaly detection (wants originals, not augmented)
     base_df = (
         ctx.raw_df if ctx else st.session_state.get("df")
@@ -105,10 +110,10 @@ def render_data_preview() -> None:
     # ── Funnel analysis ──────────────────────────────────────────────────
     _render_funnel_section(base_df)
 
-    # ── Data filters ─────────────────────────────────────────────────────
-    if df is not None:
+    # ── Data filters (use base_df as source to prevent filter-compounding) ─
+    if filter_source_df is not None:
         with st.expander("🔍 Filter Data", expanded=False):
-            _render_data_filters(df)
+            _render_data_filters(filter_source_df)
 
 
 def _render_data_filters(df: pd.DataFrame) -> None:
@@ -168,22 +173,32 @@ def _render_data_filters(df: pd.DataFrame) -> None:
         start_date=start_date,
         end_date=end_date,
         selected_columns=selected_columns,
+    )  # Build filter descriptions — only active when they differ from defaults.
+    # (The date range is pre-populated to min/max; treating the full range
+    # as an "active filter" would repeatedly call with_filtered_data on reruns.)
+    date_filter_active = (
+        date_col is not None
+        and start_date is not None
+        and end_date is not None
+        and min_date is not None
+        and max_date is not None
+        and (start_date != str(min_date) or end_date != str(max_date))
     )
+    columns_filter_active = selected_columns != all_columns
 
-    # Build filter descriptions for provenance (from user-facing filter choices)
     filter_descriptions: tuple[str, ...] = ()
-    if selected_columns != all_columns:
+    if columns_filter_active:
         filter_descriptions += (f"columns:{len(selected_columns)}/{len(all_columns)}",)
-    if start_date and end_date:
+    if date_filter_active:
         filter_descriptions += (f"date:{start_date}:{end_date}",)
 
-    # Update DataContext if filters are active (dual-write with legacy keys)
+    # Update DataContext only when at least one filter is genuinely active.
+    # Otherwise clear any previous filters (no-op if already clear).
     if filter_descriptions and st.session_state.data_context is not None:
         st.session_state.data_context = with_filtered_data(
             st.session_state.data_context, filtered_df, filter_descriptions
         )
     elif not filter_descriptions and st.session_state.data_context is not None:
-        # No active filter conditions — clear any previous filters
         st.session_state.data_context = with_filters_cleared(st.session_state.data_context)
 
     if filtered_df.empty:

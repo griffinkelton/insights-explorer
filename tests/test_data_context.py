@@ -826,3 +826,85 @@ class TestGA4FactoryValidation:
     def test_factory_raises_typeerror_on_non_dataframe(self):
         with pytest.raises(TypeError, match="must be a pandas DataFrame"):
             create_context_from_ga4("not_a_df", "123")  # type: ignore[arg-type]
+
+
+# ── Step 3.1 Regression: Filter-Source & Default-Filter Semantics ───────────
+
+
+class TestFilterSourceCorrectness:
+    """Filters must apply to base_df, not active_df, to prevent compounding."""
+
+    @pytest.fixture
+    def june_july_df(self):
+        """DataFrame with June and July dates."""
+        return pd.DataFrame(
+            {
+                "date": ["2025-06-01", "2025-06-15", "2025-07-01", "2025-07-15"],
+                "sessions": [100, 200, 300, 400],
+                "page": ["/a", "/b", "/a", "/b"],
+            }
+        )
+
+    def test_filter_recalculates_from_base_df(self, june_july_df):
+        """June filter → July filter must return July rows from base_df, not empty."""
+        ctx = create_context_from_upload(june_july_df, june_july_df.to_csv(index=False).encode())
+        # Filter to June
+        june = june_july_df[june_july_df["date"].str.startswith("2025-06")]
+        ctx = with_filtered_data(ctx, june, ("date:June",))
+        assert len(ctx.active_df) == 2
+        assert ctx.filters.is_active is True
+
+        # Now filter to July — must come from base_df (4 rows), not active_df (2 rows)
+        # Simulate the UI: filter_dataframe receives base_df, not active_df
+        july = ctx.base_df[ctx.base_df["date"].str.startswith("2025-07")]
+        ctx2 = with_filtered_data(ctx, july, ("date:July",))
+        assert len(ctx2.active_df) == 2  # July has 2 rows
+        assert ctx2.active_df.iloc[0]["sessions"] == 300  # Not empty!
+
+    def test_column_widen_recalculates_from_base_df(self, june_july_df):
+        """Narrow column filter → wider column filter must include new columns from base_df."""
+        ctx = create_context_from_upload(june_july_df, june_july_df.to_csv(index=False).encode())
+        # Filter to subset of columns
+        narrow = ctx.base_df[["date", "sessions"]]
+        ctx = with_filtered_data(ctx, narrow, ("columns:2/3",))
+        assert list(ctx.active_df.columns) == ["date", "sessions"]
+
+        # Widen — must include "page" from base_df
+        wide = ctx.base_df[["date", "sessions", "page"]]
+        ctx2 = with_filtered_data(ctx, wide, ("columns:3/3",))
+        assert "page" in ctx2.active_df.columns
+        assert len(ctx2.active_df.columns) == 3
+
+
+class TestDefaultFilterSemantics:
+    """Default (full-range) filter settings must NOT be treated as active filters."""
+
+    @pytest.fixture
+    def ctx(self):
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        return create_context_from_upload(df, df.to_csv(index=False).encode())
+
+    def test_default_no_filter_produces_inactive_state(self, ctx):
+        """No filter applied → filters.is_active is False."""
+        assert ctx.filters.is_active is False
+        assert ctx.filters == FilterState()
+
+    def test_unchanged_defaults_returns_same_context(self, ctx):
+        """Clearing filters when none are active returns the same context object."""
+        result = with_filters_cleared(ctx)
+        assert result is ctx  # no-op identity
+
+    def test_zero_row_filter_is_valid_active(self):
+        """Zero-row filter produces valid empty active_df, not cleared context."""
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        ctx = create_context_from_upload(df, df.to_csv(index=False).encode())
+        empty = pd.DataFrame(columns=["a"])
+        filtered = with_filtered_data(ctx, empty, ("a > 999",))
+        assert filtered.filters.is_active is True
+        assert filtered.filters.row_count == 0
+        assert filtered.active_df is not None
+        assert filtered.active_df.empty
+        # Clearing this valid empty filter produces a different context
+        cleared = with_filters_cleared(filtered)
+        assert cleared is not filtered
+        assert cleared.filters.is_active is False
