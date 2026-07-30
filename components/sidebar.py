@@ -30,7 +30,14 @@ REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
 logger = logging.getLogger(__name__)
 
 
-def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> None:
+def _populate_data_state(
+    df: pd.DataFrame,
+    source: str,
+    missing: list[str],
+    file_bytes: bytes | None = None,
+    ga4_start_date: str | None = None,
+    display_name: str = "",
+) -> None:
     """Populate session state with loaded data — shared by upload and GA4 paths.
 
     v0.2.0: Creates a DataContext alongside legacy keys (dual-write for migration).
@@ -39,6 +46,9 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
         df: The loaded DataFrame.
         source: "file" or "ga4".
         missing: List of expected-but-missing column names.
+        file_bytes: Raw file bytes for content-derived source_id (upload only).
+        ga4_start_date: GA4 date range start e.g. "7daysAgo" (GA4 only).
+        display_name: Human-readable filename for provenance (upload only).
     """
     # Reset custom metrics when loading new data (columns may differ)
     st.session_state.custom_metrics = {}
@@ -65,10 +75,14 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
     # v0.2.0: Create DataContext (dual-write with legacy keys)
     if source == "ga4":
         st.session_state.data_context = create_context_from_ga4(
-            df, st.session_state.get("ga4_property_id", "unknown")
+            df,
+            st.session_state.get("ga4_property_id", "unknown"),
+            date_range=(ga4_start_date, "today") if ga4_start_date else None,
         )
     else:
-        st.session_state.data_context = create_context_from_upload(df, source)
+        st.session_state.data_context = create_context_from_upload(
+            df, file_bytes, display_name=display_name
+        )
 
 
 def render_sidebar() -> None:
@@ -217,7 +231,7 @@ def _render_ga4_connect() -> None:
                                 if missing:
                                     st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
 
-                                _populate_data_state(df, "ga4", missing)
+                                _populate_data_state(df, "ga4", missing, ga4_start_date=start_date)
                                 st.rerun()
                         except Exception:
                             st.error(
@@ -518,5 +532,11 @@ def _process_uploaded_file(uploaded_file) -> None:
                 "Some features may be limited."
             )
 
-        _populate_data_state(df, "file", missing)
+        _populate_data_state(
+            df,
+            "file",
+            missing,
+            file_bytes=uploaded_file.getvalue(),
+            display_name=uploaded_file.name,
+        )
         st.session_state.last_file_id = file_id

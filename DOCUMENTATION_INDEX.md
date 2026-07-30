@@ -162,4 +162,4 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 
 ---
 
-*This index was last updated 2026-07-30 for the v0.1.0 hardening release (417 tests, 0 warnings, 100% coverage on session + styles + sanitize + error_boundary + commands + forecasting + funnels).*
+*This index was last updated 2026-07-30 during the v0.2.0 DataContext refactor (458 tests, 0 warnings, 8 modules at 100% coverage).*
