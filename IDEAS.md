@@ -99,6 +99,9 @@ A formula bar where users define derived metrics: `Sessions per User = sessions 
 **25. Data dictionary auto-generator**
 One-click generation of a data dictionary: for each column, show type, null count, unique values, sample values, and a Gemini-generated plain-language description. "This column appears to contain page URLs. Values are unique across 94% of rows."
 
+**26. Evidence Dashboard Source Connector** 🔵
+An admin-only, first-class data source connector for Evidence-built static dashboards. Evidence pre-compiles queries into Parquet files listed in a public `/data/manifest.json`. The connector resolves that manifest, downloads only allowlisted datasets, validates schemas, stages encrypted extracts, and exposes curated aggregate overlays alongside GA4 data — without attempting person-level attribution. Architecture: manifest → resolve → download → validate → stage → catalog → overlay. Credentials stay server-side (OS keychain or secret manager), HTTPS-only with host allowlisting and SSRF protection. Supports manual sync only; no scheduled refresh until schema stability is confirmed. Security model: never store credentials in Git/session state/logs; redact Authorization/Cookie headers; no `st.cache_data` for credentialed responses; minimum cell suppression (n<10); AI features exclude confidential Evidence rows by default. See [Evidence Connector Design](plans/🔵 evidence-connector-design.md) for full architecture, security model, dataset catalog, overlay strategy, and 5-phase delivery plan.
+
 ---
 
 ## 🚀 10 Moonshot Ideas
