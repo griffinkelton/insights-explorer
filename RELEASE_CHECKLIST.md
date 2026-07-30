@@ -1,6 +1,6 @@
 # v0.1.0 Release Checklist
 
-Release candidate SHA: `cd52de6`
+Release candidate SHA: `5485e43`
 Date: `2026-07-30`
 Release owner: `griffinkelton`
 Independent reviewer: `GPT-5.6 audit + code-reviewer-deepseek`
@@ -49,12 +49,12 @@ Independent reviewer: `GPT-5.6 audit + code-reviewer-deepseek`
 
 - [x] Deferred-items issues created with acceptance criteria, labeled `post-v0.1.0` (#1–#7)
 - [x] CHANGELOG updated with v0.1.0 entry
-- [x] Git tag `v0.1.0` created (on `cd52de6`)
-- [ ] No known critical exceptions at time of tag
+- [x] Git tag `v0.1.0` created (on `cd52de6`; latest hardening at `5485e43`)
+- [x] No known critical exceptions at time of tag (389 tests pass, 2 warnings)
 
 ## Sign-off
 
-- [x] Release owner approval: ✅ PR 0–3 reviewed, 353 tests pass
+- [x] Release owner approval: ✅ PR 0–4 reviewed, 389 tests pass
 - [x] Independent reviewer approval: ✅ GPT-5.6 12-batch audit + code-reviewer-deepseek passes
 
 ---
