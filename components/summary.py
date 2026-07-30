@@ -9,9 +9,8 @@ from utils.gemini_client import DEFAULT_MODEL, generate_response
 
 def render_summary_section() -> None:
     """Render the AI-generated summary card and generate button."""
-    from utils.session import active_dataframe
-
-    df = active_dataframe()
+    ctx = st.session_state.get("data_context")
+    df = ctx.active_df if ctx else None
     stats = st.session_state.stats
 
     st.markdown("### 🤖 AI-Generated Summary")

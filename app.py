@@ -24,8 +24,6 @@ inject_custom_css(theme=st.session_state.get("theme", "dark"))
 inject_favicon_meta(theme=st.session_state.get("theme", "dark"))
 
 # ── Session state initialization ─────────────────────────────────────────────
-if "df" not in st.session_state:
-    st.session_state.df = None
 if "stats" not in st.session_state:
     st.session_state.stats = None
 if "summary" not in st.session_state:
@@ -49,14 +47,12 @@ if "quality_report" not in st.session_state:
     st.session_state.quality_report = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = None  # Tri-state: None=unchecked, True/False
-# DataContext — immutable data lifecycle contract (replaces df, filtered_df, custom_metrics_df)
+# DataContext — immutable data lifecycle contract (sole owner of loaded/filtered/custom-metric state)
 if "data_context" not in st.session_state:
     st.session_state.data_context = None  # DataContext | None
 # Rate limiting state
 if "last_api_call" not in st.session_state:
     st.session_state.last_api_call = 0.0
-if "filtered_df" not in st.session_state:
-    st.session_state.filtered_df = None
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 if "compare_mode" not in st.session_state:
@@ -73,8 +69,6 @@ if "custom_metrics" not in st.session_state:
     st.session_state.custom_metrics = (
         {}
     )  # {name: formula} e.g. {"Sessions per User": "sessions / users"}
-if "custom_metrics_df" not in st.session_state:
-    st.session_state.custom_metrics_df = None  # augmented df with derived columns
 # Model selection
 if "selected_model" not in st.session_state:
     st.session_state.selected_model = "gemini-2.5-flash"

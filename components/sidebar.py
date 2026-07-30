@@ -59,7 +59,6 @@ def _populate_data_state(
     """
     # Reset custom metrics when loading new data (columns may differ)
     st.session_state.custom_metrics = {}
-    st.session_state.custom_metrics_df = None
 
     date_cols = [c for c in df.columns if "date" in c.lower()]
     if date_cols:
@@ -301,7 +300,7 @@ def _render_clear_button() -> None:
     FIX (BUG-005): Uses `if st.button` pattern instead of `on_click=clear_data`
     to comply with the anti-pattern guard.
     """
-    if st.session_state.data_context is not None or st.session_state.df is not None:
+    if st.session_state.data_context is not None:
         if st.button(
             "🗑️ Clear Data",
             use_container_width=True,
@@ -399,7 +398,7 @@ def _render_custom_metrics() -> None:
 
     v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
     """
-    if st.session_state.data_context is None and st.session_state.df is None:
+    if st.session_state.data_context is None:
         return
 
     st.divider()
@@ -421,11 +420,9 @@ def _render_custom_metrics() -> None:
             with col_del:
                 if st.button("✕", key=f"del_metric_{name}", help=f"Remove {name}"):
                     del st.session_state.custom_metrics[name]
-                    st.session_state.custom_metrics_df = None
-                    if st.session_state.data_context is not None:
-                        st.session_state.data_context = with_filters_cleared(
-                            st.session_state.data_context
-                        )
+                    st.session_state.data_context = with_filters_cleared(
+                        st.session_state.data_context
+                    )
                     st.rerun()
 
     # Add new metric form
@@ -440,8 +437,9 @@ def _render_custom_metrics() -> None:
             placeholder="e.g., sessions / users",
             key="new_metric_formula",
         )
+        ctx = st.session_state.data_context
         numeric_hint = ", ".join(
-            st.session_state.df.select_dtypes(include=["number"]).columns.tolist()[:5]
+            ctx.active_df.select_dtypes(include=["number"]).columns.tolist()[:5]
         )
         if numeric_hint:
             st.caption(f"Available numeric columns: {numeric_hint}")
@@ -456,17 +454,14 @@ def _render_custom_metrics() -> None:
             else:
                 # Validate formula by trying it on a small sample
                 try:
-                    test_df = st.session_state.df.head(5).copy()
+                    ctx = st.session_state.data_context
+                    test_df = ctx.active_df.head(5).copy()
                     test_df[new_name] = test_df.eval(new_formula)
                     st.session_state.custom_metrics[new_name] = new_formula
-                    st.session_state.custom_metrics_df = None
                     # v0.2.0: Update DataContext with custom metrics
-                    if st.session_state.data_context is not None:
-                        metrics_df = st.session_state.data_context.active_df.copy()
-                        metrics_df[new_name] = metrics_df.eval(new_formula)
-                        st.session_state.data_context = with_custom_metrics(
-                            st.session_state.data_context, metrics_df
-                        )
+                    metrics_df = ctx.active_df.copy()
+                    metrics_df[new_name] = metrics_df.eval(new_formula)
+                    st.session_state.data_context = with_custom_metrics(ctx, metrics_df)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Invalid formula: {e}")
@@ -488,20 +483,22 @@ def _render_compare_controls() -> None:
 
     v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
     """
-    if st.session_state.data_context is None and st.session_state.df is None:
+    if st.session_state.data_context is None:
         return
 
     st.divider()
     compare_mode = st.toggle("🔬 Compare Mode", value=False, key="compare_mode")
 
     if compare_mode:
-        col_types = detect_column_types(st.session_state.df)
+        col_types = detect_column_types(st.session_state.data_context.active_df)
         categorical_cols = [
             c for c, t in col_types.items() if t in (ColumnType.CATEGORICAL, ColumnType.TEXT)
         ]
         if categorical_cols:
             dimension = st.selectbox("Split by", categorical_cols, key="compare_dimension")
-            unique_vals = sorted(st.session_state.df[dimension].dropna().unique().tolist())
+            unique_vals = sorted(
+                st.session_state.data_context.active_df[dimension].dropna().unique().tolist()
+            )
             if len(unique_vals) >= 2:
                 val_a = st.selectbox("Value A", unique_vals, key="compare_val_a")
                 st.selectbox(
@@ -520,13 +517,13 @@ def _process_uploaded_file(uploaded_file) -> None:
     file_id = f"{uploaded_file.name}-{uploaded_file.size}"
     is_new_file = file_id != st.session_state.last_file_id
     should_process = (
-        st.session_state.df is None and not st.session_state.data_cleared
+        st.session_state.data_context is None and not st.session_state.data_cleared
     ) or is_new_file
 
     if not should_process:
         return
 
-    if is_new_file and st.session_state.df is not None:
+    if is_new_file and st.session_state.data_context is not None:
         clear_data()
         st.session_state.data_cleared = False
 

@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 from utils.charts import find_date_column, find_column
-from utils.data_context import with_filtered_data, with_filters_cleared
+from utils.data_context import DataContext, with_filtered_data, with_filters_cleared
 from utils.data_loader import (
     filter_dataframe,
     detect_column_types,
@@ -20,21 +20,20 @@ from utils.gemini_client import generate_response
 def render_data_preview() -> None:
     """Render metrics row, preview table, quality card, and filter expander."""
     ctx = st.session_state.get("data_context")
-    df = ctx.active_df if ctx else st.session_state.get("df")  # REMOVE legacy fallback after Step 4
+    if ctx is None:
+        return
+
+    df = ctx.active_df
     stats = st.session_state.stats
 
-    # Use filtered data for metrics/preview if filters are active
-    display_df = ctx.active_df if ctx else df
+    # Use filtered data for metrics/preview
+    display_df = ctx.active_df
 
-    # Filter source: always base_df (unfiltered analytical base). This prevents
-    # filter-compounding — changing dates must recalculate from base_df, not
-    # from an already-filtered active_df (Step 3.1 correction).
-    filter_source_df = ctx.base_df if ctx else df
+    # Filter source: always base_df (unfiltered analytical base).
+    filter_source_df = ctx.base_df
 
     # Use raw_df for anomaly detection (wants originals, not augmented)
-    base_df = (
-        ctx.raw_df if ctx else st.session_state.get("df")
-    )  # REMOVE legacy fallback after Step 4
+    base_df = ctx.raw_df
 
     st.markdown("")
 
@@ -113,11 +112,21 @@ def render_data_preview() -> None:
     # ── Data filters (use base_df as source to prevent filter-compounding) ─
     if filter_source_df is not None:
         with st.expander("🔍 Filter Data", expanded=False):
-            _render_data_filters(filter_source_df)
+            if ctx is not None:
+                _render_data_filters(ctx)
 
 
-def _render_data_filters(df: pd.DataFrame) -> None:
-    """Render column picker and date range filter controls."""
+def _render_data_filters(context) -> None:
+    """Render column picker and date range filter controls.
+
+    Args:
+        context: DataContext — the current data context. Filters apply to
+            context.base_df and write a new DataContext back to session state.
+    """
+    if not isinstance(context, DataContext):
+        return
+
+    df = context.base_df
     col_filter1, col_filter2, col_filter3 = st.columns([1, 1, 1])
 
     date_col = find_date_column(df)
@@ -157,23 +166,21 @@ def _render_data_filters(df: pd.DataFrame) -> None:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔄 Reset Filters", use_container_width=True):
             st.session_state.filter_columns = all_columns
-            # v0.2.0: Update DataContext (dual-write with legacy keys)
-            if st.session_state.data_context is not None:
-                st.session_state.data_context = with_filters_cleared(st.session_state.data_context)
-            st.session_state.filters_active = False
-            st.session_state.filtered_df = None
+            # v0.2.0: Update DataContext
+            st.session_state.data_context = with_filters_cleared(context)
             if date_col and not dates.empty:
                 st.session_state.filter_dates = (min_date, max_date)
             st.rerun()
 
-    # Apply filters and store result (dual-write: DataContext + legacy keys)
+    # Apply filters and store result
     filtered_df = filter_dataframe(
         df,
         date_col=date_col,
         start_date=start_date,
         end_date=end_date,
         selected_columns=selected_columns,
-    )  # Build filter descriptions — only active when they differ from defaults.
+    )
+    # Build filter descriptions — only active when they differ from defaults.
     # (The date range is pre-populated to min/max; treating the full range
     # as an "active filter" would repeatedly call with_filtered_data on reruns.)
     date_filter_active = (
@@ -194,20 +201,16 @@ def _render_data_filters(df: pd.DataFrame) -> None:
 
     # Update DataContext only when at least one filter is genuinely active.
     # Otherwise clear any previous filters (no-op if already clear).
-    if filter_descriptions and st.session_state.data_context is not None:
+    if filter_descriptions:
         st.session_state.data_context = with_filtered_data(
-            st.session_state.data_context, filtered_df, filter_descriptions
+            context, filtered_df, filter_descriptions
         )
-    elif not filter_descriptions and st.session_state.data_context is not None:
-        st.session_state.data_context = with_filters_cleared(st.session_state.data_context)
+    else:
+        st.session_state.data_context = with_filters_cleared(context)
 
     if filtered_df.empty:
         st.warning("⚠️ No rows match your filters. Try a wider date range or select more columns.")
-        st.session_state.filtered_df = filtered_df
-        st.session_state.filters_active = True
     else:
-        st.session_state.filtered_df = filtered_df
-        st.session_state.filters_active = True
         st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
 
 

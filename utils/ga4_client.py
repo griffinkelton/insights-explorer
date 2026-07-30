@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 import pandas as pd
 import requests
-import streamlit as st
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange,
@@ -411,7 +410,6 @@ def pull_ga4_report(
         if response.row_count and offset >= response.row_count:
             break
 
-    st.session_state.ga4_truncated = len(all_rows) >= HARD_CAP
     truncated = len(all_rows) >= HARD_CAP
 
     metadata = GA4RequestMetadata(

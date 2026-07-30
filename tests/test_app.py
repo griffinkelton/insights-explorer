@@ -77,9 +77,15 @@ class TestAppStructure:
 class TestAppSessionState:
     """Verify all expected session state keys are initialized."""
 
-    def test_df_initialized(self):
+    def test_data_context_initialized(self):
+        """v0.2.0: DataContext replaced df as the data-state owner."""
         source = _read_source()
-        assert '"df"' in source
+        assert '"data_context"' in source
+
+    def test_df_retired(self):
+        """Legacy df should NOT be initialized in app.py after Step 4."""
+        source = _read_source()
+        assert '"df"' not in source
 
     def test_chat_history_initialized(self):
         source = _read_source()

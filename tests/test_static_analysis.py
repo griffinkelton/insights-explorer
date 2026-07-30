@@ -687,3 +687,268 @@ class TestSilentExceptPass:
                 + "\n  ".join(violations)
                 + "\n\nAdd a comment explaining why the exception is intentionally swallowed."
             )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pattern 7: Retired data-key AST guard (DataContext Phase 1 Step 4)
+# ═══════════════════════════════════════════════════════════════════════════
+
+RETIRED_DATA_KEYS = {
+    "df",
+    "filtered_df",
+    "custom_metrics_df",
+    "filters_active",
+    "ga4_truncated",
+}
+
+
+class _RetiredKeyVisitor(ast.NodeVisitor):
+    """AST visitor that detects access to retired session-state keys."""
+
+    def __init__(self, source_lines: list[str]):
+        self.source_lines = source_lines
+        self.ss_aliases: set[str] = set()
+        self.violations: list[tuple[int, str]] = []
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if self._is_ss_ref(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self.ss_aliases.add(target.id)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.value and self._is_ss_ref(node.value):
+            if isinstance(node.target, ast.Name):
+                self.ss_aliases.add(node.target.id)
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if self._is_ss_ref(node.value) and node.attr in RETIRED_DATA_KEYS:
+            self.violations.append((node.lineno, f"st.session_state.{node.attr}"))
+        if isinstance(node.value, ast.Name) and node.value.id in self.ss_aliases:
+            if node.attr in RETIRED_DATA_KEYS:
+                self.violations.append((node.lineno, f"alias.{node.attr}"))
+        self.generic_visit(node)
+
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        if self._is_ss_ref(node.value):
+            key = self._extract_constant(node.slice)
+            if key in RETIRED_DATA_KEYS:
+                self.violations.append((node.lineno, f'st.session_state["{key}"]'))
+        if isinstance(node.value, ast.Name) and node.value.id in self.ss_aliases:
+            key = self._extract_constant(node.slice)
+            if key in RETIRED_DATA_KEYS:
+                self.violations.append((node.lineno, f'alias["{key}"]'))
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if isinstance(node.func, ast.Attribute):
+            method = node.func.attr
+            base = node.func.value
+            is_ss = self._is_ss_ref(base) or (
+                isinstance(base, ast.Name) and base.id in self.ss_aliases
+            )
+            if is_ss and method in ("get", "setdefault", "pop"):
+                if node.args:
+                    key = self._extract_constant(node.args[0])
+                    if key in RETIRED_DATA_KEYS:
+                        self.violations.append((node.lineno, f'st.session_state.{method}("{key}")'))
+        self.generic_visit(node)
+
+    def visit_Compare(self, node: ast.Compare) -> None:
+        for op in node.ops:
+            if isinstance(op, ast.In) and len(node.comparators) == 1:
+                if self._is_ss_ref(node.comparators[0]):
+                    key = self._extract_constant(node.left)
+                    if key in RETIRED_DATA_KEYS:
+                        self.violations.append((node.lineno, f'"{key}" in st.session_state'))
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        for target in node.targets:
+            if isinstance(target, ast.Subscript) and self._is_ss_ref(target.value):
+                key = self._extract_constant(target.slice)
+                if key in RETIRED_DATA_KEYS:
+                    self.violations.append((node.lineno, f'del st.session_state["{key}"]'))
+            if isinstance(target, ast.Attribute) and self._is_ss_ref(target.value):
+                if target.attr in RETIRED_DATA_KEYS:
+                    self.violations.append((node.lineno, f"del st.session_state.{target.attr}"))
+        self.generic_visit(node)
+
+    @staticmethod
+    def _is_ss_ref(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Attribute)
+            and node.attr == "session_state"
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "st"
+        )
+
+    @staticmethod
+    def _extract_constant(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        return None
+
+
+class TestRetiredDataKeys:
+    """Verify no retired session-state data keys remain in production code."""
+
+    _RUNTIME_DIRS = ["utils", "components", "pages"]
+    _RUNTIME_FILES = ["app.py"]
+
+    def test_no_retired_keys_in_production_source(self):
+        """No retired data keys in production .py files."""
+        violations: list[str] = []
+        all_files: list[str] = []
+
+        for dir_name in self._RUNTIME_DIRS:
+            dir_path = os.path.join(ROOT, dir_name)
+            if not os.path.isdir(dir_path):
+                continue
+            for root, _dirs, files in os.walk(dir_path):
+                for fname in files:
+                    if fname.endswith(".py") and not fname.startswith("test_"):
+                        all_files.append(os.path.join(root, fname))
+
+        for fname in self._RUNTIME_FILES:
+            fpath = os.path.join(ROOT, fname)
+            if os.path.isfile(fpath):
+                all_files.append(fpath)
+
+        for fpath in all_files:
+            rel = os.path.relpath(fpath, ROOT)
+            with open(fpath) as f:
+                source = f.read()
+            try:
+                tree = ast.parse(source, filename=fpath)
+            except SyntaxError:
+                continue
+
+            visitor = _RetiredKeyVisitor(source.split("\n"))
+            visitor.visit(tree)
+
+            for line, desc in visitor.violations:
+                violations.append(f"{rel}:{line} — {desc}")
+
+        if violations:
+            raise AssertionError(
+                "Retired session-state keys found in production code "
+                "after Phase 1 Step 4 migration:\n  "
+                + "\n  ".join(violations)
+                + "\n\nThese keys are retired. Use DataContext fields instead."
+            )
+
+    # ── Negative test fixtures ──────────────────────────────────────────
+
+    def test_retired_key_guard_catches_attribute(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            x = st.session_state.df
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1, "Guard missed st.session_state.df"
+
+    def test_retired_key_guard_catches_subscript(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            x = st.session_state["filtered_df"]
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_catches_get(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            x = st.session_state.get("custom_metrics_df")
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_catches_alias(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            state = st.session_state
+            x = state.df
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1, "Guard missed alias state.df"
+
+    def test_retired_key_guard_catches_setdefault(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            st.session_state.setdefault("df", None)
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_catches_pop(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            st.session_state.pop("filtered_df", None)
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_catches_membership(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            has_it = "custom_metrics_df" in st.session_state
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_catches_deletion(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            del st.session_state["ga4_truncated"]
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) >= 1
+
+    def test_retired_key_guard_allows_non_retired_keys(self):
+        source = textwrap.dedent(
+            """\
+            import streamlit as st
+            x = st.session_state.theme
+            y = st.session_state.data_context
+            z = st.session_state.get("tour_step", 0)
+        """
+        )
+        tree = ast.parse(source)
+        visitor = _RetiredKeyVisitor(source.split("\n"))
+        visitor.visit(tree)
+        assert len(visitor.violations) == 0, f"Guard flagged non-retired keys: {visitor.violations}"

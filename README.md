@@ -107,7 +107,7 @@ python -m pytest tests/ -v
 │   ├── sanitize.py             # Formula injection + PDF XML escaping
 │   └── styles.py               # Custom CSS + keyboard shortcuts + theme
 ├── assets/                     # Favicons, icons, PWA manifest
-├── tests/                      # 27 test files, 458 tests
+├── tests/                      # 28 test files, 519 tests (0 warnings)
 ├── .github/workflows/          # GitHub Actions CI
 ├── cloudbuild.yaml             # GCP Cloud Build CI
 ├── requirements/               # base.txt (runtime), dev.txt (dev+test)

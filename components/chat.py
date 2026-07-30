@@ -18,9 +18,8 @@ logger = logging.getLogger(__name__)
 
 def render_chat_section() -> None:
     """Render the full chat interface."""
-    from utils.session import active_dataframe
-
-    df = active_dataframe()
+    ctx = st.session_state.get("data_context")
+    df = ctx.active_df if ctx else None
 
     # ── Chat header + New Chat button ─────────────────────────────────────
     col_chat_header, col_new_chat = st.columns([4, 1])

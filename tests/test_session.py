@@ -13,7 +13,7 @@ class TestClearData:
         mock_state = MagicMock()
         with patch("utils.session.st.session_state", mock_state):
             clear_data()
-        assert mock_state.df is None
+        assert mock_state.data_context is None
         assert mock_state.stats is None
         assert mock_state.summary is None
         assert mock_state.quality_report is None

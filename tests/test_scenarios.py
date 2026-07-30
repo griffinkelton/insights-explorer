@@ -10,7 +10,7 @@ import pytest
 from utils.forecasting import forecast_metric
 from utils.funnels import build_funnel_data
 from utils.sanitize import safe_pdf_text, safe_spreadsheet_value
-from utils.session import active_dataframe, clear_data
+from utils.session import clear_data
 
 
 # ── Helper: Streamlit-compatible session state mock ──────────────────────
@@ -36,107 +36,78 @@ class SessionStateMock(dict):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Scenario 1 — DataFrame crash fixes
+# Scenario 1 — DataContext lifecycle (v0.2.0 Phase 1)
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class TestActiveDataframePrecedence:
-    """active_dataframe() now reads DataContext.active_df (v0.2.0 bridge)."""
+class TestDataContextLifecycle:
+    """End-to-end DataContext lifecycle: load → custom metric → filter → clear → verify."""
 
-    def test_raw_df_only(self, monkeypatch):
-        """With DataContext loaded, return active_df."""
+    def test_custom_metric_survives_filter_clear(self):
+        """Custom metrics → filter → clear filters → custom column still in base_df."""
+        from utils.data_context import (
+            create_context_from_upload,
+            with_custom_metrics,
+            with_filtered_data,
+            with_filters_cleared,
+        )
+
+        df = pd.DataFrame({"sessions": [100, 200, 300], "users": [10, 20, 30]})
+        ctx = create_context_from_upload(df, b"test")
+
+        # Apply custom metric
+        metrics_df = df.copy()
+        metrics_df["sessions_per_user"] = metrics_df["sessions"] / metrics_df["users"]
+        ctx = with_custom_metrics(ctx, metrics_df)
+        assert "sessions_per_user" in ctx.base_df.columns
+        assert "sessions_per_user" in ctx.active_df.columns
+
+        # Apply a filter
+        filtered = ctx.base_df[ctx.base_df["sessions"] > 150]
+        ctx = with_filtered_data(ctx, filtered, ("sessions>150",))
+        assert len(ctx.active_df) == 2  # filtered
+        assert ctx.filters.is_active
+
+        # Clear filters
+        ctx = with_filters_cleared(ctx)
+        assert not ctx.filters.is_active
+        assert len(ctx.active_df) == 3  # back to base
+        assert "sessions_per_user" in ctx.active_df.columns  # custom column survives
+        assert "sessions_per_user" in ctx.base_df.columns
+
+    def test_clear_data_removes_context_only(self, monkeypatch):
+        """clear_data() → data_context is None, no legacy keys remain."""
         import streamlit as st
 
-        from utils.data_context import DataContext
-
-        ctx = DataContext(
-            source_id="test:1",
-            version=0,
-            raw_df=pd.DataFrame({"a": [1]}),
-            base_df=pd.DataFrame({"a": [1]}),
-            active_df=pd.DataFrame({"a": [1]}),
+        fake_state = SessionStateMock(
+            {
+                "data_context": object(),
+                "last_file_id": "file-456",
+                "chat_history": [{"q": "test"}],
+                "stats": {"row_count": 100},
+                "summary": "old summary",
+                "quality_report": "old report",
+                "missing_columns": ["col1"],
+                "data_cleared": False,
+                "data_source": "file",
+                "tour_step": 3,
+                "custom_metrics": {"rate": "a / b"},
+                "funnel_steps": ["/home"],
+                "funnel_data": {"steps": 1},
+            }
         )
-        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
-        result = active_dataframe()
-        assert result is not None
-        assert list(result.columns) == ["a"]
+        monkeypatch.setattr(st, "session_state", fake_state)
 
-    def test_custom_metrics_preferred(self, monkeypatch):
-        """DataContext.active_df reflects custom metrics (applied via sidebar)."""
-        import streamlit as st
+        clear_data()
 
-        from utils.data_context import DataContext
-
-        raw = pd.DataFrame({"x": [1]})
-        custom = pd.DataFrame({"y": [2]})
-        ctx = DataContext(
-            source_id="test:1",
-            version=1,
-            raw_df=raw,
-            base_df=custom,
-            active_df=custom,
-        )
-        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
-        result = active_dataframe()
-        assert result is not None
-        assert list(result.columns) == ["y"]
-
-    def test_filtered_preferred_over_custom(self, monkeypatch):
-        """DataContext.active_df reflects active filters over base."""
-        import streamlit as st
-
-        from utils.data_context import DataContext, FilterState
-
-        raw = pd.DataFrame({"x": [1]})
-        base = pd.DataFrame({"y": [2]})  # custom metrics applied
-        filt = pd.DataFrame({"z": [3]})  # filtered
-        ctx = DataContext(
-            source_id="test:1",
-            version=2,
-            raw_df=raw,
-            base_df=base,
-            active_df=filt,
-            filters=FilterState(descriptions=("test",), is_active=True, row_count=1),
-        )
-        monkeypatch.setattr(st, "session_state", SessionStateMock({"data_context": ctx}))
-        result = active_dataframe()
-        assert result is not None
-        assert list(result.columns) == ["z"]
-
-    def test_filters_inactive_skips_filtered(self, monkeypatch):
-        """When DataContext.filters.is_active is False, active_df equals base_df."""
-        import streamlit as st
-
-        from utils.data_context import DataContext
-
-        raw = pd.DataFrame({"x": [1]})
-        filt = pd.DataFrame({"z": [3]})
-        # DataContext with filters inactive: active_df should be base_df (raw)
-        ctx = DataContext(
-            source_id="test:1",
-            version=0,
-            raw_df=raw,
-            base_df=raw.copy(),
-            active_df=raw.copy(),
-        )
-        monkeypatch.setattr(
-            st,
-            "session_state",
-            SessionStateMock(
-                {"data_context": ctx, "df": raw, "filtered_df": filt, "filters_active": False}
-            ),
-        )
-        result = active_dataframe()
-        assert result is not None
-        # DataContext.active_df = base_df (not filtered_df, since no filters active)
-        assert list(result.columns) == ["x"]
-
-    def test_no_data_returns_none(self, monkeypatch):
-        """No DataContext and no legacy df → None."""
-        import streamlit as st
-
-        monkeypatch.setattr(st, "session_state", SessionStateMock({}))
-        assert active_dataframe() is None
+        assert fake_state["data_context"] is None
+        assert fake_state["chat_history"] == []
+        assert fake_state["last_file_id"] is None
+        assert fake_state["stats"] is None
+        assert fake_state["summary"] is None
+        assert fake_state["custom_metrics"] == {}
+        assert fake_state["funnel_steps"] == []
+        assert fake_state["funnel_data"] is None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -153,7 +124,7 @@ class TestClearDataReload:
 
         fake_state = SessionStateMock(
             {
-                "df": pd.DataFrame({"a": [1]}),
+                "data_context": object(),  # non-None so we can verify it's cleared
                 "chat_history": [{"role": "user", "content": "hello"}],
                 "last_file_id": "file-123",
                 "stats": None,
@@ -162,11 +133,8 @@ class TestClearDataReload:
                 "missing_columns": [],
                 "data_cleared": False,
                 "data_source": None,
-                "filters_active": False,
-                "filtered_df": None,
                 "tour_step": 0,
                 "custom_metrics": {},
-                "custom_metrics_df": None,
                 "funnel_steps": [],
                 "funnel_data": None,
             }
@@ -175,7 +143,7 @@ class TestClearDataReload:
 
         clear_data()
 
-        assert fake_state["df"] is None
+        assert fake_state["data_context"] is None
         assert fake_state["chat_history"] == []
         assert fake_state["last_file_id"] is None
 
@@ -452,10 +420,8 @@ class TestGa4PropertyIdValidation:
 class TestEmptyFilterSemantics:
     """Zero-row filters must preserve an empty DataFrame, not fall to None."""
 
-    def test_empty_filtered_df_not_none(self, monkeypatch):
+    def test_empty_filtered_df_not_none(self):
         """Zero-row filter → empty active_df preserved in DataContext."""
-        import streamlit as st
-
         from utils.data_context import DataContext, FilterState
 
         empty_df = pd.DataFrame(columns=["a", "b"])
@@ -467,13 +433,7 @@ class TestEmptyFilterSemantics:
             active_df=empty_df,
             filters=FilterState(descriptions=("empty",), is_active=True, row_count=0),
         )
-        monkeypatch.setattr(
-            st,
-            "session_state",
-            SessionStateMock({"data_context": ctx, "df": pd.DataFrame({"a": [1, 2], "b": [3, 4]})}),
-        )
 
-        result = active_dataframe()
-        assert result is not None
-        assert result.empty
-        assert list(result.columns) == ["a", "b"]
+        assert ctx.active_df is not None
+        assert ctx.active_df.empty
+        assert list(ctx.active_df.columns) == ["a", "b"]

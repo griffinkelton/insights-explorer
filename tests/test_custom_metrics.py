@@ -54,7 +54,7 @@ class TestCustomMetricsStructure:
     def test_sidebar_has_custom_metrics_in_session(self):
         source = open(SIDEBAR).read()
         assert "custom_metrics" in source
-        assert "custom_metrics_df" in source
+        # v0.2.0: custom_metrics_df is retired — DataContext owns custom-metric state
 
 
 # ── Unit tests: apply_custom_metrics ─────────────────────────────────────────
@@ -137,7 +137,7 @@ class TestSessionClearCustomMetrics:
 
             clear_data()
         assert mock_state.custom_metrics == {}
-        assert mock_state.custom_metrics_df is None
+        # v0.2.0: custom_metrics_df is retired — not in clear_data() anymore
 
 
 # ── Imports smoke test ───────────────────────────────────────────────────────
