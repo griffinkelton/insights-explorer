@@ -72,12 +72,7 @@ def render_chat_section() -> None:
             st.warning("⏳ Please wait a moment between questions...")
             st.stop()
         st.session_state.last_api_call = now
-        # api_call_count is now a UI-level attempt counter (distinct from
-        # api_success_count in gemini_client._track_usage)
-        if "api_attempt_count" not in st.session_state:
-            st.session_state.api_attempt_count = 0
         st.session_state.api_attempt_count += 1
-        st.session_state.api_call_count += 1
 
         st.session_state.chat_history.append(
             {
@@ -202,10 +197,7 @@ def _render_command_pills() -> None:
                     st.warning("⏳ Please wait a moment…")
                     st.stop()
                 st.session_state.last_api_call = now
-                if "api_attempt_count" not in st.session_state:
-                    st.session_state.api_attempt_count = 0
                 st.session_state.api_attempt_count += 1
-                st.session_state.api_call_count += 1
 
                 st.session_state.chat_history.append(
                     {
@@ -261,7 +253,9 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                 )
                 retry_response = generate_response(retry_prompt, model=_model)
                 chart_config = detect_chart_request(retry_response)
-                st.session_state.api_call_count += 1
+                if "api_success_count" not in st.session_state:
+                    st.session_state.api_success_count = 0
+                st.session_state.api_success_count += 1
                 st.session_state.last_api_call = time.time()
             except Exception:
                 logger.debug("Chart extraction failed", exc_info=True)

@@ -31,6 +31,14 @@ def render_data_preview() -> None:
 
     st.markdown("")
 
+    # ── GA4 truncation warning ──────────────────────────────────────────
+    if st.session_state.get("ga4_truncated", False):
+        st.warning(
+            "⚠️ This dataset was truncated at 500,000 rows (GA4 hard cap). "
+            "Summary, forecasts, and AI analysis may be based on a partial dataset. "
+            "Export a narrower date range from GA4 for complete data."
+        )
+
     # ── Metrics row ──────────────────────────────────────────────────────
     col1, col2, col3, col4 = st.columns(4)
     with col1:
