@@ -75,8 +75,6 @@ Opens at **http://localhost:8501** 🎉
 python -m pytest tests/ -v
 ```
 
-Run `python -m pytest tests/ -v` for the current suite count.
-
 ---
 
 ## 📁 Project Structure
@@ -109,7 +107,7 @@ Run `python -m pytest tests/ -v` for the current suite count.
 │   ├── sanitize.py             # Formula injection + PDF XML escaping
 │   └── styles.py               # Custom CSS + keyboard shortcuts + theme
 ├── assets/                     # Favicons, icons, PWA manifest
-├── tests/                      # 24 test files, 353+ tests
+├── tests/                      # 25 test files, 389 tests
 ├── .github/workflows/          # GitHub Actions CI
 ├── cloudbuild.yaml             # GCP Cloud Build CI
 ├── requirements/               # base.txt (runtime), dev.txt (dev+test)
@@ -178,7 +176,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (353+ tests across 24 modules) |
+| Testing | pytest (389 tests across 25 modules) |
 | CI/CD | GitHub Actions + Google Cloud Build |
 | Data | Pandas |
 | Charts | Plotly |

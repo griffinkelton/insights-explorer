@@ -1,6 +1,6 @@
 # v0.1.0 Release Checklist
 
-Release candidate SHA: `5485e43`
+Release candidate SHA: `8d3567d`
 Date: `2026-07-30`
 Release owner: `griffinkelton`
 Independent reviewer: `GPT-5.6 audit + code-reviewer-deepseek`

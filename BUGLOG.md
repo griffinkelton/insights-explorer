@@ -201,7 +201,7 @@ Manual testing — the developer noticed the UI freeze and identified the root c
 **Date:** 2026-07-28
 **Severity:** 🟡 Medium (caught in plan review before implementation)
 **Found during:** Plan Review (IMPLEMENTATION_PLAN.md review)
-**Fixed:** 🔲 Fixed in plan, not yet implemented
+**Fixed:** ✅
 
 **The Problem:**
 The original plan for file size limits (#4 in IMPLEMENTATION_PLAN.md) proposed checking `file.size` and falling back to `len(file.getvalue())`. If the fallback was used for XLSX files, `file.getvalue()` would consume the entire file buffer. When `pd.read_excel(file)` tried to read the same file object, it would find an empty buffer — causing a parse error or silent empty DataFrame.
@@ -209,18 +209,8 @@ The original plan for file size limits (#4 in IMPLEMENTATION_PLAN.md) proposed c
 **Root Cause:**
 `UploadedFile` objects from Streamlit behave like standard file objects — once you read from them, the read pointer advances. `getvalue()` reads the entire buffer into memory and leaves the pointer at the end. Any subsequent read (by pandas) gets zero bytes.
 
-**The Fix (in plan):**
-Read the file into bytes once, then pass `BytesIO(file_bytes)` to pandas:
-
-```python
-file_bytes = file.read()
-file_size = len(file_bytes)
-if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
-    return None, f"File too large..."
-
-# Parse from bytes, not from file object
-df = pd.read_csv(BytesIO(file_bytes))  # or pd.read_excel(BytesIO(file_bytes))
-```
+**The Fix:**
+Read the file into bytes once, then pass `BytesIO(file_bytes)` to pandas. Implemented in `utils/data_loader.py::load_file()` during the P1-P3 sprint (file size/row limits).
 
 **How It Was Caught:**
 Code review of the IMPLEMENTATION_PLAN.md during a systematic review session. The reviewer noticed that `getvalue()` + `pd.read_excel()` on the same file object would fail. This is a classic Python file-I/O bug.
@@ -237,7 +227,7 @@ Code review of the IMPLEMENTATION_PLAN.md during a systematic review session. Th
 **Date:** 2026-07-28
 **Severity:** 🟡 Medium (would have broken users on older Streamlit versions)
 **Found during:** Plan Review
-**Fixed:** 🔲 Fixed in plan, not yet implemented
+**Fixed:** ✅ (Never implemented — plan was revised to not bump version)
 
 **The Problem:**
 The original plan for adding `.streamlit/pages.toml` (#6) included bumping the Streamlit minimum version from `>=1.28` to `>=1.44`. This would prevent users on Streamlit 1.28-1.43 from installing the app — all for a cosmetic sidebar label change.
@@ -245,7 +235,7 @@ The original plan for adding `.streamlit/pages.toml` (#6) included bumping the S
 **Root Cause:**
 The plan tied the `pages.toml` feature (requires 1.44+) to the requirements.txt version pin, assuming all users needed the feature. But `pages.toml` is optional — Streamlit gracefully ignores it on older versions.
 
-**The Fix (in plan):**
+**The Fix:**
 Keep `streamlit>=1.28`. Create `pages.toml` anyway. On Streamlit < 1.44, it's silently ignored and the sidebar shows "learn" instead of "📚 Learn Python" — a harmless fallback. On >=1.44, the polished name appears.
 
 **How It Was Caught:**
@@ -334,8 +324,8 @@ and automatic pruning of files older than 10 minutes.
 |---|---|---|
 | 🔴 Critical | 2 | 2 | 0 |
 | 🟠 High | 3 | 3 | 0 |
-| 🟡 Medium | 5 | 3 | 2 |
-| **Total** | **10** | **8** | **2** |
+| 🟡 Medium | 5 | 5 | 0 |
+| **Total** | **10** | **10** | **0** |
 
 ### By Root Cause Category
 
@@ -369,7 +359,7 @@ and automatic pruning of files older than 10 minutes.
 
 ---
 
-*Last updated: 2026-07-29 after OAuth scope reduction & PKCE state persistence remediation. 10 bugs documented, 8 fixed, 2 pending. All 4 BUGLOG patterns CI-gated via tests/test_static_analysis.py.*
+*Last updated: 2026-07-30 after v0.1.0 hardening release. 10 bugs documented, 10 fixed. All 4 BUGLOG patterns CI-gated via tests/test_static_analysis.py (now 6 patterns including drive.readonly gate + silent except:pass scanner).*
 
 ---
 
