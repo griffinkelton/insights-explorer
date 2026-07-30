@@ -25,6 +25,7 @@ def clear_data() -> None:
     Called from: sidebar.py (Clear Data button), sidebar.py (GA4 disconnect),
     and sidebar.py (file processing — new file replaces old data).
     """
+    st.session_state.data_context = None  # v0.2.0 DataContext — will replace df keys
     st.session_state.df = None
     st.session_state.stats = None
     st.session_state.summary = None

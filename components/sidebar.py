@@ -18,6 +18,12 @@ from utils.ga4_client import (
     needs_scope_migration,
     pull_ga4_report,
 )
+from utils.data_context import (
+    create_context_from_ga4,
+    create_context_from_upload,
+    with_custom_metrics,
+    with_filters_cleared,
+)
 from utils.session import clear_data
 
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8501")
@@ -26,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> None:
     """Populate session state with loaded data — shared by upload and GA4 paths.
+
+    v0.2.0: Creates a DataContext alongside legacy keys (dual-write for migration).
 
     Args:
         df: The loaded DataFrame.
@@ -53,6 +61,14 @@ def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> N
     # Auto-dismiss onboarding tour when data is loaded
     if st.session_state.get("tour_step", 0) in (1, 2, 3):
         st.session_state.tour_step = 4
+
+    # v0.2.0: Create DataContext (dual-write with legacy keys)
+    if source == "ga4":
+        st.session_state.data_context = create_context_from_ga4(
+            df, st.session_state.get("ga4_property_id", "unknown")
+        )
+    else:
+        st.session_state.data_context = create_context_from_upload(df, source)
 
 
 def render_sidebar() -> None:
@@ -246,10 +262,12 @@ def _render_privacy_notice() -> None:
 def _render_clear_button() -> None:
     """Render the Clear Data button. Only shown when data is loaded.
 
+    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+
     FIX (BUG-005): Uses `if st.button` pattern instead of `on_click=clear_data`
     to comply with the anti-pattern guard.
     """
-    if st.session_state.df is not None:
+    if st.session_state.data_context is not None or st.session_state.df is not None:
         if st.button(
             "🗑️ Clear Data",
             use_container_width=True,
@@ -343,8 +361,11 @@ def _render_theme_toggle() -> None:
 
 
 def _render_custom_metrics() -> None:
-    """Render custom metric builder — formula bar for derived columns."""
-    if st.session_state.df is None:
+    """Render custom metric builder — formula bar for derived columns.
+
+    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+    """
+    if st.session_state.data_context is None and st.session_state.df is None:
         return
 
     st.divider()
@@ -367,6 +388,10 @@ def _render_custom_metrics() -> None:
                 if st.button("✕", key=f"del_metric_{name}", help=f"Remove {name}"):
                     del st.session_state.custom_metrics[name]
                     st.session_state.custom_metrics_df = None
+                    if st.session_state.data_context is not None:
+                        st.session_state.data_context = with_filters_cleared(
+                            st.session_state.data_context
+                        )
                     st.rerun()
 
     # Add new metric form
@@ -401,6 +426,13 @@ def _render_custom_metrics() -> None:
                     test_df[new_name] = test_df.eval(new_formula)
                     st.session_state.custom_metrics[new_name] = new_formula
                     st.session_state.custom_metrics_df = None
+                    # v0.2.0: Update DataContext with custom metrics
+                    if st.session_state.data_context is not None:
+                        metrics_df = st.session_state.data_context.active_df.copy()
+                        metrics_df[new_name] = metrics_df.eval(new_formula)
+                        st.session_state.data_context = with_custom_metrics(
+                            st.session_state.data_context, metrics_df
+                        )
                     st.rerun()
                 except Exception as e:
                     st.error(f"Invalid formula: {e}")
@@ -418,8 +450,11 @@ def _render_learn_link() -> None:
 
 
 def _render_compare_controls() -> None:
-    """Render the Compare mode toggle + dimension/value selectors."""
-    if st.session_state.df is None:
+    """Render the Compare mode toggle + dimension/value selectors.
+
+    v0.2.0: Checks data_context (new) OR df (legacy) for data presence.
+    """
+    if st.session_state.data_context is None and st.session_state.df is None:
         return
 
     st.divider()

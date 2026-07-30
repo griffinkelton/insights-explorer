@@ -49,6 +49,9 @@ if "quality_report" not in st.session_state:
     st.session_state.quality_report = None
 if "api_key_valid" not in st.session_state:
     st.session_state.api_key_valid = None  # Tri-state: None=unchecked, True/False
+# DataContext — immutable data lifecycle contract (replaces df, filtered_df, custom_metrics_df)
+if "data_context" not in st.session_state:
+    st.session_state.data_context = None  # DataContext | None
 # Rate limiting state
 if "last_api_call" not in st.session_state:
     st.session_state.last_api_call = 0.0
