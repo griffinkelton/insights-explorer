@@ -210,15 +210,32 @@ class TestPullGa4Report:
         mock_row.metric_values = [MagicMock(value=mv) for mv in metric_values]
         mock_response = MagicMock()
         mock_response.rows = [mock_row]
+        mock_response.row_count = 1  # Single page of results
         return mock_response
+
+    @staticmethod
+    def _make_empty_response():
+        """Helper: build a mock GA4 API response with no rows."""
+        mock_response = MagicMock()
+        mock_response.rows = []
+        mock_response.row_count = 0
+        return mock_response
+
+    def _mock_run_report_single_page(self, mock_client, dim_vals, metric_vals):
+        """Set up run_report to return one page then stop (empty second page)."""
+        mock_client.run_report.side_effect = [
+            self._make_mock_response(dim_vals, metric_vals),
+            self._make_empty_response(),
+        ]
 
     @patch("utils.ga4_client.BetaAnalyticsDataClient")
     def test_successful_report_returns_dataframe(self, mock_client_class):
         """pull_ga4_report should return a DataFrame with correct columns."""
         mock_client = MagicMock()
-        mock_client.run_report.return_value = self._make_mock_response(
-            dimension_values=["2024-01-01", "/home", "desktop"],
-            metric_values=["100", "50", "45", "0.65", "0.42"],
+        self._mock_run_report_single_page(
+            mock_client,
+            dim_vals=["2024-01-01", "/home", "desktop"],
+            metric_vals=["100", "50", "45", "0.65", "0.42"],
         )
         mock_client_class.return_value = mock_client
 
@@ -242,9 +259,7 @@ class TestPullGa4Report:
     def test_empty_response_returns_empty_dataframe(self, mock_client_class):
         """No rows from GA4 → empty DataFrame (not None or crash)."""
         mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.rows = []
-        mock_client.run_report.return_value = mock_response
+        mock_client.run_report.return_value = self._make_empty_response()
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()
@@ -260,9 +275,10 @@ class TestPullGa4Report:
     def test_refreshes_expired_token(self, mock_request_class, mock_client_class):
         """Expired credentials with refresh_token should be refreshed."""
         mock_client = MagicMock()
-        mock_client.run_report.return_value = self._make_mock_response(
-            dimension_values=["2024-01-01", "/home", "mobile"],
-            metric_values=["10", "5", "4", "0.5", "0.3"],
+        self._mock_run_report_single_page(
+            mock_client,
+            dim_vals=["2024-01-01", "/home", "mobile"],
+            metric_vals=["10", "5", "4", "0.5", "0.3"],
         )
         mock_client_class.return_value = mock_client
 
@@ -279,9 +295,7 @@ class TestPullGa4Report:
     def test_uses_default_date_range(self, mock_client_class):
         """Default start_date should be '90daysAgo' and end_date 'today'."""
         mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.rows = []
-        mock_client.run_report.return_value = mock_response
+        mock_client.run_report.return_value = self._make_empty_response()
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()
@@ -289,7 +303,6 @@ class TestPullGa4Report:
 
         ga4.pull_ga4_report(mock_creds, "123456789")
 
-        # Verify the date range was passed to the API
         call_args = mock_client.run_report.call_args[0][0]
         assert call_args.date_ranges[0].start_date == "90daysAgo"
         assert call_args.date_ranges[0].end_date == "today"
@@ -298,9 +311,7 @@ class TestPullGa4Report:
     def test_custom_date_range(self, mock_client_class):
         """Custom start_date and end_date should be passed through."""
         mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.rows = []
-        mock_client.run_report.return_value = mock_response
+        mock_client.run_report.return_value = self._make_empty_response()
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()
@@ -316,9 +327,7 @@ class TestPullGa4Report:
     def test_property_id_in_request(self, mock_client_class):
         """Property ID should appear in the RunReportRequest."""
         mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.rows = []
-        mock_client.run_report.return_value = mock_response
+        mock_client.run_report.return_value = self._make_empty_response()
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()
@@ -333,9 +342,10 @@ class TestPullGa4Report:
     def test_returns_correct_columns(self, mock_client_class):
         """Returned DataFrame should have all 8 expected columns."""
         mock_client = MagicMock()
-        mock_client.run_report.return_value = self._make_mock_response(
-            dimension_values=["2024-03-15", "/pricing", "tablet"],
-            metric_values=["200", "120", "100", "0.55", "0.38"],
+        self._mock_run_report_single_page(
+            mock_client,
+            dim_vals=["2024-03-15", "/pricing", "tablet"],
+            metric_vals=["200", "120", "100", "0.55", "0.38"],
         )
         mock_client_class.return_value = mock_client
 
@@ -360,9 +370,10 @@ class TestPullGa4Report:
     def test_date_column_is_datetime(self, mock_client_class):
         """The date column should be converted to datetime64."""
         mock_client = MagicMock()
-        mock_client.run_report.return_value = self._make_mock_response(
-            dimension_values=["2024-06-01", "/blog", "desktop"],
-            metric_values=["300", "180", "160", "0.72", "0.29"],
+        self._mock_run_report_single_page(
+            mock_client,
+            dim_vals=["2024-06-01", "/blog", "desktop"],
+            metric_vals=["300", "180", "160", "0.72", "0.29"],
         )
         mock_client_class.return_value = mock_client
 
@@ -377,14 +388,12 @@ class TestPullGa4Report:
     def test_expired_without_refresh_token_skips_refresh(self, mock_client_class):
         """Expired=True with no refresh_token → refresh skipped, API call proceeds."""
         mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.rows = []
-        mock_client.run_report.return_value = mock_response
+        mock_client.run_report.return_value = self._make_empty_response()
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()
         mock_creds.expired = True
-        mock_creds.refresh_token = None  # No refresh token available
+        mock_creds.refresh_token = None
 
         ga4.pull_ga4_report(mock_creds, "123456789")
 
@@ -423,7 +432,9 @@ class TestPullGa4Report:
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.rows = [mock_row1, mock_row2]
-        mock_client.run_report.return_value = mock_response
+        mock_response.row_count = 2
+        # Second page returns empty
+        mock_client.run_report.side_effect = [mock_response, self._make_empty_response()]
         mock_client_class.return_value = mock_client
 
         mock_creds = MagicMock()

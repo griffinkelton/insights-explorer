@@ -56,12 +56,15 @@ def inject_custom_css(theme: str = "dark") -> None:
     st.markdown(
         f"""<div id="theme-data" data-theme="{theme}" style="display:none;"></div>
 <style>
-    /* ── Import Inter font ── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    /* ── System font stack (no external Google Fonts dependency) ── */
+    html, body, [class*="css"] {{
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }}
 
     /* ── Global resets & dark theme (default) ── */
     :root {{
-        --bg-primary: #0a0a0f;
         --bg-secondary: #12121a;
         --bg-card: #1a1a26;
         --bg-elevated: #222233;
@@ -338,12 +341,6 @@ def inject_custom_css(theme: str = "dark") -> None:
         background: var(--bg-primary);
     }}
 
-    html, body, [class*="css"] {{
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-        color: var(--text-primary);
-        -webkit-font-smoothing: antialiased;
-    }}
-
     /* ── Sidebar ── */
     [data-testid="stSidebar"] {{
         background: var(--bg-secondary) !important;
@@ -574,6 +571,16 @@ def inject_custom_css(theme: str = "dark") -> None:
         animation: fadeIn 0.5s ease-out;
     }}
 
+    /* ── Reduced motion support ── */
+    @media (prefers-reduced-motion: reduce) {{
+        *, *::before, *::after {{
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+            transition-duration: 0.01ms !important;
+        }}
+    }}
+
     /* ── Scrollbar ── */
     ::-webkit-scrollbar {{ width: 6px; }}
     ::-webkit-scrollbar-track {{ background: transparent; }}
@@ -723,6 +730,9 @@ def inject_custom_css(theme: str = "dark") -> None:
 
     // ── Keyboard shortcuts ──
     document.addEventListener('keydown', function(e) {{
+        // Guard against duplicate listener installation
+        if (window.__ga4ExplorerShortcutInstalled) return;
+        window.__ga4ExplorerShortcutInstalled = true;
         const isMac = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
         const mod = isMac ? e.metaKey : e.ctrlKey;
 
@@ -733,7 +743,6 @@ def inject_custom_css(theme: str = "dark") -> None:
             if (chatInput) {{ chatInput.focus(); }}
         }}
     }});
-}})();
 </script>
 """,
         unsafe_allow_html=True,

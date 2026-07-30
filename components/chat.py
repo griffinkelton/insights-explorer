@@ -72,6 +72,11 @@ def render_chat_section() -> None:
             st.warning("⏳ Please wait a moment between questions...")
             st.stop()
         st.session_state.last_api_call = now
+        # api_call_count is now a UI-level attempt counter (distinct from
+        # api_success_count in gemini_client._track_usage)
+        if "api_attempt_count" not in st.session_state:
+            st.session_state.api_attempt_count = 0
+        st.session_state.api_attempt_count += 1
         st.session_state.api_call_count += 1
 
         st.session_state.chat_history.append(
@@ -82,6 +87,15 @@ def render_chat_section() -> None:
             }
         )
         st.rerun()
+
+    # ── Chart extraction opt-in toggle ─────────────────────────────────
+    st.caption("Chart suggestions are optional and use an additional API call.")
+    st.checkbox(
+        "📊 Suggest chart when useful",
+        value=False,
+        key="chart_opt_in",
+        help="When enabled, a second Gemini call will attempt to extract chart data from responses.",
+    )
 
     # ── Usage stats below chat ───────────────────────────────────────────
     _render_usage_stats()
@@ -149,13 +163,13 @@ def _render_usage_stats() -> None:
     total_output = st.session_state.get("total_output_tokens", 0)
     total_tokens = st.session_state.get("total_tokens_used", 0)
     total_thought = st.session_state.get("total_thought_tokens", 0)
-    call_count = st.session_state.get("api_call_count", 0)
-    model = st.session_state.get("selected_model", "gemini-2.5-flash")
 
-    # Usage stats — only show sourced values, no fabricated context meter
+    # Usage stats — only sourced values, no fabricated context meter
+    model = st.session_state.get("selected_model", "gemini-2.5-flash")
+    success_count = st.session_state.get("api_success_count", 0)
     parts = [
         f"🤖 {model}",
-        f"📞 {call_count} calls",
+        f"📞 {success_count} calls",
         f"⬅️ {total_input:,} in",
         f"➡️ {total_output:,} out",
         f"Σ {total_tokens:,} total",
@@ -188,6 +202,9 @@ def _render_command_pills() -> None:
                     st.warning("⏳ Please wait a moment…")
                     st.stop()
                 st.session_state.last_api_call = now
+                if "api_attempt_count" not in st.session_state:
+                    st.session_state.api_attempt_count = 0
+                st.session_state.api_attempt_count += 1
                 st.session_state.api_call_count += 1
 
                 st.session_state.chat_history.append(
@@ -228,8 +245,12 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
         if cleaned_response:
             full_text = cleaned_response
             entry["response"] = cleaned_response
-        # Retry: if no chart config, make a second lightweight call
-        if not chart_config and len(full_text) > 100:
+        # Chart extraction (only when user opted in via checkbox)
+        if (
+            not chart_config
+            and len(full_text) > 100
+            and st.session_state.get("chart_opt_in", False)
+        ):
             try:
                 retry_prompt = (
                     "Extract a chart suggestion from this analysis. "
@@ -243,7 +264,8 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                 st.session_state.api_call_count += 1
                 st.session_state.last_api_call = time.time()
             except Exception:
-                pass  # Silent skip — chart is optional
+                logger.debug("Chart extraction failed", exc_info=True)
+                st.caption("Chart suggestion unavailable — try a more specific question.")
 
         if chart_config:
             # Comparative mode: split data and render dual charts
@@ -312,10 +334,19 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
     except ValueError as e:
         entry["error"] = f"🔑 Configuration error: {e}"
         entry["response"] = ""
+        if "api_failure_count" not in st.session_state:
+            st.session_state.api_failure_count = 0
+        st.session_state.api_failure_count += 1
     except RuntimeError as e:
         entry["error"] = f"⚠️ API error: {e}"
         entry["response"] = ""
+        if "api_failure_count" not in st.session_state:
+            st.session_state.api_failure_count = 0
+        st.session_state.api_failure_count += 1
     except Exception as e:
         entry["error"] = f"⚠️ An unexpected error occurred: {e}"
         entry["response"] = ""
+        if "api_failure_count" not in st.session_state:
+            st.session_state.api_failure_count = 0
+        st.session_state.api_failure_count += 1
         logger.warning("Chat streaming error", exc_info=True)

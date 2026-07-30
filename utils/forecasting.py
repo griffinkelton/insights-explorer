@@ -41,24 +41,37 @@ def forecast_metric(
     Returns:
         ForecastResult with daily actuals, forecast, intervals, and metadata.
     """
+    if periods <= 0:
+        return None
     if df is None or df.empty or date_col not in df.columns or metric_col not in df.columns:
         return None
 
     # ── Aggregate daily metric ────────────────────────────────────────────
     df_copy = df.copy()
     df_copy[date_col] = pd.to_datetime(df_copy[date_col], errors="coerce")
+    # Convert metric to numeric before aggregation
+    df_copy[metric_col] = pd.to_numeric(df_copy[metric_col], errors="coerce")
+    # Drop rows with invalid dates or non-numeric metrics BEFORE aggregation
+    df_copy = df_copy.dropna(subset=[date_col, metric_col])
     daily = df_copy.groupby(date_col)[metric_col].sum().reset_index().sort_values(date_col)
-    daily = daily.dropna(subset=[date_col, metric_col])
+
+    # Reindex to complete daily calendar (fill missing days with 0)
+    if len(daily) >= 2:
+        full_date_range = pd.date_range(
+            start=daily[date_col].min(), end=daily[date_col].max(), freq="D"
+        )
+        daily = daily.set_index(date_col).reindex(full_date_range, fill_value=0).reset_index()
+        daily = daily.rename(columns={"index": date_col})
 
     n = len(daily)
     if n < 7:
         return None  # Need at least a week of data for a meaningful forecast
 
-    dates = daily[date_col].values
-    y = daily[metric_col].values.astype(float)
-
     # ── Linear regression ─────────────────────────────────────────────────
-    x = np.arange(n, dtype=float)
+    # Use elapsed days as x-values for correct time spacing
+    dates = pd.to_datetime(daily[date_col])
+    x = (dates - dates.min()).dt.days.values.astype(float)
+    y = daily[metric_col].values.astype(float)
     coeffs = np.polyfit(x, y, 1)  # [slope, intercept]
     predicted = np.polyval(coeffs, x)
 
@@ -77,8 +90,8 @@ def forecast_metric(
     # Approximate t-critical for 95% CI: ~2.0 for n>=60, slightly wider for smaller n
     t_crit = 2.0 if n >= 60 else 2.0 + 10.0 / n
 
-    # Forecast future periods
-    x_future = np.arange(n, n + periods, dtype=float)
+    # ── Forecast future periods ───────────────────────────────────────────
+    x_future = np.arange(x[-1] + 1, x[-1] + periods + 1, dtype=float)
     y_future = np.polyval(coeffs, x_future)
 
     # Standard error widens with distance from mean
@@ -89,7 +102,7 @@ def forecast_metric(
     lower_future = np.maximum(lower_future, 0)
 
     # ── Future dates ──────────────────────────────────────────────────────
-    last_date = pd.Timestamp(dates[-1])
+    last_date = pd.Timestamp(dates.iloc[-1])
     future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=periods)
 
     forecast_df = pd.DataFrame(
@@ -130,7 +143,11 @@ def build_forecast_summary(result: ForecastResult) -> str:
     Used as a fallback when Gemini is unavailable or as a starting point
     for the AI narrative. Returns 2-3 sentences.
     """
-    direction_word = "increase" if result.trend_direction == "upward" else "decline"
+    direction_word = (
+        "increase"
+        if result.trend_direction == "upward"
+        else "decline" if result.trend_direction == "downward" else "remain broadly stable"
+    )
     return (
         f"Based on the historical trend, **{result.metric_col}** is projected to "
         f"{direction_word} from **{result.last_value:,.0f}** to approximately "

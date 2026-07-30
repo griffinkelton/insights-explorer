@@ -167,11 +167,14 @@ def assess_data_quality(
     outlier_count = 0
     numeric_cols = df.select_dtypes(include=["number"]).columns
     sample = df if len(df) <= 50000 else df.sample(n=50000, random_state=42)
+    # Build a boolean row mask tracking rows with any outlier
+    outlier_mask = pd.Series(False, index=sample.index)
     for col in numeric_cols:
         series = sample[col].dropna()
         if len(series) > 10 and series.std() > 0:
             z_scores = (series - series.mean()) / series.std()
-            outlier_count += int((z_scores.abs() > 3).sum())
+            outlier_mask |= z_scores.abs().gt(3).fillna(False)
+    outlier_count = int(outlier_mask.sum())
 
     # Date coverage
     date_cols = [c for c in df.columns if "date" in c.lower()]
@@ -249,7 +252,7 @@ def _calculate_grade(
     # Outlier penalty
     if outlier_count > 50:
         score -= 15
-        warnings.append(f"{outlier_count} statistical outliers found — data may contain errors.")
+        warnings.append(f"{outlier_count} values to review — data may contain errors.")
     elif outlier_count > 10:
         score -= 5
         warnings.append(f"{outlier_count} outliers detected — review before drawing conclusions.")

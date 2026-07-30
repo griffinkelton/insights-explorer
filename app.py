@@ -58,8 +58,6 @@ if "filtered_df" not in st.session_state:
     st.session_state.filtered_df = None
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"
-if "drive_files_cache" not in st.session_state:
-    st.session_state.drive_files_cache = None
 if "compare_mode" not in st.session_state:
     st.session_state.compare_mode = False
 if "compare_dimension" not in st.session_state:

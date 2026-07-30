@@ -1,10 +1,13 @@
 """Chart generation helpers — extracted from app.py."""
 
+import logging
 from typing import Any
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from utils.data_loader import find_date_column
+
+logger = logging.getLogger(__name__)
 
 
 def generate_chart(
@@ -29,7 +32,7 @@ def generate_chart(
 
         if chart_type == "line" and date_col:
             sessions_col = find_column(df, ["sessions"])
-            if sessions_col:
+            if sessions_col and sessions_col in df.columns:
                 daily = df.groupby(date_col)[sessions_col].sum().reset_index().sort_values(date_col)
                 fig = px.line(
                     daily,
@@ -55,7 +58,7 @@ def generate_chart(
         if chart_type in ("bar", "ranking"):
             page_col = find_column(df, ["page_path", "page", "path", "url", "landing_page"])
             sessions_col = find_column(df, ["sessions"])
-            if page_col and sessions_col:
+            if page_col and sessions_col and page_col in df.columns and sessions_col in df.columns:
                 top = df.groupby(page_col)[sessions_col].sum().nlargest(10).reset_index()
                 fig = px.bar(
                     top,
@@ -82,6 +85,8 @@ def generate_chart(
         categorical_cols = df.select_dtypes(include=["object"]).columns.tolist()
         if numeric_cols and categorical_cols:
             cat_col, num_col = categorical_cols[0], numeric_cols[0]
+            if cat_col not in df.columns or num_col not in df.columns:
+                return None
             agg = df.groupby(cat_col)[num_col].sum().nlargest(10).reset_index()
             fig = px.bar(
                 agg,
@@ -98,9 +103,12 @@ def generate_chart(
                 font=dict(color=font_color, size=12),
             )
             return {"fig": fig, "type": "bar"}
+    except (KeyError, TypeError, ValueError) as e:
+        logger.info("Chart generation skipped: %s", e)
+        return None
     except Exception:
-        pass
-    return None
+        logger.warning("Chart generation error", exc_info=True)
+        return None
 
 
 def find_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
@@ -252,7 +260,7 @@ def generate_funnel_chart(
         else:
             labels.append(
                 f"{step}<br>{count:,.0f} {metric_label}<br>"
-                f"<span style='color:#f87171;font-size:0.85em;'>{dp:+.1f}% drop-off</span>"
+                f"<span style='color:#f87171;font-size:0.85em;'>{dp:+.1f}% change</span>"
             )
 
     fig.add_trace(
@@ -291,7 +299,7 @@ def generate_funnel_chart(
                 borderpad=4,
             )
 
-    title = f"{metric_label} Funnel"
+    title = f"{metric_label} by Page Pattern"
     fig.update_layout(
         title=title,
         xaxis_title=metric_label,

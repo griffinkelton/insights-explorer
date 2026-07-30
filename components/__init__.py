@@ -74,8 +74,8 @@ def _render_main_content() -> None:
     st.divider()
     st.caption(
         "GA4 Insight Explorer · Data processed in session · AI calls sent to Gemini API · "
-        "[Gemini API Key](https://aistudio.google.com/apikey) · "
-        "[GCP OAuth Setup](https://console.cloud.google.com/apis/credentials)"
+        "Exports via [Google Sheets & Drive](https://developers.google.com/sheets/api) · "
+        "[Gemini API Key](https://aistudio.google.com/apikey)"
     )
 
 

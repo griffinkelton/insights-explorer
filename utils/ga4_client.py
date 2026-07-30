@@ -12,6 +12,7 @@ from typing import Any
 
 import pandas as pd
 import requests
+import streamlit as st
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange,
@@ -23,11 +24,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
-# OAuth scopes — minimal blast radius: read-only Analytics + Drive file picker
-# (readonly) + write-back to app-created files only (drive.file).
+# OAuth scopes — analytics.readonly for GA4 data pulls,
+# drive.file for user-initiated exports only.
 SCOPES = [
     "https://www.googleapis.com/auth/analytics.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/drive.file",
 ]
 
@@ -324,56 +324,88 @@ def pull_ga4_report(
     start_date: str = "90daysAgo",
     end_date: str = "today",
 ) -> pd.DataFrame:
-    """Pull a standard GA4 report and return as a pandas DataFrame.
+    """Pull a standard GA4 report with pagination and return as a pandas DataFrame.
 
     Fetches: date, pagePath, deviceCategory dimensions
              + sessions, totalUsers, activeUsers, engagementRate, bounceRate metrics.
+
+    Pages through results using offset + limit. Stops on empty page,
+    reported total, or hard cap (500k rows). Deduplicates on the expected
+    dimension tuple (date, page_path, device_category).
+
+    Returns a DataFrame with an added ``_truncated`` attribute via
+    ``st.session_state.ga4_truncated``.
     """
+    HARD_CAP = 500_000
+    PAGE_SIZE = 100_000  # GA4 API max per request
+
     # Refresh token if needed
     if credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
 
     client = BetaAnalyticsDataClient(credentials=credentials)
 
-    request = RunReportRequest(
-        property=f"properties/{property_id}",
-        dimensions=[
-            Dimension(name="date"),
-            Dimension(name="pagePath"),
-            Dimension(name="deviceCategory"),
-        ],
-        metrics=[
-            Metric(name="sessions"),
-            Metric(name="totalUsers"),
-            Metric(name="activeUsers"),
-            Metric(name="engagementRate"),
-            Metric(name="bounceRate"),
-        ],
-        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-        limit=100000,  # GA4 API max per request
-    )
+    all_rows = []
+    seen = set()
+    offset = 0
 
-    response = client.run_report(request)
-
-    # Build DataFrame from response rows
-    rows = []
-    for row in response.rows:
-        rows.append(
-            {
-                "date": row.dimension_values[0].value,
-                "page_path": row.dimension_values[1].value,
-                "device_category": row.dimension_values[2].value,
-                "sessions": int(row.metric_values[0].value),
-                "users": int(row.metric_values[1].value),
-                "active_users": int(row.metric_values[2].value),
-                "engagement_rate": float(row.metric_values[3].value),
-                "bounce_rate": float(row.metric_values[4].value),
-            }
+    while offset < HARD_CAP:
+        request = RunReportRequest(
+            property=f"properties/{property_id}",
+            dimensions=[
+                Dimension(name="date"),
+                Dimension(name="pagePath"),
+                Dimension(name="deviceCategory"),
+            ],
+            metrics=[
+                Metric(name="sessions"),
+                Metric(name="totalUsers"),
+                Metric(name="activeUsers"),
+                Metric(name="engagementRate"),
+                Metric(name="bounceRate"),
+            ],
+            date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+            limit=PAGE_SIZE,
+            offset=offset,
         )
 
-    if not rows:
+        response = client.run_report(request)
+
+        if not response.rows:
+            break  # No more data
+
+        for row in response.rows:
+            key = (
+                row.dimension_values[0].value,
+                row.dimension_values[1].value,
+                row.dimension_values[2].value,
+            )
+            if key not in seen:
+                seen.add(key)
+                all_rows.append(
+                    {
+                        "date": row.dimension_values[0].value,
+                        "page_path": row.dimension_values[1].value,
+                        "device_category": row.dimension_values[2].value,
+                        "sessions": int(row.metric_values[0].value),
+                        "users": int(row.metric_values[1].value),
+                        "active_users": int(row.metric_values[2].value),
+                        "engagement_rate": float(row.metric_values[3].value),
+                        "bounce_rate": float(row.metric_values[4].value),
+                    }
+                )
+
+        offset += PAGE_SIZE
+
+        # Check if we've reached the reported total
+        if response.row_count and offset >= response.row_count:
+            break
+
+    st.session_state.ga4_truncated = len(all_rows) >= HARD_CAP
+
+    if not all_rows:
         return pd.DataFrame()
 
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(all_rows)
     df["date"] = pd.to_datetime(df["date"])
     return df

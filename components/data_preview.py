@@ -230,8 +230,11 @@ def _render_forecast_section(base_df: pd.DataFrame | None) -> None:
     if not date_col or not numeric_cols or len(base_df) < 7:
         return
 
-    with st.expander("📈 Metric Forecast", expanded=False):
-        st.caption("Linear regression trend projection with 95% prediction intervals.")
+    with st.expander("📈 Linear Trend Projection", expanded=False):
+        st.caption(
+            "Linear regression trend projection. Intervals are approximate "
+            "model-based estimates (not validated forecast accuracy)."
+        )
 
         col_metric, col_periods, col_btn = st.columns([2, 1, 1])
         with col_metric:
@@ -289,7 +292,7 @@ def _render_forecast_section(base_df: pd.DataFrame | None) -> None:
                     build_forecast_summary(result),
                 )
                 with st.container(border=True):
-                    st.markdown("#### 🤖 AI Forecast Analysis")
+                    st.markdown("#### 🤖 AI Trend Projection Analysis")
                     st.markdown(narrative)
 
                     # ── Summary stats ────────────────────────────────
@@ -315,8 +318,11 @@ def _render_funnel_section(base_df: pd.DataFrame | None) -> None:
     if not page_cols or not numeric_cols:
         return
 
-    with st.expander("🔻 Funnel Analysis", expanded=False):
-        st.caption("Define a conversion path and visualize drop-off at each step.")
+    with st.expander("🔻 Page-Path Aggregation", expanded=False):
+        st.caption(
+            "Compare page-volume totals for selected path patterns. This analyzes "
+            "independent page matches — it does not track user/session conversion sequencing."
+        )
 
         col_page, col_metric = st.columns(2)
         with col_page:
@@ -377,7 +383,7 @@ def _render_funnel_section(base_df: pd.DataFrame | None) -> None:
 
         # ── Generate button ────────────────────────────────────────────
         if len(funnel_steps) >= 2:
-            if st.button("🔻 Generate Funnel", use_container_width=True, key="funnel_btn"):
+            if st.button("🔻 Generate Page-Path Chart", use_container_width=True, key="funnel_btn"):
                 funnel_data = build_funnel_data(base_df, page_col, metric_col, funnel_steps)
                 if funnel_data:
                     st.session_state.funnel_data = funnel_data

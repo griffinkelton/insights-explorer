@@ -1,4 +1,4 @@
-"""Funnel analysis — page-path aggregation into conversion funnels."""
+"""Page-path aggregation — compare page-volume totals for selected path patterns."""
 
 from dataclasses import dataclass
 import pandas as pd
@@ -6,7 +6,7 @@ import pandas as pd
 
 @dataclass
 class FunnelData:
-    """Structured funnel output for charting."""
+    """Structured page-path aggregation output for charting."""
 
     steps: list[str]  # Ordered funnel step labels
     counts: list[float]  # Metric count at each step
@@ -21,10 +21,11 @@ def build_funnel_data(
     metric_col: str,
     steps: list[str],
 ) -> FunnelData | None:
-    """Aggregate page-level data into ordered funnel steps.
+    """Aggregate page-level data into ordered path-step totals.
 
-    For each step, matches rows where `page_col` contains the step pattern
-    (case-insensitive), sums `metric_col`, and computes drop-off percentages.
+    This is page-pattern aggregation — each step independently matches rows
+    where ``page_col`` contains the step pattern (case-insensitive, literal
+    match). It does NOT track user/session conversion sequencing.
 
     Args:
         df: Source DataFrame with page-level rows.
@@ -33,22 +34,25 @@ def build_funnel_data(
         steps: Ordered list of page patterns (e.g. ["/home", "/product", "/cart"]).
 
     Returns:
-        FunnelData with steps, counts, and drop-off %, or None if no data.
+        FunnelData with steps, counts, and change from previous, or None if no data.
     """
     if df is None or df.empty or not steps or page_col not in df.columns:
         return None
     if metric_col not in df.columns:
         return None
 
+    # Cap at 8 steps max
+    steps = [s.strip() for s in steps[:8]]
+
     counts: list[float] = []
     for step in steps:
-        # Case-insensitive substring match on the page column
-        mask = df[page_col].astype(str).str.lower().str.contains(step.lower(), na=False)
+        # Literal case-insensitive match (regex=False) on the page column
+        mask = df[page_col].astype(str).str.contains(step, case=False, regex=False, na=False)
         matched = df[mask]
         count = float(matched[metric_col].sum()) if not matched.empty else 0.0
         counts.append(count)
 
-    # ── Drop-off % ────────────────────────────────────────────────────────
+    # ── Change from previous ───────────────────────────────────────────
     dropoff: list[float] = [0.0]
     for i in range(1, len(counts)):
         prev = counts[i - 1]

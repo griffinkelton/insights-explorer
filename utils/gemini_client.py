@@ -152,6 +152,11 @@ def _track_usage(response) -> None:
     st.session_state.total_cached_tokens += getattr(usage, "cached_content_token_count", 0) or 0
     st.session_state.total_tokens_used += getattr(usage, "total_token_count", 0) or 0
 
+    # Increment success counter (distinct from UI-sourced api_call_count)
+    if "api_success_count" not in st.session_state:
+        st.session_state.api_success_count = 0
+    st.session_state.api_success_count += 1
+
 
 def analyze_file_with_gemini(
     file_bytes: bytes,

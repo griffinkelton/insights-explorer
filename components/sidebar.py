@@ -12,7 +12,6 @@ from utils.data_loader import (
     load_file,
     validate_columns,
 )
-from utils.drive_client import list_drive_files, load_drive_file_as_df
 from utils.ga4_client import (
     credentials_from_dict,
     get_auth_url,
@@ -26,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 def _populate_data_state(df: pd.DataFrame, source: str, missing: list[str]) -> None:
-    """Populate session state with loaded data — shared by upload, GA4, and Drive paths.
+    """Populate session state with loaded data — shared by upload and GA4 paths.
 
     Args:
         df: The loaded DataFrame.
-        source: "file", "ga4", or "drive".
+        source: "file" or "ga4".
         missing: List of expected-but-missing column names.
     """
     # Reset custom metrics when loading new data (columns may differ)
@@ -66,7 +65,6 @@ def render_sidebar() -> None:
         uploaded_file = _render_file_uploader()
         st.divider()
         _render_ga4_connect()
-        _render_drive_picker()
         st.divider()
         _render_privacy_notice()
         _render_clear_button()
@@ -151,13 +149,12 @@ def _render_ga4_connect() -> None:
             from utils.ga4_client import _revoke_token
 
             st.warning(
-                "🔐 We've updated Drive permissions for better security. "
-                "Please reconnect your Google account to continue using Drive features."
+                "🔐 We've updated OAuth permissions for v0.1.0. "
+                "Please reconnect your Google account to continue."
             )
             if st.button("🔄 Reconnect Google Account", use_container_width=True):
                 _revoke_token(creds)
                 st.session_state.ga4_creds = None
-                st.session_state.drive_files_cache = None
                 st.rerun()
             # Return early — don't show connected controls until migration done
             return
@@ -172,6 +169,10 @@ def _render_ga4_connect() -> None:
             help="Numeric property ID from GA4 Admin > Property Settings",
         )
         st.session_state.ga4_property_id = property_id
+
+        # Validate property ID before allowing pull
+        if property_id and not property_id.strip().isdigit():
+            st.error("GA4 Property ID must contain only digits.")
 
         date_range = st.selectbox(
             "Date range",
@@ -188,6 +189,8 @@ def _render_ga4_connect() -> None:
             if st.button("📥 Pull Data", use_container_width=True, type="primary"):
                 if not property_id:
                     st.error("Please enter your GA4 Property ID first.")
+                elif not property_id.strip().isdigit():
+                    st.error("GA4 Property ID must contain only digits.")
                 else:
                     with st.spinner(f"Fetching {date_range} of data from Google Analytics..."):
                         try:
@@ -212,7 +215,6 @@ def _render_ga4_connect() -> None:
             if st.button("✕ Disconnect", use_container_width=True):
                 st.session_state.ga4_creds = None
                 st.session_state.ga4_property_id = ""
-                st.session_state.drive_files_cache = None
                 if st.session_state.data_source == "ga4":
                     clear_data()
                 st.rerun()
@@ -230,8 +232,10 @@ def _render_privacy_notice() -> None:
                 border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
         <div style="font-size:0.78rem;color:{privacy_text};line-height:1.5;">
             🔒 <b>Privacy</b><br>
-            Uploaded analytics data is processed in the active session. AI features send
-            relevant data context to Google's Gemini API. OAuth uses temporary
+            Uploaded analytics data is processed in the active session. When you use AI
+            features, the app sends the relevant prompt and selected data context to
+            Google's Gemini API. Processing is subject to the applicable Google terms
+            for this application's Gemini configuration. OAuth uses temporary
             authorization state stored briefly to complete sign-in. Exports and Drive
             actions occur only when you choose them.
         </div>
@@ -312,8 +316,9 @@ def _render_model_selector() -> None:
 
 def _render_api_counter() -> None:
     """Render API call counter (only when calls have been made)."""
-    if st.session_state.api_call_count > 0:
-        st.caption(f"🔢 API calls this session: {st.session_state.api_call_count}")
+    success_count = st.session_state.get("api_success_count", 0)
+    if success_count > 0:
+        st.caption(f"🔢 API calls this session: {success_count}")
 
 
 def _render_footer() -> None:
@@ -441,78 +446,6 @@ def _render_compare_controls() -> None:
                 st.caption("Need ≥2 unique values in the selected dimension.")
         else:
             st.caption("No categorical columns available for comparison.")
-
-
-def _render_drive_picker() -> None:
-    """Render the Google Drive file picker (only when authenticated)."""
-    if st.session_state.ga4_creds is None:
-        return
-
-    st.divider()
-
-    # Header row with refresh button
-    col_hdr, col_btn = st.columns([5, 1])
-    with col_hdr:
-        st.markdown("**📂 Google Drive**")
-    with col_btn:
-        if st.button("🔄", key="drive_refresh", help="Refresh file list"):
-            st.session_state.drive_files_cache = None
-            st.rerun()
-
-    creds = credentials_from_dict(st.session_state.ga4_creds)
-
-    # Cache the file list to avoid re-fetching on every rerun
-    if st.session_state.get("drive_files_cache") is None:
-        with st.spinner("Loading Drive files..."):
-            try:
-                files = list_drive_files(
-                    creds,
-                    ["text/csv", "application/vnd.google-apps.spreadsheet"],
-                )
-                st.session_state.drive_files_cache = files
-            except Exception:
-                st.error("Drive error. Please try again or refresh the connection.")
-                logger.warning("Drive error", exc_info=True)
-                return
-
-    files = st.session_state.drive_files_cache
-
-    if not files:
-        st.caption("No CSV files or Google Sheets found in your Drive.")
-        return
-
-    # File selector — display names, store IDs via format_func
-    file_map = {f["id"]: f["name"] for f in files}
-    selected_id = st.selectbox(
-        "Select a file",
-        options=list(file_map.keys()),
-        format_func=lambda fid: file_map[fid],
-        key="drive_file_select",
-    )
-
-    # Find selected file metadata
-    selected_file = next(f for f in files if f["id"] == selected_id)
-
-    # Load button
-    if st.button("📥 Load from Drive", use_container_width=True):
-        with st.spinner(f"Loading {selected_file['name']}..."):
-            df, error = load_drive_file_as_df(
-                creds,
-                selected_file["id"],
-                selected_file["mime_type"],
-            )
-
-        if error:
-            st.error(error)
-        else:
-            missing = validate_columns(df)
-            if missing:
-                st.warning(
-                    f"⚠️ Missing expected columns: {', '.join(missing)}. "
-                    "Some features may be limited."
-                )
-            _populate_data_state(df, "drive", missing)
-            st.rerun()
 
 
 def _process_uploaded_file(uploaded_file) -> None:

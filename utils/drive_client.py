@@ -1,15 +1,18 @@
-"""Google Drive client — file listing, download, write, Sheets, and DataFrame loading."""
+"""Google Drive client — write-only exports (Sheets, CSV, Drive upload).
+
+Drive browsing (list_drive_files, download_drive_file, load_drive_file_as_df)
+was removed in v0.1.0 to enforce least-privilege: only drive.file scope is
+requested; the app cannot list or read arbitrary Drive files.
+"""
 
 from io import BytesIO
 import pandas as pd
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 
-# Limits — imported from data_loader for consistency
-from utils.data_loader import MAX_FILE_SIZE_MB, MAX_ROWS
 from utils.sanitize import safe_spreadsheet_value
 
 
@@ -25,98 +28,6 @@ def _build_sheets_service(credentials: Credentials):
     if credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
     return build("sheets", "v4", credentials=credentials)
-
-
-def list_drive_files(
-    credentials: Credentials,
-    mime_types: list[str],
-    page_size: int = 50,
-) -> list[dict[str, str]]:
-    """List files in the user's Drive matching given MIME types."""
-    service = _build_drive_service(credentials)
-    query = " or ".join(f"mimeType='{mt}'" for mt in mime_types)
-    try:
-        results = (
-            service.files()
-            .list(
-                q=f"({query}) and trashed = false",
-                pageSize=page_size,
-                fields="files(id, name, mimeType)",
-                orderBy="modifiedTime desc",
-            )
-            .execute()
-        )
-    except HttpError as e:
-        raise RuntimeError(f"Drive API error listing files: {e}") from e
-
-    return [
-        {
-            "id": f["id"],
-            "name": f["name"],
-            "mime_type": f["mimeType"],
-        }
-        for f in results.get("files", [])
-    ]
-
-
-def download_drive_file(
-    credentials: Credentials,
-    file_id: str,
-    mime_type: str,
-) -> BytesIO:
-    """Download a Drive file as CSV bytes."""
-    service = _build_drive_service(credentials)
-
-    try:
-        if mime_type == "application/vnd.google-apps.spreadsheet":
-            request = service.files().export_media(
-                fileId=file_id,
-                mimeType="text/csv",
-            )
-        else:
-            request = service.files().get_media(fileId=file_id)
-
-        buffer = BytesIO()
-        downloader = MediaIoBaseDownload(buffer, request)
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-        buffer.seek(0)
-        return buffer
-    except HttpError as e:
-        raise RuntimeError(f"Drive API error downloading file: {e}") from e
-
-
-def load_drive_file_as_df(
-    credentials: Credentials,
-    file_id: str,
-    mime_type: str,
-) -> tuple[pd.DataFrame | None, str | None]:
-    """Download a Drive file and load it as a pandas DataFrame."""
-    try:
-        buffer = download_drive_file(credentials, file_id, mime_type)
-
-        buffer.seek(0, 2)
-        file_size = buffer.tell()
-        if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
-            return None, (
-                f"File too large ({file_size / 1024 / 1024:.1f} MB). "
-                f"Maximum is {MAX_FILE_SIZE_MB} MB."
-            )
-        buffer.seek(0)
-
-        df = pd.read_csv(buffer)
-        if df.empty:
-            return None, "The selected file is empty."
-
-        if len(df) > MAX_ROWS:
-            df = df.head(MAX_ROWS)
-
-        return df, None
-    except RuntimeError as e:
-        return None, str(e)
-    except Exception as e:
-        return None, f"Failed to load Drive file: {e}"
 
 
 def write_drive_file(
