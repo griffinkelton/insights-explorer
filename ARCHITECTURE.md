@@ -32,12 +32,13 @@ insights-explorer/
 │   ├── data_preview.py          # Data metrics, filters, quality scorecard
 │   └── hero.py                  # Empty-state hero + onboarding
 ├── tests/
+│   ├── conftest.py              # Pytest config — warning filters, global fixtures
 │   ├── test_data_loader.py      # 20 tests — file parsing, validation, stats
 │   ├── test_gemini_client.py    # 14 tests — API calls, error handling, key validation
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
 │   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
-│   └── ...                      # 13 additional test modules (389 total)
+│   └── ...                      # 13 additional test modules + conftest.py (389 total, 0 warnings)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -208,7 +209,7 @@ insights-explorer/
 | `test_static_analysis.py` | 12 | All 6 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern, drive.readonly gate, silent except:pass scanner |
 | `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
 | _13 additional modules_ | _251_ | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init`, `test_session`, `test_scenarios` |
-| **Total** | **389** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure |
+| **Total** | **389** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure (0 warnings) |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
