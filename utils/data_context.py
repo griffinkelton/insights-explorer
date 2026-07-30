@@ -27,7 +27,31 @@ from typing import NamedTuple
 import pandas as pd
 
 
-# ── FilterState ──────────────────────────────────────────────────────────────
+# ── GA4RequestMetadata ────────────────────────────────────────────────────
+
+
+class GA4RequestMetadata(NamedTuple):
+    """Immutable snapshot of a GA4 API request for source fingerprinting.
+
+    Returned by pull_ga4_report() alongside the DataFrame. Passed directly
+    to create_context_from_ga4() to guarantee the canonical request fingerprint
+    matches the actual API call — no UI reconstruction drift.
+    """
+
+    property_id: str
+    date_range: tuple[str, str]
+    dimensions: list[str]
+    metrics: list[str]
+    dimension_filter: dict | None = None
+    metric_filter: dict | None = None
+    order_bys: list[dict] | None = None
+    limit: int | None = None
+    offset: int = 0
+    timezone: str | None = None
+    truncated: bool = False
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 class FilterState(NamedTuple):
@@ -82,15 +106,26 @@ class DataContext:
 def fingerprint_frame(df: pd.DataFrame) -> str:
     """Content-derived fingerprint of a DataFrame for cache identity.
 
-    Changes when values, index, column order, or dtypes change.
+    Hashes both the schema (column names + dtypes) and the row-level data
+    (via pd.util.hash_pandas_object). Changes when values, index, column
+    order, column names, or dtypes change.
+
     Use this instead of passing the full DataFrame to @st.cache_data functions
     to keep cache hashing lightweight while still detecting data changes.
 
     Returns:
         24-char hex string (96 bits) — negligible collision risk.
     """
-    hashes = pd.util.hash_pandas_object(df)
-    return hashlib.sha256(hashes.values).hexdigest()[:24]
+    schema = json.dumps(
+        {
+            "columns": list(map(str, df.columns)),
+            "dtypes": list(map(str, df.dtypes)),
+        },
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    data_hashes = pd.util.hash_pandas_object(df, index=True).values.tobytes()
+    return hashlib.sha256(schema + data_hashes).hexdigest()[:24]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -116,7 +151,16 @@ def create_context_from_upload(
 
     Returns:
         DataContext with version=0.
+
+    Raises:
+        TypeError: if df is not a pandas DataFrame.
+        ValueError: if file_bytes is empty or not bytes.
     """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+    if not isinstance(file_bytes, bytes) or not file_bytes:
+        raise ValueError("file_bytes must be non-empty bytes")
+
     content_hash = hashlib.sha256(file_bytes).hexdigest()[:24]
     base = df.copy(deep=True)
     return DataContext(
@@ -125,13 +169,13 @@ def create_context_from_upload(
         raw_df=df.copy(deep=True),
         base_df=base,
         active_df=base.copy(deep=True),
-        provenance=(f"upload:{display_name}",) if display_name else ("upload",),
+        provenance=(f"upload:{display_name}",) if display_name else ("upload:unknown",),
     )
 
 
 def create_context_from_ga4(
     df: pd.DataFrame,
-    property_id: str,
+    property_id: str = "",
     date_range: tuple[str, str] | None = None,
     dimensions: list[str] | None = None,
     metrics: list[str] | None = None,
@@ -142,6 +186,8 @@ def create_context_from_ga4(
     offset: int = 0,
     timezone: str | None = None,
     truncated: bool = False,
+    *,
+    metadata: GA4RequestMetadata | None = None,
 ) -> DataContext:
     """Create a DataContext from a GA4 data pull.
 
@@ -149,6 +195,10 @@ def create_context_from_ga4(
     Every return-value-affecting request field is included. Identical
     requests produce the same source_id (legitimate cache reuse); any
     difference in parameters produces a distinct ID.
+
+    Prefer passing ``metadata=`` (a GA4RequestMetadata from pull_ga4_report)
+    over individual parameters — it guarantees the fingerprint matches the
+    actual API call with no UI reconstruction drift.
 
     Args:
         df: DataFrame returned by ga4_client.pull_ga4_report().
@@ -163,16 +213,38 @@ def create_context_from_ga4(
         offset: Row offset (default 0).
         timezone: Optional timezone override.
         truncated: True if the 500k row cap was hit.
+        metadata: GA4RequestMetadata from pull_ga4_report() — when provided,
+                  takes precedence over individual parameters.
 
     Returns:
         DataContext with version=0 and truncated flag set appropriately.
+
+    Raises:
+        TypeError: if df is not a pandas DataFrame.
     """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+
+    # Use metadata if provided (prevents UI reconstruction drift)
+    effective_property_id = property_id
+    effective_date_range = date_range
+    effective_dimensions = dimensions
+    effective_metrics = metrics
+    effective_truncated = truncated
+
+    if metadata is not None:
+        effective_property_id = metadata.property_id
+        effective_date_range = metadata.date_range
+        effective_dimensions = metadata.dimensions
+        effective_metrics = metadata.metrics
+        effective_truncated = effective_truncated or metadata.truncated
+
     # Canonical request fingerprint — every return-value-affecting field
     request = {
-        "property_id": property_id,
-        "date_range": list(date_range) if date_range else None,
-        "dimensions": sorted(dimensions) if dimensions else None,
-        "metrics": sorted(metrics) if metrics else None,
+        "property_id": effective_property_id,
+        "date_range": list(effective_date_range) if effective_date_range else None,
+        "dimensions": sorted(effective_dimensions) if effective_dimensions else None,
+        "metrics": sorted(effective_metrics) if effective_metrics else None,
         "dimension_filter": dimension_filter,
         "metric_filter": metric_filter,
         "order_bys": order_bys or [],
@@ -196,8 +268,8 @@ def create_context_from_ga4(
         raw_df=df.copy(deep=True),
         base_df=base,
         active_df=base.copy(deep=True),
-        provenance=(f"ga4_pull:{property_id}",),
-        truncated=truncated,
+        provenance=(f"ga4_pull:{effective_property_id}",),
+        truncated=effective_truncated,
     )
 
 

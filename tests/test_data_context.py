@@ -13,6 +13,7 @@ import pytest
 from utils.data_context import (
     DataContext,
     FilterState,
+    GA4RequestMetadata,
     create_context_from_ga4,
     create_context_from_upload,
     fingerprint_frame,
@@ -200,7 +201,26 @@ class TestCreateContextFromUpload:
 
     def test_provenance_without_display_name(self, sample_df, sample_bytes):
         ctx = create_context_from_upload(sample_df, sample_bytes)
-        assert ctx.provenance == ("upload",)
+        assert ctx.provenance == ("upload:unknown",)
+
+    def test_provenance_always_category_detail(self, sample_df, sample_bytes):
+        """All upload provenance entries use category:detail format."""
+        ctx1 = create_context_from_upload(sample_df, sample_bytes)
+        ctx2 = create_context_from_upload(sample_df, sample_bytes, "report.csv")
+        for entry in (*ctx1.provenance, *ctx2.provenance):
+            assert ":" in entry, f"Provenance entry '{entry}' missing category:detail format"
+
+    def test_factory_raises_typeerror_on_non_dataframe(self):
+        with pytest.raises(TypeError, match="must be a pandas DataFrame"):
+            create_context_from_upload("not_a_df", b"some bytes")  # type: ignore[arg-type]
+
+    def test_factory_raises_valueerror_on_empty_bytes(self, sample_df):
+        with pytest.raises(ValueError, match="non-empty bytes"):
+            create_context_from_upload(sample_df, b"")
+
+    def test_factory_raises_valueerror_on_non_bytes(self, sample_df):
+        with pytest.raises(ValueError, match="non-empty bytes"):
+            create_context_from_upload(sample_df, "not bytes")  # type: ignore[arg-type]
 
     def test_truncated_defaults_false(self, sample_df, sample_bytes):
         ctx = create_context_from_upload(sample_df, sample_bytes)
@@ -668,7 +688,7 @@ class TestMultiStepTransitions:
 class TestProvenanceContract:
     """All provenance entries must match category:detail or category format."""
 
-    PROVENANCE_RE = r"^[a-z0-9_]+(:.+)?$"
+    PROVENANCE_RE = r"^[a-z0-9_]+:.+$"
 
     def _check_provenance(self, *entries: str) -> None:
         import re
@@ -693,3 +713,116 @@ class TestProvenanceContract:
         metrics = ctx.active_df.copy()
         ctx = with_custom_metrics(ctx, metrics)
         self._check_provenance(*ctx.provenance)
+
+
+# ── GA4RequestMetadata Integration ──────────────────────────────────────────
+
+
+class TestGA4MetadataIntegration:
+    """Writer-integration: GA4RequestMetadata → create_context_from_ga4."""
+
+    @pytest.fixture
+    def sample_df(self):
+        return pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+
+    def test_metadata_takes_precedence(self, sample_df):
+        """When metadata is provided, it overrides individual params."""
+        meta = GA4RequestMetadata(
+            property_id="prop_123",
+            date_range=("30daysAgo", "today"),
+            dimensions=["date", "country"],
+            metrics=["sessions", "users"],
+        )
+        ctx = create_context_from_ga4(
+            sample_df,
+            property_id="wrong_id",
+            date_range=("7daysAgo", "today"),
+            dimensions=["wrong_dim"],
+            metrics=["wrong_metric"],
+            metadata=meta,
+        )
+        ctx2 = create_context_from_ga4(
+            sample_df,
+            metadata=GA4RequestMetadata(
+                property_id="prop_123",
+                date_range=("30daysAgo", "today"),
+                dimensions=["date", "country"],
+                metrics=["sessions", "users"],
+            ),
+        )
+        assert ctx.source_id == ctx2.source_id
+        assert ctx.provenance == ("ga4_pull:prop_123",)
+
+    def test_different_dates_via_metadata_produce_distinct_ids(self, sample_df):
+        """Two pulls with same property but different dates → distinct source_ids."""
+        meta1 = GA4RequestMetadata(
+            property_id="prop_123",
+            date_range=("7daysAgo", "today"),
+            dimensions=["date"],
+            metrics=["sessions"],
+        )
+        meta2 = GA4RequestMetadata(
+            property_id="prop_123",
+            date_range=("30daysAgo", "today"),
+            dimensions=["date"],
+            metrics=["sessions"],
+        )
+        ctx1 = create_context_from_ga4(sample_df, property_id="", metadata=meta1)
+        ctx2 = create_context_from_ga4(sample_df, property_id="", metadata=meta2)
+        assert ctx1.source_id != ctx2.source_id
+
+    def test_same_metadata_produces_same_id(self, sample_df):
+        """Identical metadata → identical source_id (cache reuse)."""
+        meta = GA4RequestMetadata(
+            property_id="prop_456",
+            date_range=("90daysAgo", "today"),
+            dimensions=["date", "pagePath"],
+            metrics=["sessions", "activeUsers"],
+            truncated=True,
+        )
+        ctx1 = create_context_from_ga4(sample_df, property_id="", metadata=meta)
+        ctx2 = create_context_from_ga4(sample_df.copy(), property_id="", metadata=meta)
+        assert ctx1.source_id == ctx2.source_id
+        assert ctx1.truncated is True
+
+    def test_metadata_truncated_propagates(self, sample_df):
+        meta = GA4RequestMetadata(
+            property_id="p1",
+            date_range=("7daysAgo", "today"),
+            dimensions=["date"],
+            metrics=["sessions"],
+            truncated=True,
+        )
+        ctx = create_context_from_ga4(sample_df, property_id="", metadata=meta)
+        assert ctx.truncated is True
+
+
+# ── Fingerprint Schema ───────────────────────────────────────────────────────
+
+
+class TestFingerprintSchema:
+    """fingerprint_frame must detect schema changes (column names, dtypes)."""
+
+    def test_different_column_name_different_fingerprint(self):
+        df1 = pd.DataFrame({"sessions": [100, 200]})
+        df2 = pd.DataFrame({"visits": [100, 200]})
+        assert fingerprint_frame(df1) != fingerprint_frame(df2)
+
+    def test_different_dtype_different_fingerprint(self):
+        df1 = pd.DataFrame({"val": [1, 2, 3]})
+        df2 = pd.DataFrame({"val": [1.0, 2.0, 3.0]})
+        assert fingerprint_frame(df1) != fingerprint_frame(df2)
+
+    def test_same_schema_same_values_same_fingerprint(self):
+        df1 = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+        df2 = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+        assert fingerprint_frame(df1) == fingerprint_frame(df2)
+
+
+# ── GA4 Factory Validation ───────────────────────────────────────────────────
+
+
+class TestGA4FactoryValidation:
+    def test_factory_raises_typeerror_on_non_dataframe(self):
+        with pytest.raises(TypeError, match="must be a pandas DataFrame"):
+            create_context_from_ga4("not_a_df", "123")  # type: ignore[arg-type]

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import streamlit as st
+
+if TYPE_CHECKING:
+    from utils.data_context import GA4RequestMetadata
 
 from utils.data_loader import (
     ColumnType,
@@ -36,6 +42,7 @@ def _populate_data_state(
     missing: list[str],
     file_bytes: bytes | None = None,
     ga4_start_date: str | None = None,
+    ga4_metadata: GA4RequestMetadata | None = None,
     display_name: str = "",
 ) -> None:
     """Populate session state with loaded data — shared by upload and GA4 paths.
@@ -74,11 +81,16 @@ def _populate_data_state(
 
     # v0.2.0: Create DataContext (dual-write with legacy keys)
     if source == "ga4":
-        st.session_state.data_context = create_context_from_ga4(
-            df,
-            st.session_state.get("ga4_property_id", "unknown"),
-            date_range=(ga4_start_date, "today") if ga4_start_date else None,
-        )
+        if ga4_metadata is not None:
+            st.session_state.data_context = create_context_from_ga4(
+                df, property_id="", metadata=ga4_metadata
+            )
+        else:
+            st.session_state.data_context = create_context_from_ga4(
+                df,
+                st.session_state.get("ga4_property_id", "unknown"),
+                date_range=(ga4_start_date, "today") if ga4_start_date else None,
+            )
     else:
         st.session_state.data_context = create_context_from_upload(
             df, file_bytes, display_name=display_name
@@ -223,7 +235,9 @@ def _render_ga4_connect() -> None:
                     with st.spinner(f"Fetching {date_range} of data from Google Analytics..."):
                         try:
                             creds = credentials_from_dict(st.session_state.ga4_creds)
-                            df = pull_ga4_report(creds, property_id, start_date=start_date)
+                            df, ga4_metadata = pull_ga4_report(
+                                creds, property_id, start_date=start_date
+                            )
                             if df.empty:
                                 st.error("No data returned. Check your Property ID and date range.")
                             else:
@@ -231,7 +245,13 @@ def _render_ga4_connect() -> None:
                                 if missing:
                                     st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
 
-                                _populate_data_state(df, "ga4", missing, ga4_start_date=start_date)
+                                _populate_data_state(
+                                    df,
+                                    "ga4",
+                                    missing,
+                                    ga4_start_date=start_date,
+                                    ga4_metadata=ga4_metadata,
+                                )
                                 st.rerun()
                         except Exception:
                             st.error(

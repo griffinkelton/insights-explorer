@@ -1,5 +1,7 @@
 """Google Analytics 4 Data API client with OAuth 2.0 authentication."""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -8,7 +10,10 @@ import tempfile
 import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from utils.data_context import GA4RequestMetadata
 
 import pandas as pd
 import requests
@@ -323,8 +328,12 @@ def pull_ga4_report(
     property_id: str,
     start_date: str = "90daysAgo",
     end_date: str = "today",
-) -> pd.DataFrame:
-    """Pull a standard GA4 report with pagination and return as a pandas DataFrame.
+) -> tuple[pd.DataFrame, GA4RequestMetadata]:
+    """Pull a standard GA4 report with pagination and return (DataFrame, metadata).
+
+    v0.2.0: Now returns a GA4RequestMetadata alongside the DataFrame so the
+    DataContext factory can produce a canonical source fingerprint without
+    UI reconstruction drift.
 
     Fetches: date, pagePath, deviceCategory dimensions
              + sessions, totalUsers, activeUsers, engagementRate, bounceRate metrics.
@@ -332,10 +341,11 @@ def pull_ga4_report(
     Pages through results using offset + limit. Stops on empty page,
     reported total, or hard cap (500k rows). Deduplicates on the expected
     dimension tuple (date, page_path, device_category).
-
-    Returns a DataFrame with an added ``_truncated`` attribute via
-    ``st.session_state.ga4_truncated``.
     """
+    from utils.data_context import GA4RequestMetadata
+
+    DIMENSIONS = ["date", "pagePath", "deviceCategory"]
+    METRICS = ["sessions", "totalUsers", "activeUsers", "engagementRate", "bounceRate"]
     HARD_CAP = 500_000
     PAGE_SIZE = 100_000  # GA4 API max per request
 
@@ -402,10 +412,20 @@ def pull_ga4_report(
             break
 
     st.session_state.ga4_truncated = len(all_rows) >= HARD_CAP
+    truncated = len(all_rows) >= HARD_CAP
+
+    metadata = GA4RequestMetadata(
+        property_id=property_id,
+        date_range=(start_date, end_date),
+        dimensions=DIMENSIONS,
+        metrics=METRICS,
+        limit=HARD_CAP,
+        truncated=truncated,
+    )
 
     if not all_rows:
-        return pd.DataFrame()
+        return pd.DataFrame(), metadata
 
     df = pd.DataFrame(all_rows)
     df["date"] = pd.to_datetime(df["date"])
-    return df
+    return df, metadata

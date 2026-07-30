@@ -289,7 +289,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 1
@@ -312,7 +312,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         assert isinstance(df, pd.DataFrame)
         assert df.empty
@@ -333,7 +333,7 @@ class TestPullGa4Report:
         mock_creds.expired = True
         mock_creds.refresh_token = "refresh-me"
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         mock_creds.refresh.assert_called_once()
         assert len(df) == 1
@@ -348,7 +348,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        ga4.pull_ga4_report(mock_creds, "123456789")
+        _, _meta = ga4.pull_ga4_report(mock_creds, "123456789")
 
         call_args = mock_client.run_report.call_args[0][0]
         assert call_args.date_ranges[0].start_date == "90daysAgo"
@@ -364,7 +364,9 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        ga4.pull_ga4_report(mock_creds, "123456789", start_date="7daysAgo", end_date="yesterday")
+        _, _meta = ga4.pull_ga4_report(
+            mock_creds, "123456789", start_date="7daysAgo", end_date="yesterday"
+        )
 
         call_args = mock_client.run_report.call_args[0][0]
         assert call_args.date_ranges[0].start_date == "7daysAgo"
@@ -380,7 +382,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        ga4.pull_ga4_report(mock_creds, "987654321")
+        _, _meta = ga4.pull_ga4_report(mock_creds, "987654321")
 
         call_args = mock_client.run_report.call_args[0][0]
         assert call_args.property == "properties/987654321"
@@ -399,7 +401,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         expected = {
             "date",
@@ -427,7 +429,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         assert pd.api.types.is_datetime64_any_dtype(df["date"])
 
@@ -442,7 +444,7 @@ class TestPullGa4Report:
         mock_creds.expired = True
         mock_creds.refresh_token = None
 
-        ga4.pull_ga4_report(mock_creds, "123456789")
+        _, _meta = ga4.pull_ga4_report(mock_creds, "123456789")
 
         mock_creds.refresh.assert_not_called()
 
@@ -487,7 +489,7 @@ class TestPullGa4Report:
         mock_creds = MagicMock()
         mock_creds.expired = False
 
-        df = ga4.pull_ga4_report(mock_creds, "123456789")
+        df, _metadata = ga4.pull_ga4_report(mock_creds, "123456789")
 
         assert len(df) == 2
         assert df.iloc[0]["page_path"] == "/a"
