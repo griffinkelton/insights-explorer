@@ -236,9 +236,13 @@ class TestRetiredContract:
         )
 
     def test_no_streamlit_dot_set_component_value(self):
-        """Check specifically for window.Streamlit.setComponentValue."""
-        source = _read_source()
-        assert "Streamlit.setComponentValue" not in source
+        """The HTML template must not call window.Streamlit.setComponentValue."""
+        from components.onboarding_tour import _TOUR_HTML_TEMPLATE
+
+        assert "Streamlit.setComponentValue" not in _TOUR_HTML_TEMPLATE, (
+            "setComponentValue is unsupported by st.components.v1.html(); "
+            "the Python docstring may reference it as an escalation path"
+        )
 
     def test_no_static_tour_html_constant(self):
         """The old _TOUR_HTML constant should not exist."""

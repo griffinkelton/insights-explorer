@@ -5,12 +5,31 @@ in the browser's localStorage under a versioned key:
     ga4_insight_explorer.onboarding.v1.completed
 
 The iframe wholly owns tour visibility, progression, Skip, and its own completion
-state.  Python passes a one-shot `force_replay` render flag to clear the key and
+state.  Python passes a one-shot ``force_replay`` render flag to clear the key and
 restart the tour; otherwise Python has no knowledge of localStorage.
 
-`st.components.v1.html()` is an HTML-embedding primitive — it does NOT provide a
+``st.components.v1.html()`` is an HTML-embedding primitive — it does NOT provide a
 bidirectional component-value channel.  The iframe does not rely on
-`setComponentValue()` or `postMessage` for state reporting.
+``setComponentValue()`` or ``postMessage`` for state reporting.
+
+Architectural decision (v0.2.0)
+-------------------------------
+``st.components.v1.html()`` was deliberately chosen over a declared Streamlit
+custom component for this browser-owned, non-telemetry tour:
+
+- The tour has no need to report state back to Python — it reads and writes
+  only localStorage, which Python cannot inspect synchronously anyway.
+- ``components.html()`` avoids a frontend build pipeline, npm dependencies,
+  and the complexity of a declared bidirectional component for what is
+  fundamentally a self-contained UI widget.
+- The trade-off is that Python cannot dynamically hide the iframe for
+  already-completed users; the completed card renders at 420 px.
+
+Escalation path: if a future phase requires Python to reliably receive
+completion state, dynamically remove the iframe, record analytics, or
+coordinate tour state with other app UI, migrate to a declared Streamlit
+custom component with ``Streamlit.setComponentValue({ completed: true })``
+and use a replay nonce (not a boolean) for repeated replay clicks.
 """
 
 from __future__ import annotations
