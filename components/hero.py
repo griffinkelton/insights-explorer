@@ -9,18 +9,17 @@ def render_hero() -> None:
 
     col_a, col_b, col_c = st.columns([1, 2, 1])
     with col_b:
-        # ── Quick Tour button ────────────────────────────────────────────
-        if st.session_state.get("tour_step", 0) == 0:
-            col_tour, _ = st.columns([1.5, 1])
-            with col_tour:
-                if st.button(
-                    "🎓 Quick Tour",
-                    type="secondary",
-                    use_container_width=True,
-                    help="Take a 3-step guided tour of the app",
-                ):
-                    st.session_state.tour_step = 1
-                    st.rerun()
+        # ── Replay tour (shown when tour completed) ────────────────────
+        if st.session_state.get("_tour_completed", False):
+            if st.button(
+                "🔄 Replay tour",
+                type="secondary",
+                use_container_width=True,
+                help="Take the guided tour again",
+                key="replay_tour_btn",
+            ):
+                st.session_state._tour_completed = False
+                st.rerun()
             st.markdown("")
 
         st.markdown(

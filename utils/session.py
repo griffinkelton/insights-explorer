@@ -23,7 +23,7 @@ def clear_data() -> None:
     st.session_state.data_source = None
     st.session_state.last_file_id = None
     # Reset tour so Quick Tour button reappears on empty state
-    st.session_state.tour_step = 0
+
     # Reset custom metrics so stale derived columns don't persist
     st.session_state.custom_metrics = {}
     # Purge stale forecast keys to prevent session state bloat

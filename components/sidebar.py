@@ -75,8 +75,6 @@ def _populate_data_state(
     st.session_state.data_source = source
     st.session_state.data_cleared = False
     # Auto-dismiss onboarding tour when data is loaded
-    if st.session_state.get("tour_step", 0) in (1, 2, 3):
-        st.session_state.tour_step = 4
 
     # v0.2.0: Create DataContext — sole owner of data state
     if source == "ga4":

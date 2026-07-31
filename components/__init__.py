@@ -11,7 +11,7 @@ from components.sidebar import render_sidebar
 from components.summary import render_summary_section
 from utils.error_boundary import render_error_card
 from utils.ga4_client import credentials_to_dict, exchange_code
-from utils.onboarding import render_tour_step
+from components.onboarding_tour import render_onboarding_tour
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +45,8 @@ def _render_main_content() -> None:
     st.caption("Ask questions about your analytics data — powered by Gemini AI.")
 
     if st.session_state.data_context is None:
-        # ── Onboarding tour (replaces hero when active) ──────────────────
-        tour_step = st.session_state.get("tour_step", 0)
-        if tour_step in (1, 2, 3):
-            render_tour_step(tour_step)
-            st.stop()
+        # ── Onboarding tour (frontend-owned, localStorage-persisted) ──
+        render_onboarding_tour()
 
         render_hero()
         st.stop()
