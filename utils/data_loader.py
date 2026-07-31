@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 MAX_FILE_SIZE_MB = 100
 MAX_ROWS = 50_000
 
+# Schema version for cached quality assessment rules.
+# Bump when grade calculation or quality heuristics change to invalidate cache.
+QUALITY_RULESET_VERSION = "1.0.0"
+
 
 # Expected GA4 export columns (case-insensitive matching attempted)
 EXPECTED_COLUMNS = [

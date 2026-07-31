@@ -7,6 +7,10 @@ import pandas as pd
 import streamlit as st
 from utils.data_loader import smart_sample
 
+# Schema version for cached prompt templates.
+# Bump when prompt structure changes to invalidate @st.cache_data.
+SUMMARY_PROMPT_SCHEMA_VERSION = "1.0.0"
+
 
 def _sanitize_question(question: str) -> str:
     """Sanitize user input to prevent prompt injection.

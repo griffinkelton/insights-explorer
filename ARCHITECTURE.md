@@ -1,6 +1,6 @@
 # 🏗️ GA4 Insight Explorer — Architecture & Design
 
-> Complete architecture, design decisions, and build log for the GA4 Insight Explorer.
+> Complete architecture, design decisions, and build log for the GA4 Insight Explorer — v0.2.0 Architecture, UX & Maintenance Release.
 
 ---
 
@@ -16,14 +16,14 @@ A local, single-user Streamlit web app for analyzing de-identified Google Analyt
 insights-explorer/
 ├── app.py                       # Main Streamlit entrypoint — UI, routing, callbacks
 ├── pages/
-│   └── learn.py                 # Interactive Python tutorials (8 tabs)
+│   └── learn.py                 # Interactive analyst-first learning experience (8 learner-journey sections)
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py           # CSV/XLSX parsing, column validation, stats
 │   ├── gemini_client.py         # Gemini API wrapper (error handling, key validation, token tracking)
 │   ├── ga4_client.py            # GA4 live connection (OAuth + Analytics Data API, PKCE state persistence)
 │   ├── prompt_templates.py      # Prompt construction, sanitization, chart detection
-│   └── styles.py                # Custom CSS theme (light/dark) + keyboard shortcut JS
+│   └── styles.py                # CSS theme constants (light/dark), focus-visible a11y, theme-sync JS
 ├── components/
 │   ├── __init__.py              # UI orchestrator + OAuth callback handler
 │   ├── sidebar.py               # File upload, GA4 connect, model selector
@@ -98,9 +98,9 @@ insights-explorer/
 **Decision:** Use `st.code('''...''')` (single-quote delimiters) instead of `st.code("""...""")` for code snippets in the learn page.
 **Rationale:** Python's `"""` inside `"""..."""` prematurely closes the string. Single-quote delimiters avoid this collision since `"""` is common in Python code (docstrings, f-string delimiters).
 
-### 7. Keyboard Shortcuts: JS Injection via `unsafe_allow_html`
-**Decision:** Inject keyboard shortcut JavaScript (Cmd/Ctrl+K to focus chat) via `st.markdown(unsafe_allow_html=True)`.
-**Rationale:** Streamlit has no native keyboard shortcut API. The JS approach is the standard workaround. Cmd+Enter (submit) was intentionally skipped — `dispatchEvent()` doesn't reliably trigger Streamlit's React event handlers.
+### 7. Keyboard Shortcuts: Removed
+**Decision:** No global keyboard shortcuts. The chat input (`st.chat_input`) is always visible in Streamlit — a global listener isn't justified.
+**Rationale:** Removed in v0.2.0 Phase 3 to eliminate JS complexity, runtime-only bugs, and discoverability/documentation mismatches. The `.kb-shortcut` CSS and `KEYBOARD_SHORTCUTS_JS` constant were deleted.
 
 ### 8. CI/CD: Google Cloud Build
 **Decision:** Use `cloudbuild.yaml` with GCP Cloud Build triggers on every push.
@@ -179,7 +179,7 @@ insights-explorer/
 | **API key** | Never hardcoded; read from `.env` via `python-dotenv` |
 | **Prompt injection** | `_sanitize_question()` strips code blocks/backticks; triple-quote delimiters + `⚠️ SECURITY` guardrail |
 | **Key validation** | `validate_api_key()` runs on startup; persistent error banner if invalid |
-| **Data privacy** | Processed in active session; AI calls sent to Gemini API; exports via Google Sheets & Drive |
+| **Data privacy** | Session-scoped processing; AI calls sent to Gemini API (descriptions/stats only, never raw rows); exports via Google Sheets & Drive |
 | **XSRF** | `enableXsrfProtection = true` in `.streamlit/config.toml` |
 | **CORS** | `enableCORS = false` — localhost only |
 | **Error details** | `showErrorDetails = false` — prevents source leakage |
@@ -203,7 +203,7 @@ insights-explorer/
 | `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
 | `test_ga4_client.py` | 28 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (7), `pull_ga4_report` (10), `TestOAuthStateStore` (8) |
 | `test_exports.py` | 8 | `TestClassifyApiError` (4), `TestExcelExport` (2), `TestPdfExport` (2) |
-| `test_learn_page.py` | 19 | Structural parsing, 8 tabs, content checks, back-to-app button |
+| `test_learn_page.py` | 19 | Structural parsing, 8 learner-journey sections, content checks, back-to-app button |
 | `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
 | `test_static_analysis.py` | 12 | All 6 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern, drive.readonly gate, silent except:pass scanner |
@@ -236,7 +236,7 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 
 ---
 
-## 📝 Build Log (2026-07-29)
+## 📝 Build Log (2026-07-29 → 2026-07-31)
 
 | # | Change | Type |
 |---|---|---|
@@ -297,6 +297,11 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 55 | P4 Wave 1 + Streaming: #16 conversation memory (last 5 exchanges in build_chat_prompt, New Chat button) | Feature |
 | 56 | P4 Wave 1 + Streaming: #17 export chat as Markdown report (report_exporter.py, kaleido) | Feature |
 | 57-63 | OAuth security hardening: scope reduction (drive→analytics.readonly+drive.file), PKCE state persistence with chmod hardening, scope migration banner with server-side token revocation, shared error classification (_classify_api_error), thought/cached token tracking, 8 smoke tests (test_exports.py), dead code cleanup (ga4_auth_flow, Pro model), BUG-009 & BUG-010, file reorganization (plans/maintenance/) | Remediation |
+64 | v0.2.0 Phase 1: DataContext refactor — immutable 3-layer model, source_id fingerprinting, AST retired-key guard, compatibility bridge removal (519→581 tests) | Architecture |
+65 | v0.2.0 Phase 2: Learn page redesign — 8-section analyst-first learner journey, frontend-owned onboarding (localStorage persistence, force_replay IIFE), tour_step removal | Feature |
+66 | v0.2.0 Phase 3: styles.py refactor — 5 CSS + 1 JS named constants, build_theme_css() assembler, focus-visible (accent-derived, never red), reduced-motion, keyboard shortcut removed | Refactor |
+67 | v0.2.0 Phase 4: Gemini per-request token accounting — _track_usage() returns dict with 6 fields, collapsible per-request display, MODEL_CONTEXT_LIMITS | Feature |
+68 | v0.2.0 Phase 5: v0.3.0 Drive Import design doc + v0.2.0 closeout documentation | Docs |
 
 ---
 

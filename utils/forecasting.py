@@ -4,6 +4,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+# Schema version for cached forecast output structure.
+# Bump when ForecastResult fields or calculation logic change.
+FORECAST_SCHEMA_VERSION = "1.0.0"
+
 
 @dataclass
 class ForecastResult:
