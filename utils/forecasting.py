@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+import streamlit as st
 
-# Schema version for forecast output structure.
-# Bump when ForecastResult fields or calculation logic change.
-# NOTE: forecast_metric is not cached (no @st.cache_data). Wire this
-# constant as a hidden default parameter when caching is added.
+# Schema version for cached forecast output structure.
+# Bump when ForecastResult fields or calculation logic change to invalidate
+# the @st.cache_data on forecast_metric(). Wired as a hidden default parameter.
 FORECAST_SCHEMA_VERSION = "1.0.0"
 
 
@@ -27,11 +27,13 @@ class ForecastResult:
     confidence: str  # "strong", "moderate", "weak"
 
 
+@st.cache_data(ttl=600, show_spinner=False)
 def forecast_metric(
     df: pd.DataFrame,
     date_col: str,
     metric_col: str,
     periods: int = 30,
+    _schema_version: str = FORECAST_SCHEMA_VERSION,
 ) -> ForecastResult | None:
     """Produce a linear regression forecast with 95% prediction intervals.
 
