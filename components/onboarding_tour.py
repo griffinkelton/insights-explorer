@@ -1,14 +1,21 @@
-"""Onboarding tour — frontend-owned custom component with localStorage persistence.
+"""Onboarding tour — browser-persisted onboarding via st.components.v1.html().
 
-Renders a 3-step guided tour for first-time users via st.components.v1.html().
-Completion state is persisted in the browser's localStorage under a versioned key:
+Renders a 3-step guided tour for first-time users.  Completion state is persisted
+in the browser's localStorage under a versioned key:
     ga4_insight_explorer.onboarding.v1.completed
 
-The component owns tour visibility, progression, Skip, and Replay.  Python receives
-only a boolean indicating whether the tour is currently active.
+The iframe wholly owns tour visibility, progression, Skip, and its own completion
+state.  Python passes a one-shot `force_replay` render flag to clear the key and
+restart the tour; otherwise Python has no knowledge of localStorage.
+
+`st.components.v1.html()` is an HTML-embedding primitive — it does NOT provide a
+bidirectional component-value channel.  The iframe does not rely on
+`setComponentValue()` or `postMessage` for state reporting.
 """
 
 from __future__ import annotations
+
+import json
 
 import streamlit.components.v1 as components
 import streamlit as st
@@ -21,7 +28,7 @@ TOUR_STEPS = [
         "title": "Upload your data",
         "body": (
             "Upload a CSV or XLSX file in the sidebar, "
-            "or connect live via Google sign‑in to pull data "
+            "or connect live via Google sign-in to pull data "
             "directly from GA4."
         ),
     },
@@ -37,28 +44,17 @@ TOUR_STEPS = [
         "icon": "💬",
         "title": "Ask questions",
         "body": (
-            "Type natural‑language questions in the chat box. "
+            "Type natural-language questions in the chat box. "
             'Try: <em>"Which pages have the highest drop-off?"</em>'
         ),
     },
 ]
 
+# ── HTML template (__FORCE_REPLAY__ replaced at render time) ─────────────────
+# Using a template with a sentinel avoids recomputing the entire HTML constant
+# on every call; only the boolean literal is swapped in.
 
-def _to_json(steps: list[dict[str, str]]) -> str:
-    """Serialize tour steps to a compact JSON string for embedding in JS."""
-    import json
-
-    return json.dumps(steps, ensure_ascii=False)
-
-
-# ── Self-contained tour HTML / JS / CSS ──────────────────────────────────────
-# Inline in a single constant so that components.html() receives everything in
-# one call.  The iframe is height=0 when already completed and height=420 when
-# the tour is shown, avoiding a visible flash on the first rerun after the
-# localStorage flag is read.
-
-_TOUR_HTML = (
-    """<!DOCTYPE html>
+_TOUR_HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -136,7 +132,11 @@ _TOUR_HTML = (
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition: background 0.15s, transform 0.1s, outline 0.15s;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   button:active { transform: scale(0.97); }
   .btn-back { background: transparent; color: var(--muted); }
@@ -153,63 +153,67 @@ _TOUR_HTML = (
 <body>
 <div id="root"></div>
 <script>
-  const STORAGE_KEY = '"""
-    + STORAGE_KEY
-    + """';
-  const STEPS = """
-    + _to_json(TOUR_STEPS)
-    + """;
+  const STORAGE_KEY = '__STORAGE_KEY__';
+  const STEPS = __STEPS_JSON__;
+  const FORCE_REPLAY = __FORCE_REPLAY__;
 
-  let currentStep = 0;  // 0-based
+  let currentStep = 0;
 
   function isCompleted() { return localStorage.getItem(STORAGE_KEY) === 'true'; }
   function setCompleted() { localStorage.setItem(STORAGE_KEY, 'true'); }
   function clearCompleted() { localStorage.removeItem(STORAGE_KEY); }
 
-  // Detect if the parent page is in light theme (via URL param or body attribute)
   function detectTheme() {
     try {
-      const parentHtml = window.parent.document.documentElement;
-      const theme = parentHtml.getAttribute('data-theme');
+      var parentHtml = window.parent.document.documentElement;
+      var theme = parentHtml.getAttribute('data-theme');
       if (theme === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
       }
     } catch (_) { /* cross-origin — ignore */ }
   }
 
+  function focusTitle() {
+    var title = document.querySelector('.step-title');
+    if (title) { title.setAttribute('tabindex', '-1'); title.focus(); }
+  }
+
   function renderDone() {
-    const root = document.getElementById('root');
-    root.innerHTML = `
-      <div class="tour-card">
-        <div class="done-icon">🎉</div>
-        <div class="done-title">You're all set!</div>
-        <div class="done-body">Upload data in the sidebar to start exploring.</div>
-      </div>`;
+    var root = document.getElementById('root');
+    root.innerHTML =
+      '<div class="tour-card">' +
+        '<div class="done-icon">🎉</div>' +
+        '<div class="done-title">Tour completed</div>' +
+        '<div class="done-body">Upload data in the sidebar to start exploring. Replay anytime from the hero.</div>' +
+      '</div>';
+    focusTitle();
   }
 
   function renderStep(idx) {
-    const step = STEPS[idx];
-    const root = document.getElementById('root');
-    const backBtn = idx > 0
+    var step = STEPS[idx];
+    var root = document.getElementById('root');
+    var backBtn = idx > 0
       ? '<button class="btn-back" onclick="prev()">← Back</button>'
       : '<span></span>';
-    const nextLabel = idx === STEPS.length - 1 ? 'Finish ✅' : 'Next →';
+    var nextLabel = idx === STEPS.length - 1 ? 'Finish' : 'Next →';
+    var pct = ((idx + 1) / STEPS.length) * 100;
 
-    root.innerHTML = `
-      <div class="tour-card">
-        <div class="step-icon">${step.icon}</div>
-        <div class="step-badge">Step ${idx + 1} of ${STEPS.length}</div>
-        <div class="step-title">${step.title}</div>
-        <div class="step-body">${step.body}</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:${((idx + 1) / STEPS.length) * 100}%"></div>
-        </div>
-        <div class="actions">
-          ${backBtn}
-          <button class="btn-skip" onclick="skip()">Skip Tour</button>
-          <button class="btn-primary" onclick="next()">${nextLabel}</button>
-        </div>
-      </div>`;
+    root.innerHTML =
+      '<div class="tour-card">' +
+        '<div class="step-icon">' + step.icon + '</div>' +
+        '<div class="step-badge">Step ' + (idx + 1) + ' of ' + STEPS.length + '</div>' +
+        '<div class="step-title">' + step.title + '</div>' +
+        '<div class="step-body">' + step.body + '</div>' +
+        '<div class="progress-bar" role="progressbar" aria-valuenow="' + (idx + 1) + '" aria-valuemin="1" aria-valuemax="' + STEPS.length + '">' +
+          '<div class="progress-fill" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="actions">' +
+          backBtn +
+          '<button class="btn-skip" onclick="skip()">Skip Tour</button>' +
+          '<button class="btn-primary" onclick="next()">' + nextLabel + '</button>' +
+        '</div>' +
+      '</div>';
+    focusTitle();
   }
 
   function next() {
@@ -233,56 +237,50 @@ _TOUR_HTML = (
   function finish() {
     setCompleted();
     renderDone();
-    // Notify Streamlit that the tour is complete.
-    if (window.Streamlit) { window.Streamlit.setComponentValue(true); }
   }
 
   // ── Entry point ──────────────────────────────────────────────────────
   detectTheme();
 
-  if (isCompleted()) {
-    renderDone();
-    // Tell Streamlit immediately so Python can use height=0 on next render.
-    if (window.Streamlit) { window.Streamlit.setComponentValue(true); }
-  } else {
-    renderStep(0);
-    // Tour is active — tell Streamlit so Python can show it.
-    if (window.Streamlit) { window.Streamlit.setComponentValue(false); }
+  if (FORCE_REPLAY) {
+    clearCompleted();
+    currentStep = 0;
   }
 
-  // Listen for replay requests from the parent (Streamlit button).
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'replay_tour') {
-      clearCompleted();
-      currentStep = 0;
-      renderStep(0);
-      if (window.Streamlit) { window.Streamlit.setComponentValue(true); }
-    }
-  });
+  if (isCompleted()) {
+    renderDone();
+  } else {
+    renderStep(0);
+  }
 </script>
 </body>
 </html>"""
-)
 
 
-def render_onboarding_tour() -> bool:
-    """Render the onboarding tour and return whether it should be dismissed.
+def _tour_html(*, force_replay: bool) -> str:
+    """Build the iframe HTML, injecting the one-shot replay flag."""
+    return (
+        _TOUR_HTML_TEMPLATE.replace("__STORAGE_KEY__", STORAGE_KEY)
+        .replace("__STEPS_JSON__", json.dumps(TOUR_STEPS, ensure_ascii=False))
+        .replace("__FORCE_REPLAY__", "true" if force_replay else "false")
+    )
 
-    The tour is rendered inside an iframe via st.components.v1.html().
-    JavaScript in the iframe manages localStorage persistence, Skip, Replay,
-    and forwards the completion state back to Python.
 
-    Returns:
-        True if the tour has been completed (or was already completed in a
-        previous session).  False while the user is still stepping through.
+def render_onboarding_tour() -> None:
+    """Render the browser-persisted onboarding tour.
+
+    The iframe wholly owns visibility and completion.  Python passes a
+    one-shot ``_tour_replay_requested`` flag (consumed via ``pop``) to
+    clear the localStorage key and restart the tour at step 1.
+
+    ``st.components.v1.html()`` is an HTML-embedding primitive — it does
+    NOT return a component value.  The iframe does not attempt to report
+    state back to Python via ``setComponentValue`` or ``postMessage``.
     """
-    tour_done = st.session_state.get("_tour_completed", False)
-    height = 0 if tour_done else 420
+    force_replay = st.session_state.pop("_tour_replay_requested", False)
 
-    result = components.html(_TOUR_HTML, height=height, scrolling=False)
-
-    if result is True and not tour_done:
-        st.session_state._tour_completed = True
-        st.rerun()
-
-    return tour_done
+    components.html(
+        _tour_html(force_replay=force_replay),
+        height=420,
+        scrolling=False,
+    )

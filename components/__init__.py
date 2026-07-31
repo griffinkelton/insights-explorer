@@ -49,7 +49,6 @@ def _render_main_content() -> None:
         render_onboarding_tour()
 
         render_hero()
-        st.stop()
 
     render_data_preview()
     render_summary_section()
