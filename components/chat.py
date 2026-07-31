@@ -25,7 +25,7 @@ def render_chat_section() -> None:
     col_chat_header, col_new_chat = st.columns([4, 1])
     with col_chat_header:
         st.markdown("### 💬 Ask Questions")
-        st.caption("⌘K to focus chat")
+        st.caption("Ask about your data · Ctrl+K")
     with col_new_chat:
         if st.button(
             "🆕 New Chat",
