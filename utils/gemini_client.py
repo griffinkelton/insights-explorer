@@ -39,6 +39,13 @@ AVAILABLE_MODELS = {
     },
 }
 
+# Model context limits for countTokens guard only — not displayed as gauges
+MODEL_CONTEXT_LIMITS = {
+    "gemini-2.5-flash": 1_000_000,
+    "gemini-2.0-flash": 1_000_000,
+    "gemini-1.5-flash": 1_000_000,
+}
+
 # Lazy-initialized client
 _client: genai.Client | None = None
 
@@ -124,38 +131,55 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
         raise RuntimeError(_classify_api_error(e)) from e
 
 
-def _track_usage(response) -> None:
-    """Extract token usage from Gemini response and store in session state."""
-    try:
-        import streamlit as st
-    except ImportError:
-        return
+def _track_usage(response) -> dict | None:
+    """Extract provider-reported usage metadata from a Gemini response.
 
+    Returns a dict with per-request token counts, or None if metadata
+    is unavailable.  Also accumulates session totals in st.session_state
+    when running inside Streamlit.
+    """
     usage = getattr(response, "usage_metadata", None)
     if usage is None:
-        return
+        return None
 
-    if "total_input_tokens" not in st.session_state:
-        st.session_state.total_input_tokens = 0
-    if "total_output_tokens" not in st.session_state:
-        st.session_state.total_output_tokens = 0
-    if "total_tokens_used" not in st.session_state:
-        st.session_state.total_tokens_used = 0
-    if "total_thought_tokens" not in st.session_state:
-        st.session_state.total_thought_tokens = 0
-    if "total_cached_tokens" not in st.session_state:
-        st.session_state.total_cached_tokens = 0
+    per_request = {
+        "prompt_tokens": getattr(usage, "prompt_token_count", 0) or 0,
+        "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
+        "thought_tokens": getattr(usage, "thoughts_token_count", 0) or 0,
+        "cached_tokens": getattr(usage, "cached_content_token_count", 0) or 0,
+        "tool_tokens": getattr(usage, "tool_use_token_count", 0) or 0,
+        "total_tokens": getattr(usage, "total_token_count", 0) or 0,
+    }
 
-    st.session_state.total_input_tokens += getattr(usage, "prompt_token_count", 0) or 0
-    st.session_state.total_output_tokens += getattr(usage, "candidates_token_count", 0) or 0
-    st.session_state.total_thought_tokens += getattr(usage, "thoughts_token_count", 0) or 0
-    st.session_state.total_cached_tokens += getattr(usage, "cached_content_token_count", 0) or 0
-    st.session_state.total_tokens_used += getattr(usage, "total_token_count", 0) or 0
+    # Accumulate session totals (Streamlit only)
+    try:
+        import streamlit as st
 
-    # Increment success counter (distinct from UI-sourced api_attempt_count)
-    if "api_success_count" not in st.session_state:
-        st.session_state.api_success_count = 0
-    st.session_state.api_success_count += 1
+        for key, field in [
+            ("total_input_tokens", "prompt_tokens"),
+            ("total_output_tokens", "output_tokens"),
+            ("total_thought_tokens", "thought_tokens"),
+            ("total_cached_tokens", "cached_tokens"),
+            ("total_tokens_used", "total_tokens"),
+        ]:
+            if key not in st.session_state:
+                st.session_state[key] = 0
+            st.session_state[key] += per_request[field]
+
+        if "api_success_count" not in st.session_state:
+            st.session_state.api_success_count = 0
+        st.session_state.api_success_count += 1
+
+        # Attach per-request usage to the last chat history entry.
+        # Only set once — chart extraction calls must not overwrite
+        # the chat response usage.
+        history = st.session_state.get("chat_history", [])
+        if history and "usage" not in history[-1]:
+            history[-1]["usage"] = per_request
+    except ImportError:
+        pass
+
+    return per_request
 
 
 def analyze_file_with_gemini(

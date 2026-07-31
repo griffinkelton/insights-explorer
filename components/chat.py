@@ -50,6 +50,8 @@ def render_chat_section() -> None:
             else:
                 # Render historical message
                 st.markdown(entry["response"])
+                if i == len(st.session_state.chat_history) - 1:
+                    _render_per_request_usage(entry)
                 if entry.get("chart") and entry["chart"].get("fig"):
                     with st.container(border=True):
                         st.plotly_chart(
@@ -152,13 +154,18 @@ def render_chat_section() -> None:
 
 
 def _render_usage_stats() -> None:
-    """Render token usage and context stats below the chat input."""
+    """Render cumulative session token usage below the chat input.
+
+    Informational only — no gauges, traffic lights, or quota estimates.
+    """
     total_input = st.session_state.get("total_input_tokens", 0)
     total_output = st.session_state.get("total_output_tokens", 0)
     total_tokens = st.session_state.get("total_tokens_used", 0)
     total_thought = st.session_state.get("total_thought_tokens", 0)
 
-    # Usage stats — only sourced values, no fabricated context meter
+    if total_tokens == 0:
+        return
+
     model = st.session_state.get("selected_model", "gemini-2.5-flash")
     success_count = st.session_state.get("api_success_count", 0)
     parts = [
@@ -171,6 +178,45 @@ def _render_usage_stats() -> None:
     if total_thought > 0:
         parts.append(f"💭 {total_thought:,} thoughts")
     st.caption(" · ".join(parts))
+
+
+def _render_per_request_usage(entry: dict[str, Any]) -> None:
+    """Render per-request token counts for the most recent chat response.
+
+    Shown in a collapsed expander — informational only, no gauges or warnings.
+    """
+    usage = entry.get("usage")
+    if not usage:
+        return
+
+    fields = [
+        ("prompt_tokens", "⬅️"),
+        ("output_tokens", "➡️"),
+        ("total_tokens", "Σ"),
+        ("thought_tokens", "💭"),
+        ("cached_tokens", "📦"),
+        ("tool_tokens", "🔧"),
+    ]
+    parts = []
+    for key, icon in fields:
+        val = usage.get(key, 0)
+        if val > 0:
+            parts.append(f"{icon} {val:,} {_token_label(key)}")
+    if parts:
+        with st.expander(f"📊 Usage ({usage.get('total_tokens', 0):,} tokens)", expanded=False):
+            st.caption(" · ".join(parts))
+
+
+def _token_label(key: str) -> str:
+    """Short label for each token field."""
+    return {
+        "prompt_tokens": "in",
+        "output_tokens": "out",
+        "thought_tokens": "thoughts",
+        "cached_tokens": "cached",
+        "tool_tokens": "tools",
+        "total_tokens": "total",
+    }.get(key, key)
 
 
 def _render_command_pills() -> None:
@@ -252,9 +298,7 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                 )
                 retry_response = generate_response(retry_prompt, model=_model)
                 chart_config = detect_chart_request(retry_response)
-                if "api_success_count" not in st.session_state:
-                    st.session_state.api_success_count = 0
-                st.session_state.api_success_count += 1
+                # api_success_count is handled by _track_usage() inside generate_response()
                 st.session_state.last_api_call = time.time()
             except Exception:
                 logger.debug("Chart extraction failed", exc_info=True)
