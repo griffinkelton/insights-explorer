@@ -1,12 +1,19 @@
-"""Learn — interactive walkthrough of the GA4 Insight Explorer architecture and concepts.
+"""Learn -- interactive, analyst-first learning experience for GA4 Insight Explorer.
 
-Refactored for v0.2.0: 8 learner-journey sections replace the old technology-centric
-tab layout.  Each section follows a progressive pattern:
-    plain-English concept → real app example → small annotated excerpt → try it → check
+Refactored for v0.2.0: side navigation replaces the old tab layout.  Each section
+follows a Scrimba/Codebuff-inspired pedagogy:
+    why this matters → see it in the app → trace the flow → try a challenge → check yourself
+
+The page teaches analysts to use the app correctly, verify results, and understand
+privacy boundaries -- not to read a reference manual.
 """
 
 import streamlit as st
 
+from components.learning_challenge import (
+    render_before_you_conclude,
+    render_learning_challenge,
+)
 from utils.styles import inject_custom_css, inject_favicon_meta
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -30,8 +37,8 @@ st.markdown(
         Learn How Insight Explorer Works
     </h1>
     <p style="color:{_hero_color};font-size:1rem;max-width:700px;margin:0 auto;line-height:1.6;">
-        A guided tour through the app's architecture — from uploading data to
-        asking AI questions, with privacy principles at every step.
+        Predict, inspect, and verify -- a guided journey from uploading data to
+        making defensible analytical claims, with privacy principles at every step.
     </p>
 </div>
 """,
@@ -46,41 +53,55 @@ st.page_link(
     help="Return to the GA4 Insight Explorer",
 )
 
-# ── Tabs: 8-section learner's journey ────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
-    [
-        "🚀 Start here",
-        "📊 Follow the data",
-        "📈 Explore & analyze",
-        "🤖 Ask AI well",
-        "🔐 Privacy & safety",
-        "🐍 Build it in Python",
-        "🧩 Guided challenges",
-        "🗺️ Where next",
-    ]
-)
+st.divider()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 1. START HERE
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab1:
-    st.markdown("## 🚀 Start here — what you can do in 60 seconds")
+# ── Side navigation (replaces old tabs) ─────────────────────────────────────
+SECTIONS = [
+    "🚀 Start here",
+    "📊 Follow the data",
+    "📈 Explore & analyze",
+    "🤖 Ask AI well",
+    "🔐 Privacy & safety",
+    "🏗️ How it is built",
+    "🧩 Guided challenges",
+    "🗺️ Where next",
+]
 
-    st.markdown(
-        """
-    The **GA4 Insight Explorer** is a local assistant for your analytics data.
-    You can do four things in any session:
+nav_col, content_col = st.columns([1, 3])
 
-    1. **Upload** a CSV or XLSX export from GA4 — or connect live via Google sign‑in
-    2. **Inspect** your data with filters, custom metrics, and quality checks
-    3. **Analyze** with AI‑generated summaries, charts, forecasts, and funnel views
-    4. **Export** results to Google Sheets when you find something worth sharing
-    """
+with nav_col:
+    st.markdown("### 🧭 Sections")
+    selection = st.radio(
+        "Choose a section:",
+        SECTIONS,
+        label_visibility="collapsed",
     )
 
-    st.markdown("### The interface at a glance")
-    st.code(
-        """# The app is a single Streamlit script with a sidebar + main area.
+with content_col:
+    # ═══════════════════════════════════════════════════════════════════════
+    # 1. START HERE
+    # ═══════════════════════════════════════════════════════════════════════
+    if selection == SECTIONS[0]:
+        st.markdown("## 🚀 Start here -- what you can do in 60 seconds")
+
+        st.markdown(
+            """
+        The **GA4 Insight Explorer** helps you turn analytics data into
+        defensible insights.  In any session you can:
+
+        1. **Upload** a CSV or XLSX export from GA4 -- or connect live via Google sign-in
+        2. **Inspect** your data with filters, custom metrics, and quality checks
+        3. **Analyze** with AI-generated summaries, charts, forecasts, and funnel views
+        4. **Verify** results before acting on them -- every chart and number comes from real data
+
+        > **Your first goal:** load data, narrow it intentionally, ask a bounded
+        > question, and verify the answer against the active data.
+        """
+        )
+
+        st.markdown("### The interface at a glance")
+        st.code(
+            """# The app has a sidebar + main area.
 #
 #   ┌─────────── Sidebar ───────────┐  ┌──── Main area ────────────────────┐
 #   │  📂 Upload file               │  │  📊 Data preview (table + stats)  │
@@ -89,536 +110,748 @@ with tab1:
 #   │  ➕ Custom metrics            │  │  📈 Charts, forecast, funnels    │
 #   │  🗑️  Clear data               │  │  📋 Export to Google Sheets      │
 #   └────────────────────────────────┘  └──────────────────────────────────┘""",
-        language="text",
-    )
+            language="text",
+        )
 
-    st.markdown("### Try it now")
-    st.markdown(
+        st.markdown("### Try it now")
+        st.markdown(
+            """
+        1. Go back to the app (🏠 button above)
+        2. Upload a GA4 CSV export in the sidebar
+        3. Inspect the data preview -- note the row count and columns
+        4. Apply a filter to narrow your scope
+        5. Click **Generate Summary** to see an AI overview
+        6. Verify: does the summary match what the active data shows?
         """
-    1. Go back to the app (🏠 button above)
-    2. Upload a GA4 CSV export in the sidebar
-    3. Click **Generate Summary** to see an AI overview of your data
-    """
-    )
+        )
 
-    st.markdown(
-        '<div class="tip-box"><strong>💡 Key insight:</strong> Streamlit reruns '
-        "your entire Python script on every interaction (button click, text input, "
-        "etc.). That's why the app uses <code>st.session_state</code> to persist "
-        "data across reruns and <code>@st.cache_data</code> to skip expensive "
-        "recomputation.</div>",
-        unsafe_allow_html=True,
-    )
+        st.markdown(
+            '<div class="tip-box"><strong>💡 Key insight:</strong> Streamlit reruns '
+            "your entire Python script on every interaction (button click, text input, "
+            "etc.). That's why the app uses <code>st.session_state</code> to persist "
+            "data across reruns and <code>@st.cache_data</code> to skip expensive "
+            "recomputation.</div>",
+            unsafe_allow_html=True,
+        )
 
-    st.caption("See also: `app.py` (entrypoint), `components/sidebar.py` (upload & GA4 connect)")
+        with st.expander("🔬 Go deeper: how Streamlit drives the app", expanded=False):
+            st.code(
+                """# app.py -- simplified entry point
+st.set_page_config(page_title="GA4 Insight Explorer", layout="wide")
+inject_custom_css(theme=st.session_state.get("theme", "dark"))
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 2. FOLLOW THE DATA
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab2:
-    st.markdown("## 📊 Follow the data — the `DataContext` lifecycle")
+# Initialize session state
+if "data_context" not in st.session_state:
+    st.session_state.data_context = None
 
-    st.markdown(
+# Render all UI
+render_all()""",
+                language="python",
+            )
+            st.caption(
+                "See also: `app.py` (entrypoint), `components/sidebar.py` (upload & GA4 connect)"
+            )
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 2. FOLLOW THE DATA
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[1]:
+        st.markdown("## 📊 Follow the data -- the `DataContext` lifecycle")
+
+        st.markdown(
+            """
+        **Why this matters:** If you don't know which data is being analyzed,
+        you can't trust the results.  The app uses a three-layer model to make
+        data scope explicit and prevent accidental data loss.
         """
-    Understanding how data flows through the app is the key to getting reliable
-    results.  The app uses a **three-layer model** called `DataContext`:
+        )
 
-    | Layer | What it holds | When it changes |
-    |---|---|---|
-    | `raw_df` | The original uploaded or GA4-pulled data | Never — it's the immutable ground truth |
-    | `base_df` | The unfiltered analytical dataset (includes custom metrics) | When you add or remove custom metrics |
-    | `active_df` | The currently analyzed view (filtered `base_df`) | When you apply, change, or clear filters |
+        st.markdown("### See it in this app")
+        st.markdown(
+            """
+        | Layer | What it holds | When it changes |
+        |---|---|---|
+        | `raw_df` | The original uploaded or GA4-pulled data | **Never** -- it's the immutable ground truth |
+        | `base_df` | The unfiltered analytical dataset (includes custom metrics) | When you add or remove custom metrics |
+        | `active_df` | The currently analyzed view | When you apply, change, or clear filters |
 
-    This design ensures that clearing filters always restores your full
-    analytical base — custom metrics survive. And every transformation
-    produces a new `DataContext` so there's no accidental mutation.
-    """
-    )
-
-    st.markdown("### How data gets loaded")
-    st.code(
-        """# utils/data_loader.py — simplified
-import pandas as pd
-
-def load_file(file):
-    filename = file.name.lower()
-    if filename.endswith(".csv"):
-        df = pd.read_csv(file)
-    elif filename.endswith(".xlsx"):
-        df = pd.read_excel(file, engine="openpyxl")
-    else:
-        return None, "Unsupported file type."
-    if df.empty:
-        return None, "The uploaded file is empty."
-    return df, None""",
-        language="python",
-    )
-
-    st.markdown("### Creating a DataContext")
-    st.code(
-        """from utils.data_context import create_context_from_upload
-
-# The factory uses SHA-256 of the raw file bytes for identity.
-# Same file → same ID.  Different file → different ID.
-ctx = create_context_from_upload(
-    df,
-    file_bytes,           # raw uploaded bytes
-    display_name="Q3_report.csv",
-)
-# ctx.source_id = "file:a1b2c3d4e5f6..."
-# ctx.version   = 0
-# ctx.raw_df    = original data (never modified)
-# ctx.base_df   = copy of original
-# ctx.active_df = same as base (no filters yet)""",
-        language="python",
-    )
-
-    st.markdown("### Filters and custom metrics")
-    st.markdown(
+        **The rule:** charts, summaries, forecasts, funnels, exports, and chat
+        all analyze `active_df`.  Clearing filters restores `active_df` from
+        `base_df`, not `raw_df` -- so custom metrics survive.
         """
-    - **Filters** (date range, column subset) produce a new `DataContext` with
-      `active_df` set to the filtered rows.  The filter is always computed from
-      `base_df` — never from a previously filtered `active_df` — so changing a
-      date range doesn't accidentally compound.
-    - **Custom metrics** (e.g. `sessions / users`) rebuild `base_df` from
-      `raw_df` and clear any active filters, because a filter on old columns
-      may not make sense against the new derived column.
-    """
-    )
+        )
 
-    st.markdown(
-        '<div class="tip-box"><strong>💡 Key insight:</strong> '
-        "The three-layer model prevents a common bug: adding a metric while "
-        "a date filter is active would discard rows outside that date range "
-        "from the new base.  By rebuilding from <code>raw_df</code>, every "
-        "row is preserved.</div>",
-        unsafe_allow_html=True,
-    )
+        st.markdown("### Trace the flow")
+        st.code(
+            """# Simplified flow from upload through filter to analysis
 
-    st.caption(
-        "See also: `utils/data_context.py` (the full DataContext module), `tests/test_data_context.py`"
-    )
+# 1. Factory creates the context (version=0)
+ctx = create_context_from_upload(df, file_bytes)
+#    raw_df    = original data (immutable)
+#    base_df   = copy of raw_df
+#    active_df = same as base (no filters yet)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 3. EXPLORE & ANALYZE
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab3:
-    st.markdown("## 📈 Explore & analyze — charts, forecasting, and funnels")
+# 2. Filter creates a new context (version=1)
+ctx = with_filtered_data(ctx, filtered_rows, ("date:2025-06",))
+#    active_df = June-only rows from base_df
 
-    st.markdown(
+# 3. Clear filters restores from base (version=2)
+ctx = with_filters_cleared(ctx)
+#    active_df = base_df again (all rows, custom metrics intact)""",
+            language="python",
+        )
+
+        # ── Challenge L2: sequence ordering ─────────────────────────
+        render_learning_challenge(
+            key="learn.follow_data.lifecycle_order.v1",
+            kind="sequence",
+            title="Order the DataContext frames",
+            prompt="Put these frames in their normal lifecycle order, from immutable source data to the frame that charts and chat analyze.",
+            options=[
+                {
+                    "label": "raw_df",
+                    "correct": True,
+                    "feedback": "Correct -- raw_df is the original upload or GA4 response and is never filtered or mutated in place.",
+                },
+                {
+                    "label": "base_df",
+                    "correct": True,
+                    "feedback": "Correct -- base_df is the unfiltered analytical dataset including any custom metrics.",
+                },
+                {
+                    "label": "active_df",
+                    "correct": True,
+                    "feedback": "Correct -- active_df is the current analysis surface: filtered base_df, or base_df when no filter is active.",
+                },
+            ],
+            explanation=(
+                "The lifecycle is always `raw_df → base_df → active_df`.  "
+                "`raw_df` is the immutable ground truth.  `base_df` is the "
+                "unfiltered working base (custom metrics modify it).  "
+                "`active_df` is what the UI should analyze -- it is filtered "
+                "base_df when filters are active, otherwise base_df."
+            ),
+            success_criterion="You correctly ordered the three frames.",
+            see_also_url="utils/data_context.py",
+        )
+
+        # ── Challenge L3: clear-filter prediction ───────────────────
+        render_learning_challenge(
+            key="learn.follow_data.clear_filter.v1",
+            kind="predict",
+            title="What happens when you clear a filter?",
+            prompt=(
+                "You load 1,000 rows, add a custom metric named `conversion_rate`, "
+                "then filter to mobile traffic.  You click **Clear filters**.  "
+                "Which frame should become the new `active_df`?"
+            ),
+            options=[
+                {
+                    "label": "raw_df -- the original upload",
+                    "correct": False,
+                    "feedback": "No -- clearing to raw_df would lose the custom metric column.",
+                },
+                {
+                    "label": "base_df -- preserves custom metrics and restores all unfiltered rows",
+                    "correct": True,
+                    "feedback": "Correct! Clearing filters restores from base_df, so custom metrics survive.",
+                },
+                {
+                    "label": "The prior filtered active_df -- preserve the user's context",
+                    "correct": False,
+                    "feedback": "No -- 'clearing' means removing the filter, not keeping the filtered result.",
+                },
+                {
+                    "label": "None -- because no filter is active",
+                    "correct": False,
+                    "feedback": "No -- None is never a valid active dataset. An empty result (0 rows) is valid, but clearing filters restores the full base.",
+                },
+            ],
+            explanation=(
+                "Clearing filters restores `active_df` from `base_df`, not "
+                "`raw_df`; otherwise custom-metric columns would disappear.  "
+                "An empty result is valid when a filter produces no rows, but "
+                "`None` is never a valid active dataset."
+            ),
+            success_criterion="You correctly identified that clearing filters restores from base_df.",
+            see_also_url="utils/data_context.py",
+        )
+
+        st.caption("See also: `utils/data_context.py` (full module), `tests/test_data_context.py`")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 3. EXPLORE & ANALYZE
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[2]:
+        st.markdown("## 📈 Explore & analyze -- choose the right tool for the question")
+
+        st.markdown(
+            """
+        **Why this matters:** Different questions require different analysis
+        surfaces.  Knowing which to use -- and what each *cannot* tell you --
+        prevents misinterpretation.
         """
-    Every chart and analysis in this app is built from the **actual DataFrame**
-    — never from AI‑generated numbers.  The three main analysis tools are:
-    """
-    )
+        )
 
-    st.markdown("### 1. Interactive charts")
-    st.code(
-        """import plotly.express as px
-
-# Group sessions by date
-daily = df.groupby(date_col)["sessions"].sum().reset_index()
-fig = px.line(daily, x=date_col, y="sessions",
-              title="Sessions Over Time")
-st.plotly_chart(fig, use_container_width=True)""",
-        language="python",
-    )
-
-    st.markdown("### 2. Linear trend projection (forecasting)")
-    st.markdown(
+        st.markdown("### Your analysis toolkit")
+        st.markdown(
+            """
+        | Question type | Best surface | Limitation |
+        |---|---|---|
+        | "Did sessions rise or fall?" | Trend chart or table | Does not explain *why* |
+        | "Which pages lose people?" | Page-path funnel | Correlational, not causal |
+        | "Is the data clean?" | Quality preview | Does not fix data issues |
+        | "What might happen next?" | Linear trend projection | Extrapolation, not prediction |
         """
-    The forecasting tool fits a **linear regression** to your time series and
-    projects forward by a configurable number of periods.  It shows confidence
-    bands, slope, and R².  This is a simple extrapolation — not a probabilistic
-    model — so treat it as a directional signal, not a precise prediction.
-    """
-    )
+        )
 
-    st.markdown("### 3. Page-path funnel analysis")
-    st.code(
-        """# utils/funnels.py — simplified
-def build_funnel(df, path_col, metric_col, steps):
-    \"\"\"Aggregate a page-path funnel.\"\"\"
-    funnel = []
-    for step_paths in steps:
-        mask = df[path_col].isin(step_paths)
-        total = df.loc[mask, metric_col].sum()
-        funnel.append({"step": step_paths, metric_col: total})
-    return funnel""",
-        language="python",
-    )
-
-    st.markdown("### Quality checks")
-    st.markdown(
+        st.markdown("### Filters and custom metrics")
+        st.markdown(
+            """
+        - **Filters** are always computed from `base_df` -- never from a
+          previously filtered `active_df` -- so changing a date range doesn't
+          accidentally compound.
+        - **Custom metrics** rebuild `base_df` from `raw_df` and clear any
+          active filters.  This prevents row loss: if you filtered to June
+          and then added a metric, the new analytical base must include *all*
+          rows, not just June.
         """
-    When data is loaded, the app runs automatic quality checks:
-    - Column presence (case‑insensitive matching against expected columns)
-    - Date parsing (handles multiple date formats)
-    - Numeric column detection for stats
-    - Missing value flags
-    - Anomaly detection (z‑score outliers)
+        )
 
-    A quality report card is displayed above the data preview.
-    """
-    )
+        # ── Challenge L4: metric rebuild reasoning ─────────────────
+        render_learning_challenge(
+            key="learn.explore.metric_rebuild.v1",
+            kind="predict",
+            title="Why rebuild from raw_df?",
+            prompt=(
+                "You filter the data to June, then add `revenue_per_user`.  "
+                "Why must the app rebuild metric data from `raw_df` rather "
+                "than deriving it from the current `active_df`?"
+            ),
+            options=[
+                {
+                    "label": "To make filters faster",
+                    "correct": False,
+                    "feedback": "No -- the rebuild is about correctness, not performance.",
+                },
+                {
+                    "label": "To preserve every original row and prevent June-only data from becoming the new unfiltered base",
+                    "correct": True,
+                    "feedback": "Correct! If the app derived from the filtered active_df, the June-only slice would become the permanent analytical base -- rows from other months would be lost.",
+                },
+                {
+                    "label": "To avoid creating a new DataContext",
+                    "correct": False,
+                    "feedback": "No -- custom metrics always create a new DataContext (version bump).",
+                },
+                {
+                    "label": "Because custom metrics cannot be used with filters",
+                    "correct": False,
+                    "feedback": "No -- you can filter after adding metrics. The rebuild just ensures the metric is calculated from the full dataset.",
+                },
+            ],
+            explanation=(
+                "Rebuilding from `raw_df` prevents accidental row loss and "
+                "deterministically removes a deleted custom-metric column.  "
+                "Applying custom metrics replaces `base_df`, resets `active_df` "
+                "to that rebuilt base, and clears prior filters because they "
+                "may no longer be meaningful."
+            ),
+            success_criterion="You identified that rebuilding from raw_df preserves all rows.",
+            see_also_url="utils/data_context.py",
+        )
 
-    st.markdown(
-        '<div class="tip-box"><strong>💡 Key insight:</strong> '
-        'Pandas <code>pd.to_datetime(..., errors="coerce")</code> turns '
-        "unparseable dates into <code>NaT</code> instead of crashing.  Always "
-        "use it when reading user‑uploaded data.</div>",
-        unsafe_allow_html=True,
-    )
+        # ── Before you conclude checklist ──────────────────────────
+        render_before_you_conclude()
 
-    st.caption(
-        "See also: `utils/charts.py`, `utils/forecasting.py`, `utils/funnels.py`, `components/data_preview.py`"
-    )
+        # ── Challenge L6: evidence check ──────────────────────────
+        render_learning_challenge(
+            key="learn.explore.evidence_check.v1",
+            kind="evidence_check",
+            title="What should you check before acting on this claim?",
+            prompt=(
+                'A summary says: "Mobile users caused the June conversion '
+                'decline: their conversion rate fell 18%."  '
+                "Select the **two most important checks** before acting."
+            ),
+            options=[
+                {
+                    "label": "Confirm the active date range, filters, metric definition, and denominator",
+                    "correct": True,
+                    "feedback": "Yes -- scope and metric definition are foundational. What exactly is being measured?",
+                },
+                {
+                    "label": "Compare like-for-like periods and inspect the underlying row/sample count",
+                    "correct": True,
+                    "feedback": "Yes -- a fair comparison and adequate sample size are essential for interpretation.",
+                },
+                {
+                    "label": "Change the chart colors to make the trend more visible",
+                    "correct": False,
+                    "feedback": "No -- visual styling doesn't validate the underlying data or logic.",
+                },
+                {
+                    "label": "Assume the model identified causation because it found a pattern",
+                    "correct": False,
+                    "feedback": "No -- correlation is not causation. A pattern needs evidence, not assumption.",
+                },
+                {
+                    "label": "Export the conclusion immediately before reviewing the data",
+                    "correct": False,
+                    "feedback": "No -- always review active data and verify before sharing results.",
+                },
+            ],
+            explanation=(
+                "A chart or summary can support a descriptive pattern, not "
+                "causation by itself.  First confirm scope and metric "
+                "definitions; then check fair comparison, volume, data "
+                "quality, and plausible changes in tracking or traffic mix."
+            ),
+            success_criterion="You identified the two essential evidence checks.",
+        )
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4. ASK AI WELL
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab4:
-    st.markdown("## 🤖 Ask AI well — what Gemini sees and how to get good answers")
+        st.caption(
+            "See also: `utils/charts.py`, `utils/forecasting.py`, `utils/funnels.py`, `components/data_preview.py`"
+        )
 
-    st.markdown(
+    # ═══════════════════════════════════════════════════════════════════════
+    # 4. ASK AI WELL
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[3]:
+        st.markdown("## 🤖 Ask AI well -- bounded, verifiable questions")
+
+        st.markdown(
+            """
+        **Why this matters:** Gemini can accelerate analysis, but it is an
+        assistive tool -- not an authority.  Vague questions produce vague
+        answers.  Well-scoped questions with verification routes produce
+        defensible insights.
         """
-    The app sends a **structured prompt** to Gemini that includes:
+        )
 
-    - A description of your dataset (row count, columns, date range)
-    - Statistical summary (describe() output for numeric columns)
-    - Quality report findings
-    - Your question
-    - Optional: chart suggestions (opt‑in)
-    """
-    )
+        st.markdown("### See it in this app")
+        st.markdown(
+            """
+        The app sends Gemini a structured prompt containing:
+        - Dataset description (row count, columns, date range)
+        - Statistical summary (describe() for numeric columns)
+        - Quality report findings
+        - Your question
+        - Optionally: chart suggestions (opt-in)
 
-    st.markdown("### Model selection")
-    st.markdown(
+        The model does **not** receive raw row data, credentials, or internal state.
         """
-    You can choose your Gemini model from the sidebar.  The free tier supports
-    `gemini-2.5-flash` (default) and other flash variants.  Different models
-    have different speed, quality, and quota characteristics — pick the one
-    that fits your task.
-    """
-    )
+        )
 
-    st.markdown("### Prompt construction (simplified)")
-    st.code(
-        """# utils/prompt_templates.py — simplified
-def build_chat_prompt(df, stats, quality, user_question):
-    prompt = f\"\"\"
+        st.markdown("### Trace the flow")
+        st.code(
+            """# Simplified prompt construction
+def build_chat_prompt(active_df, stats, quality, user_question):
+    return f'''
 You are an analytics assistant.
-Dataset: {len(df)} rows, {list(df.columns)}
-Statistics:
-{stats}
-Quality notes: {quality}
+Dataset: {len(active_df)} rows, {list(active_df.columns)}
+Statistics: {stats}
+Quality: {quality}
 ---
 Question: {user_question}
-\"\"\"
-    return prompt""",
-        language="python",
-    )
+'''""",
+            language="python",
+        )
 
-    st.markdown("### Usage visibility")
-    st.markdown(
+        # ── Challenge L7: prompt improvement ────────────────────
+        render_learning_challenge(
+            key="learn.ai.prompt_improve.v1",
+            kind="prompt_rewrite",
+            title="Improve this prompt",
+            prompt=(
+                'A user types: **"Why did performance drop?"**  ' "Select the strongest rewrite."
+            ),
+            options=[
+                {
+                    "label": '"Analyze everything and tell me the most important insight."',
+                    "correct": False,
+                    "feedback": "Too broad -- no metric, time period, or scope. The model has no guidance.",
+                },
+                {
+                    "label": '"Why was June bad?"',
+                    "correct": False,
+                    "feedback": "Still vague -- assumes June was 'bad' and doesn't specify what to compare or measure.",
+                },
+                {
+                    "label": '"For 1-30 June vs 1-31 May, compare mobile and desktop conversion rate and sessions. Summarize the largest change in a short table, cite the values used, and suggest one chart I can verify it with."',
+                    "correct": True,
+                    "feedback": "Strong -- specifies metric, period, segment, output format, and verification route.",
+                },
+                {
+                    "label": '"Find the root cause of the decline and tell me what campaign to stop."',
+                    "correct": False,
+                    "feedback": "Unsafe -- asks the model to claim causation without evidence and make a business decision.",
+                },
+            ],
+            explanation=(
+                "A useful analytical prompt defines the **metric**, **period**, "
+                "**segment/comparison**, and **desired output**.  It requests "
+                "evidence the learner can verify; it does not ask the model to "
+                "claim a root cause without supporting data."
+            ),
+            success_criterion="You selected the prompt that specifies metric, period, segment, output, and verification.",
+            see_also_url="utils/prompt_templates.py",
+        )
+
+        st.markdown("### What reaches Gemini -- and what doesn't")
+        st.markdown(
+            """
+        **Sent to Gemini:** Dataset description, statistical summary,
+        quality report, your question, opt-in chart suggestions.
+
+        **Never sent:** Raw rows, credentials, OAuth tokens, internal
+        app configuration, or proprietary source data.
+
+        The chat UI shows **provider-reported token counts** after each
+        response (input, output, thought, total).  No percentages, gauges,
+        or fictional "quota remaining" estimates.
         """
-    After each response, the chat UI shows the **provider‑reported token counts**:
-    input tokens, output tokens, thought tokens, and total.  No percentages,
-    gauges, or "approaching limit" warnings — just the raw numbers.
-    When usage metadata is unavailable, the UI shows
-    *"Usage unavailable for this request"* rather than fabricating an estimate.
-    """
-    )
+        )
 
-    st.markdown(
-        '<div class="tip-box"><strong>💡 Key insight:</strong> '
-        "Streaming responses display token‑by‑token as they arrive, but usage "
-        "metadata only appears at the end.  If the stream fails mid‑response, "
-        "the error is shown in context without losing the conversation history."
-        "</div>",
-        unsafe_allow_html=True,
-    )
+        render_before_you_conclude()
 
-    st.caption(
-        "See also: `utils/gemini_client.py`, `utils/prompt_templates.py`, `SECURITY.md` (AI data handling)"
-    )
+        st.caption("See also: `utils/gemini_client.py`, `utils/prompt_templates.py`, `SECURITY.md`")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 5. PRIVACY & SAFETY
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab5:
-    st.markdown("## 🔐 Privacy & safety — how your data is protected")
+    # ═══════════════════════════════════════════════════════════════════════
+    # 5. PRIVACY & SAFETY
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[4]:
+        st.markdown("## 🔐 Privacy & safety -- know the boundaries")
 
-    st.markdown(
+        st.markdown(
+            """
+        **Why this matters:** The app handles real analytics data.  Knowing
+        what is safe to do -- and what isn't -- protects you and your data.
         """
-    The v0.1.0 hardening release established a strong security baseline.
-    Every design decision below is documented and tested.
-    """
-    )
+        )
 
-    st.markdown("### Session‑only processing")
-    st.markdown(
+        st.markdown("### Session-only processing")
+        st.markdown(
+            """
+        - All uploaded data lives **only in `st.session_state`** -- no
+          server-side database, no persistent files, no caching to disk.
+        - `DataContext` is the single owner of loaded, filtered, and
+          custom-metric state.
+        - Clearing data from the sidebar immediately removes the
+          `DataContext` and all derived analysis state from the session.
         """
-    - All uploaded data lives **only in `st.session_state`** — no server‑side
-      database, no persistent files, no caching to disk.
-    - **`DataContext`** is the single owner of loaded, filtered, and
-      custom‑metric state.  There is no ambiguity about which DataFrame is
-      current.
-    - Clearing data from the sidebar immediately removes the `DataContext`
-      and all derived analysis state from the session.
-    """
-    )
+        )
 
-    st.markdown("### Gemini disclosure")
-    st.markdown(
+        st.markdown("### OAuth & scopes")
+        st.markdown(
+            """
+        - GA4: `analytics.readonly` -- read your data, cannot modify properties.
+        - Google Drive: `drive.file` -- only access files the app creates (exports).
+        - OAuth state is session-only and never persisted to disk.
+        - An AST-based static guard rejects reintroduction of broader scopes.
         """
-    - The app **always** sends your data's statistical summary (not raw rows)
-      to the Gemini API.
-    - AI features are **opt‑in for chart suggestions** — you control whether
-      charts are generated automatically.
-    - When confidential Evidence dashboard data is integrated in the future,
-      AI analysis will be disabled by default for those sources.
-    """
-    )
+        )
 
-    st.markdown("### OAuth & scopes")
-    st.markdown(
+        st.markdown("### Export safety")
+        st.markdown(
+            """
+        - Exports happen only on **explicit user action** (clicking a button).
+        - PDF exports sanitize spreadsheet values and text before embedding.
+        - Errors never expose file paths, stack traces, API keys, or tokens.
         """
-    - GA4: `analytics.readonly` scope — the app can read your GA4 data but
-      cannot modify properties, create accounts, or manage users.
-    - Google Drive: `drive.file` scope — the most restrictive Drive scope.
-      The app can only access files it creates (exports).  It cannot list or
-      read your existing Drive files.
-    - OAuth state is **session‑only** and never persisted to disk.
-    - An AST‑based static guard rejects any reintroduction of broader scopes
-      in production code.
-    """
-    )
+        )
 
-    st.markdown("### Export safety")
-    st.markdown(
+        # ── Challenge L9: privacy scenario ──────────────────────
+        render_learning_challenge(
+            key="learn.privacy.scenario.v1",
+            kind="scenario_choice",
+            title="Safe, needs review, or unsafe?",
+            prompt="Classify each action:",
+            options=[
+                {
+                    "label": "Download a checked aggregate chart for a presentation",
+                    "correct": False,
+                    "feedback": "⚠️ Needs review -- confirm export scope, audience, and data sensitivity before sharing.",
+                },
+                {
+                    "label": "Paste an API key or OAuth token into chat to troubleshoot",
+                    "correct": False,
+                    "feedback": "🚫 Unsafe -- credentials never belong in prompts, logs, or source code.",
+                },
+                {
+                    "label": "Inspect active filters and result rows before exporting",
+                    "correct": True,
+                    "feedback": "✅ Safe -- scope review is a prerequisite for responsible sharing.",
+                },
+            ],
+            explanation=(
+                "**Safe** actions follow the app's privacy boundaries.  "
+                "**Needs review** actions require checking scope, audience, "
+                "and data sensitivity before proceeding.  **Unsafe** actions "
+                "expose credentials or bypass security controls."
+            ),
+            success_criterion="You correctly distinguished safe, review-needed, and unsafe actions.",
+            see_also_url="SECURITY.md",
+        )
+
+        st.caption(
+            "See also: `SECURITY.md` (full security model), `utils/error_boundary.py`, `utils/ga4_client.py`"
+        )
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 6. HOW IT IS BUILT
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[5]:
+        st.markdown("## 🏗️ How it is built -- optional builder depth")
+
+        st.markdown(
+            """
+        **Who this is for:** People curious about how the Streamlit app works
+        and where to look before making a change.  You do **not** need this
+        section to use the product successfully.
         """
-    - Exports to Google Sheets happen only on **explicit user action**
-      (clicking an export button).
-    - PDF exports sanitize spreadsheet values and text fields before embedding.
-    - A static analysis test enforces the `drive.file` scope requirement.
-    """
-    )
+        )
 
-    st.markdown("### Error redaction")
-    st.markdown(
+        st.markdown("### Repository map")
+        st.markdown(
+            """
+        | Area | Owns | Start here when… |
+        |---|---|---|
+        | `app.py` | App startup, top-level assembly, page flow | Understanding how the app starts |
+        | `pages/` | Standalone pages (this Learn page) | Changing the Learn experience |
+        | `components/` | UI surfaces -- sidebar, preview, chat, summary, hero, onboarding | Changing upload/filter controls or presentation |
+        | `utils/` | Data lifecycle, charts, GA4/Gemini/Drive clients, exports, safety | Changing how a feature *behaves* |
+        | `tests/` | Regression protection and integration checks | Any observable behavior change |
         """
-    Errors shown in the UI never expose raw file paths, stack traces, API keys,
-    OAuth tokens, or internal state.  The `error_boundary` component wraps all
-    rendering and strips sensitive information automatically.
-    """
-    )
+        )
 
-    st.markdown(
-        '<div class="tip-box"><strong>🔐 Reminder:</strong> '
-        "The app is designed as a local assistant.  Never host it on a public "
-        "server without additional authentication, rate limiting, and a proper "
-        "secret‑management solution.</div>",
-        unsafe_allow_html=True,
-    )
-
-    st.caption(
-        "See also: `SECURITY.md` (full security model), `utils/error_boundary.py`, `utils/ga4_client.py`"
-    )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 6. BUILD IT IN PYTHON
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab6:
-    st.markdown("## 🐍 Build it in Python — one complete end‑to‑end change")
-
-    st.markdown(
+        st.markdown("### The data contract (one annotated excerpt)")
+        st.code(
+            """# utils/data_context.py -- the app's data owner
+@dataclass(frozen=True)
+class DataContext:
+    source_id: str          # Content-derived identity
+    version: int            # Increments on analysis transitions
+    raw_df: pd.DataFrame    # Immutable ground truth
+    base_df: pd.DataFrame   # Unfiltered analytical base (custom metrics)
+    active_df: pd.DataFrame # Current analysis surface (filtered or base)
+    filters: FilterState = FilterState()  # Active filter metadata""",
+            language="python",
+        )
+        st.markdown(
+            """
+        - `frozen=True` prevents replacing fields on the dataclass, but
+          DataFrames are still mutable objects.  The real rule is discipline:
+          **no caller mutates any of the three frames in place.**
+        - Transitions return a **new** DataContext and increment `version`.
+        - **Renderers read state; transitions create state.**
         """
-    The best way to understand the app is to **make a small change and test it**.
-    Here's a guided walkthrough of adding a new data quality check.
-    """
-    )
+        )
 
-    st.markdown("### Step 1: Add the check function")
-    st.code(
-        """# In utils/data_loader.py
-def detect_duplicate_rows(df):
-    \"\"\"Return the number of fully duplicated rows.\"\"\"
-    return int(df.duplicated().sum())""",
-        language="python",
-    )
+        st.markdown("### Follow one feature: a filter change")
+        st.code(
+            """# 1. Learner chooses a filter in components/sidebar.py
+# 2. UI produces filtered DataFrame + descriptions
+# 3. utils/data_context.py creates a replacement DataContext
+#    - active_df = filtered data
+#    - filters = active descriptions + row count
+#    - version = incremented cache namespace
+# 4. Preview, charts, summary, chat receive the new context
+# 5. tests/test_data_context.py protects the contract""",
+            language="text",
+        )
 
-    st.markdown("### Step 2: Integrate it into the quality report")
-    st.markdown(
-        "Find where the quality report dict is built (in `_run_quality_checks`) "
-        "and add a `duplicate_rows` key using your new function."
-    )
+        # ── Where do I look? challenge ───────────────────────────
+        render_learning_challenge(
+            key="learn.build.where_look.v1",
+            kind="predict",
+            title="Where would you look?",
+            prompt=(
+                'A bug report says: "After I clear filters, my custom metric '
+                'disappears."  Where should you investigate first?'
+            ),
+            options=[
+                {
+                    "label": "Edit app.py because it renders the whole app",
+                    "correct": False,
+                    "feedback": "No -- app.py assembles the UI, it doesn't own the data lifecycle.",
+                },
+                {
+                    "label": "Inspect utils/data_context.py, then add or review a focused lifecycle regression test",
+                    "correct": True,
+                    "feedback": "Correct -- the defect is in the data lifecycle. with_filters_cleared() must restore from base_df, not raw_df. The test belongs alongside the state contract.",
+                },
+                {
+                    "label": "Edit pages/learn.py because it explains metrics",
+                    "correct": False,
+                    "feedback": "No -- Learn page content can be updated for clarity, but the bug is in the runtime behavior.",
+                },
+                {
+                    "label": "Clear browser localStorage because it tracks onboarding",
+                    "correct": False,
+                    "feedback": "No -- localStorage is for onboarding persistence, not the data lifecycle.",
+                },
+            ],
+            explanation=(
+                "When data behavior is wrong, start at the contract that "
+                "owns it -- `utils/data_context.py` -- and add a regression "
+                "test.  The test stays with the state contract because this "
+                "behavior must remain correct even if the UI is rearranged."
+            ),
+            success_criterion="You identified the correct owner of data lifecycle behavior.",
+            see_also_url="utils/data_context.py",
+        )
 
-    st.markdown("### Step 3: Write a test")
-    st.code(
-        """# In tests/test_data_loader.py
-def test_duplicate_detection():
-    from utils.data_loader import detect_duplicate_rows
-    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 3, 4]})
-    assert detect_duplicate_rows(df) == 1""",
-        language="python",
-    )
-
-    st.markdown("### Step 4: Run the test suite")
-    st.code(
-        """$ python -m pytest tests/test_data_loader.py -q
-.                                                          [100%]
-1 passed""",
-        language="bash",
-    )
-
-    st.markdown("### Step 5: Check yourself")
-    st.markdown(
+        st.markdown("### Safe-change recipe")
+        st.markdown(
+            """
+        1. **Name the behavior.** "Clearing filters must retain custom-metric columns."
+        2. **Find the owner.** Use the table above.
+        3. **Read the contract and existing tests.**
+        4. **Make the smallest coherent change.** Preserve `raw_df → base_df → active_df`.
+        5. **Add or adjust a focused regression test.**
+        6. **Run the focused test, then the full suite.**
+        7. **Review privacy and security implications.**
         """
-    Run the full suite to make sure nothing is broken:
+        )
 
-    ```bash
-    $ python -m pytest tests/ -q
-    ... all tests passed
-    ```
-
-    If the suite passes, your change is safe.  This is the same workflow used
-    for every feature in the app.
-    """
-    )
-
-    st.caption("See also: `tests/` (test suite), `ARCHITECTURE.md` (module map)")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 7. GUIDED CHALLENGES
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab7:
-    st.markdown("## 🧩 Guided challenges — test your understanding")
-
-    st.markdown(
+        st.markdown("### Go deeper")
+        st.markdown(
+            """
+        - `README.md` -- quick-start, features, API key setup
+        - `ARCHITECTURE.md` -- module map, data flow, design rationale
+        - `SECURITY.md` -- complete security model and threat model
+        - `DOCUMENTATION_INDEX.md` -- index of every doc and spec
+        - `utils/data_context.py` -- the data lifecycle implementation
+        - `tests/test_data_context.py` -- regression coverage
         """
-    Each challenge asks you to make a small code change and verify the result.
-    Solutions are in the linked test files — try them yourself first!
-    """
-    )
+        )
 
-    st.markdown("### 🟢 Beginner: Add a new custom metric formula")
-    st.markdown(
+    # ═══════════════════════════════════════════════════════════════════════
+    # 7. GUIDED CHALLENGES
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[6]:
+        st.markdown("## 🧩 Guided challenges -- put it all together")
+
+        st.markdown(
+            """
+        Each mini-mission asks you to complete a realistic workflow in the app.
+        There are no grades -- the goal is to practice the verification habit.
         """
-    **Task:** Make the custom metric `Engagement per User` use
-    `engaged_sessions / users` instead of `sessions / users`.
+        )
 
-    - Find the metric definition in `components/sidebar.py`
-    - Change the formula
-    - Run `python -m pytest tests/test_custom_metrics.py` to verify
-    """
-    )
+        st.markdown("### 🟢 Mission A -- First verified insight")
+        st.markdown(
+            """
+        **Level:** Beginner
 
-    st.markdown("### 🟡 Intermediate: Add a column to the quality report")
-    st.markdown(
+        Using an uploaded dataset:
+        1. State the active date range and any filters
+        2. Identify one metric and its unit
+        3. Generate a chart or table that supports your observation
+        4. Write one caveat or next validation step
+
+        > **Completion:** You have an observation with context and evidence --
+        > not merely a generated conclusion.
         """
-    **Task:** Add a `zero_sessions` flag to the quality report that counts
-    rows where `sessions == 0`.
+        )
 
-    - Add a helper in `utils/data_loader.py`
-    - Add the key to the quality report dict
-    - Write a test in `tests/test_data_quality.py`
-    - Run the full suite
-    """
-    )
+        st.markdown("### 🟡 Mission B -- Filter and metric integrity")
+        st.markdown(
+            """
+        **Level:** Intermediate
 
-    st.markdown("### 🔴 Advanced: Thread the `truncated` flag through the AI prompt")
-    st.markdown(
+        1. Add a custom metric (e.g. `sessions / users`)
+        2. Filter to a segment of your data
+        3. Clear the filter
+        4. Confirm that the custom-metric column remains available on the
+           restored unfiltered dataset
+
+        > **Completion:** You've verified the `base_df → active_df` lifecycle
+        > and confirmed that custom metrics survive filter operations.
         """
-    **Task:** When GA4 data hits the 500,000‑row cap, the summary prompt should
-    include a note: *"This dataset was truncated at 500,000 rows."*
+        )
 
-    - `DataContext.truncated` is already set by the GA4 pull path
-    - Update `build_summary_prompt()` in `utils/prompt_templates.py` to read
-      the `truncated` flag from the `DataContext`
-    - Write a test showing the truncated message appears when the flag is
-      `True`
-    - Run `python -m pytest tests/ -q`
-    """
-    )
+        st.markdown("### 🔴 Mission C -- AI answer audit")
+        st.markdown(
+            """
+        **Level:** Advanced
 
-    st.caption("See also: `tests/` for challenge solutions embedded in test assertions")
+        1. Ask a bounded question in the chat
+        2. Write an "evidence audit" with:
+           - The active scope (date range, filters)
+           - The chart or table you used to verify
+           - One alternate explanation for the result
+           - One follow-up question to investigate further
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 8. WHERE NEXT
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab8:
-    st.markdown("## 🗺️ Where next — resources and roadmap")
-
-    st.markdown("### Project docs")
-    st.markdown(
+        > **Completion:** You used AI as an analytical assistant and retained
+        > responsibility for validation.
         """
-    | Document | What it covers |
-    |---|---|
-    | `README.md` | Quick‑start guide, features, getting your API key |
-    | `ARCHITECTURE.md` | Module map, data flow, design rationale |
-    | `SECURITY.md` | Complete security model, scope justification, threat model |
-    | `DOCUMENTATION_INDEX.md` | Index of every doc, plan, and spec in the repo |
-    | `CHANGELOG.md` | Release history with test counts and key changes |
-    | `IDEAS.md` | Feature backlog and future concepts |
-    """
-    )
+        )
 
-    st.markdown("### Current plan")
-    st.markdown(
+        st.caption(
+            "These missions use only your own data and the app -- no external grading or data collection."
+        )
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 8. WHERE NEXT
+    # ═══════════════════════════════════════════════════════════════════════
+    elif selection == SECTIONS[7]:
+        st.markdown("## 🗺️ Where next -- resources and roadmap")
+
+        st.markdown("### Project docs")
+        st.markdown(
+            """
+        | Document | What it covers |
+        |---|---|
+        | `README.md` | Quick-start guide, features, getting your API key |
+        | `ARCHITECTURE.md` | Module map, data flow, design rationale |
+        | `SECURITY.md` | Complete security model, scope justification, threat model |
+        | `DOCUMENTATION_INDEX.md` | Index of every doc, plan, and spec in the repo |
+        | `CHANGELOG.md` | Release history with key changes |
+        | `IDEAS.md` | Feature backlog and future concepts |
         """
-    - **[🔵 v0.2.0 plan](https://github.com/griffinkelton/insights-explorer/blob/main/plans/%F0%9F%94%B5%20v0.2.0-plan.md)**
-      — architecture, accessibility, documentation, and UX improvements.
-    - **[🔵 v0.2.0 implementation spec](https://github.com/griffinkelton/insights-explorer/blob/main/plans/00-sprints/%F0%9F%94%B5%20v0.2.0-implementation-spec.md)**
-      — detailed design decisions and acceptance criteria.
-    - **[🔵 v0.2.0 release checklist](https://github.com/griffinkelton/insights-explorer/blob/main/plans/audit/%F0%9F%94%B5%20v0.2.0-release-checklist.md)**
-      — binary gates for the v0.2.0 release.
-    """
-    )
+        )
 
-    st.markdown("### Test suite")
-    st.markdown(
+        st.markdown("### Current plan")
+        st.markdown(
+            """
+        - **🔵 v0.2.0 plan** -- architecture, accessibility, documentation, UX
+        - **🔵 v0.2.0 implementation spec** -- detailed design decisions
+        - **🔵 v0.2.0 release checklist** -- binary gates for the release
         """
-    The project has over 500 tests across 27+ test modules.  Run them with:
+        )
 
-    ```bash
-    $ python -m pytest tests/ -q
-    ```
+        st.markdown("### Test suite")
+        st.code(
+            """$ python -m pytest tests/ -q
+... all tests passed
 
-    Coverage report:
+$ python -m pytest tests/ --cov=utils --cov=components --cov=pages --cov-report=term-missing""",
+            language="bash",
+        )
 
-    ```bash
-    $ python -m pytest tests/ --cov=utils --cov=components --cov=pages --cov-report=term-missing
-    ```
-    """
-    )
-
-    st.markdown("### Contributing")
-    st.markdown(
+        st.markdown("### Contributing")
+        st.markdown(
+            """
+        1. Create a branch from `main`
+        2. Make your change and write tests
+        3. Run `python -m pytest tests/ -q` -- all tests must pass
+        4. Run `pre-commit run --all-files` -- linting must be clean
+        5. Open a PR against `main`
         """
-    1. Create a branch from `main`
-    2. Make your change and write tests
-    3. Run `python -m pytest tests/ -q` — all tests must pass
-    4. Run `pre-commit run --all-files` — linting must be clean
-    5. Open a PR against `main`
+        )
 
-    The `.github/workflows/test.yml` CI workflow runs the full test suite on
-    every push.
-    """
-    )
-
-    st.markdown(
-        '<div class="tip-box"><strong>🎯 Ready?</strong> '
-        "Go back to the app and try uploading your own GA4 data.  Every line "
-        "of code is a lesson — and the test suite has your back.</div>",
-        unsafe_allow_html=True,
-    )
-
-    st.caption("See also: `BUGLOG.md`, `RELEASE_CHECKLIST.md`, `.github/workflows/test.yml`")
+        st.markdown(
+            '<div class="tip-box"><strong>🎯 Ready?</strong> '
+            "Go back to the app and try uploading your own GA4 data.  Every "
+            "line of code is a lesson -- and the test suite has your back.</div>",
+            unsafe_allow_html=True,
+        )
 
 # ── Footer ───────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "Learn page — content reflects v0.2.0 architecture.  "
-    "Code excerpts are simplified for teaching; see source files for the full implementation."
+    "Learn page -- analyst-first interactive experience.  "
+    "Reflects v0.2.0 architecture.  No account, grading, or telemetry."
 )
