@@ -21,7 +21,7 @@
 - **💬 Natural Language Chat** — Streaming token-by-token responses with conversation memory
 - **📈 Chart Generation** — Auto-generated charts with opt-in extraction from AI responses
 - **📑 Export** — Download reports as Markdown, Excel, or PDF; export to Google Sheets/Drive
-- **📚 Learn Page** — Interactive Python tutorials at `/learn`
+- **📚 Learn Page** — Interactive, analyst-first learning experience at `/learn` with challenges, progressive disclosure, and verification checklists
 - **🔒 Privacy-First** — Data processed in session; AI calls sent to Gemini API; exports only when you choose
 - **🔐 Security** — [SECURITY.md](SECURITY.md) with full security model documentation
 
@@ -59,7 +59,7 @@ GEMINI_API_KEY=your_api_key_here
 
 > 🔑 **Get a free key in 10 seconds:** [Google AI Studio → Get API Key](https://aistudio.google.com/apikey)
 
-> 📚 **Learn Page:** Visit `/learn` in the app for interactive Python tutorials covering every library and pattern used in the app.
+> 📚 **Learn Page:** Visit `/learn` in the app for an interactive, analyst-first learning experience — predict, inspect, and verify your way through the app's workflows.
 
 ### 4. Launch
 
@@ -82,7 +82,7 @@ python -m pytest tests/ -v
 ```
 ├── app.py                      # App entry point (78 lines — session init + render)
 ├── pages/
-│   └── learn.py                # Interactive Python tutorials
+│   └── learn.py                # Interactive analyst-first learning experience
 ├── components/                 # UI components (extracted from app.py)
 │   ├── __init__.py             # Orchestrator: renders all sections
 │   ├── sidebar.py              # File upload, GA4 connect, filters, metrics
@@ -101,13 +101,13 @@ python -m pytest tests/ -v
 │   ├── forecasting.py          # Linear trend projection with prediction intervals
 │   ├── funnels.py              # Page-path aggregation (literal matching, capped at 8)
 │   ├── commands.py             # Chat command shortcuts (/summary, /top, etc.)
-│   ├── onboarding.py           # First-time user guided tour
+│   ├── onboarding_tour.py      # Browser-persisted onboarding tour (localStorage)
 │   ├── session.py              # Session state management (active_dataframe, clear_data)
 │   ├── error_boundary.py       # Global error boundary with debug mode
 │   ├── sanitize.py             # Formula injection + PDF XML escaping
 │   └── styles.py               # Custom CSS + keyboard shortcuts + theme
 ├── assets/                     # Favicons, icons, PWA manifest
-├── tests/                      # 28 test files, 519 tests (0 warnings)
+├── tests/                      # Test suite (0 warnings)
 ├── .github/workflows/          # GitHub Actions CI
 ├── cloudbuild.yaml             # GCP Cloud Build CI
 ├── requirements/               # base.txt (runtime), dev.txt (dev+test)
@@ -117,7 +117,7 @@ python -m pytest tests/ -v
 ├── plans/                      # Planning archive (meta, sprints, phases, maintenance, audit)
 ├── LICENSE                     # MIT
 ├── SECURITY.md                 # Security policy + model
-├── RELEASE_CHECKLIST.md        # v0.1.0 release gates
+├── RELEASE_CHECKLIST.md        # v0.2.0 release checklist
 ├── BUGLOG.md                   # Structured bug history
 ├── CHANGELOG.md                # Unified change history
 ├── ARCHITECTURE.md             # Architecture & design decisions
@@ -176,7 +176,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (458 tests across 27 modules) |
+| Testing | pytest (581 tests) |
 | CI/CD | GitHub Actions + Google Cloud Build |
 | Data | Pandas |
 | Charts | Plotly |
@@ -217,3 +217,6 @@ MIT — see [LICENSE](LICENSE).
 - [IDEAS.md](IDEAS.md) — Future enhancement ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central docs index
 - [plans/audit/✅ v0.1.0-hardening-spec.md](plans/audit/✅%20v0.1.0-hardening-spec.md) — v0.1.0 hardening implementation spec
+- [plans/audit/✅ v0.2.0-closeout.md](plans/audit/✅%20v0.2.0-closeout.md) — v0.2.0 closeout (all 5 phases complete)
+- [plans/00-sprints/✅ v0.2.0-implementation-spec.md](plans/00-sprints/✅%20v0.2.0-implementation-spec.md) — v0.2.0 implementation spec
+- [plans/🔵 v0.3.0-drive-import-design.md](plans/🔵%20v0.3.0-drive-import-design.md) — v0.3.0 Drive Import design

@@ -6,6 +6,55 @@
 
 ---
 
+## v0.2.0 — Architecture, UX & Maintenance Release
+
+**Date:** 2026-07-31 | **Status:** ✅ Complete | **Tests:** 581 | **Tag:** _(pending)_
+
+> Post-hardening release: immutable DataContext, interactive Learn page, browser-persisted onboarding, styles refactor with focus-visible accessibility, per-request Gemini token accounting, and v0.3.0 Drive Import design.
+
+### Phase 1: DataContext Refactor
+
+- 3-layer frozen dataclass: `raw_df → base_df → active_df` with `FilterState`
+- Content-derived identity: SHA-256 for uploads, canonical request fingerprint for GA4
+- No-op transitions: clear-when-clear, identical-filter, unchanged-metrics
+- Custom-metrics lifecycle: rebuild from `raw_df`, preserve all rows via `rebuild_metrics_context()`
+- AST-based retired-key guard: catches attribute, subscript, `.get()`, `setdefault`, `pop`, `del`, membership, and chained-alias access
+- 4-step migration: introduce → writers → readers → remove legacy + AST guard
+
+### Phase 2: Learn Page Redesign + Onboarding
+
+- Interactive analyst-first learning experience: side navigation, 7 challenges, progressive disclosure
+- Reusable `components/learning_challenge.py` with 6 challenge types
+- "Before you conclude" verification checklist in Explore + Ask AI sections
+- Repository architecture section with safe-change recipe
+- Frontend-owned onboarding: browser localStorage persistence, one-shot `force_replay` flag
+- Removed `tour_step` and all Python-side tour state
+- Keyboard-accessible: progressbar ARIA, `focusTitle()`, button `:focus-visible`
+- Design note documents `components.html()` trade-off; declared component deferred to IDEAS #27
+
+### Phase 3: Styles Refactor + Focus-Visible
+
+- 5 CSS named constants + 1 JS constant + `build_theme_css()` assembly
+- Focus-visible with accent-derived variables (never red)
+- Reduced-motion support preserved
+- Keyboard shortcut (Ctrl/Cmd+K) evaluated and removed — chat input always visible in Streamlit, global listener not justified
+
+### Phase 4: Gemini Per-Request Token Accounting
+
+- `_track_usage()` returns structured dict: prompt, output, thought, cached, tool, total
+- Per-request token counts in collapsible expanders on most recent response only
+- Cumulative session totals below chat input — informational only, no gauges or quota estimates
+- `MODEL_CONTEXT_LIMITS` dict for future `countTokens` guard
+- Chart extraction calls do not overwrite chat response usage
+
+### Phase 5: Drive Import Design (Design Only)
+
+- `plans/🔵 v0.3.0-drive-import-design.md`: Picker API architecture, consent UX, security checklist, v0.1.0 baseline preservation, acceptance criteria
+
+**Related:** [plans/audit/✅ v0.2.0-closeout.md](plans/audit/✅%20v0.2.0-closeout.md), [plans/audit/✅ v0.2.0-release-checklist.md](plans/audit/✅%20v0.2.0-release-checklist.md)
+
+---
+
 ## v0.1.0 — Hardening Release
 
 **Date:** 2026-07-30 | **Status:** ✅ Released | **Tests:** 389 | **Tag:** `v0.1.0`

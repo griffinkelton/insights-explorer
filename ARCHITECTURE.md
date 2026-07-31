@@ -38,7 +38,7 @@ insights-explorer/
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
 │   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
-│   └── ...                      # 15 additional test modules + conftest.py (458 total, 0 warnings)
+│   └── ...                      # Additional test modules + conftest.py (581 total, 0 warnings)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -208,8 +208,8 @@ insights-explorer/
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
 | `test_static_analysis.py` | 12 | All 6 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern, drive.readonly gate, silent except:pass scanner |
 | `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
-| _15 additional modules_ | _319_ | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init`, `test_session`, `test_scenarios`, `test_styles`, `test_data_context` |
-| **Total** | **458** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure + data context (0 warnings) |
+| Additional modules | — | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init`, `test_session`, `test_scenarios`, `test_styles`, `test_data_context` |
+| **Total** | **581** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure + data context (0 warnings) |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
@@ -249,7 +249,7 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 | 7 | Extracted CSS to `utils/styles.py` (#6 from roadmap) | Refactor |
 | 8 | Added type hints to all functions across the codebase (#7) | Refactor |
 | 9 | Added `@st.cache_data` to `validate_columns`, `get_dataset_stats`, `build_summary_prompt` (#10) | Performance |
-| 10 | Created `/learn` page — 8 interactive Python tutorials | Feature |
+| 10 | Created `/learn` page — later redesigned as interactive analyst-first learning experience | Feature |
 | 11 | Added `.streamlit/config.toml` with secure defaults (#15) | Security |
 | 12 | Added `cloudbuild.yaml` for CI/CD — auto-run tests on push | CI/CD |
 | 13 | Added 18 tests for `_sanitize_question()` (prompt injection coverage) | Testing |
@@ -304,8 +304,8 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 
 - [README.md](README.md) — Setup guide, features, quick start
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
-- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
+- [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
 - [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
 - [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings (10 bugs)

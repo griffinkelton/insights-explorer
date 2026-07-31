@@ -44,7 +44,7 @@
 | [plans/00-meta/✅ onboarding-tour.md](plans/00-meta/✅ onboarding-tour.md) | Eliminate the "cold start" problem — guide first-time users through the app in 30 seconds | 3-step guided tour: upload → summary → chat, with auto-dismiss | ⚠️ Deferred (~1 hr) |
 | [plans/p5-p6/✅ COMPONENT_REFACTOR.md](plans/p5-p6/✅ COMPONENT_REFACTOR.md) | Clean up technical debt: turn the 809-line monolith into maintainable modules | Design decisions, target architecture, 7-phase extraction plan (IMPL #20, UNIFIED P5) | ✅ Done (78-line app.py, 228 tests) |
 | [plans/00-sprints/✅ component-refactor-spec.md](plans/00-sprints/✅ component-refactor-spec.md) | The implementation spec derived from 5 interview rounds — exact decisions, code samples, test patterns | Full Phase 1-7 execution spec with design table, code samples, test impact, edge cases | ✅ Done (see plan above) |
-| [plans/00-sprints/🔵 v0.2.0-implementation-spec.md](plans/00-sprints/🔵%20v0.2.0-implementation-spec.md) | The implementation spec for the post-hardening release — DataContext refactor, Learn page, styles, Gemini telemetry | 13 design decisions, 5 phases, frozen DataContext + replace(), 4-step migration, analysis-versioned cache keys, 8-section Learn page, keyboard fixes, focus-visible, Gemini informational-only, custom release checklist | 🔵 Spec'd (5 phases, ~10-16 days) |
+| [plans/00-sprints/✅ v0.2.0-implementation-spec.md](plans/00-sprints/✅%20v0.2.0-implementation-spec.md) | The implementation spec for the post-hardening release — DataContext refactor, Learn page, styles, Gemini telemetry | 13 design decisions, 5 phases, frozen DataContext + replace(), 4-step migration, analysis-versioned cache keys, 8-section Learn page, focus-visible, Gemini informational-only | ✅ Complete (581 tests) |
 | [plans/p3-p4/✅ THEME_TOGGLE.md](plans/p3-p4/✅ THEME_TOGGLE.md) | Give users a light mode option — the single most-requested visual improvement | CSS variables, JS sync, Plotly chart swapping (IMPL #18, UNIFIED P3) | ✅ Done (231 tests) |
 | [plans/00-sprints/✅ theme-toggle-spec.md](plans/00-sprints/✅ theme-toggle-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, file-level changes | 4-phase plan executed: CSS → toggle → charts → polish | ✅ Done |
 | [plans/p3-p4/✅ STREAMING_RESPONSES.md](plans/p3-p4/✅ STREAMING_RESPONSES.md) | Make chat feel real-time instead of waiting 3-5 seconds per response | Generator, st.write_stream, append→rerun→stream pattern (IMPL #19, UNIFIED P4) | High (3-5 days) ✅ Done |
@@ -164,4 +164,4 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 
 ---
 
-*This index was last updated 2026-07-30 during the v0.2.0 DataContext refactor (458 tests, 0 warnings, 8 modules at 100% coverage).*
+*This index was last updated 2026-07-31 — v0.2.0 complete (581 tests, 0 warnings).*

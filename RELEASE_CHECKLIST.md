@@ -1,4 +1,7 @@
-# v0.1.0 Release Checklist
+# v0.1.0 Release Checklist (Historical)
+
+> **Note:** This is the v0.1.0 release checklist — preserved as historical reference.
+> For the current release, see: [`plans/audit/✅ v0.2.0-release-checklist.md`](plans/audit/✅%20v0.2.0-release-checklist.md)
 
 Release candidate SHA: `8d3567d`
 Date: `2026-07-30`
