@@ -23,8 +23,8 @@
 
 | File | Purpose | When to read |
 |---|---|---|
-| [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) | 37-item enhancement roadmap across 7 categories (UX, Code, Security, AI, Data, DevOps, Docs) | To see what's been done and what's available |
-| [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) | Detailed 21-item execution blueprint with file-level precision, risk assessments, sprint plan | Before starting any implementation work |
+| [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) | 37-item enhancement roadmap across 7 categories (UX, Code, Security, AI, Data, DevOps, Docs) | To see what's been done and what's available |
+| [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) | Detailed 21-item execution blueprint with file-level precision, risk assessments, sprint plan | Before starting any implementation work |
 | [IDEAS.md](IDEAS.md) | 25 bonus enhancements + 10 moonshot ideas (creative, not in the plan) | For inspiration and long-term vision |
 
 ---
@@ -48,7 +48,7 @@
 | [plans/p3-p4/✅ THEME_TOGGLE.md](plans/p3-p4/✅ THEME_TOGGLE.md) | Give users a light mode option — the single most-requested visual improvement | CSS variables, JS sync, Plotly chart swapping (IMPL #18, UNIFIED P3) | ✅ Done (231 tests) |
 | [plans/00-sprints/✅ theme-toggle-spec.md](plans/00-sprints/✅ theme-toggle-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, file-level changes | 4-phase plan executed: CSS → toggle → charts → polish | ✅ Done |
 | [plans/p3-p4/✅ STREAMING_RESPONSES.md](plans/p3-p4/✅ STREAMING_RESPONSES.md) | Make chat feel real-time instead of waiting 3-5 seconds per response | Generator, st.write_stream, append→rerun→stream pattern (IMPL #19, UNIFIED P4) | High (3-5 days) ✅ Done |
-| [plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md](plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md) | Upgrade the AI and data layer: smarter charts, anomaly detection, comparative mode | 6 sub-items: chart tokens, JSON mapping, type detection, sampling, anomalies, comparisons (IMPL #21, UNIFIED P6) | 3-4 days 🔵 Spec'd |
+| [plans/p5-p6/✅ AI_DATA_ENHANCEMENTS.md](plans/p5-p6/✅%20AI_DATA_ENHANCEMENTS.md) | Upgrade the AI and data layer: smarter charts, anomaly detection, comparative mode | 6 sub-items: chart tokens, JSON mapping, type detection, sampling, anomalies, comparisons (IMPL #21, UNIFIED P6) | ✅ Done (239 tests) |
 | [plans/00-sprints/✅ ai-data-enhancements-spec.md](plans/00-sprints/✅ ai-data-enhancements-spec.md) | The implementation spec derived from 3 interview rounds — exact decisions, code samples, 5-phase order | 6 sub-items: type detection → sampling → chart JSON → anomalies → compare mode. 239 tests. | ✅ Done (239 tests) |
 | [plans/00-sprints/✅ drive-file-picker-spec.md](plans/00-sprints/✅ drive-file-picker-spec.md) | Add a Google Drive file picker to the sidebar — load CSVs/Sheets directly | 7 files changed, 2 new: drive_client.py + sidebar UI. Piggybacks on GA4 OAuth. 236 tests. | ✅ Done (236 tests) |
 | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) | Security hardening: OAuth scope reduction, token revocation, error handling refactor, model constraints | Post-phase-6 code review remediation — 7 commits, 359 tests, scope fix (drive→drive.readonly+drive.file), chmod hardening, scope migration banner, shared error classification, token tracking, dead code cleanup, BUG-009 & BUG-010 | ✅ Done (359 tests) |
@@ -68,17 +68,17 @@ README.md ─── "How to run it"
         ▼
 ARCHITECTURE.md ─── "How it's built"
         │
-        ├──► ENHANCEMENTS.md (→ plans/00-meta/) ── "What could be improved" (37 items, 22 done)
+        ├──► plans/00-meta/✅ ENHANCEMENTS.md ── "What could be improved" (37 items, 22 done)
         ├──► BUGLOG.md ──────── "What broke and why" (10 bugs)
         ├──► IDEAS.md ───────── "What's beyond the roadmap" (25 + 10 moonshots)
         ├──► CHANGELOG.md ───── "Unified change history"
-        └──► IMPLEMENTATION_PLAN.md (→ plans/00-meta/) ── "21-item execution blueprint"
+        └──► plans/00-meta/✅ IMPLEMENTATION_PLAN.md ── "21-item execution blueprint"
 ```
 
 ### Plan Files
 
 ```
-IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
+plans/00-meta/✅ IMPLEMENTATION_PLAN.md
         │
         ├──► plans/00-sprints/✅ P1-P3-sprint-spec.md ── "Sprint done ✅ (194 tests)"
         │           └──► plans/00-sprints/✅ P1-P3-completion.md
@@ -101,15 +101,15 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
         │
         ├──► plans/p5-p6/
         │        ├── ✅ COMPONENT_REFACTOR.md
-        │        └── 🔵 AI_DATA_ENHANCEMENTS.md
+        │        └── ✅ AI_DATA_ENHANCEMENTS.md
         │
         └──► plans/maintenance/
                  ├── ✅ 2026-07-29-oauth-scope-remediation-spec.md
                  ├── ✅ 2026-07-29-drive-scope-remediation-plan.md
                  └── ✅ 2026-07-29-drive-export-model-selector-session.md
         │
-        ├──► plans/🔵 v0.2.0-plan.md ── "Post-hardening roadmap (d1–d7, 5 phases)"
-        │           ├──► plans/00-sprints/🔵 v0.2.0-implementation-spec.md ── "Detailed exec spec (13 decisions, 5 phases)"
+        ├──► plans/00-sprints/✅ v0.2.0-plan.md ── "Post-hardening roadmap (d1–d7, 5 phases)"
+        │           ├──► plans/00-sprints/✅ v0.2.0-implementation-spec.md ── "Detailed exec spec (13 decisions, 5 phases)"
         │           └──► plans/🔵 evidence-connector-design.md ── "Evidence Dashboard Source Connector design (future)"
         │
         └──► plans/audit/ (all ✅ — v0.1.0 hardening artifacts)
@@ -129,8 +129,8 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 | README.md | First read: setup guide, features, tech stack, security, quick start | ✅ Current | 2026-07-29 |
 | ORIGINAL_SPEC.md | The initial project requirements and 26-item compliance checklist | ✅ Current | 2026-07-29 |
 | ARCHITECTURE.md | Design decisions, data flow, security model, dependencies, build log | ✅ Current | 2026-07-29 |
-| ENHANCEMENTS.md (→ plans/00-meta/) | 37-item roadmap of what's been improved and what's still available | ✅ Current | 2026-07-29 |
-| IMPLEMENTATION_PLAN.md (→ plans/00-meta/) | 21-item execution blueprint — the master implementation guide | ✅ Current | 2026-07-29 |
+| [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) | 37-item roadmap of what's been improved and what's still available | ✅ Current | 2026-07-29 |
+| [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) | 21-item execution blueprint — the master implementation guide | ✅ Current | 2026-07-29 |
 | IDEAS.md | Creative ideas beyond the roadmap: 25 bonus enhancements + 10 moonshots | ✅ Current | 2026-07-29 |
 | BUGLOG.md | Structured bug history with root causes, fixes, and detection patterns (10 bugs) | ✅ Current | 2026-07-29 |
 | DOCUMENTATION_INDEX.md | This file — central index connecting all project documentation | ✅ Current | 2026-07-29 |
@@ -149,13 +149,13 @@ IMPLEMENTATION_PLAN.md (→ plans/00-meta/)
 | plans/p3-p4/✅ THEME_TOGGLE.md | Light/dark mode plan: CSS variables, JS sync, Plotly chart swapping | ✅ Done | 2026-07-29 |
 | plans/00-sprints/✅ theme-toggle-spec.md | Interview-derived spec: 9 design decisions, 4-phase plan, 7 files | ✅ Done | 2026-07-29 |
 | plans/p3-p4/✅ STREAMING_RESPONSES.md | ChatGPT-style token-by-token streaming with error recovery (done) | ✅ Current | 2026-07-29 |
-| plans/p5-p6/🔵 AI_DATA_ENHANCEMENTS.md | 6 independent AI/data upgrades: charts, anomalies, sampling | ✅ Current | 2026-07-29 |
+| [plans/p5-p6/✅ AI_DATA_ENHANCEMENTS.md](plans/p5-p6/✅%20AI_DATA_ENHANCEMENTS.md) | 6 independent AI/data upgrades: charts, anomalies, sampling | ✅ Done | 2026-07-29 |
 | plans/00-sprints/✅ ai-data-enhancements-spec.md | Interview-derived spec: 9 design decisions, 5-phase order, 6 sub-items | ✅ Done | 2026-07-29 |
 | plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md | Post-phase-6 OAuth security hardening & code quality remediation spec | ✅ Done | 2026-07-29 |
 | plans/maintenance/✅ 2026-07-29-drive-scope-remediation-plan.md | Original remediation plan — predecessor to the spec above | ✅ Done | 2026-07-29 |
 | plans/maintenance/✅ 2026-07-29-drive-export-model-selector-session.md | Session summary: Drive write-back, model selector, export formats, multimodal support | ✅ Done | 2026-07-29 |
-| plans/🔵 v0.2.0-plan.md | Post-hardening roadmap: 7 deferred items (d1–d7), 5 phases, ~10-16 days | 🔵 Planning | 2026-07-30 |
-| plans/00-sprints/🔵 v0.2.0-implementation-spec.md | Detailed implementation spec: frozen DataContext, 8-section Learn page, focus-visible, Gemini telemetry | 🔵 Spec'd | 2026-07-30 |
+| [plans/00-sprints/✅ v0.2.0-plan.md](plans/00-sprints/✅%20v0.2.0-plan.md) | Post-hardening roadmap: 7 deferred items (d1–d7), 5 phases, ~10-16 days | ✅ Complete | 2026-07-30 |
+| [plans/00-sprints/✅ v0.2.0-implementation-spec.md](plans/00-sprints/✅%20v0.2.0-implementation-spec.md) | Detailed implementation spec: frozen DataContext, 8-section Learn page, focus-visible, Gemini telemetry | ✅ Complete | 2026-07-30 |
 | plans/🔵 evidence-connector-design.md | Evidence Dashboard Source Connector: architecture, security model, connector contract, 5-phase delivery plan | 🔵 Design | 2026-07-30 |
 | plans/audit/✅ v0.1.0-closeout.md | v0.1.0 close-out: what was delivered, deferred items, audit baseline, release evidence | ✅ Final | 2026-07-30 |
 | plans/audit/✅ v0.1.0-hardening-spec.md | Hardening implementation spec — PR 0–4 acceptance criteria, security gates | ✅ Done | 2026-07-30 |
