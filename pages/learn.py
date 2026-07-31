@@ -479,7 +479,7 @@ def test_duplicate_detection():
 
     ```bash
     $ python -m pytest tests/ -q
-    ... 523 passed in 2.34s
+    ... all tests passed
     ```
 
     If the suite passes, your change is safe.  This is the same workflow used

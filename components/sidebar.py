@@ -74,8 +74,6 @@ def _populate_data_state(
     st.session_state.chat_history = []
     st.session_state.data_source = source
     st.session_state.data_cleared = False
-    # Auto-dismiss onboarding tour when data is loaded
-
     # v0.2.0: Create DataContext — sole owner of data state
     if source == "ga4":
         if ga4_metadata is not None:
