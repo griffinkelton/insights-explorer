@@ -844,15 +844,6 @@ $ python -m pytest tests/ --cov=utils --cov=components --cov=pages --cov-report=
         """
         )
 
-        st.markdown("### Keyboard shortcut")
-        st.markdown(
-            """
-        Press **Ctrl+K** (or **Cmd+K** on Mac) to focus the chat input from
-        anywhere in the app. The shortcut does not fire when you're typing in
-        a text field or input box.
-        """
-        )
-
         st.markdown(
             '<div class="tip-box"><strong>🎯 Ready?</strong> '
             "Go back to the app and try uploading your own GA4 data.  Every "

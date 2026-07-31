@@ -1,10 +1,7 @@
 """Custom CSS, JS, and favicon injection for the GA4 Insight Explorer UI.
 
 v0.2.0 refactor:
-    - Monolithic f-string replaced by 5 CSS + 2 JS named constants.
-    - Keyboard shortcut guard installed BEFORE listener registration.
-    - Shortcut exits early for editable fields (input, textarea, select,
-      contenteditable).
+    - Monolithic f-string replaced by 5 CSS + 1 JS named constants.
     - Focus-visible styles use semantic --focus-ring-* variables (never red).
     - build_theme_css() assembles constants; only the validated theme value
       is interpolated.
@@ -557,19 +554,6 @@ COMPONENT_CSS = """
         font-size: 0.8rem;
     }
 
-    /* ── Keyboard shortcut hint ── */
-    .kb-shortcut {
-        display: inline-block;
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: 5px;
-        padding: 2px 7px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--text-muted);
-        font-family: 'Inter', monospace;
-    }
-
     /* ── Column type badges ── */
     .col-badge {
         display: inline-block;
@@ -703,39 +687,6 @@ THEME_SYNC_JS = """
     }
 """
 
-KEYBOARD_SHORTCUTS_JS = """
-    // ── Keyboard shortcuts ──
-    // IIFE guards against duplicate listener registration.
-    (function() {
-        if (window.__ga4ExplorerShortcutInstalled) return;
-        window.__ga4ExplorerShortcutInstalled = true;
-
-        document.addEventListener('keydown', function(e) {
-            // Context safety: exit early for editable fields
-            var target = e.target;
-            if (target) {
-                var tag = target.tagName ? target.tagName.toLowerCase() : '';
-                if (tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable) {
-                    return;
-                }
-            }
-            var isMac = /Mac/i.test(
-                (navigator.userAgentData && navigator.userAgentData.platform)
-                || navigator.platform
-                || ''
-            );
-            var mod = isMac ? e.metaKey : e.ctrlKey;
-
-            // Cmd/Ctrl + K → focus chat input
-            if (mod && e.key === 'k') {
-                e.preventDefault();
-                var chatInput = document.querySelector('[data-testid="stChatInput"] textarea');
-                if (chatInput) { chatInput.focus(); }
-            }
-        });
-    })();
-"""
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Assembly
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -764,7 +715,6 @@ def build_theme_css(theme: str) -> str:
         f"</style>\n"
         f"<script>\n"
         f"{THEME_SYNC_JS}\n"
-        f"{KEYBOARD_SHORTCUTS_JS}\n"
         f"</script>"
     )
 
@@ -821,7 +771,7 @@ def inject_favicon_meta(theme: str = "dark") -> None:
 
 
 def inject_custom_css(theme: str = "dark") -> None:
-    """Inject the app's custom CSS theme and keyboard shortcut JS.
+    """Inject the app's custom CSS theme and theme-sync JS.
 
     Delegates to build_theme_css() for constant assembly.
 

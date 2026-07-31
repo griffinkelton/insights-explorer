@@ -1,4 +1,4 @@
-"""Tests for utils/styles.py — Phase 3 refactor: named constants, focus-visible, keyboard shortcut.
+"""Tests for utils/styles.py — Phase 3 refactor: named constants, focus-visible.
 
 Coverage:
     - Every named constant is non-empty.
@@ -8,8 +8,6 @@ Coverage:
     - VALID_THEMES guard still rejects invalid themes.
     - prefers-reduced-motion media query present.
     - Focus-visible uses accent-derived variables (never red/destructive).
-    - Keyboard shortcut guard installed BEFORE listener registration.
-    - Shortcut exits early for editable fields.
     - Generated output contains no interpolation except the validated theme value.
 """
 
@@ -56,10 +54,6 @@ class TestJsConstants:
     def test_theme_sync_js_is_non_empty(self):
         assert isinstance(styles.THEME_SYNC_JS, str)
         assert styles.THEME_SYNC_JS.strip()
-
-    def test_keyboard_shortcuts_js_is_non_empty(self):
-        assert isinstance(styles.KEYBOARD_SHORTCUTS_JS, str)
-        assert styles.KEYBOARD_SHORTCUTS_JS.strip()
 
 
 class TestValidThemes:
@@ -110,10 +104,6 @@ class TestBuildThemeCss:
         output = self._build()
         assert styles.THEME_SYNC_JS.strip() in output
 
-    def test_includes_keyboard_shortcuts_js(self):
-        output = self._build()
-        assert styles.KEYBOARD_SHORTCUTS_JS.strip() in output
-
     # ── Theme interpolation ───────────────────────────────────────────────
 
     def test_dark_theme_sets_data_theme_dark(self):
@@ -143,7 +133,6 @@ class TestBuildThemeCss:
     def test_only_theme_value_is_interpolated(self):
         """Only the validated theme attribute value appears — no arbitrary injection."""
         output = self._build("dark")
-        # The data-theme attribute should be "dark", not an f-string expression
         assert 'data-theme="dark"' in output
 
     # ── HTML structure ────────────────────────────────────────────────────
@@ -198,9 +187,7 @@ class TestSemanticVariables:
     def test_focus_ring_color_is_accent_derived(self):
         """--focus-ring-color must be aliased from --accent, not a red value."""
         base = styles.BASE_TOKENS_CSS
-        # Must reference var(--accent)
         assert "--focus-ring-color" in base
-        # The value should use var(--accent), not a raw red color
         focus_line = [ln for ln in base.splitlines() if "--focus-ring-color" in ln]
         assert focus_line
         assert "var(--accent)" in focus_line[0]
@@ -264,12 +251,10 @@ class TestFocusVisible:
     def test_focus_visible_never_uses_red(self):
         """Focus ring must NOT use --danger, red, or destructive colors in property values."""
         access = styles.ACCESSIBILITY_CSS
-        # Extract only the focus-visible rule block (between braces, excluding comments)
         focus_start = access.index(":focus-visible")
         focus_brace = access.index("{", focus_start)
         focus_end = access.index("}", focus_brace)
         rule_body = access[focus_brace + 1 : focus_end]
-        # Strip CSS comments for clean property-only check
         body_no_comments = re.sub(r"/\*.*?\*/", "", rule_body, flags=re.DOTALL)
         assert "--danger" not in body_no_comments
         assert "red" not in body_no_comments.lower()
@@ -290,84 +275,6 @@ class TestReducedMotion:
     def test_animation_disabled(self):
         output = styles.build_theme_css("dark")
         assert "animation-duration: 0.01ms" in output
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keyboard shortcut
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-class TestKeyboardShortcut:
-    """Keyboard shortcut: valid JS syntax, guard order, editable-field safety, IIFE structure."""
-
-    # ── JS syntax safety ─────────────────────────────────────────────────
-
-    def test_no_bare_return_at_top_level(self):
-        """A bare 'return' outside a function is SyntaxError in JS. The IIFE
-        wraps all code; any 'return' must appear inside a function body."""
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        # Remove comments and strings to avoid false matches
-        stripped = re.sub(r"//.*|/\*.*?\*/", "", js, flags=re.DOTALL)
-        stripped = re.sub(r"'[^']*'|\"[^\"]*\"|`[^`]*`", "", stripped)
-        # Find every 'return' token
-        for match in re.finditer(r"\breturn\b", stripped):
-            pos = match.start()
-            # Count open braces before this position to see if inside a function
-            prefix = stripped[:pos]
-            open_braces = prefix.count("{")
-            close_braces = prefix.count("}")
-            # A return is valid only when open_braces > close_braces
-            # (i.e., we're inside at least one block that has opened but not yet closed)
-            assert open_braces > close_braces, (
-                f"Bare 'return' at position {pos} is outside any function block. "
-                "Use an IIFE: (function() {{ ... }})()"
-            )
-
-    def test_iife_structure(self):
-        """The shortcut script must be wrapped in an IIFE."""
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        assert "(function() {" in js, "Must use IIFE wrapper"
-        assert "})();" in js, "Must close IIFE with })()"
-
-    def test_guard_installed_before_listener(self):
-        """The guard must appear BEFORE addEventListener in the IIFE body."""
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        guard_idx = js.find("__ga4ExplorerShortcutInstalled")
-        listener_idx = js.find("addEventListener")
-        assert guard_idx >= 0
-        assert listener_idx >= 0
-        assert (
-            guard_idx < listener_idx
-        ), "Guard must be installed BEFORE the listener to prevent duplicates"
-
-    def test_guard_sets_flag(self):
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        assert "__ga4ExplorerShortcutInstalled = true" in js
-
-    def test_editable_field_checks_event_target(self):
-        """Editable-field check must use e.target (the actual event target),
-        not document.activeElement."""
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        assert (
-            "e.target" in js or "event.target" in js
-        ), "Must check the event target, not document.activeElement"
-        assert "document.activeElement" not in js, "Use e.target instead of document.activeElement"
-
-    def test_editable_field_tags(self):
-        """Shortcut must exit early for input, textarea, select, contenteditable."""
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        for tag in ("input", "textarea", "select"):
-            assert tag in js, f"Must check for '{tag}' tag before firing shortcut"
-        assert "isContentEditable" in js
-
-    def test_cmd_ctrl_k_handler_present(self):
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        assert "k" in js.lower()
-
-    def test_focuses_chat_input(self):
-        js = styles.KEYBOARD_SHORTCUTS_JS
-        assert "stChatInput" in js
-        assert "focus()" in js
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
