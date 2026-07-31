@@ -12,8 +12,8 @@ restart the tour; otherwise Python has no knowledge of localStorage.
 bidirectional component-value channel.  The iframe does not rely on
 ``setComponentValue()`` or ``postMessage`` for state reporting.
 
-Architectural decision (v0.2.0)
--------------------------------
+Design note (v0.2.0)
+--------------------
 ``st.components.v1.html()`` was deliberately chosen over a declared Streamlit
 custom component for this browser-owned, non-telemetry tour:
 
