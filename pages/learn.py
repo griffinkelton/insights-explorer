@@ -504,8 +504,10 @@ Question: {user_question}
         **Sent to Gemini:** Dataset description, statistical summary,
         quality report, your question, opt-in chart suggestions.
 
-        **Never sent:** Raw rows, credentials, OAuth tokens, internal
-        app configuration, or proprietary source data.
+        **Never sent:** Raw rows, credentials, OAuth tokens, or internal
+        app configuration.  Before using Gemini, avoid placing sensitive or
+        proprietary content in your question and review the current
+        privacy/security guidance.
 
         The chat UI shows **provider-reported token counts** after each
         response (input, output, thought, total).  No percentages, gauges,
@@ -530,7 +532,7 @@ Question: {user_question}
         """
         )
 
-        st.markdown("### Session-only processing")
+        st.markdown("### Session-scoped processing")
         st.markdown(
             """
         - All uploaded data lives **only in `st.session_state`** -- no
@@ -566,7 +568,7 @@ Question: {user_question}
             key="learn.privacy.scenario.v1",
             kind="scenario_choice",
             title="Safe, needs review, or unsafe?",
-            prompt="Classify each action:",
+            prompt="Which action is safe?",
             options=[
                 {
                     "label": "Download a checked aggregate chart for a presentation",
