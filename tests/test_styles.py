@@ -298,10 +298,39 @@ class TestReducedMotion:
 
 
 class TestKeyboardShortcut:
-    """Keyboard shortcut guard must be installed BEFORE listener, with editable-field safety."""
+    """Keyboard shortcut: valid JS syntax, guard order, editable-field safety, IIFE structure."""
+
+    # ── JS syntax safety ─────────────────────────────────────────────────
+
+    def test_no_bare_return_at_top_level(self):
+        """A bare 'return' outside a function is SyntaxError in JS. The IIFE
+        wraps all code; any 'return' must appear inside a function body."""
+        js = styles.KEYBOARD_SHORTCUTS_JS
+        # Remove comments and strings to avoid false matches
+        stripped = re.sub(r"//.*|/\*.*?\*/", "", js, flags=re.DOTALL)
+        stripped = re.sub(r"'[^']*'|\"[^\"]*\"|`[^`]*`", "", stripped)
+        # Find every 'return' token
+        for match in re.finditer(r"\breturn\b", stripped):
+            pos = match.start()
+            # Count open braces before this position to see if inside a function
+            prefix = stripped[:pos]
+            open_braces = prefix.count("{")
+            close_braces = prefix.count("}")
+            # A return is valid only when open_braces > close_braces
+            # (i.e., we're inside at least one block that has opened but not yet closed)
+            assert open_braces > close_braces, (
+                f"Bare 'return' at position {pos} is outside any function block. "
+                "Use an IIFE: (function() {{ ... }})()"
+            )
+
+    def test_iife_structure(self):
+        """The shortcut script must be wrapped in an IIFE."""
+        js = styles.KEYBOARD_SHORTCUTS_JS
+        assert "(function() {" in js, "Must use IIFE wrapper"
+        assert "})();" in js, "Must close IIFE with })()"
 
     def test_guard_installed_before_listener(self):
-        """The guard must appear BEFORE addEventListener in the source."""
+        """The guard must appear BEFORE addEventListener in the IIFE body."""
         js = styles.KEYBOARD_SHORTCUTS_JS
         guard_idx = js.find("__ga4ExplorerShortcutInstalled")
         listener_idx = js.find("addEventListener")
@@ -315,7 +344,16 @@ class TestKeyboardShortcut:
         js = styles.KEYBOARD_SHORTCUTS_JS
         assert "__ga4ExplorerShortcutInstalled = true" in js
 
-    def test_editable_field_safety(self):
+    def test_editable_field_checks_event_target(self):
+        """Editable-field check must use e.target (the actual event target),
+        not document.activeElement."""
+        js = styles.KEYBOARD_SHORTCUTS_JS
+        assert (
+            "e.target" in js or "event.target" in js
+        ), "Must check the event target, not document.activeElement"
+        assert "document.activeElement" not in js, "Use e.target instead of document.activeElement"
+
+    def test_editable_field_tags(self):
         """Shortcut must exit early for input, textarea, select, contenteditable."""
         js = styles.KEYBOARD_SHORTCUTS_JS
         for tag in ("input", "textarea", "select"):

@@ -705,33 +705,35 @@ THEME_SYNC_JS = """
 
 KEYBOARD_SHORTCUTS_JS = """
     // ── Keyboard shortcuts ──
-    // Guard installed BEFORE listener registration to prevent duplicates.
-    if (window.__ga4ExplorerShortcutInstalled) return;
-    window.__ga4ExplorerShortcutInstalled = true;
+    // IIFE guards against duplicate listener registration.
+    (function() {
+        if (window.__ga4ExplorerShortcutInstalled) return;
+        window.__ga4ExplorerShortcutInstalled = true;
 
-    document.addEventListener('keydown', function(e) {
-        // Context safety: exit early for editable fields
-        var activeEl = document.activeElement;
-        if (activeEl) {
-            var tag = activeEl.tagName.toLowerCase();
-            if (tag === 'input' || tag === 'textarea' || tag === 'select' || activeEl.isContentEditable) {
-                return;
+        document.addEventListener('keydown', function(e) {
+            // Context safety: exit early for editable fields
+            var target = e.target;
+            if (target) {
+                var tag = target.tagName ? target.tagName.toLowerCase() : '';
+                if (tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable) {
+                    return;
+                }
             }
-        }
-        var isMac = /Mac/i.test(
-            (navigator.userAgentData && navigator.userAgentData.platform)
-            || navigator.platform
-            || ''
-        );
-        var mod = isMac ? e.metaKey : e.ctrlKey;
+            var isMac = /Mac/i.test(
+                (navigator.userAgentData && navigator.userAgentData.platform)
+                || navigator.platform
+                || ''
+            );
+            var mod = isMac ? e.metaKey : e.ctrlKey;
 
-        // Cmd/Ctrl + K → focus chat input
-        if (mod && e.key === 'k') {
-            e.preventDefault();
-            var chatInput = document.querySelector('[data-testid="stChatInput"] textarea');
-            if (chatInput) { chatInput.focus(); }
-        }
-    });
+            // Cmd/Ctrl + K → focus chat input
+            if (mod && e.key === 'k') {
+                e.preventDefault();
+                var chatInput = document.querySelector('[data-testid="stChatInput"] textarea');
+                if (chatInput) { chatInput.focus(); }
+            }
+        });
+    })();
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════
