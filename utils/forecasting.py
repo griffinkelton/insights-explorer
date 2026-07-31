@@ -4,8 +4,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-# Schema version for cached forecast output structure.
+# Schema version for forecast output structure.
 # Bump when ForecastResult fields or calculation logic change.
+# NOTE: forecast_metric is not cached (no @st.cache_data). Wire this
+# constant as a hidden default parameter when caching is added.
 FORECAST_SCHEMA_VERSION = "1.0.0"
 
 

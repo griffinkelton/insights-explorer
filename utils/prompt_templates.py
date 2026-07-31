@@ -9,6 +9,7 @@ from utils.data_loader import smart_sample
 
 # Schema version for cached prompt templates.
 # Bump when prompt structure changes to invalidate @st.cache_data.
+# Wired as a hidden default parameter on build_summary_prompt().
 SUMMARY_PROMPT_SCHEMA_VERSION = "1.0.0"
 
 
@@ -39,6 +40,7 @@ def build_summary_prompt(
     df: pd.DataFrame,
     stats: dict[str, Any],
     quality_report: Any = None,
+    _schema_version: str = SUMMARY_PROMPT_SCHEMA_VERSION,
 ) -> str:
     """Build a prompt asking Gemini to generate a plain-language data summary.
 
