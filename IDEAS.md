@@ -104,6 +104,30 @@ An admin-only, first-class data source connector for Evidence-built static dashb
 
 > **🔧 Non-blocking hardening task (GA4RequestMetadata):** `create_context_from_ga4(metadata=...)` currently copies only `property_id`, `date_range`, `dimensions`, `metrics`, and `truncated` from metadata — the remaining fingerprint fields (`dimension_filter`, `metric_filter`, `order_bys`, `limit`, `offset`, `timezone`) still come from separate function arguments. Before GA4 pull options become configurable, make metadata fully authoritative by copying all fields. Also, `GA4RequestMetadata` is a `NamedTuple` with mutable `list`/`dict` fields — prefer immutable tuples/mappings or canonical JSON for the "immutable snapshot" claim.
 
+**27. Declared bidirectional onboarding component** 🔵
+
+> **Post-v0.2.0 / trigger-based enhancement.** Replace the current `st.components.v1.html()` iframe onboarding tour with a declared, bidirectional Streamlit custom component when the product needs to hide completed onboarding, conditionally render surrounding UI, collect consented lifecycle analytics, or anchor steps to application elements.
+>
+> **Current accepted behavior (v0.2.0):** localStorage owns durable completion; Skip, Finish, and Replay work; completed users see a compact 420px "Tour completed" card; Python does not mirror completion state; replay injects a one-shot `force_replay` render flag.
+>
+> **Trigger conditions (escalate when any are true):**
+> - The completed card occupies meaningful screen space or users report it as confusing
+> - The app needs to conditionally render other UI based on whether the tour is visible or completed
+> - Product analytics need a trustworthy "started / skipped / completed" signal
+> - The tour becomes longer, contextual, or needs to target page elements outside its iframe
+> - You want to eliminate the permanent Replay control or hide onboarding entirely after completion
+>
+> **Target architecture:**
+> ```text
+> Frontend → Python:  { tour_visible, completion_status }  (read-only report)
+> Python → Frontend:  replay_nonce                          (incrementing command)
+> ```
+> The frontend still owns step progression and localStorage as the single durable authority. Python receives only a read-only visibility/completion report and provides an incrementing `replay_nonce`; the frontend detects a new nonce, clears the versioned key, and starts at step 1. This preserves a single source of truth while allowing Python to reserve zero height once completion is known.
+>
+> **Do not:** reintroduce `tour_step`, mirror localStorage completion in `st.session_state`, use unsupported `setComponentValue()` behavior with `components.html()`, or add ad hoc `postMessage` synchronization.
+>
+> **Architectural decision record:** `components/onboarding_tour.py` module docstring (v0.2.0).
+
 ---
 
 ## 🚀 10 Moonshot Ideas
