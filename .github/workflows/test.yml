@@ -30,3 +30,34 @@ jobs:
       - name: Run tests with coverage
         run: |
           python -m pytest tests/ -v --tb=short --cov=utils --cov=components --cov=pages --cov-report=term-missing
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        working-directory: components/drive_picker_component_frontend
+        run: npm ci
+
+      - name: Typecheck frontend
+        working-directory: components/drive_picker_component_frontend
+        run: npm run check
+
+      - name: Build production bundle
+        working-directory: components/drive_picker_component_frontend
+        run: npm run build
+
+      - name: Verify bundle artifacts (index.html + hashed JS)
+        working-directory: components/drive_picker_component_frontend
+        run: |
+          test -f build/index.html || { echo "build/index.html missing"; exit 1; }
+          js_files=$(find build -name '*.js' -type f | wc -l | tr -d ' ')
+          test "$js_files" -ge 1 || { echo "no JS assets in build/"; exit 1; }
+          echo "bundle verified: build/index.html + $js_files JS asset(s)"

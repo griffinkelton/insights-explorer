@@ -28,6 +28,7 @@ Pattern 6 (hardening gate): Verifies that no bare ``except Exception:
 
 import ast
 import os
+import re
 import textwrap
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -559,25 +560,84 @@ class TestOnClickAntiPattern:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Pattern 5: drive.readonly string must not appear in runtime source
+# Pattern 5: Forbidden Drive scope guard (v0.3.0 Phase 1)
 # ═══════════════════════════════════════════════════════════════════════════
 
+FORBIDDEN_DRIVE_SCOPES = [
+    "drive",  # Full access
+    "drive.readonly",  # Read all files
+    "drive.metadata.readonly",  # Read all metadata
+]
+ALLOWED_DRIVE_SCOPES = [
+    "drive.file",  # Per-file access only
+]
 
-class TestDriveReadonlyRemoved:
-    """Verify no ``drive.readonly`` string survives in runtime source.
+# Matches the scope token inside a full OAuth URL (``auth/drive.file``).
+# Matching the token (not the bare substring) prevents ``drive.file``
+# (allowed) from being falsely flagged by the ``drive`` prefix.
+_SCOPE_TOKEN_RE = re.compile(r"auth/([a-zA-Z0-9._]+)")
 
-    After PR 2 Drive scope removal, the app should only reference
-    ``drive.file`` for exports — never ``drive.readonly`` (browsing).
-    Scans all .py files under utils/, components/, pages/, and app.py.
+
+class TestDriveScopeRestricted:
+    """Verify no forbidden Drive scopes survive in runtime source.
+
+    After PR 2 Drive scope removal and v0.3.0 Phase 1, the app may only
+    request ``drive.file`` (per-file access) and ``analytics.readonly``
+    (GA4). ``drive``, ``drive.readonly``, and
+    ``drive.metadata.readonly`` are forbidden — scanning all .py files
+    under utils/, components/, pages/, and app.py.
     """
 
     _RUNTIME_DIRS = ["utils", "components", "pages"]
     _RUNTIME_FILES = ["app.py"]
 
-    def test_no_drive_readonly_in_source(self):
-        """No .py file under runtime dirs should contain drive.readonly."""
+    def test_no_forbidden_drive_scopes_in_source(self):
+        """No runtime file may reference a forbidden Drive scope."""
         violations: list[str] = []
 
+        for fpath in self._iter_runtime_files():
+            with open(fpath) as f:
+                found = _SCOPE_TOKEN_RE.findall(f.read())
+            for scope in found:
+                if scope in FORBIDDEN_DRIVE_SCOPES:
+                    violations.append(f"{os.path.relpath(fpath, ROOT)}: references '{scope}'")
+
+        if violations:
+            raise AssertionError(
+                "Forbidden Drive scopes found in runtime source after v0.3.0 "
+                "Phase 1:\n  "
+                + "\n  ".join(violations)
+                + "\n\nOnly drive.file (per-file access) is permitted. "
+                "drive, drive.readonly, and drive.metadata.readonly are forbidden."
+            )
+
+    def test_drive_file_scope_not_flagged(self):
+        """drive.file is the allowed scope and must not be flagged."""
+        found = _SCOPE_TOKEN_RE.findall('SCOPES = ["https://www.googleapis.com/auth/drive.file"]')
+        assert found == ["drive.file"]
+        assert "drive.file" not in FORBIDDEN_DRIVE_SCOPES
+
+    def test_analytics_readonly_scope_not_flagged(self):
+        """analytics.readonly (GA4) is not a Drive scope and must not flag."""
+        found = _SCOPE_TOKEN_RE.findall(
+            'SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]'
+        )
+        assert found == ["analytics.readonly"]
+        assert "analytics.readonly" not in FORBIDDEN_DRIVE_SCOPES
+
+    def test_forbidden_scopes_detected(self):
+        """The token extractor detects each forbidden scope."""
+        assert _SCOPE_TOKEN_RE.findall('SCOPES = ["https://www.googleapis.com/auth/drive"]') == [
+            "drive"
+        ]
+        assert _SCOPE_TOKEN_RE.findall(
+            'SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]'
+        ) == ["drive.readonly"]
+        assert _SCOPE_TOKEN_RE.findall(
+            'SCOPES = ["https://www.googleapis.com/auth/drive.metadata.readonly"]'
+        ) == ["drive.metadata.readonly"]
+
+    def _iter_runtime_files(self):
         for dir_name in self._RUNTIME_DIRS:
             dir_path = os.path.join(ROOT, dir_name)
             if not os.path.isdir(dir_path):
@@ -585,27 +645,11 @@ class TestDriveReadonlyRemoved:
             for root, _dirs, files in os.walk(dir_path):
                 for fname in files:
                     if fname.endswith(".py") and not fname.startswith("test_"):
-                        fpath = os.path.join(root, fname)
-                        if self._contains_drive_readonly(fpath):
-                            violations.append(
-                                f"{os.path.relpath(fpath, ROOT)}: contains 'drive.readonly'"
-                            )
-
+                        yield os.path.join(root, fname)
         for fname in self._RUNTIME_FILES:
             fpath = os.path.join(ROOT, fname)
-            if os.path.isfile(fpath) and self._contains_drive_readonly(fpath):
-                violations.append(f"{fname}: contains 'drive.readonly'")
-
-        if violations:
-            raise AssertionError(
-                "drive.readonly references found in runtime source after PR 2:\n  "
-                + "\n  ".join(violations)
-                + "\n\nReplace with drive.file only or remove entirely."
-            )
-
-    def _contains_drive_readonly(self, path: str) -> bool:
-        with open(path) as f:
-            return "drive.readonly" in f.read()
+            if os.path.isfile(fpath):
+                yield fpath
 
 
 # ═══════════════════════════════════════════════════════════════════════════

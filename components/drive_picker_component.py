@@ -1,19 +1,25 @@
-"""Declared Streamlit component for the Phase 0 Google Picker transport spike.
+"""Declared Streamlit component for v0.3.0 Drive import (Picker transport).
 
-This is the Option-B replacement for the rejected
-:func:`components.html` hidden-input bridge.  It uses Streamlit's
-supported bidirectional component protocol: Python supplies arguments
-(oauth_token, developer_key, app_id, app_origin, request_id), and the
-frontend returns one sanitised event via ``Streamlit.setComponentValue()``.
+This is the Option-B component selected by Phase 0 — the replacement for
+the rejected :func:`components.html` hidden-input bridge. It uses
+Streamlit's supported bidirectional component protocol: Python supplies
+arguments (oauth_token, developer_key, app_id, app_origin, request_id),
+and the frontend returns one validated selection via
+``Streamlit.setComponentValue()``.
 
-Branch: spike/drive-picker-transport
-Parent spec: plans/00-sprints/🔵 phase-0-drive-picker-spike-spec.md
+The wrapper owns **schema validation**: it returns only an allowlisted
+``PickerSelection`` shape or ``None`` — never raw component values,
+Picker metadata, tokens, or error text. The sidebar owns request
+freshness (``requestId`` equality).
+
+Parent specs: plans/00-sprints/🔵 v0.3.0-drive-import-spec.md (§3.3),
+plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Literal, TypedDict
 
 import streamlit.components.v1 as components
 
@@ -25,6 +31,18 @@ _component = components.declare_component(
 )
 
 
+class PickerSelection(TypedDict):
+    """The only payload the wrapper will return to the sidebar.
+
+    ``kind`` is fixed to ``"picked"``; ``requestId`` is the server-side
+    current-request token; ``fileId`` is the opaque Drive file ID.
+    """
+
+    kind: Literal["picked"]
+    requestId: str
+    fileId: str
+
+
 def drive_picker_transport(
     *,
     oauth_token: str,
@@ -33,18 +51,14 @@ def drive_picker_transport(
     app_origin: str,
     request_id: str,
     key: str,
-) -> dict[str, Any] | None:
-    """Render the Picker transport component; return its sanitised event or ``None``.
+) -> PickerSelection | None:
+    """Render the declared component; return a validated selection or ``None``.
 
-    The frontend is only allowed to return:
-
-    .. code-block:: json
-
-        {"kind": "transport_verified", "requestId": "<current>"}
-
-    The caller must validate ``kind`` and ``requestId`` before acting on
-    the return value.  No file ID, filename, MIME type, OAuth token,
-    API key, or raw error text is ever returned.
+    The wrapper validates the raw component result and returns only an
+    allowlisted ``PickerSelection`` shape or ``None`` — ``None`` for
+    ``None``, strings, lists, malformed dicts, wrong ``kind``, or
+    ``picked`` without a non-empty ``fileId``. No file ID, filename,
+    MIME type, OAuth token, API key, or raw error text is ever returned.
     """
     value = _component(
         oauthToken=oauth_token,
@@ -55,4 +69,16 @@ def drive_picker_transport(
         key=key,
         default=None,
     )
-    return value if isinstance(value, dict) else None
+    if (
+        isinstance(value, dict)
+        and value.get("kind") == "picked"
+        and isinstance(value.get("requestId"), str)
+        and isinstance(value.get("fileId"), str)
+        and value["fileId"]
+    ):
+        return {
+            "kind": "picked",
+            "requestId": value["requestId"],
+            "fileId": value["fileId"],
+        }
+    return None

@@ -1,19 +1,38 @@
-"""Google Drive client — write-only exports (Sheets, CSV, Drive upload).
+"""Google Drive client — write-only exports + v0.3.0 Drive import download.
 
-Drive browsing (list_drive_files, download_drive_file, load_drive_file_as_df)
-was removed in v0.1.0 to enforce least-privilege: only drive.file scope is
-requested; the app cannot list or read arbitrary Drive files.
+Export paths (Sheets, CSV, Drive upload) were kept in v0.1.0 under the
+least-privilege ``drive.file`` scope. ``download_drive_file`` (v0.3.0)
+re-adds a *single-file* read path: the user explicitly selects one file
+via the Picker, and the server fetches authoritative metadata and
+streams that one file within a bounded in-memory buffer. The app never
+lists or scans the user's Drive.
 """
 
+import io
+import logging
 from io import BytesIO
 import pandas as pd
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 
 from utils.sanitize import safe_spreadsheet_value
+
+logger = logging.getLogger(__name__)
+
+# Supported MIME types for Drive import (server-authoritative allowlist).
+# Google Sheets is exported server-side as CSV (first sheet only).
+DRIVE_IMPORT_MIME_TYPES = {
+    "text/csv": ".csv",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+    "application/vnd.google-apps.spreadsheet": ".csv",
+}
+
+MAX_DRIVE_IMPORT_BYTES = 100 * 1024 * 1024  # 100 MB
+
+GOOGLE_SHEETS_EXPORT_MIME = "text/csv"
 
 
 def _build_drive_service(credentials: Credentials):
@@ -21,6 +40,133 @@ def _build_drive_service(credentials: Credentials):
     if credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
     return build("drive", "v3", credentials=credentials)
+
+
+class _BoundedBytesIO(io.BytesIO):
+    """BytesIO that rejects writes exceeding MAX_DRIVE_IMPORT_BYTES.
+
+    Rejects the chunk before it is retained in the in-memory output
+    buffer, preventing unbounded accumulation from a large Google Sheets
+    export that lacks a metadata size.
+    """
+
+    def write(self, data: bytes) -> int:
+        if self.tell() + len(data) > MAX_DRIVE_IMPORT_BYTES:
+            raise ValueError("The selected file exceeds the 100 MB limit.")
+        return super().write(data)
+
+
+def download_drive_file(
+    credentials: Credentials,
+    file_id: str,
+) -> tuple[bytes, str]:
+    """Download a single file from Google Drive for import.
+
+    Server-side metadata is authoritative — the ``file_id`` is an opaque
+    token from the Picker; name, MIME type, and size are fetched from the
+    Drive API, never from client-provided values.
+
+    Size validation uses 3 layers:
+    1. Metadata preflight — reject if 'size' field > 100 MB (fast).
+    2. Streamed byte cap — hard-abort the download/export stream if
+       accumulated bytes exceed 100 MB (catches Sheets with no preflight).
+    3. Final check — verify len(bytes) <= 100 MB before returning.
+
+    Google Sheets behavior: exports only the **first sheet** as CSV.
+
+    Args:
+        credentials: Valid OAuth credentials (with drive.file scope).
+        file_id: Google Drive file ID from the Picker.
+
+    Returns:
+        Tuple of (file_bytes, normalized_filename).
+        - Google Sheets: filename gets '.csv' extension if not already present.
+        - CSV/XLSX: filename used as-is from server metadata.
+
+    Raises:
+        ValueError: If file is empty, exceeds 100 MB, or unsupported MIME.
+        RuntimeError: If the Drive API returns an error (404, 403, etc.).
+    """
+    service = _build_drive_service(credentials)
+
+    try:
+        # 1. Server metadata is authoritative (never trust Picker name/MIME).
+        metadata = service.files().get(fileId=file_id, fields="name,mimeType,size").execute()
+    except HttpError as e:
+        _raise_classified_drive_error(e)
+
+    name = metadata.get("name", "")
+    mime_type = metadata.get("mimeType", "")
+    size = metadata.get("size")
+
+    # MIME allowlist — reject anything not importable.
+    if mime_type not in DRIVE_IMPORT_MIME_TYPES:
+        logger.warning("Drive import rejected: category=unsupported_mime")
+        raise ValueError("This file type cannot be imported. Use CSV, XLSX, or Google Sheets.")
+
+    # Layer 1: metadata preflight (fast path for CSV/XLSX).
+    if size is not None and int(size) > MAX_DRIVE_IMPORT_BYTES:
+        logger.warning("Drive import rejected: category=file_too_large")
+        raise ValueError("The selected file exceeds the 100 MB limit.")
+
+    # Layer 2: streamed byte cap with bounded in-memory writer.
+    buffer = _BoundedBytesIO()
+    try:
+        if mime_type == "application/vnd.google-apps.spreadsheet":
+            request = service.files().export_media(
+                fileId=file_id, mimeType=GOOGLE_SHEETS_EXPORT_MIME
+            )
+        else:
+            request = service.files().get_media(fileId=file_id)
+
+        downloader = MediaIoBaseDownload(buffer, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+    except HttpError as e:
+        _raise_classified_drive_error(e)
+
+    file_bytes = buffer.getvalue()
+
+    # Layer 3: final byte check (safety net).
+    if len(file_bytes) > MAX_DRIVE_IMPORT_BYTES:
+        logger.warning("Drive import rejected: category=file_too_large")
+        raise ValueError("The selected file exceeds the 100 MB limit.")
+
+    # Zero-byte rejection.
+    if not file_bytes:
+        logger.warning("Drive import rejected: category=empty_file")
+        raise ValueError("The selected file is empty.")
+
+    # Google Sheets: first sheet only; avoid a double '.csv' extension.
+    if mime_type == "application/vnd.google-apps.spreadsheet":
+        if name.lower().endswith(".csv"):
+            final_name = name
+        else:
+            final_name = f"{name}.csv"
+    else:
+        final_name = name
+
+    return file_bytes, final_name
+
+
+def _raise_classified_drive_error(error: HttpError) -> None:
+    """Raise a user-facing RuntimeError for a Drive API HttpError.
+
+    Never exposes raw API error text, request URLs, file IDs, or token
+    fragments. Logs only an allowlisted error category — never
+    ``exc_info=True`` (tracebacks can reproduce the raw HttpError payload
+    including request URLs and file IDs).
+    """
+    status = getattr(error.resp, "status", None)
+    if status == 404:
+        logger.warning("Drive download failed: category=not_found")
+        raise RuntimeError("File not found or access denied. Check that you have permission.")
+    if status == 403:
+        logger.warning("Drive download failed: category=access_denied")
+        raise RuntimeError("Access denied. Try reconnecting your Google account.")
+    logger.warning("Drive download failed: category=download_failed")
+    raise RuntimeError("Could not download the file. Please try again.")
 
 
 def _build_sheets_service(credentials: Credentials):
