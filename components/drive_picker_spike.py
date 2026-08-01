@@ -96,26 +96,17 @@ try {
     statusEl.appendChild(div);
   }
 
-  log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
-
-  // ── Compute origin ───────────────────────────────────────────────────
-  var ORIGIN;
-  try {
-    ORIGIN = window.top.location.origin;
-    log("Origin (top): " + ORIGIN);
-  } catch(e) {
-    ORIGIN = window.location.origin;
-    log("Origin (fallback): " + ORIGIN);
-  }
+  log("Config loaded");
+  log("Origin: " + CONFIG.appOrigin);
 
   // ── Google Picker callback ────────────────────────────────────────────
   function pickerCallback(data) {
     if (data.action === google.picker.Action.PICKED && data.docs && data.docs.length > 0) {
       var fileId = data.docs[0].id;
-      log("PICKED: " + fileId, "ok");
+      log("Selection event received", "ok");
       bridgeToStreamlit(fileId);
     } else if (data.action === google.picker.Action.CANCEL) {
-      log("CANCELLED");
+      log("Cancelled");
     }
   }
 
@@ -126,13 +117,7 @@ try {
         'input[aria-label="_drive_picker_bridge"]'
       );
       if (!input) {
-        log("bridge: input not found by aria-label, trying fallback", "err");
-        input = window.parent.document.querySelector(
-          'input[data-testid="stTextInput"][aria-label*="bridge"]'
-        );
-      }
-      if (!input) {
-        log("bridge: FAILED — no input found", "err");
+        log("Bridge: input not found", "err");
         return;
       }
       var setter = Object.getOwnPropertyDescriptor(
@@ -141,9 +126,9 @@ try {
       setter.call(input, fileId);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
-      log("bridge: value dispatched", "ok");
+      log("Bridge: dispatched", "ok");
     } catch (e) {
-      log("bridge: CROSS-ORIGIN blocked — " + e.message, "err");
+      log("Bridge unavailable", "err");
     }
   }
 
@@ -160,7 +145,7 @@ try {
       var picker = new google.picker.PickerBuilder()
         .setOAuthToken(CONFIG.oauthToken)
         .setDeveloperKey(CONFIG.apiKey)
-        .setOrigin(ORIGIN)
+        .setOrigin(CONFIG.appOrigin)
         .addView(view)
         .setCallback(pickerCallback)
         .build();
@@ -212,7 +197,11 @@ def _picker_iframe_html(oauth_token: str, api_key: str) -> str:
     escaping, and no risk of the token content interacting with Python
     string formatting.
     """
-    config = {"oauthToken": oauth_token, "apiKey": api_key}
+    config = {
+        "oauthToken": oauth_token,
+        "apiKey": api_key,
+        "appOrigin": "http://localhost:8501",
+    }
     config_json = _json_for_script(config)
 
     return _PICKER_HTML.replace("__CONFIG_JSON__", config_json)
@@ -257,6 +246,7 @@ def render_drive_picker_spike() -> None:
         if st.button("🔄 Reset spike result", key="_spike_reset_btn"):
             st.session_state._spike_success = False
             st.session_state._drive_picker_active = False
+            # Safe: this branch returns before st.text_input is created
             st.session_state["_drive_picker_bridge"] = ""
             st.rerun()
         return

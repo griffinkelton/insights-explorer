@@ -47,8 +47,9 @@ class TestPickerIframeHtml:
 
     def test_config_embedded_as_js_variable(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        # Config is now injected directly as a JS variable, not in a JSON script tag
-        assert 'var CONFIG = {"oauthToken": "tok", "apiKey": "key"}' in html
+        # Config includes appOrigin (passed from Python, not iframe-computed)
+        assert 'var CONFIG = {"oauthToken": "tok"' in html
+        assert '"appOrigin": "http://localhost:8501"' in html
 
     def test_config_as_js_variable(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
@@ -102,12 +103,11 @@ class TestPickerIframeHtml:
         assert "api-key-123" in html
         assert "var CONFIG = {" in html
 
-    def test_set_origin_computed_at_runtime(self) -> None:
+    def test_set_origin_uses_app_origin(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "window.top.location.origin" in html
-        assert "setOrigin" in html
-        # Origin is now computed via try/catch assignment, not an IIFE
-        assert "var ORIGIN" in html
+        # Origin now comes from Python config, not iframe-computed
+        assert ".setOrigin(CONFIG.appOrigin)" in html
+        assert '"appOrigin": "http://localhost:8501"' in html
 
     def test_spreadsheet_mime_types_configured(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")

@@ -1,6 +1,6 @@
 # Phase 0 Spike — Debugging Summary
 
-> **Branch:** `spike/drive-picker-transport` (last commit `d8dcaf9`)
+> **Branch:** `spike/drive-picker-transport` (last updated `4630729`, fixes pending in working tree)
 > **Goal:** Prove Google Picker can deliver a selected file ID from an iframe back to Streamlit Python via a hidden-input DOM bridge (Option A).
 
 ---
@@ -85,25 +85,26 @@ failed silently, leaving `status` as the empty string `""`. Strings don't have
 
 ---
 
-## Current state (ready to test)
+## Current state (after ChatGPT-5.6 feedback — 3 fixes applied)
 
-The diagnostic iframe now shows a live status log:
+The diagnostic iframe now shows a sanitized status log:
 
 ```
 ⚡ Diagnostics running…
-Config parsed: token length=…
-Origin (top/fallback): http://localhost:8501
+Config loaded
+Origin: http://localhost:8501
 Loading gapi from apis.google.com/js/api.js…
 ```
 
-Then one of:
+Then:
 - ✅ `gapi script loaded` → `gapi loaded — building picker` → `picker.setVisible(true)`
 - ❌ `FAILED: could not load apis.google.com/js/api.js`
 - ❌ `FAILED: gapi undefined after 5s`
 
-The hidden-input bridge JS uses `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set`
-+ `dispatchEvent(new Event("input"/"change"))` to programmatically set the Streamlit
-text input from the iframe — this is the **Option A experiment** being tested.
+**Key architectural changes from feedback:**
+- **Origin is now Python-supplied** (`appOrigin: "http://localhost:8501"`) — no more iframe-computed origin guessing. This is likely to fix the 403.
+- **All diagnostics sanitized** — no file IDs, token metadata, or raw exception text is ever displayed.
+- **Bridge simplified** — single aria-label selector, no fallback, bare error message.
 
 ### Bug 4 (UNRESOLVED): Google Picker returns 403 Forbidden
 
