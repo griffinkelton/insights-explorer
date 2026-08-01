@@ -2,6 +2,7 @@
 
 > **Branch:** `spike/drive-picker-transport`
 > **Goal:** Prove Google Picker can deliver a selected file ID from the browser back to Streamlit Python.
+> **Outcome:** ✅ Complete — Option A rejected, Option B selected as the production transport (2026-07-31)
 
 ---
 
@@ -10,8 +11,10 @@
 **Option A** (hidden-input DOM bridge via `components.html()`) was rejected
 after platform evidence showed the `srcdoc` iframe origin is fundamentally
 incompatible with Google Picker. **Option B** (declared Streamlit component
-with `Streamlit.setComponentValue()`) is now implemented and awaiting browser
-testing.
+with `Streamlit.setComponentValue()`) passed the Phase 0 transport gates on
+local Chrome/macOS and was **accepted as the production transport** for
+v0.3.0 on 2026-07-31. Full cross-browser acceptance (Chrome/Windows, Safari,
+Firefox) remains a v0.3.0 release gate per the spec.
 
 ---
 
@@ -56,7 +59,7 @@ an invalid `parent` parameter, even though `.setOrigin()` and the HTTP
 
 ---
 
-## Option B implementation (current state)
+## Option B implementation (as of Phase 0 closeout)
 
 ### Architecture
 
@@ -87,14 +90,14 @@ an invalid `parent` parameter, even though `.setOrigin()` and the HTTP
 
 ### Files
 
-| File | Purpose |
-|---|---|
-| `components/drive_picker_component.py` | Python wrapper using `components.declare_component()` |
-| `components/drive_picker_component_frontend/src/main.ts` | TypeScript frontend |
-| `components/drive_picker_component_frontend/index.html` | Minimal HTML shell |
-| `components/drive_picker_component_frontend/package.json` | Dependencies (streamlit-component-lib, vite, typescript) |
-| `components/drive_picker_spike.py` | Spike render entry-point (rewritten for Option B) |
-| `tests/test_drive_picker_spike.py` | Structural tests (12 tests, all pass) |
+| File | Purpose | Post-Phase-0 status |
+|---|---|---|
+| `components/drive_picker_component.py` | Python wrapper using `components.declare_component()` | ✅ Retained — production component |
+| `components/drive_picker_component_frontend/src/main.ts` | TypeScript frontend | ✅ Retained |
+| `components/drive_picker_component_frontend/index.html` | Minimal HTML shell | ✅ Retained |
+| `components/drive_picker_component_frontend/package.json` | Dependencies (streamlit-component-lib, vite, typescript) | ✅ Retained |
+| `components/drive_picker_spike.py` | Spike render entry-point (rewritten for Option B) | 🗑️ Deleted at closeout |
+| `tests/test_drive_picker_spike.py` | Structural tests (12 tests, all pass) | 🗑️ Deleted at closeout |
 
 ### Key differences from Option A
 
@@ -117,34 +120,38 @@ Never returned: file ID, filename, MIME type, OAuth token, API key, raw errors.
 
 ---
 
-## Next test (Option B browser gates)
+## Verification performed (2026-07-31, local Chrome/macOS)
 
-1. **Restart Streamlit** — the app was restarted at commit `b91445d`+ with the Option B code
-2. **Hard-refresh** (Cmd+Shift+R) at `http://localhost:8501`
-3. **Connect GA4** (existing OAuth with `drive.file` scope)
-4. The spike section should show the declared component with an **"Open Picker spike"** button
-5. Click it → the Google Picker dialog should open as a full-window overlay
-6. Select a CSV, XLSX, or Google Sheet → expect **"✓ Picker transport verified"**
-7. Cancel → no success shown
-8. Reset → fresh `requestId`, able to select again
-9. Test across Chrome, Safari, Firefox (macOS)
+The declared component (Option B) passed the Phase 0 transport gates:
 
-### Browser matrix
+1. Picker opened from the declared component's **"Open Picker spike"** button
+2. Selecting a CSV/XLSX/Google Sheet returned a valid selection event to Python
+3. The UI reported **"✓ Picker transport verified — no file was downloaded, parsed, stored, or imported"**
+4. Cancel produced no success marker
+5. Repeated select/reset cycles and reruns worked
+6. Light/dark theme changes did not break Picker opening, selection, or the return transport (verified on local Chrome/macOS)
+7. No token, file ID, filename, Picker payload, or raw error leaked to app-controlled UI/logs/console
 
-| Browser | Platform | Gate |
-|---|---|---|
-| Latest Chrome | macOS | Picker opens, selection returns, cancel, repeat ×3, rerun, theme change |
-| Latest Safari | macOS | Same gates |
-| Latest Firefox | macOS | Same gates |
+### Browser matrix — cross-browser acceptance pending (v0.3.0 release gate)
+
+| Browser | Platform | Gate | Status |
+|---|---|---|---|
+| Latest Chrome | macOS | Picker opens, selection returns, cancel, repeat ×3, rerun, theme change | ✅ Verified (2026-07-31) |
+| Latest Chrome | Windows | Same gates | ⏳ Pending |
+| Latest Safari | macOS | Same gates | ⏳ Pending |
+| Latest Firefox | macOS | Same gates | ⏳ Pending |
+| Latest Firefox | Windows | Same gates | ⏳ Pending |
+
+v0.3.0 may not ship until the full matrix passes (see the spec's release gate).
 
 ---
 
-## Cleanup after Phase 0
+## Cleanup after Phase 0 — completed 2026-07-31
 
-- Delete `components/drive_picker_spike.py` and tests
-- Delete `components/drive_picker_component.py` and frontend directory
-- Merge **only** the decision note (Option B accepted/rejected + evidence)
-- Preserve spike branch temporarily for audit
+- 🗑️ Deleted `components/drive_picker_spike.py` and `tests/test_drive_picker_spike.py`
+- ✅ **Retained** `components/drive_picker_component.py` + frontend as the production component for v0.3.0 (not deleted — it is the chosen transport)
+- ✅ Merged only the decision note to `main` (commit `2b965a8`)
+- ✅ Preserved `spike/drive-picker-transport` on the remote for audit
 
 ---
 
