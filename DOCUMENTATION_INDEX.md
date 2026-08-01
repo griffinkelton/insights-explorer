@@ -54,7 +54,7 @@
 | [plans/maintenance/✅ 2026-07-29-oauth-scope-remediation-spec.md](plans/maintenance/✅%202026-07-29-oauth-scope-remediation-spec.md) | Security hardening: OAuth scope reduction, token revocation, error handling refactor, model constraints | Post-phase-6 code review remediation — 7 commits, 359 tests, scope fix (drive→drive.readonly+drive.file), chmod hardening, scope migration banner, shared error classification, token tracking, dead code cleanup, BUG-009 & BUG-010 | ✅ Done (359 tests) |
 | [plans/🔵 v0.3.0-drive-import-design.md](plans/🔵%20v0.3.0-drive-import-design.md) | Architecture decision record: Picker vs. direct listing, consent UX, security checklist | Picker API rationale, drive.file scope reuse, 100MB/50k row limits, v0.1.0 safety baseline preservation, deferred items | 🔵 Design complete |
 | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) | Thorough 5-phase implementation spec: Phase 0 transport spike → security hardening → provenance → picker UI → docs | 12 design decisions, file-level precision with code sketches, Phase 0 mandatory gate, hidden-input bridge vs declared-component fallback, JSON-safe config embedding, 3-layer file-size validation | 🔵 Spec'd (5 phases, 0→4) |
-| [plans/00-sprints/🔵 phase-0-drive-picker-spike-spec.md](plans/00-sprints/🔵%20phase-0-drive-picker-spike-spec.md) | Self-contained Phase 0 Google Picker transport spike: branch, module, GCP setup, acceptance gates, decision template | spike/drive-picker-transport branch, components/drive_picker_spike.py, 7 pass gates across Chrome/Safari/Firefox, Option A (hidden-input bridge) vs Option B (declared component), GCP console setup steps, browser version recording template, cleanup procedure | ✅ Complete — Option B accepted |
+| [plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md](plans/00-sprints/✅%20phase-0-drive-picker-spike-spec.md) | Self-contained Phase 0 Google Picker transport spike: branch, module, GCP setup, acceptance gates, decision template | spike/drive-picker-transport branch, components/drive_picker_spike.py, 7 pass gates across Chrome/Safari/Firefox, Option A (hidden-input bridge) vs Option B (declared component), GCP console setup steps, browser version recording template, cleanup procedure | ✅ Complete — Option B accepted |
 
 ---
 
@@ -166,7 +166,7 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 | plans/audit/✅ chatgpt-6.3-terra-feedback.md | Original GPT-6.3 audit feedback — 12 batches of findings | ✅ Done | 2026-07-30 |
 | [plans/🔵 v0.3.0-drive-import-design.md](plans/🔵%20v0.3.0-drive-import-design.md) | Architecture decision record — Picker vs. direct listing, consent UX, security model | 🔵 Design | 2026-07-31 |
 | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) | 5-phase implementation spec — Phase 0 transport spike, security, provenance, picker UI, docs | 🔵 Spec'd | 2026-07-31 |
-| [plans/00-sprints/🔵 phase-0-drive-picker-spike-spec.md](plans/00-sprints/🔵%20phase-0-drive-picker-spike-spec.md) | Phase 0 transport spike — GCP setup, branch workflow, acceptance gates, decision template | ✅ Complete | 2026-07-31 |
+| [plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md](plans/00-sprints/✅%20phase-0-drive-picker-spike-spec.md) | Phase 0 transport spike — GCP setup, branch workflow, acceptance gates, decision template | ✅ Complete | 2026-07-31 |
 
 ---
 
