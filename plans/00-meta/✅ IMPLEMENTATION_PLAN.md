@@ -1356,7 +1356,7 @@ Each of these is described in detail in [ENHANCEMENTS.md](ENHANCEMENTS.md) with 
 ## 📖 Related Docs
 
 - [ENHANCEMENTS.md](ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [IDEAS.md](IDEAS.md) — 30 bonus enhancements + 10 moonshot ideas
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs

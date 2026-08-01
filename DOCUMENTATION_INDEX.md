@@ -25,7 +25,7 @@
 |---|---|---|
 | [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) | 37-item enhancement roadmap across 7 categories (UX, Code, Security, AI, Data, DevOps, Docs) | To see what's been done and what's available |
 | [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) | Detailed 21-item execution blueprint with file-level precision, risk assessments, sprint plan | Before starting any implementation work |
-| [IDEAS.md](IDEAS.md) | 30 bonus enhancements + 10 moonshot ideas (creative, not in the plan); #29 Credential rotation ✅ complete (2026-08-01) | For inspiration and long-term vision |
+| [IDEAS.md](IDEAS.md) | 30 bonus enhancements + 10 moonshot ideas (#1–#25 creative, not in the plan; #26–#30 tracked — #28–#30 v0.3.0 fast-follows, #29 Credential rotation ✅ complete 2026-08-01) | For inspiration and long-term vision |
 
 ---
 
@@ -134,7 +134,7 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 | ARCHITECTURE.md | Design decisions, data flow, security model, dependencies, build log | ✅ Current | 2026-07-29 |
 | [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) | 37-item roadmap of what's been improved and what's still available | ✅ Current | 2026-07-29 |
 | [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) | 21-item execution blueprint — the master implementation guide | ✅ Current | 2026-07-29 |
-| IDEAS.md | Creative ideas beyond the roadmap: 30 bonus enhancements + 10 moonshots; #29 Credential rotation ✅ complete (2026-08-01) | ✅ Current | 2026-08-01 |
+| IDEAS.md | Creative ideas beyond the roadmap: 30 bonus enhancements + 10 moonshots; #1–#25 creative, #26–#30 tracked (#29 Credential rotation ✅ complete 2026-08-01) | ✅ Current | 2026-08-01 |
 | BUGLOG.md | Structured bug history with root causes, fixes, and detection patterns (10 bugs) | ✅ Current | 2026-07-29 |
 | DOCUMENTATION_INDEX.md | This file — central index connecting all project documentation | ✅ Current | 2026-07-29 |
 | CHANGELOG.md | Unified change history with commit hashes and related doc links | ✅ Current | 2026-08-01 |

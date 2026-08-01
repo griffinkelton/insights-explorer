@@ -1,14 +1,14 @@
 # 💡 Bonus Enhancements & Moonshot Ideas
 
-> **Status:** Creative exploration — NOT part of the implementation plan.
-> These are 25 additional enhancement ideas + 10 moonshot concepts. They sit outside the 37-item ENHANCEMENTS.md and 21-item IMPLEMENTATION_PLAN.md.
+> **Status:** Items #1–#25 are creative exploration — outside the implementation plan. Items #26–#30 are actively tracked: #26 in the [Evidence Connector Design](plans/🔵%20evidence-connector-design.md), #27 as a trigger-based post-v0.2.0 enhancement, #28–#30 as v0.3.0 fast-follows (with #29 ✅ completed 2026-08-01).
+> These are 30 additional enhancement ideas + 10 moonshot concepts. Items #1–#25 sit outside the 37-item ENHANCEMENTS.md and 21-item IMPLEMENTATION_PLAN.md.
 > The original 6-phase plan is complete. Active maintenance is tracked in [plans/maintenance/](plans/maintenance/) — the July 2026 OAuth security hardening & code quality remediation is the first post-phase-6 maintenance round.
 >
 > ✅ = Built and shipped. Some are practical. Some are wild. All are meant to spark ideas.
 
 ---
 
-## 🔮 25 Additional Enhancements
+## 🔮 30 Additional Enhancements
 
 ### Voice & Input
 
@@ -297,6 +297,7 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 | **Visualization** | #6 Calendar heatmap, #7 Sankey diagram, #8 Animated time-series, #9 Word cloud, #10 Funnel viz, #11 Geospatial map | — |
 | **Collaboration** | #12 Shareable links, #13 Comment threads, #14 Team annotations, #15 Slack integration, #16 Bookmark collection | — |
 | **Data Intelligence** | #17 Quality scorecard, #18 Segmentation, #19 Session replay, #20 Cross-property benchmarking, #21 Forecasting, #22 Cohort retention, #23 Attribution, #24 Custom metrics, #25 Data dictionary | #1 Autonomous agent, #4 Cross-property narrative, #8 Semantic search |
+| **Integration & Tooling** | #26 Evidence connector, #27 Onboarding component, #28 Drive Picker UX, #29 Credential rotation ✅, #30 Visual testing | — |
 | **AI & Multi-Modal** | — | #2 Multi-modal explorer, #3 What-if engine, #5 Video generator, #9 BigQuery bridge |
 | **Real-Time & Ops** | — | #6 Realtime anomaly alerts, #7 Competitive intelligence |
 | **Simulation** | — | #10 Digital twin |

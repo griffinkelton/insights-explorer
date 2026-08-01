@@ -56,7 +56,7 @@ insights-explorer/
 ├── .gitignore
 ├── BUGLOG.md                    # Structured bug log (10 bugs)
 ├── ORIGINAL_SPEC.md             # Initial spec + compliance checklist
-├── IDEAS.md                     # 25 bonus ideas + 10 moonshots
+├── IDEAS.md                     # 30 bonus ideas + 10 moonshots
 ├── DOCUMENTATION_INDEX.md       # Central docs index
 ├── plans/
 │   ├── 00-meta/                 # Archived meta-planning (UNIFIED_PLAN, IMPLEMENTATION_PLAN, ENHANCEMENTS)
@@ -311,7 +311,7 @@ Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) — 37-item enhancement roadmap
 - [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
-- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [IDEAS.md](IDEAS.md) — 30 bonus enhancements + 10 moonshot ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all documentation
 - [BUGLOG.md](BUGLOG.md) — Structured bug log with root causes, fixes, and learnings (10 bugs)
 - [plans/00-meta/✅ UNIFIED_PLAN.md](plans/00-meta/✅ UNIFIED_PLAN.md) — Master execution plan (6 phase plans + 5 derived sprint plans)

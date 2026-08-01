@@ -236,7 +236,7 @@
 ## 📖 Related Docs
 
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — 21-item execution blueprint with sprint plan
-- [IDEAS.md](IDEAS.md) — 25 bonus enhancements + 10 moonshot ideas
+- [IDEAS.md](IDEAS.md) — 30 bonus enhancements + 10 moonshot ideas
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs
