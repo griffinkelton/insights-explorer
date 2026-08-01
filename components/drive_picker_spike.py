@@ -22,6 +22,7 @@ from utils.ga4_client import credentials_from_dict
 
 logger = logging.getLogger(__name__)
 
+
 # ---------------------------------------------------------------------------
 # JSON-safe HTML embedding
 # ---------------------------------------------------------------------------
@@ -30,9 +31,10 @@ logger = logging.getLogger(__name__)
 def _json_for_script(value: object) -> str:
     """Serialize a value for safe embedding in an HTML <script> element.
 
-    ``json.dumps()`` handles JavaScript string escaping, but it does NOT prevent
-    ``</script>`` from terminating the enclosing element.  We replace ``<`` with
-    ``\\u003c`` to keep the JSON inert inside the script tag.
+    ``json.dumps()`` handles JavaScript string escaping, but it does NOT
+    prevent ``</script>`` from terminating the enclosing element.  We
+    replace ``<`` with ``\\u003c`` to keep the JSON inert inside the
+    script tag.
     """
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")
 
@@ -56,101 +58,99 @@ def _token_has_drive_scope() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Picker iframe HTML
+# Picker iframe HTML  (uses .replace(), NOT .format() — no {{/}} escaping)
 # ---------------------------------------------------------------------------
 
-# flake8: noqa: E501 — long HTML template lines are intentional for readability
-
-_PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
+_PICKER_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <style>
-  body {{
+  body {
     margin: 0; padding: 10px; overflow: auto;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 12px; background: #1e1e2e; color: #cdd6f4;
-  }}
-  #status {{ padding: 8px; }}
-  .ok {{ color: #a6e3a1; }}
-  .err {{ color: #f38ba8; }}
-  .info {{ color: #89b4fa; }}
+  }
+  #status { padding: 8px; }
+  .ok { color: #a6e3a1; }
+  .err { color: #f38ba8; }
+  .info { color: #89b4fa; }
 </style>
 </head>
 <body>
 <div id="status">
-  <div>⚡ Diagnostics running&hellip;</div>
+  <div>⚡ Diagnostics running…</div>
 </div>
 
-<!-- Config injected as JS variable to avoid HTML script-content parsing issues -->
 <script>
-  // ── Diagnostics run FIRST (before gapi loads) ───────────────────────
-  var CONFIG = {config_json};
+// ── Top-level error trap — any JS error is shown instead of silent hang ──
+try {
+
+  var CONFIG = __CONFIG_JSON__;
   var status = document.getElementById("status");
 
-  function log(msg, cls) {{
+  function log(msg, cls) {
     var div = document.createElement("div");
     div.className = cls || "info";
     div.textContent = msg;
     status.appendChild(div);
-  }}
+  }
 
-  // ── Parse config (never string-interpolated into executable JS) ──────
   log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
 
-  // Compute origin
+  // ── Compute origin ───────────────────────────────────────────────────
   var ORIGIN;
-  try {{
+  try {
     ORIGIN = window.top.location.origin;
     log("Origin (top): " + ORIGIN);
-  }} catch(e) {{
+  } catch(e) {
     ORIGIN = window.location.origin;
     log("Origin (fallback): " + ORIGIN);
-  }}
+  }
 
-  // ── Google Picker callback ───────────────────────────────────────────
-  function pickerCallback(data) {{
-    if (data.action === google.picker.Action.PICKED && data.docs && data.docs.length > 0) {{
+  // ── Google Picker callback ────────────────────────────────────────────
+  function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED && data.docs && data.docs.length > 0) {
       var fileId = data.docs[0].id;
       log("PICKED: " + fileId, "ok");
       bridgeToStreamlit(fileId);
-    }} else if (data.action === google.picker.Action.CANCEL) {{
+    } else if (data.action === google.picker.Action.CANCEL) {
       log("CANCELLED");
-    }}
-  }}
+    }
+  }
 
-  // ── Option A: hidden-input bridge ────────────────────────────────────
-  function bridgeToStreamlit(fileId) {{
-    try {{
+  // ── Option A: hidden-input bridge ─────────────────────────────────────
+  function bridgeToStreamlit(fileId) {
+    try {
       var input = window.parent.document.querySelector(
         'input[aria-label="_drive_picker_bridge"]'
       );
-      if (!input) {{
+      if (!input) {
         log("bridge: input not found by aria-label, trying fallback", "err");
         input = window.parent.document.querySelector(
           'input[data-testid="stTextInput"][aria-label*="bridge"]'
         );
-      }}
-      if (!input) {{
+      }
+      if (!input) {
         log("bridge: FAILED — no input found", "err");
         return;
-      }}
+      }
       var setter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype, "value"
       ).set;
       setter.call(input, fileId);
-      input.dispatchEvent(new Event("input", {{ bubbles: true }}));
-      input.dispatchEvent(new Event("change", {{ bubbles: true }}));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
       log("bridge: value dispatched", "ok");
-    }} catch (e) {{
+    } catch (e) {
       log("bridge: CROSS-ORIGIN blocked — " + e.message, "err");
-    }}
-  }}
+    }
+  }
 
-  // ── Picker initialisation ────────────────────────────────────────────
-  function onPickerApiLoad() {{
+  // ── Picker initialisation ─────────────────────────────────────────────
+  function onPickerApiLoad() {
     log("gapi loaded — building picker", "ok");
-    try {{
+    try {
       var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setMimeTypes(
           "application/vnd.google-apps.spreadsheet," +
@@ -166,35 +166,40 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
         .build();
       picker.setVisible(true);
       log("picker.setVisible(true) — look for file dialog", "ok");
-    }} catch (e) {{
+    } catch (e) {
       log("Picker build FAILED: " + e.message, "err");
-    }}
-  }}
+    }
+  }
 
-  // ── Load gapi dynamically (non-blocking) ─────────────────────────────
-  log("Loading gapi from apis.google.com/js/api.js&hellip;");
+  // ── Load gapi dynamically (non-blocking) ──────────────────────────────
+  log("Loading gapi from apis.google.com/js/api.js…");
 
   var script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
-  script.onload = function() {{
-    log("gapi script loaded, calling gapi.load('picker')&hellip;");
-    try {{
-      gapi.load("picker", {{ callback: onPickerApiLoad }});
-    }} catch (e) {{
+  script.onload = function() {
+    log("gapi script loaded, calling gapi.load('picker')…");
+    try {
+      gapi.load("picker", { callback: onPickerApiLoad });
+    } catch (e) {
       log("gapi.load FAILED: " + e.message, "err");
-    }}
-  }};
-  script.onerror = function() {{
+    }
+  };
+  script.onerror = function() {
     log("FAILED: could not load apis.google.com/js/api.js", "err");
-  }};
+  };
   document.head.appendChild(script);
 
   // Safety timeout — if gapi never loads
-  setTimeout(function() {{
-    if (typeof gapi === "undefined") {{
+  setTimeout(function() {
+    if (typeof gapi === "undefined") {
       log("FAILED: gapi undefined after 5s — network/blocker issue?", "err");
-    }}
-  }}, 5000);
+    }
+  }, 5000);
+
+} catch (e) {
+  document.getElementById("status").innerHTML =
+    '<span class=err>SCRIPT ERROR: ' + e.message + '</span>';
+}
 </script>
 </body>
 </html>"""
@@ -203,30 +208,14 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
 def _picker_iframe_html(oauth_token: str, api_key: str) -> str:
     """Build the Picker iframe HTML with JSON-safe config injection.
 
-    The OAuth token and API key are embedded **only** in a
-    ``<script type="application/json">`` element — never string-replaced
-    into executable JavaScript.  ``_json_for_script()`` ensures ``</script>``
-    cannot terminate the enclosing element.
-
-    The origin expression is embedded directly (not JSON-wrapped) because
-    it is a JavaScript IIFE — not a string value — that computes the
-    browsing context origin at runtime.
+    Uses ``.replace()`` instead of ``.format()`` — no ``{{``/``}}``
+    escaping, and no risk of the token content interacting with Python
+    string formatting.
     """
     config = {"oauthToken": oauth_token, "apiKey": api_key}
     config_json = _json_for_script(config)
 
-    # Compute the top-level browsing context origin at runtime.
-    # window.top may be denied by cross-origin/sandbox — that is a
-    # Phase 0 finding recorded in the browser matrix.
-    origin_js = (
-        "(function(){try{return window.top.location.origin;}"
-        "catch(e){return window.location.origin;}})()"
-    )
-
-    return _PICKER_IFRAME_HTML_TEMPLATE.format(
-        config_json=config_json,
-        origin_json=origin_js,
-    )
+    return _PICKER_HTML.replace("__CONFIG_JSON__", config_json)
 
 
 # ---------------------------------------------------------------------------
@@ -301,15 +290,12 @@ def render_drive_picker_spike() -> None:
         placeholder="_drive_picker_placeholder_",
     )
 
-    # If the bridge received a value, transport succeeded.
-    # On the next run the success branch renders (before this widget is
-    # recreated), so no need to clear the bridge value here.
     if bridge_value and bridge_value != "_drive_picker_placeholder_":
         st.session_state._spike_success = True
         st.session_state._drive_picker_active = False
         st.rerun()
 
-    # ── Open Picker button ───────────────────────────────────────────────
+    # ── Open / Cancel buttons ────────────────────────────────────────────
     if st.button("📂 Open Picker (spike)", type="primary", use_container_width=True):
         st.session_state._drive_picker_active = True
 
@@ -339,9 +325,11 @@ def render_drive_picker_spike() -> None:
         # ── Sanity test: minimal iframe to verify JS can execute ────────
         st.caption("🔬 Sanity check (should say HELLO in green):")
         components.html(
-            "<body style='background:#1e1e2e;color:#a6e3a1;padding:10px;font:12px monospace'>"
+            "<body style='background:#1e1e2e;color:#a6e3a1;padding:10px;"
+            "font:12px monospace'>"
             "<div id='out'>waiting...</div>"
-            "<script>document.getElementById('out').textContent='HELLO — script executed OK';</script>"
+            "<script>document.getElementById('out').textContent="
+            "'HELLO — script executed OK';</script>"
             "</body>",
             height=40,
         )
