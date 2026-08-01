@@ -252,12 +252,12 @@ def render_drive_picker_spike() -> None:
         placeholder="_drive_picker_placeholder_",
     )
 
-    # If the bridge received a value, transport succeeded
+    # If the bridge received a value, transport succeeded.
+    # On the next run the success branch renders (before this widget is
+    # recreated), so no need to clear the bridge value here.
     if bridge_value and bridge_value != "_drive_picker_placeholder_":
         st.session_state._spike_success = True
         st.session_state._drive_picker_active = False
-        # Immediately clear the bridge — the file ID is not displayed or persisted
-        st.session_state["_drive_picker_bridge"] = ""
         st.rerun()
 
     # ── Open Picker button ───────────────────────────────────────────────
@@ -271,7 +271,7 @@ def render_drive_picker_spike() -> None:
         key="_spike_cancel_btn",
     ):
         st.session_state._drive_picker_active = False
-        st.session_state["_drive_picker_bridge"] = ""
+        st.rerun()
 
     # ── Render picker iframe (only after explicit button click) ──────────
     if st.session_state.get("_drive_picker_active", False):
