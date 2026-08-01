@@ -87,13 +87,13 @@ _PICKER_HTML = """<!DOCTYPE html>
 try {
 
   var CONFIG = __CONFIG_JSON__;
-  var status = document.getElementById("status");
+  var statusEl = document.getElementById("status");
 
   function log(msg, cls) {
     var div = document.createElement("div");
     div.className = cls || "info";
     div.textContent = msg;
-    status.appendChild(div);
+    statusEl.appendChild(div);
   }
 
   log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
