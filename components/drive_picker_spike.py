@@ -79,16 +79,12 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <div id="status">
-  <div id="step1">⏳ Loading gapi library&hellip;</div>
+  <div>⚡ Diagnostics running&hellip;</div>
 </div>
 
 <script id="picker-config" type="application/json">{config_json}</script>
-<script src="https://apis.google.com/js/api.js" onerror="document.getElementById('step1').innerHTML='<span class=err>FAILED: could not load apis.google.com/js/api.js</span>'"></script>
 <script>
-  // ── Parse config (never string-interpolated into executable JS) ──────
-  var CONFIG = JSON.parse(
-    document.getElementById("picker-config").textContent
-  );
+  // ── Diagnostics run FIRST (before gapi loads) ───────────────────────
   var status = document.getElementById("status");
 
   function log(msg, cls) {{
@@ -98,24 +94,28 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
     status.appendChild(div);
   }}
 
-  // ── Compute origin ───────────────────────────────────────────────────
+  // Parse config (never string-interpolated into executable JS)
+  var CONFIG;
+  try {{
+    CONFIG = JSON.parse(
+      document.getElementById("picker-config").textContent
+    );
+    log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
+  }} catch(e) {{
+    log("Config parse FAILED: " + e.message, "err");
+  }}
+
+  // Compute origin
   var ORIGIN;
   try {{
     ORIGIN = window.top.location.origin;
+    log("Origin (top): " + ORIGIN);
   }} catch(e) {{
     ORIGIN = window.location.origin;
+    log("Origin (fallback): " + ORIGIN);
   }}
-  log("Origin: " + ORIGIN);
-  log("top accessible: " + (window.top !== window));
 
-  // ── Check gapi loaded ────────────────────────────────────────────────
-  setTimeout(function() {{
-    if (typeof gapi === "undefined") {{
-      log("FAILED: gapi not defined after 3s", "err");
-    }}
-  }}, 3000);
-
-  // ── Google Picker callback ────────────────────────────────────────────
+  // ── Google Picker callback ───────────────────────────────────────────
   function pickerCallback(data) {{
     if (data.action === google.picker.Action.PICKED && data.docs && data.docs.length > 0) {{
       var fileId = data.docs[0].id;
@@ -126,7 +126,7 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
     }}
   }}
 
-  // ── Option A: hidden-input bridge ─────────────────────────────────────
+  // ── Option A: hidden-input bridge ────────────────────────────────────
   function bridgeToStreamlit(fileId) {{
     try {{
       var input = window.parent.document.querySelector(
@@ -154,10 +154,9 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
     }}
   }}
 
-  // ── Picker initialisation ─────────────────────────────────────────────
+  // ── Picker initialisation ────────────────────────────────────────────
   function onPickerApiLoad() {{
-    document.getElementById("step1").innerHTML =
-      '<span class=ok>gapi loaded — building picker&hellip;</span>';
+    log("gapi loaded — building picker", "ok");
     try {{
       var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setMimeTypes(
@@ -173,17 +172,36 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
         .setCallback(pickerCallback)
         .build();
       picker.setVisible(true);
-      log("picker.setVisible(true) called — look for the file dialog", "ok");
+      log("picker.setVisible(true) — look for file dialog", "ok");
     }} catch (e) {{
       log("Picker build FAILED: " + e.message, "err");
     }}
   }}
 
-  try {{
-    gapi.load("picker", {{ callback: onPickerApiLoad }});
-  }} catch (e) {{
-    log("gapi.load FAILED: " + e.message, "err");
-  }}
+  // ── Load gapi dynamically (non-blocking) ─────────────────────────────
+  log("Loading gapi from apis.google.com/js/api.js&hellip;");
+
+  var script = document.createElement("script");
+  script.src = "https://apis.google.com/js/api.js";
+  script.onload = function() {{
+    log("gapi script loaded, calling gapi.load('picker')&hellip;");
+    try {{
+      gapi.load("picker", {{ callback: onPickerApiLoad }});
+    }} catch (e) {{
+      log("gapi.load FAILED: " + e.message, "err");
+    }}
+  }};
+  script.onerror = function() {{
+    log("FAILED: could not load apis.google.com/js/api.js", "err");
+  }};
+  document.head.appendChild(script);
+
+  // Safety timeout — if gapi never loads
+  setTimeout(function() {{
+    if (typeof gapi === "undefined") {{
+      log("FAILED: gapi undefined after 5s — network/blocker issue?", "err");
+    }}
+  }}, 5000);
 </script>
 </body>
 </html>"""
