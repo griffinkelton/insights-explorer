@@ -128,6 +128,26 @@ An admin-only, first-class data source connector for Evidence-built static dashb
 >
 > **Architectural decision record:** `components/onboarding_tour.py` module docstring (v0.2.0).
 
+**28. Drive Picker component UX polish** 🔵
+
+> **v0.3.0 sprint work.** The declared Drive Picker component (built in Phase 0) needs UI refinement before production use: sync with Streamlit's theme toggle (not just `prefers-color-scheme`), improve button/sidebar layout, add a cancel/close affordance in the component itself, and refine the loading/ready/verified status display. The transport works — now make it polished.
+
+**29. Credential rotation after Phase 0 debugging** 🔴
+
+> **Security follow-up — do before v0.3.0 ships.** During Phase 0 debugging, the OAuth access token and Google Picker API key were exposed in a Picker request URL (visible in chat/console output). Both must be rotated before the v0.3.0 release:
+> - Delete/rotate the Google Picker API key in GCP Console → APIs & Services → Credentials
+> - Revoke the OAuth grant or reconnect Google to obtain a fresh access token
+> - Update `.streamlit/secrets.toml` with the new key
+> - Verify the Picker still works with the new credentials
+
+**30. Automated visual/browser testing** 🔵
+
+> **Infrastructure task.** Manual browser testing is a burden on iteration speed. Investigate and adopt an automated visual/browser testing approach for the Streamlit app:
+> - **Option A:** Playwright (Python) — test Picker open/select/cancel, theme toggle, chat input focus, rerun resilience. Headless CI or headed local.
+> - **Option B:** Selenium with Streamlit-specific helpers — more mature but slower than Playwright.
+> - **Option C:** Streamlit's built-in `AppTest` framework — simulates user interactions without a real browser; useful for component contract tests but not visual/Picker tests.
+> - **Recommendation:** Playwright for end-to-end browser tests (Picker, themes, keyboard) + `pytest` structural tests for component contract validation. Start with a single smoke test (app loads, Picker opens after connect) and expand from there.
+
 ---
 
 ## 🚀 10 Moonshot Ideas
