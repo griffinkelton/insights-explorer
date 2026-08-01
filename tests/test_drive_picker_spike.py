@@ -1,119 +1,19 @@
-"""Structural tests for Phase 0 Drive Picker transport spike.
+"""Structural tests for Phase 0 Drive Picker transport spike (Option B).
 
-These tests verify source-level contracts only — the actual bridge behaviour
-can only be validated in a real browser (Phase 0 acceptance gates).
+These tests verify the Python wrapper and render logic only — the actual
+Picker behaviour can only be validated in a real browser (Phase 0
+acceptance gates).
+
+Option A (hidden-input bridge) was rejected; these tests cover the
+declared-component approach.
 
 Branch: spike/drive-picker-transport  —  DELETED after the Phase 0 gate decision.
 """
 
 from __future__ import annotations
 
-from components.drive_picker_spike import (
-    _json_for_script,
-    _picker_iframe_html,
-    _token_has_drive_scope,
-)
-
-
-class TestJsonForScript:
-    """JSON serialization for safe HTML <script> embedding."""
-
-    def test_plain_object(self) -> None:
-        result = _json_for_script({"key": "value"})
-        assert '"key"' in result
-        assert '"value"' in result
-
-    def test_script_tag_injection_blocked(self) -> None:
-        """A value containing </script> must be escaped so it cannot terminate
-        the enclosing HTML script element."""
-        dangerous = {"payload": "</script><script>alert(1)"}
-        result = _json_for_script(dangerous)
-        assert "</script>" not in result
-        assert "\\u003c/script>" in result
-
-    def test_angle_bracket_in_string(self) -> None:
-        result = _json_for_script({"name": "a < b"})
-        assert "\\u003c" in result
-        assert "a < b" not in result
-
-    def test_ascii_values_preserved(self) -> None:
-        result = _json_for_script({"emoji": "🚀", "text": "hello"})
-        assert "🚀" in result
-        assert "hello" in result
-
-
-class TestPickerIframeHtml:
-    """Template generation with safe config injection."""
-
-    def test_config_embedded_as_js_variable(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        # Config includes appOrigin (passed from Python, not iframe-computed)
-        assert 'var CONFIG = {"oauthToken": "tok"' in html
-        assert '"appOrigin": "http://localhost:8501"' in html
-
-    def test_config_as_js_variable(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        # Config is now a JS variable assignment, not JSON.parse
-        assert "var CONFIG = {" in html
-        assert "gapi.load" in html
-
-    def test_picker_callback_exists(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "function pickerCallback" in html
-        assert "google.picker.Action.PICKED" in html
-        assert "google.picker.Action.CANCEL" in html
-
-    def test_bridge_to_streamlit_exists(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "function bridgeToStreamlit" in html
-
-    def test_hidden_input_aria_label_targeted(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "_drive_picker_bridge" in html
-
-    def test_native_input_value_setter_used(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "getOwnPropertyDescriptor" in html
-        assert "HTMLInputElement.prototype" in html
-
-    def test_input_and_change_events_dispatched(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert 'new Event("input"' in html
-        assert 'new Event("change"' in html
-
-    def test_oauth_token_in_js_config(self) -> None:
-        """OAuth token should appear in var CONFIG = {...} JS statement.
-
-        The _json_for_script() function prevents </script> injection."""
-        html = _picker_iframe_html(oauth_token="secret-token-abc", api_key="key")
-        assert "secret-token-abc" in html
-        assert "var CONFIG = {" in html
-
-    def test_config_escape_prevents_script_breakout(self) -> None:
-        """If token or API key contain </script>, it must be escaped to
-        \\u003c/script> so it cannot close the enclosing script element."""
-        html = _picker_iframe_html(oauth_token="tok</script><script>alert(1)", api_key="key")
-        # The raw </script> must not appear in a way that closes the script
-        assert "</script>" not in html.replace("</script>\n</body>", "X")
-        # Escaped form should be present
-        assert "\\u003c/script>" in html
-
-    def test_api_key_in_js_config(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="api-key-123")
-        assert "api-key-123" in html
-        assert "var CONFIG = {" in html
-
-    def test_set_origin_uses_app_origin(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        # Origin now comes from Python config, not iframe-computed
-        assert ".setOrigin(CONFIG.appOrigin)" in html
-        assert '"appOrigin": "http://localhost:8501"' in html
-
-    def test_spreadsheet_mime_types_configured(self) -> None:
-        html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "application/vnd.google-apps.spreadsheet" in html
-        assert "text/csv" in html
-        assert ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") in html
+from components.drive_picker_component import drive_picker_transport
+from components.drive_picker_spike import _token_has_drive_scope
 
 
 class TestTokenHasDriveScope:
@@ -167,3 +67,108 @@ class TestTokenHasDriveScope:
             assert _token_has_drive_scope() is False
         finally:
             st.session_state.ga4_creds = saved
+
+
+class TestDrivePickerComponent:
+    """Python wrapper for the declared Streamlit component."""
+
+    def test_importable(self) -> None:
+        """Wrapper can be imported without error."""
+        assert callable(drive_picker_transport)
+
+    def test_has_docstring(self) -> None:
+        """Wrapper has documentation."""
+        assert drive_picker_transport.__doc__ is not None
+        assert "sanitised" in drive_picker_transport.__doc__.lower()
+
+
+class TestSpikeModuleHasNoOptionA:
+    """Option A artefacts must be absent from the spike module."""
+
+    def test_no_hidden_input_bridge_in_source(self) -> None:
+        """Source must not contain the rejected hidden-input bridge pattern.
+
+        The module docstring may reference "srcdoc" for historical context
+        (explaining why Option A was rejected), so we only check that the
+        executable code does not use the bridge.
+        """
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        # No hidden Streamlit text_input bridge
+        assert "_drive_picker_bridge" not in source
+        # No raw Picker iframe injection
+        assert "components.html(" not in source
+        # No JSON config injection (that was Option A's template approach)
+        assert "_json_for_script" not in source
+        # No hidden-input DOM manipulation
+        assert "HTMLInputElement.prototype" not in source
+        assert "getOwnPropertyDescriptor" not in source
+
+    def test_declared_component_imported(self) -> None:
+        """Spike module imports the declared component wrapper."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        assert "drive_picker_transport" in source
+
+
+class TestSpikeRenderLogic:
+    """render_drive_picker_spike() behavioural contracts."""
+
+    def test_request_id_uses_setdefault(self) -> None:
+        """The request_id is initialised with st.session_state.setdefault."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        assert "setdefault" in source
+        assert "_phase0_request_id" in source
+
+    def test_result_validates_kind_and_request_id(self) -> None:
+        """Success path checks both kind and requestId before acting."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        assert '"transport_verified"' in source
+        assert 'result.get("kind")' in source
+        assert 'result.get("requestId")' in source
+
+    def test_reset_pops_request_id(self) -> None:
+        """Reset clears the request_id so a fresh one is generated."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        assert "_phase0_request_id" in source
+        assert 'pop("_phase0_request_id"' in source.replace(" ", "")
+
+    def test_success_message_is_minimal(self) -> None:
+        """Success message contains only transport-verified language."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        assert "Picker transport verified" in source
+        assert "No file was downloaded" in source
+
+    def test_no_selection_metadata_in_source(self) -> None:
+        """Source must not reference file ID, filename, MIME, or Picker payload."""
+        import inspect
+
+        from components import drive_picker_spike
+
+        source = inspect.getsource(drive_picker_spike)
+        # These should not appear as things the module handles
+        assert "fileId" not in source
+        assert "data.docs" not in source
+        assert "mimeType" not in source

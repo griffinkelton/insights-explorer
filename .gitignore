@@ -20,6 +20,10 @@ oauth_state_*.json
 # Build artifacts
 docs/_build/
 
+# Node / frontend
+node_modules/
+components/drive_picker_component_frontend/build/
+
 # Artifact paths (PR 0 — prevent recurrence of committed data)
 email/
 *.eml

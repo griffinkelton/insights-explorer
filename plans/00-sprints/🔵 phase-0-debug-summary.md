@@ -1,173 +1,152 @@
 # Phase 0 Spike — Debugging Summary
 
-> **Branch:** `spike/drive-picker-transport` (last updated `4630729`, fixes pending in working tree)
-> **Goal:** Prove Google Picker can deliver a selected file ID from an iframe back to Streamlit Python via a hidden-input DOM bridge (Option A).
+> **Branch:** `spike/drive-picker-transport`
+> **Goal:** Prove Google Picker can deliver a selected file ID from the browser back to Streamlit Python.
 
 ---
 
-## Architecture
+## Decision: Option A REJECTED, Option B SELECTED
 
-```
-User clicks "Open Picker (spike)" in sidebar
-  ↓
-Python renders `components.html()` iframe containing:
-  - OAuth token + API key injected as `var CONFIG = {...}` (via `_json_for_script()`)
-  - Google Picker initialized with `gapi.load('picker', ...)`
-  - On file selection: `bridgeToStreamlit(fileId)` finds parent DOM's
-    `input[aria-label="_drive_picker_bridge"]` and dispatches value events
-  ↓
-Streamlit detects the hidden `st.text_input(key="_drive_picker_bridge")` change
-  ↓
-Python reads value → shows "✓ Picker transport verified"
-```
+**Option A** (hidden-input DOM bridge via `components.html()`) was rejected
+after platform evidence showed the `srcdoc` iframe origin is fundamentally
+incompatible with Google Picker. **Option B** (declared Streamlit component
+with `Streamlit.setComponentValue()`) is now implemented and awaiting browser
+testing.
 
 ---
 
-## Three bugs found and fixed
+## Origin evidence — 2026-07-31
+
+- Top-level application URL: `http://localhost:8501/`
+- Picker `origin` parameter (via `.setOrigin()`): `http://localhost:8501`
+- Browser request `Referer`: `http://localhost:8501/`
+- Component iframe URL: `about:srcdoc`
+- Component iframe origin: `null`
+- Picker request `parent` parameter: `about:favicon.ico`
+- Result: Picker `GET https://docs.google.com/picker` returns 403
+
+Conclusion: The explicit configured origin and actual HTTP referrer are
+correct, but Picker runs from a `components.html()` `srcdoc` iframe with
+an opaque origin and emits an invalid parent identity. Option A cannot
+meet the supported, cross-browser transport requirement.
+
+---
+
+## Four bugs found and fixed (Option A — historical)
 
 ### Bug 1: `StreamlitAPIException` on Cancel
+Streamlit blocks mutation of widget-owned `st.session_state` keys after
+widget creation. Fixed by removing direct state-clearing after widget instantiation.
 
-**Symptom:** Red error page when clicking "Cancel Drive import".
-
-**Root cause:** `st.session_state["_drive_picker_bridge"] = ""` was called AFTER
-`st.text_input(key="_drive_picker_bridge")` widget had already been created.
-Streamlit blocks mutation of widget-owned state keys in the same run.
-
-**Fix:** Removed direct state-clearing after widget creation. The success branch
-renders before the widget on next run, so no explicit clear is needed.
-
----
-
-### Bug 2: Script stuck at "Diagnostics running…" — config injection
-
-**Symptom:** The diagnostic iframe showed "⚡ Diagnostics running…" but no
-subsequent log lines appeared. A minimal HELLO sanity-test iframe confirmed
-JavaScript execution works fine in Streamlit iframes — the bug was specific
-to the Picker template.
-
-**Root cause:** Multiple issues interacting:
-
-1. The `<script src="https://apis.google.com/js/api.js">` tag was **synchronous**
-   (no `async`/`defer`), blocking all subsequent inline scripts if the Google CDN
-   hung or loaded slowly.
-
-2. The OAuth token + API key were embedded inside a `<script type="application/json">`
-   element. HTML script-content parsing interacted badly with the real OAuth token
-   when placed in Streamlit's `srcdoc` iframe attribute.
-
-3. Python's `.format()` with `{{`/`}}` escaping added unnecessary complexity that
-   could interact with special characters in tokens.
-
-**Fixes applied:**
-
-- Switched from synchronous `<script src>` to dynamic `document.createElement("script")`
-  loading (via `script.onload` / `script.onerror`).
-- Changed config injection from `<script type="application/json">content</script>` to
-  direct JavaScript variable assignment: `var CONFIG = {...}`.
-- Switched from Python `.format()` to `.replace("__CONFIG_JSON__", ...)` —
-  eliminates all `{{`/`}}` escaping and prevents token characters from interacting
-  with string formatting.
-- Added top-level `try/catch` around the entire inline script so any JavaScript
-  error is displayed in red instead of a silent hang.
-
----
+### Bug 2: Script stuck at "Diagnostics running…"
+Synchronous `<script src>` blocked inline scripts; `<script type="application/json">`
+config embedding interacted badly with real OAuth tokens. Fixed by:
+- Dynamic gapi loading (`document.createElement("script")`)
+- Config as `var CONFIG = {...}` instead of HTML script-content
+- `.replace()` instead of `.format()` (no `{{`/`}}` escaping)
 
 ### Bug 3: `status.appendChild is not a function`
+`window.status` is a read-only browser built-in. Renamed to `statusEl`.
 
-**Symptom:** The try/catch revealed `SCRIPT ERROR: status.appendChild is not a function`.
-
-**Root cause:** `status` is `window.status`, a read-only browser built-in property
-that silently refuses reassignment. `var status = document.getElementById("status")`
-failed silently, leaving `status` as the empty string `""`. Strings don't have
-`appendChild`.
-
-**Fix:** Renamed variable to `statusEl`.
+### Bug 4: Google Picker returns 403
+After all code fixes, Google's servers still rejected the Picker request
+because the `components.html()` iframe's `about:srcdoc` origin produced
+an invalid `parent` parameter, even though `.setOrigin()` and the HTTP
+`Referer` were correct.
 
 ---
 
-## Current state (after ChatGPT-5.6 feedback — 3 fixes applied)
+## Option B implementation (current state)
 
-The diagnostic iframe now shows a sanitized status log:
+### Architecture
 
+```text
+┌─────────────────────────────────────────────────────┐
+│ Streamlit (http://localhost:8501)                   │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │ Python: drive_picker_spike.py                 │  │
+│  │  drive_picker_transport(oauth_token,          │  │
+│  │    developer_key, app_id, app_origin,         │  │
+│  │    request_id)                                │  │
+│  │                                               │  │
+│  │  → validates {kind, requestId}               │  │
+│  │  → sets _spike_success on match               │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │ Declared component (TypeScript + Vite)        │  │
+│  │  Button → gapi.load('picker') → Picker        │  │
+│  │  PICKED → Streamlit.setComponentValue({       │  │
+│  │    kind: "transport_verified",                │  │
+│  │    requestId: currentArgs.requestId           │  │
+│  │  })                                            │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
 ```
-⚡ Diagnostics running…
-Config loaded
-Origin: http://localhost:8501
-Loading gapi from apis.google.com/js/api.js…
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `components/drive_picker_component.py` | Python wrapper using `components.declare_component()` |
+| `components/drive_picker_component_frontend/src/main.ts` | TypeScript frontend |
+| `components/drive_picker_component_frontend/index.html` | Minimal HTML shell |
+| `components/drive_picker_component_frontend/package.json` | Dependencies (streamlit-component-lib, vite, typescript) |
+| `components/drive_picker_spike.py` | Spike render entry-point (rewritten for Option B) |
+| `tests/test_drive_picker_spike.py` | Structural tests (12 tests, all pass) |
+
+### Key differences from Option A
+
+| Aspect | Option A (REJECTED) | Option B (CURRENT) |
+|---|---|---|
+| Transport | Hidden `st.text_input` + DOM bridge | `Streamlit.setComponentValue()` |
+| Origin | `srcdoc` iframe (`null` origin) | Declared component (real origin) |
+| Return channel | `window.parent.document.querySelector()` | Bidirectional component protocol |
+| Config injection | `var CONFIG = {...}` in inline script | Structured component args |
+| Sanitization | Diagnostic panel rules | Never returns file ID/filename/MIME |
+
+### Contract
+
+The frontend returns **only**:
+```json
+{"kind": "transport_verified", "requestId": "<server-generated>"}
 ```
 
-Then:
-- ✅ `gapi script loaded` → `gapi loaded — building picker` → `picker.setVisible(true)`
-- ❌ `FAILED: could not load apis.google.com/js/api.js`
-- ❌ `FAILED: gapi undefined after 5s`
-
-**Key architectural changes from feedback:**
-- **Origin is now Python-supplied** (`appOrigin: "http://localhost:8501"`) — no more iframe-computed origin guessing. This is likely to fix the 403.
-- **All diagnostics sanitized** — no file IDs, token metadata, or raw exception text is ever displayed.
-- **Bridge simplified** — single aria-label selector, no fallback, bare error message.
-
-### Bug 4 (UNRESOLVED): Google Picker returns 403 Forbidden
-
-**Symptom:** The diagnostic iframe loads, the HELLO sanity test passes,
-gapi loads successfully (`gapi script loaded` appears in the log),
-but the Picker iframe displays a Google-branded **403 error page**:
-"403. That's an error. We're sorry, but you do not have access to this page."
-The 403 page replaces the diagnostic output, so the Origin line and
-subsequent logs are not visible.
-
-**What this means:** The JavaScript is executing correctly now (all three
-code bugs are fixed). The Google Picker API call itself is being rejected
-by Google's servers. This is a GCP configuration issue, not a code bug.
-
-**API key configuration on file:**
-- Key is restricted to **Google Picker API** only (correct)
-- HTTP referrer restriction: `http://localhost:8501/*` and `http://127.0.0.1:8501/*` (added after initial 403)
-- The `*` wildcard was initially missing from localhost — now present
-- User saved the changes but propagation may take 2–5 minutes
-
-**Possible remaining causes:**
-1. **Google Picker API not enabled** — The Picker API is separate from the
-   Drive API. Even with a key restricted to it, the API must be explicitly
-   enabled in **APIs & Services → Library → Google Picker API**.
-2. **API key propagation delay** — Changes can take up to 5 minutes to
-   propagate across Google's infrastructure.
-3. **Origin mismatch** — The iframe's `srcdoc` attribute may cause the
-   browser to report a different referrer origin than the parent page.
-   The diagnostic was meant to log the computed origin, but the 403 page
-   replaces the output before it can be read.
-4. **OAuth token scope** — The OAuth token might not include `drive.file`
-   scope (though the Python guard should catch this before rendering).
-5. **Google Cloud project billing** — Some Google APIs require a billing
-   account, even for free-tier usage.
-
-**Debugging steps to try:**
-- Wait 5+ minutes after saving API key changes, then hard-refresh and retry.
-- Verify Google Picker API is **enabled** (not just restricted on the key).
-  Go to: GCP Console → APIs & Services → Library → search "Google Picker API".
-- Open the browser DevTools (F12) → Network tab → filter for `picker` or
-  `google` and look at the failed request's response headers for clues.
-- Check if the OAuth token is still valid (expired tokens can cause 403).
-- Try temporarily setting the API key to **"Don't restrict key"** (API
-  restrictions → None) to isolate whether the restriction is the cause.
-  If the Picker works unrestricted, the referrer pattern needs adjustment.
-- Try browsing via `http://127.0.0.1:8501` instead of `localhost` to see
-  if the origin mismatch is caused by the browser treating them differently.
+Never returned: file ID, filename, MIME type, OAuth token, API key, raw errors.
 
 ---
 
-## Next test
+## Next test (Option B browser gates)
 
-1. Wait 5+ minutes for GCP API key changes to propagate.
-2. Verify Google Picker API is **enabled** in GCP Console (not just restricted).
-3. Hard-refresh browser (Cmd+Shift+R) at `http://localhost:8501`
-4. Connect GA4 (the app reuses existing OAuth with `drive.file` scope)
-5. Click "📂 Open Picker (spike)"
-6. If the 403 persists, open DevTools Network tab and inspect the failed
-   request for the specific referrer origin being sent.
-7. If `picker.setVisible(true)` appears → look for the Google Picker file dialog
-   opening as a full-window overlay (not inside the iframe)
-8. Select a file → the bridge should deliver the file ID to Streamlit → expect
-   "✓ Picker transport verified"
+1. **Restart Streamlit** — the app was restarted at commit `b91445d`+ with the Option B code
+2. **Hard-refresh** (Cmd+Shift+R) at `http://localhost:8501`
+3. **Connect GA4** (existing OAuth with `drive.file` scope)
+4. The spike section should show the declared component with an **"Open Picker spike"** button
+5. Click it → the Google Picker dialog should open as a full-window overlay
+6. Select a CSV, XLSX, or Google Sheet → expect **"✓ Picker transport verified"**
+7. Cancel → no success shown
+8. Reset → fresh `requestId`, able to select again
+9. Test across Chrome, Safari, Firefox (macOS)
+
+### Browser matrix
+
+| Browser | Platform | Gate |
+|---|---|---|
+| Latest Chrome | macOS | Picker opens, selection returns, cancel, repeat ×3, rerun, theme change |
+| Latest Safari | macOS | Same gates |
+| Latest Firefox | macOS | Same gates |
+
+---
+
+## Cleanup after Phase 0
+
+- Delete `components/drive_picker_spike.py` and tests
+- Delete `components/drive_picker_component.py` and frontend directory
+- Merge **only** the decision note (Option B accepted/rejected + evidence)
+- Preserve spike branch temporarily for audit
+
+---
 
 ## Prerequisites
 
@@ -175,7 +154,9 @@ by Google's servers. This is a GCP configuration issue, not a code bug.
   ```toml
   PHASE_0_DRIVE_PICKER_SPIKE = true
   GOOGLE_PICKER_API_KEY = "API key restricted to Picker API + http://localhost:8501/*"
+  GOOGLE_CLOUD_PROJECT_NUMBER = "123456789012"  # optional; appId skipped if absent
   ```
 - Google Picker API enabled in GCP Console
 - OAuth consent screen declares `drive.file` scope
 - Test account listed under Test users if app is in Testing mode
+- Node.js for frontend build (`npm run build` in `components/drive_picker_component_frontend/`)
