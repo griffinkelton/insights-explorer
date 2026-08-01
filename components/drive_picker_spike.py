@@ -96,6 +96,55 @@ try {
     statusEl.appendChild(div);
   }
 
+  // ── Safe console diagnostics (no tokens, file IDs, or secrets) ──────
+  function consoleDiag(event, detail) {
+    console.info("[drive-picker-spike]", {
+      event: event,
+      iframeOrigin: window.location.origin,
+      iframeHref: window.location.href,
+      referrer: document.referrer || "(empty)",
+      topAccessible: false,
+      detail: detail || undefined,
+    });
+  }
+
+  consoleDiag("iframe-started", {
+    expectedAppOrigin: CONFIG.appOrigin,
+    isSecureContext: window.isSecureContext,
+  });
+
+  // ── Top-frame probe (may throw if cross-origin) ─────────────────────
+  try {
+    consoleDiag("top-frame-probe", {
+      topOrigin: window.top.location.origin,
+      topHref: window.top.location.href,
+      topAccessible: true,
+    });
+  } catch (error) {
+    consoleDiag("top-frame-probe-blocked", {
+      errorName: error.name,
+      topAccessible: false,
+    });
+  }
+
+  // ── Window error / unhandled rejection listeners ────────────────────
+  window.addEventListener("error", function (event) {
+    console.warn("[drive-picker-spike] window-error", {
+      message: event.message,
+      sourceOrigin: (function (url) {
+        try { return new URL(url).origin; } catch (_) { return "(unknown)"; }
+      })(event.filename),
+      line: event.lineno,
+    });
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    console.warn("[drive-picker-spike] unhandled-rejection", {
+      reasonType: typeof event.reason,
+      reasonName: event.reason && event.reason.name,
+    });
+  });
+
   log("Config loaded");
   log("Origin: " + CONFIG.appOrigin);
 
@@ -135,6 +184,10 @@ try {
   // ── Picker initialisation ─────────────────────────────────────────────
   function onPickerApiLoad() {
     log("gapi loaded — building picker", "ok");
+    consoleDiag("picker-build-start", {
+      expectedAppOrigin: CONFIG.appOrigin,
+      pickerApiPresent: Boolean(window.google && google.picker),
+    });
     try {
       var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setMimeTypes(
@@ -152,7 +205,8 @@ try {
       picker.setVisible(true);
       log("picker.setVisible(true) — look for file dialog", "ok");
     } catch (e) {
-      log("Picker build FAILED: " + e.message, "err");
+      consoleDiag("picker-build-failed", { errorName: e.name });
+      log("Picker could not open", "err");
     }
   }
 
@@ -166,7 +220,8 @@ try {
     try {
       gapi.load("picker", { callback: onPickerApiLoad });
     } catch (e) {
-      log("gapi.load FAILED: " + e.message, "err");
+      consoleDiag("gapi-load-failed", { errorName: e.name });
+      log("Picker library could not initialize", "err");
     }
   };
   script.onerror = function() {
@@ -182,8 +237,9 @@ try {
   }, 5000);
 
 } catch (e) {
+  console.warn("[drive-picker-spike] script-error", { message: e.message });
   document.getElementById("status").innerHTML =
-    '<span class=err>SCRIPT ERROR: ' + e.message + '</span>';
+    '<span class=err>Script could not start. Check browser console for details.</span>';
 }
 </script>
 </body>
