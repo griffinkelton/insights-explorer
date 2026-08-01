@@ -282,8 +282,13 @@ def render_drive_picker_spike() -> None:
             st.error("Could not read OAuth token. Please reconnect Google.")
             return
 
+        st.caption(
+            "📂 The Google Picker opens as a full-window overlay — "
+            "look for the file selection dialog on your screen."
+        )
+
         components.html(
             _picker_iframe_html(oauth_token=oauth_token, api_key=api_key),
-            height=100,
+            height=120,
             scrolling=False,
         )
