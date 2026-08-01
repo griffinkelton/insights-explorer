@@ -92,29 +92,6 @@ def _populate_data_state(
         )
 
 
-def _phase_0_spike_enabled() -> bool:
-    """True when the Phase 0 Drive Picker spike is deliberately enabled.
-
-    Requires ``PHASE_0_DRIVE_PICKER_SPIKE = true`` in
-    ``.streamlit/secrets.toml`` (never committed).  A key-presence gate
-    conflates "has credentials" with "spike is enabled"; a dedicated
-    toggle makes intent auditable.
-    """
-    return bool(st.secrets.get("PHASE_0_DRIVE_PICKER_SPIKE", False))
-
-
-def _render_drive_picker_spike_if_enabled() -> None:
-    """Render the Phase 0 Picker transport spike when the dev flag is on.
-
-    Deleted after the Phase 0 gate decision — no production dependency.
-    """
-    if not _phase_0_spike_enabled():
-        return
-    from components.drive_picker_spike import render_drive_picker_spike
-
-    render_drive_picker_spike()
-
-
 def render_sidebar() -> None:
     """Render the full sidebar and return the uploaded file (if any)."""
     with st.sidebar:
@@ -122,7 +99,6 @@ def render_sidebar() -> None:
         st.divider()
         uploaded_file = _render_file_uploader()
         st.divider()
-        _render_drive_picker_spike_if_enabled()
         _render_ga4_connect()
         st.divider()
         _render_privacy_notice()

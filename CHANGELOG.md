@@ -8,7 +8,7 @@
 
 ## v0.2.0 — Architecture, UX & Maintenance Release
 
-**Date:** 2026-07-31 | **Status:** ✅ Complete | **Tests:** 581 | **Tag:** _(pending)_
+**Date:** 2026-07-31 | **Status:** ✅ Complete | **Tests:** 593 | **Tag:** `v0.2.0`
 
 > Post-hardening release: immutable DataContext, interactive Learn page, browser-persisted onboarding, styles refactor with focus-visible accessibility, per-request Gemini token accounting, and v0.3.0 Drive Import design.
 
@@ -50,6 +50,13 @@
 ### Phase 5: Drive Import Design (Design Only)
 
 - `plans/🔵 v0.3.0-drive-import-design.md`: Picker API architecture, consent UX, security checklist, v0.1.0 baseline preservation, acceptance criteria
+
+### Phase 0: Drive Picker Transport Spike ✅ Complete
+
+- Option A (hidden-input DOM bridge via `components.html()`) **rejected** — `srcdoc` iframe origin fundamentally incompatible with Google Picker (403)
+- Option B (declared Streamlit component with `Streamlit.setComponentValue()`) **accepted** — Picker opens, selection reaches Python, cancel/reset work
+- Retained: `components/drive_picker_component.py` + `components/drive_picker_component_frontend/` (v0.3.0 foundation)
+- Decision: [plans/00-sprints/✅ phase-0-debug-summary.md](plans/00-sprints/✅%20phase-0-debug-summary.md)
 
 **Related:** [plans/audit/✅ v0.2.0-closeout.md](plans/audit/✅%20v0.2.0-closeout.md), [plans/audit/✅ v0.2.0-release-checklist.md](plans/audit/✅%20v0.2.0-release-checklist.md)
 

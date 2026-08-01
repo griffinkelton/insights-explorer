@@ -1,6 +1,6 @@
 # 🔵 Phase 0: Google Picker Transport Spike
 
-> **Status:** Spec'd — not yet implemented
+> **Status:** ✅ Complete — Option B (declared component) accepted 2026-07-31
 > **Parent:** [v0.3.0 Drive Import Spec](./🔵%20v0.3.0-drive-import-spec.md) §Phase 0
 > **Branch:** `spike/drive-picker-transport`
 > **Outcome:** This spike determines whether the hidden-input bridge (Option A) or a declared bidirectional Streamlit component (Option B) is the production transport for Phase 3.
