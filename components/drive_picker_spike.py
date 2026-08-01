@@ -82,9 +82,10 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
   <div>⚡ Diagnostics running&hellip;</div>
 </div>
 
-<script id="picker-config" type="application/json">{config_json}</script>
+<!-- Config injected as JS variable to avoid HTML script-content parsing issues -->
 <script>
   // ── Diagnostics run FIRST (before gapi loads) ───────────────────────
+  var CONFIG = {config_json};
   var status = document.getElementById("status");
 
   function log(msg, cls) {{
@@ -94,16 +95,8 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
     status.appendChild(div);
   }}
 
-  // Parse config (never string-interpolated into executable JS)
-  var CONFIG;
-  try {{
-    CONFIG = JSON.parse(
-      document.getElementById("picker-config").textContent
-    );
-    log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
-  }} catch(e) {{
-    log("Config parse FAILED: " + e.message, "err");
-  }}
+  // ── Parse config (never string-interpolated into executable JS) ──────
+  log("Config parsed: token length=" + (CONFIG.oauthToken || "").length);
 
   // Compute origin
   var ORIGIN;

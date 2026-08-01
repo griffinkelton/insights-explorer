@@ -45,14 +45,16 @@ class TestJsonForScript:
 class TestPickerIframeHtml:
     """Template generation with safe config injection."""
 
-    def test_contains_picker_config_script(self) -> None:
+    def test_config_embedded_as_js_variable(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert '<script id="picker-config" type="application/json">' in html
+        # Config is now injected directly as a JS variable, not in a JSON script tag
+        assert 'var CONFIG = {"oauthToken": "tok", "apiKey": "key"}' in html
 
-    def test_config_parsed_after_gapi_load(self) -> None:
+    def test_config_as_js_variable(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
+        # Config is now a JS variable assignment, not JSON.parse
+        assert "var CONFIG = {" in html
         assert "gapi.load" in html
-        assert "CONFIG = JSON.parse" in html
 
     def test_picker_callback_exists(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
@@ -78,26 +80,27 @@ class TestPickerIframeHtml:
         assert 'new Event("input"' in html
         assert 'new Event("change"' in html
 
-    def test_oauth_token_only_in_config_block(self) -> None:
-        """The OAuth token must appear ONLY in the JSON data block, never
-        directly inside an executable <script> context as a string literal."""
+    def test_oauth_token_in_js_config(self) -> None:
+        """OAuth token should appear in var CONFIG = {...} JS statement.
+
+        The _json_for_script() function prevents </script> injection."""
         html = _picker_iframe_html(oauth_token="secret-token-abc", api_key="key")
-        # Token should be in the config script tag
-        config_start = html.find('<script id="picker-config"')
-        config_end = html.find("</script>", config_start)
-        config_block = html[config_start:config_end]
-        assert "secret-token-abc" in config_block
+        assert "secret-token-abc" in html
+        assert "var CONFIG = {" in html
 
-        # Token should NOT appear outside the config block in executable JS
-        html_without_config = html[:config_start] + html[config_end + len("</script>") :]
-        assert "secret-token-abc" not in html_without_config
+    def test_config_escape_prevents_script_breakout(self) -> None:
+        """If token or API key contain </script>, it must be escaped to
+        \\u003c/script> so it cannot close the enclosing script element."""
+        html = _picker_iframe_html(oauth_token="tok</script><script>alert(1)", api_key="key")
+        # The raw </script> must not appear in a way that closes the script
+        assert "</script>" not in html.replace("</script>\n</body>", "X")
+        # Escaped form should be present
+        assert "\\u003c/script>" in html
 
-    def test_api_key_in_config_block_not_executable_js(self) -> None:
+    def test_api_key_in_js_config(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="api-key-123")
-        config_start = html.find('<script id="picker-config"')
-        config_end = html.find("</script>", config_start)
-        config_block = html[config_start:config_end]
-        assert "api-key-123" in config_block
+        assert "api-key-123" in html
+        assert "var CONFIG = {" in html
 
     def test_set_origin_computed_at_runtime(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
