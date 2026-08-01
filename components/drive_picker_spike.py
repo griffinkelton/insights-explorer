@@ -343,6 +343,16 @@ def render_drive_picker_spike() -> None:
             "look for the file selection dialog on your screen."
         )
 
+        # ── Sanity test: minimal iframe to verify JS can execute ────────
+        st.caption("🔬 Sanity check (should say HELLO in green):")
+        components.html(
+            "<body style='background:#1e1e2e;color:#a6e3a1;padding:10px;font:12px monospace'>"
+            "<div id='out'>waiting...</div>"
+            "<script>document.getElementById('out').textContent='HELLO — script executed OK';</script>"
+            "</body>",
+            height=40,
+        )
+
         components.html(
             _picker_iframe_html(oauth_token=oauth_token, api_key=api_key),
             height=250,
