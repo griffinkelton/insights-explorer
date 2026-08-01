@@ -67,86 +67,124 @@ _PICKER_IFRAME_HTML_TEMPLATE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <style>
   body {{
-    margin: 0; padding: 0; overflow: hidden;
+    margin: 0; padding: 10px; overflow: auto;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12px; background: #1e1e2e; color: #cdd6f4;
   }}
-  #status {{
-    display: flex; align-items: center; justify-content: center;
-    height: 80px; color: #9898b0; font-size: 13px;
-  }}
+  #status {{ padding: 8px; }}
+  .ok {{ color: #a6e3a1; }}
+  .err {{ color: #f38ba8; }}
+  .info {{ color: #89b4fa; }}
 </style>
 </head>
 <body>
+<div id="status">
+  <div id="step1">⏳ Loading gapi library&hellip;</div>
+</div>
+
 <script id="picker-config" type="application/json">{config_json}</script>
-<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://apis.google.com/js/api.js" onerror="document.getElementById('step1').innerHTML='<span class=err>FAILED: could not load apis.google.com/js/api.js</span>'"></script>
 <script>
-  // ── Parse config from application/json element (never string-interpolated) ─
-  const CONFIG = JSON.parse(
+  // ── Parse config (never string-interpolated into executable JS) ──────
+  var CONFIG = JSON.parse(
     document.getElementById("picker-config").textContent
   );
+  var status = document.getElementById("status");
 
-  const ORIGIN = {origin_json};
+  function log(msg, cls) {{
+    var div = document.createElement("div");
+    div.className = cls || "info";
+    div.textContent = msg;
+    status.appendChild(div);
+  }}
 
-  // ── Google Picker callback ────────────────────────────────────────────────
+  // ── Compute origin ───────────────────────────────────────────────────
+  var ORIGIN;
+  try {{
+    ORIGIN = window.top.location.origin;
+  }} catch(e) {{
+    ORIGIN = window.location.origin;
+  }}
+  log("Origin: " + ORIGIN);
+  log("top accessible: " + (window.top !== window));
+
+  // ── Check gapi loaded ────────────────────────────────────────────────
+  setTimeout(function() {{
+    if (typeof gapi === "undefined") {{
+      log("FAILED: gapi not defined after 3s", "err");
+    }}
+  }}, 3000);
+
+  // ── Google Picker callback ────────────────────────────────────────────
   function pickerCallback(data) {{
     if (data.action === google.picker.Action.PICKED && data.docs && data.docs.length > 0) {{
-      // Only fileId crosses the boundary — name/mimeType from Picker are untrusted
       var fileId = data.docs[0].id;
+      log("PICKED: " + fileId, "ok");
       bridgeToStreamlit(fileId);
     }} else if (data.action === google.picker.Action.CANCEL) {{
-      // Cancel — nothing to do; the hidden input stays empty
+      log("CANCELLED");
     }}
   }}
 
-  // ── Option A: hidden-input bridge ─────────────────────────────────────────
+  // ── Option A: hidden-input bridge ─────────────────────────────────────
   function bridgeToStreamlit(fileId) {{
     try {{
       var input = window.parent.document.querySelector(
         'input[aria-label="_drive_picker_bridge"]'
       );
       if (!input) {{
+        log("bridge: input not found by aria-label, trying fallback", "err");
         input = window.parent.document.querySelector(
           'input[data-testid="stTextInput"][aria-label*="bridge"]'
         );
       }}
-      if (!input) return;
-
-      var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      if (!input) {{
+        log("bridge: FAILED — no input found", "err");
+        return;
+      }}
+      var setter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype, "value"
       ).set;
-      nativeInputValueSetter.call(input, fileId);
-
+      setter.call(input, fileId);
       input.dispatchEvent(new Event("input", {{ bubbles: true }}));
       input.dispatchEvent(new Event("change", {{ bubbles: true }}));
+      log("bridge: value dispatched", "ok");
     }} catch (e) {{
-      // Cross-origin restrictions on window.parent.document are a Phase 0
-      // finding — record in the browser matrix.
+      log("bridge: CROSS-ORIGIN blocked — " + e.message, "err");
     }}
   }}
 
-  // ── Picker initialisation ─────────────────────────────────────────────────
+  // ── Picker initialisation ─────────────────────────────────────────────
   function onPickerApiLoad() {{
-    var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-      .setMimeTypes(
-        "application/vnd.google-apps.spreadsheet," +
-        "text/csv," +
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-
-    var picker = new google.picker.PickerBuilder()
-      .setOAuthToken(CONFIG.oauthToken)
-      .setDeveloperKey(CONFIG.apiKey)
-      .setOrigin(ORIGIN)
-      .addView(view)
-      .setCallback(pickerCallback)
-      .build();
-
-    picker.setVisible(true);
+    document.getElementById("step1").innerHTML =
+      '<span class=ok>gapi loaded — building picker&hellip;</span>';
+    try {{
+      var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMimeTypes(
+          "application/vnd.google-apps.spreadsheet," +
+          "text/csv," +
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+      var picker = new google.picker.PickerBuilder()
+        .setOAuthToken(CONFIG.oauthToken)
+        .setDeveloperKey(CONFIG.apiKey)
+        .setOrigin(ORIGIN)
+        .addView(view)
+        .setCallback(pickerCallback)
+        .build();
+      picker.setVisible(true);
+      log("picker.setVisible(true) called — look for the file dialog", "ok");
+    }} catch (e) {{
+      log("Picker build FAILED: " + e.message, "err");
+    }}
   }}
 
-  gapi.load("picker", {{ callback: onPickerApiLoad }});
+  try {{
+    gapi.load("picker", {{ callback: onPickerApiLoad }});
+  }} catch (e) {{
+    log("gapi.load FAILED: " + e.message, "err");
+  }}
 </script>
-<div id="status">Picker loading&hellip;</div>
 </body>
 </html>"""
 
@@ -289,6 +327,6 @@ def render_drive_picker_spike() -> None:
 
         components.html(
             _picker_iframe_html(oauth_token=oauth_token, api_key=api_key),
-            height=120,
-            scrolling=False,
+            height=250,
+            scrolling=True,
         )

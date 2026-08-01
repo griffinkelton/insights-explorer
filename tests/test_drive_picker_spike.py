@@ -70,7 +70,7 @@ class TestPickerIframeHtml:
 
     def test_native_input_value_setter_used(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
-        assert "nativeInputValueSetter" in html
+        assert "getOwnPropertyDescriptor" in html
         assert "HTMLInputElement.prototype" in html
 
     def test_input_and_change_events_dispatched(self) -> None:
@@ -99,12 +99,12 @@ class TestPickerIframeHtml:
         config_block = html[config_start:config_end]
         assert "api-key-123" in config_block
 
-    def test_set_origin_uses_top_location_origin_iife(self) -> None:
+    def test_set_origin_computed_at_runtime(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
         assert "window.top.location.origin" in html
         assert "setOrigin" in html
-        # The origin must be computed at runtime, not JSON-wrapped as a string
-        assert "(function(){" in html
+        # Origin is now computed via try/catch assignment, not an IIFE
+        assert "var ORIGIN" in html
 
     def test_spreadsheet_mime_types_configured(self) -> None:
         html = _picker_iframe_html(oauth_token="tok", api_key="key")
