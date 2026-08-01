@@ -132,13 +132,15 @@ An admin-only, first-class data source connector for Evidence-built static dashb
 
 > **v0.3.0 sprint work.** The declared Drive Picker component (built in Phase 0) needs UI refinement before production use: sync with Streamlit's theme toggle (not just `prefers-color-scheme`), improve button/sidebar layout, add a cancel/close affordance in the component itself, and refine the loading/ready/verified status display. The transport works — now make it polished.
 
-**29. Credential rotation after Phase 0 debugging** 🔴
+**29. Credential rotation after Phase 0 debugging** ✅
 
-> **Security follow-up — do before v0.3.0 ships.** During Phase 0 debugging, the OAuth access token and Google Picker API key were exposed in a Picker request URL (visible in chat/console output). Both must be rotated before the v0.3.0 release:
-> - Delete/rotate the Google Picker API key in GCP Console → APIs & Services → Credentials
-> - Revoke the OAuth grant or reconnect Google to obtain a fresh access token
-> - Update `.streamlit/secrets.toml` with the new key
-> - Verify the Picker still works with the new credentials
+> **Completed 2026-08-01.** The OAuth access token and Google Picker API key exposed during Phase 0 debugging were rotated:
+> - Picker API key deleted and replaced with a fresh key (user-confirmed restricted to Picker API + app referrers in GCP Console)
+> - GA4 re-authenticated in-app — fresh access token under the existing grant with `analytics.readonly` + `drive.file` scopes (grant not revoked; refresh token was never exposed)
+> - `.streamlit/secrets.toml` updated with the new key; old key value removed (file is gitignored)
+> - Audit confirmed: old key absent from git history, reflog, and working tree
+> - Token scope verified: `needs_scope_migration()` passes, so granted scopes include `drive.file`
+> - Picker smoke test with the new credentials runs when Phase 3 wires the component
 
 **30. Automated visual/browser testing** 🔵
 
