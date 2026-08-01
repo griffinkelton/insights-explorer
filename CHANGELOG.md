@@ -6,6 +6,26 @@
 
 ---
 
+## 2026-08-01 — Credential Rotation (IDEAS #29)
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete
+
+### Rotate exposed Picker API key + re-authenticate GA4 (Phase 0 security follow-up)
+
+**Commits:** [`cfa9ec6`](https://github.com/griffinkelton/insights-explorer/commit/cfa9ec6) (prep), [`1f6ca34`](https://github.com/griffinkelton/insights-explorer/commit/1f6ca34) (closeout)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| Old exposed Google Picker API key deleted/rotated in GCP Console; new key restricted to Picker API + app referrers (user-confirmed) | Security | [IDEAS.md #29](IDEAS.md) |
+| GA4 re-authenticated in-app — fresh access token under the existing grant with `analytics.readonly` + `drive.file` scopes (grant not revoked; refresh token was never exposed) | Security | [utils/ga4_client.py](utils/ga4_client.py) |
+| `.streamlit/secrets.toml` updated with new key; old value removed; stale `drive_picker_spike.pyc` deleted | Security | [.gitignore](.gitignore) |
+| `.streamlit/secrets.example.toml` rewritten to document all v0.3.0 Phase 3 secret keys (`GOOGLE_PICKER_API_KEY`, `GOOGLE_CLOUD_PROJECT_NUMBER`, `DRIVE_PICKER_APP_ORIGIN`, `IS_DEVELOPMENT`) — placeholder-only, dead `PHASE_0_DRIVE_PICKER_SPIKE` flag dropped | Docs | [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) |
+| Full repo sweep — old key absent from git history (all branches), reflog, stash, working tree, and unreachable objects (`git fsck --no-reflogs --unreachable`) | Security | — |
+| Fresh token scope verified via `needs_scope_migration()` gate — granted scopes ⊇ `{analytics.readonly, drive.file}` | Testing | [utils/ga4_client.py](utils/ga4_client.py) |
+| IDEAS.md #29 marked ✅; v0.3.0 spec fast-follow #29 marked ✅ Complete with 6-item checklist (5 verified, 1 deferred: Picker smoke test runs when Phase 3 wires the component) | Docs | [IDEAS.md](IDEAS.md), [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+
+---
+
 ## v0.2.0 — Architecture, UX & Maintenance Release
 
 **Date:** 2026-07-31 | **Status:** ✅ Complete | **Tests:** 593 | **Tag:** `v0.2.0`
