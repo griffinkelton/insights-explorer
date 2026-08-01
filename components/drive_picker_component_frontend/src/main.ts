@@ -36,8 +36,9 @@ let eventSentForRequestId: string | null = null;
 const button = document.querySelector<HTMLButtonElement>("#open-picker")!;
 const statusEl = document.querySelector<HTMLElement>("#status")!;
 
-function setStatus(message: string): void {
+function setStatus(message: string, success = false): void {
   statusEl.textContent = message;
+  statusEl.className = success ? "success" : "";
   Streamlit.setFrameHeight();
 }
 
@@ -62,12 +63,13 @@ function onPickerCallback(data: google.picker.ResponseObject): void {
       kind: "transport_verified",
       requestId: currentArgs.requestId,
     });
-    setStatus("Transport verified for this session.");
+    button.disabled = true;
+    setStatus("✓ Transport verified", true);
     return;
   }
 
   if (data.action === google.picker.Action.CANCEL) {
-    setStatus("Picker closed.");
+    setStatus("Picker closed");
   }
 }
 
@@ -107,7 +109,7 @@ function openPicker(): void {
     picker.setVisible(true);
     setStatus("Picker opened.");
   } catch {
-    setStatus("Picker could not open.");
+    setStatus("Picker could not open");
   }
 }
 
@@ -126,7 +128,7 @@ function loadPickerLibrary(): void {
         pickerReady = true;
         pickerLibraryLoading = false;
         button.disabled = false;
-        setStatus("Ready.");
+        setStatus("Ready");
       },
     });
   };

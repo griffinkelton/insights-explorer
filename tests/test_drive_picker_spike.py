@@ -159,7 +159,7 @@ class TestSpikeRenderLogic:
 
         source = inspect.getsource(drive_picker_spike)
         assert "Picker transport verified" in source
-        assert "No file was downloaded" in source
+        assert "no file was downloaded" in source.lower()
 
     def test_no_selection_metadata_in_source(self) -> None:
         """Source must not reference file ID, filename, MIME, or Picker payload."""

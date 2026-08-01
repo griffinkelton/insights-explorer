@@ -65,8 +65,7 @@ def render_drive_picker_spike() -> None:
 
     Success indication (minimal):
         ✓ Picker transport verified
-        A selection event reached this Streamlit session.
-        No file was downloaded, parsed, stored, or imported.
+        The component stays visible with the verified status and a reset button.
 
     No file download.  No DataContext.  No ingestion.  No persistent state.
     """
@@ -79,18 +78,7 @@ def render_drive_picker_spike() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Success state (session-scoped only) ──────────────────────────────
-    if st.session_state.get("_spike_success", False):
-        st.success(
-            "✓ Picker transport verified\n\n"
-            "A selection event reached this Streamlit session.\n"
-            "No file was downloaded, parsed, stored, or imported."
-        )
-        if st.button("🔄 Reset spike result", key="_spike_reset_btn"):
-            st.session_state._spike_success = False
-            st.session_state.pop("_phase0_request_id", None)
-            st.rerun()
-        return
+    verified = st.session_state.get("_spike_success", False)
 
     # ── Guard: credentials ───────────────────────────────────────────────
     if st.session_state.ga4_creds is None:
@@ -121,6 +109,20 @@ def render_drive_picker_spike() -> None:
         st.error("Could not read OAuth token. Please reconnect Google.")
         return
 
+    # ── Compact success + reset (rendered inline, component stays below) ──
+    if verified:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.success(
+                "✓ Picker transport verified — "
+                "no file was downloaded, parsed, stored, or imported."
+            )
+        with col2:
+            if st.button("🔄 Reset", key="_spike_reset_btn", use_container_width=True):
+                st.session_state._spike_success = False
+                st.session_state.pop("_phase0_request_id", None)
+                st.rerun()
+
     # ── Server-generated request ID (prevents stale/replay events) ───────
     request_id: str = st.session_state.setdefault("_phase0_request_id", secrets.token_urlsafe(16))
 
@@ -136,7 +138,8 @@ def render_drive_picker_spike() -> None:
 
     # ── Validate return: must be exact sanitised event ───────────────────
     if (
-        isinstance(result, dict)
+        not verified
+        and isinstance(result, dict)
         and result.get("kind") == "transport_verified"
         and result.get("requestId") == request_id
     ):
