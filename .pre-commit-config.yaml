@@ -31,3 +31,15 @@ repos:
       - id: black
         args: [--line-length=100]
         files: '\.py$'
+
+  # Local guard: reject credential-shaped strings (AIza... / ya29...) in
+  # staged text files before they reach git history. Regression guard for
+  # the IDEAS #29 credential-rotation incident.
+  - repo: local
+    hooks:
+      - id: check-credentials
+        name: Check credential-shaped strings (AIza / ya29)
+        entry: python scripts/check_credentials.py
+        language: system
+        types: [text]
+        pass_filenames: true

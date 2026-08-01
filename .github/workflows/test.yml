@@ -23,6 +23,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/dev.txt
 
+      - name: Credential guard (AIza / ya29)
+        run: |
+          git ls-files -z | xargs -0 python scripts/check_credentials.py
+
       - name: Run tests with coverage
         run: |
           python -m pytest tests/ -v --tb=short --cov=utils --cov=components --cov=pages --cov-report=term-missing

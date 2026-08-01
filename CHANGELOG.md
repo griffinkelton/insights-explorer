@@ -26,6 +26,21 @@
 
 ---
 
+## 2026-08-01 — Credential Leak Guard
+
+**Date:** 2026-08-01 | **Status:** ✅ Done
+
+### Pre-commit + CI guard: reject credential-shaped strings (IDEAS #29 regression guard)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| New `scripts/check_credentials.py` — scans staged text files for Google API key (`AIza…`, ≥30-char payload) and OAuth access token (`ya29…`, ≥10-char payload) shapes; redacts matches in output; min-length rules keep the `ya29.abc123` test fixture and `AIza...` doc placeholder safe | Security | [scripts/check_credentials.py](scripts/check_credentials.py) |
+| Local pre-commit hook `check-credentials` registered (runs on staged text files) | Config | [.pre-commit-config.yaml](.pre-commit-config.yaml) |
+| CI step in `test.yml` — `git ls-files -z | xargs -0 python scripts/check_credentials.py` on push/PR | CI/CD | [.github/workflows/test.yml](.github/workflows/test.yml) |
+| `tests/test_credential_guard.py` — 13 tests: flags real-shaped keys/tokens, allows fixtures/placeholders/identifiers, redaction, hook + CI registration, end-to-end main() behavior | Testing | [tests/test_credential_guard.py](tests/test_credential_guard.py) |
+
+---
+
 ## v0.2.0 — Architecture, UX & Maintenance Release
 
 **Date:** 2026-07-31 | **Status:** ✅ Complete | **Tests:** 593 | **Tag:** `v0.2.0`
