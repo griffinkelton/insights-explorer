@@ -1,6 +1,6 @@
 # Phase 0 Spike — Debugging Summary
 
-> **Branch:** `spike/drive-picker-transport` (last commit `4e9ebd9`)
+> **Branch:** `spike/drive-picker-transport` (last commit `d8dcaf9`)
 > **Goal:** Prove Google Picker can deliver a selected file ID from an iframe back to Streamlit Python via a hidden-input DOM bridge (Option A).
 
 ---
@@ -105,15 +105,67 @@ The hidden-input bridge JS uses `Object.getOwnPropertyDescriptor(HTMLInputElemen
 + `dispatchEvent(new Event("input"/"change"))` to programmatically set the Streamlit
 text input from the iframe — this is the **Option A experiment** being tested.
 
+### Bug 4 (UNRESOLVED): Google Picker returns 403 Forbidden
+
+**Symptom:** The diagnostic iframe loads, the HELLO sanity test passes,
+gapi loads successfully (`gapi script loaded` appears in the log),
+but the Picker iframe displays a Google-branded **403 error page**:
+"403. That's an error. We're sorry, but you do not have access to this page."
+The 403 page replaces the diagnostic output, so the Origin line and
+subsequent logs are not visible.
+
+**What this means:** The JavaScript is executing correctly now (all three
+code bugs are fixed). The Google Picker API call itself is being rejected
+by Google's servers. This is a GCP configuration issue, not a code bug.
+
+**API key configuration on file:**
+- Key is restricted to **Google Picker API** only (correct)
+- HTTP referrer restriction: `http://localhost:8501/*` and `http://127.0.0.1:8501/*` (added after initial 403)
+- The `*` wildcard was initially missing from localhost — now present
+- User saved the changes but propagation may take 2–5 minutes
+
+**Possible remaining causes:**
+1. **Google Picker API not enabled** — The Picker API is separate from the
+   Drive API. Even with a key restricted to it, the API must be explicitly
+   enabled in **APIs & Services → Library → Google Picker API**.
+2. **API key propagation delay** — Changes can take up to 5 minutes to
+   propagate across Google's infrastructure.
+3. **Origin mismatch** — The iframe's `srcdoc` attribute may cause the
+   browser to report a different referrer origin than the parent page.
+   The diagnostic was meant to log the computed origin, but the 403 page
+   replaces the output before it can be read.
+4. **OAuth token scope** — The OAuth token might not include `drive.file`
+   scope (though the Python guard should catch this before rendering).
+5. **Google Cloud project billing** — Some Google APIs require a billing
+   account, even for free-tier usage.
+
+**Debugging steps to try:**
+- Wait 5+ minutes after saving API key changes, then hard-refresh and retry.
+- Verify Google Picker API is **enabled** (not just restricted on the key).
+  Go to: GCP Console → APIs & Services → Library → search "Google Picker API".
+- Open the browser DevTools (F12) → Network tab → filter for `picker` or
+  `google` and look at the failed request's response headers for clues.
+- Check if the OAuth token is still valid (expired tokens can cause 403).
+- Try temporarily setting the API key to **"Don't restrict key"** (API
+  restrictions → None) to isolate whether the restriction is the cause.
+  If the Picker works unrestricted, the referrer pattern needs adjustment.
+- Try browsing via `http://127.0.0.1:8501` instead of `localhost` to see
+  if the origin mismatch is caused by the browser treating them differently.
+
+---
+
 ## Next test
 
-1. Hard-refresh browser (Cmd+Shift+R) at `http://localhost:8501`
-2. Connect GA4 (the app reuses existing OAuth with `drive.file` scope)
-3. Click "📂 Open Picker (spike)"
-4. Observe diagnostic output in the 250px iframe panel
-5. If `picker.setVisible(true)` appears → look for the Google Picker file dialog
+1. Wait 5+ minutes for GCP API key changes to propagate.
+2. Verify Google Picker API is **enabled** in GCP Console (not just restricted).
+3. Hard-refresh browser (Cmd+Shift+R) at `http://localhost:8501`
+4. Connect GA4 (the app reuses existing OAuth with `drive.file` scope)
+5. Click "📂 Open Picker (spike)"
+6. If the 403 persists, open DevTools Network tab and inspect the failed
+   request for the specific referrer origin being sent.
+7. If `picker.setVisible(true)` appears → look for the Google Picker file dialog
    opening as a full-window overlay (not inside the iframe)
-6. Select a file → the bridge should deliver the file ID to Streamlit → expect
+8. Select a file → the bridge should deliver the file ID to Streamlit → expect
    "✓ Picker transport verified"
 
 ## Prerequisites
