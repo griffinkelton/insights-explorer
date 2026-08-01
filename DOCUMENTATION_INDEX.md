@@ -55,6 +55,7 @@
 | [plans/🔵 v0.3.0-drive-import-design.md](plans/🔵%20v0.3.0-drive-import-design.md) | Architecture decision record: Picker vs. direct listing, consent UX, security checklist | Transport decision (Option B — declared bidirectional Streamlit component — selected 2026-07-31), Picker API rationale, drive.file scope reuse, 100MB/50k row limits, v0.1.0 safety baseline preservation, deferred items | 🔵 Design complete — Option B selected |
 | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) | Thorough 5-phase implementation spec: Phase 0 transport proof (✅ complete) → security hardening → provenance → picker UI → docs | 12 design decisions, file-level precision with code sketches, declared bidirectional component as the chosen transport (runtime args, `setComponentValue()` → `{kind, requestId, fileId}`), server metadata authority, bounded download + 3-layer size validation, atomic import, per-phase acceptance criteria | ✅ Ready for Phase 1 (Phase 0 ✅ complete; Phases 1–4 pending) |
 | [plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md](plans/00-sprints/✅%20phase-0-drive-picker-spike-spec.md) | Self-contained Phase 0 Google Picker transport spike: branch, module, GCP setup, acceptance gates, decision template | spike/drive-picker-transport branch, components/drive_picker_spike.py, 7 pass gates across Chrome/Safari/Firefox, Option A (hidden-input bridge) vs Option B (declared component) — **Option B accepted as the production transport**, GCP console setup steps, browser version recording template, cleanup procedure | ✅ Complete — Option B accepted |
+| [plans/00-sprints/✅ phase-0-debug-summary.md](plans/00-sprints/✅%20phase-0-debug-summary.md) | Full Phase 0 decision record — why Option A was rejected and Option B selected, with evidence | Origin/referrer evidence (`srcdoc` iframe → `null` origin → Picker 403), 4 bugs found & fixed (session-state exception, gapi load, `window.status` collision, Picker 403), Option B architecture + files + return contract, browser test matrix, cleanup procedure | ✅ Complete — Option A rejected, Option B selected |
 
 ---
 
@@ -117,7 +118,8 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
         │
         ├──► plans/00-sprints/🔵 v0.3.0-drive-import-spec.md ── "v0.3.0 Drive import (5 phases; Phase 0 ✅ complete)"
         │           ├──► plans/🔵 v0.3.0-drive-import-design.md ── "Design record (transport decision: Option B)"
-        │           └──► plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md ── "Phase 0 proof complete (Option B accepted)"
+        │           ├──► plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md ── "Phase 0 proof complete (Option B accepted)"
+        │           └──► plans/00-sprints/✅ phase-0-debug-summary.md ── "Decision record (Option A rejected)"
         │
         └──► plans/audit/ (all ✅ — v0.1.0 hardening artifacts)
                  ├── ✅ v0.1.0-closeout.md ── "What v0.1.0 delivered + baseline"
@@ -171,7 +173,8 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 | [plans/🔵 v0.3.0-drive-import-design.md](plans/🔵%20v0.3.0-drive-import-design.md) | Architecture decision record — Picker vs. direct listing, transport decision (Option B), consent UX, security model | 🔵 Design complete — Option B selected | 2026-08-01 |
 | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) | 5-phase implementation spec — Phase 0 ✅ complete (Option B declared component selected), security, provenance, picker UI, docs | ✅ Ready for Phase 1 | 2026-08-01 |
 | [plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md](plans/00-sprints/✅%20phase-0-drive-picker-spike-spec.md) | Phase 0 transport spike — GCP setup, branch workflow, acceptance gates, decision template | ✅ Complete — Option B accepted | 2026-07-31 |
+| [plans/00-sprints/✅ phase-0-debug-summary.md](plans/00-sprints/✅%20phase-0-debug-summary.md) | Phase 0 debugging summary — Option A rejection evidence, 4 bugs fixed, Option B implementation state | ✅ Complete — Option A rejected, Option B selected | 2026-07-31 |
 
 ---
 
-*This index was last updated 2026-08-01 — v0.3.0 rows updated (Phase 0 ✅ complete; Option B declared component is the chosen transport, not a fallback); IDEAS #29 credential rotation closed (key rotated, GA4 re-authed with `drive.file`, repo sweep clean, credential-leak guard added — see IDEAS.md, CHANGELOG, `14fd6b9`).*
+*This index was last updated 2026-08-01 — Phase 0 decision record (`phase-0-debug-summary.md`) added to the index; v0.3.0 rows updated (Phase 0 ✅ complete; Option B declared component is the chosen transport, not a fallback); IDEAS #29 credential rotation closed (key rotated, GA4 re-authed with `drive.file`, repo sweep clean, credential-leak guard added — see IDEAS.md, CHANGELOG, `14fd6b9`).*
