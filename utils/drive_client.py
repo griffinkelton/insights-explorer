@@ -103,70 +103,82 @@ def download_drive_file(
             ``too_large``, ``empty_file``, ``not_found``,
             ``access_denied``, or ``download_failed``.
     """
-    service = _build_drive_service(credentials)
-
     try:
-        # 1. Server metadata is authoritative (never trust Picker name/MIME).
-        metadata = service.files().get(fileId=file_id, fields="name,mimeType,size").execute()
-    except HttpError as e:
-        _raise_classified_drive_error(e)
+        service = _build_drive_service(credentials)
 
-    name = metadata.get("name", "")
-    mime_type = metadata.get("mimeType", "")
-    size = metadata.get("size")
+        try:
+            # 1. Server metadata is authoritative (never trust Picker name/MIME).
+            metadata = service.files().get(fileId=file_id, fields="name,mimeType,size").execute()
+        except HttpError as e:
+            _raise_classified_drive_error(e)
 
-    # MIME allowlist — reject anything not importable.
-    if mime_type not in DRIVE_IMPORT_MIME_TYPES:
-        logger.warning("Drive import rejected: category=unsupported_mime")
-        raise DriveImportError(
-            "unsupported_type",
-            "This file type cannot be imported. Use CSV, XLSX, or Google Sheets.",
-        )
+        name = metadata.get("name", "")
+        mime_type = metadata.get("mimeType", "")
+        size = metadata.get("size")
 
-    # Layer 1: metadata preflight (fast path for CSV/XLSX).
-    if size is not None and int(size) > MAX_DRIVE_IMPORT_BYTES:
-        logger.warning("Drive import rejected: category=file_too_large")
-        raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
-
-    # Layer 2: streamed byte cap with bounded in-memory writer.
-    buffer = _BoundedBytesIO()
-    try:
-        if mime_type == "application/vnd.google-apps.spreadsheet":
-            request = service.files().export_media(
-                fileId=file_id, mimeType=GOOGLE_SHEETS_EXPORT_MIME
+        # MIME allowlist — reject anything not importable.
+        if mime_type not in DRIVE_IMPORT_MIME_TYPES:
+            logger.warning("Drive import rejected: category=unsupported_mime")
+            raise DriveImportError(
+                "unsupported_type",
+                "This file type cannot be imported. Use CSV, XLSX, or Google Sheets.",
             )
+
+        # Layer 1: metadata preflight (fast path for CSV/XLSX).
+        if size is not None and int(size) > MAX_DRIVE_IMPORT_BYTES:
+            logger.warning("Drive import rejected: category=file_too_large")
+            raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
+
+        # Layer 2: streamed byte cap with bounded in-memory writer.
+        buffer = _BoundedBytesIO()
+        try:
+            if mime_type == "application/vnd.google-apps.spreadsheet":
+                request = service.files().export_media(
+                    fileId=file_id, mimeType=GOOGLE_SHEETS_EXPORT_MIME
+                )
+            else:
+                request = service.files().get_media(fileId=file_id)
+
+            downloader = MediaIoBaseDownload(buffer, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+        except HttpError as e:
+            _raise_classified_drive_error(e)
+
+        file_bytes = buffer.getvalue()
+
+        # Layer 3: final byte check (safety net).
+        if len(file_bytes) > MAX_DRIVE_IMPORT_BYTES:
+            logger.warning("Drive import rejected: category=file_too_large")
+            raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
+
+        # Zero-byte rejection.
+        if not file_bytes:
+            logger.warning("Drive import rejected: category=empty_file")
+            raise DriveImportError("empty_file", "The selected file is empty.")
+
+        # Google Sheets: first sheet only; avoid a double '.csv' extension.
+        if mime_type == "application/vnd.google-apps.spreadsheet":
+            if name.lower().endswith(".csv"):
+                final_name = name
+            else:
+                final_name = f"{name}.csv"
         else:
-            request = service.files().get_media(fileId=file_id)
-
-        downloader = MediaIoBaseDownload(buffer, request)
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-    except HttpError as e:
-        _raise_classified_drive_error(e)
-
-    file_bytes = buffer.getvalue()
-
-    # Layer 3: final byte check (safety net).
-    if len(file_bytes) > MAX_DRIVE_IMPORT_BYTES:
-        logger.warning("Drive import rejected: category=file_too_large")
-        raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
-
-    # Zero-byte rejection.
-    if not file_bytes:
-        logger.warning("Drive import rejected: category=empty_file")
-        raise DriveImportError("empty_file", "The selected file is empty.")
-
-    # Google Sheets: first sheet only; avoid a double '.csv' extension.
-    if mime_type == "application/vnd.google-apps.spreadsheet":
-        if name.lower().endswith(".csv"):
             final_name = name
-        else:
-            final_name = f"{name}.csv"
-    else:
-        final_name = name
 
-    return file_bytes, final_name
+        return file_bytes, final_name
+
+    except DriveImportError:
+        raise
+    except HttpError as exc:
+        _raise_classified_drive_error(exc)
+    except Exception:
+        logger.warning("Drive download failed: category=download_failed")
+        raise DriveImportError(
+            "download_failed",
+            "Could not download the file. Please try again.",
+        ) from None
 
 
 def _raise_classified_drive_error(error: HttpError) -> None:

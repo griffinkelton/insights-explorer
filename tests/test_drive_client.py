@@ -247,6 +247,32 @@ class TestDownloadDriveFile:
                 download_drive_file(MagicMock(), "file123")
         assert exc_info.value.code == "download_failed"
 
+    def test_service_build_failure_maps_to_download_failed(self):
+        """Credentials-refresh or service-construction failure → download_failed."""
+        with patch(
+            "utils.drive_client._build_drive_service",
+            side_effect=ConnectionError("network unreachable"),
+        ):
+            with pytest.raises(DriveImportError, match="try again") as exc_info:
+                download_drive_file(MagicMock(), "file123")
+        assert exc_info.value.code == "download_failed"
+
+    def test_non_http_downloader_failure_maps_to_download_failed(self):
+        """Non-HttpError download transport failure → download_failed (from None)."""
+        service = self._service({"name": "data.csv", "mimeType": CSV_MIME, "size": 100})
+
+        def _failing_factory(buffer, request):
+            raise OSError("connection reset")
+
+        with patch("utils.drive_client.build", return_value=service), patch(
+            "utils.drive_client.MediaIoBaseDownload", side_effect=_failing_factory
+        ):
+            with pytest.raises(DriveImportError, match="try again") as exc_info:
+                download_drive_file(MagicMock(), "file123")
+        assert exc_info.value.code == "download_failed"
+        # Verify from None — the __cause__ must not be the OSError.
+        assert exc_info.value.__cause__ is None
+
     # ── Credentials + behavior ────────────────────────────────────────────
 
     def test_refreshes_expired_credentials(self):
