@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from io import BytesIO
+from typing import TYPE_CHECKING, Callable
 
 import pandas as pd
 import streamlit as st
 
 if TYPE_CHECKING:
     from utils.data_context import GA4RequestMetadata
+
+from google.oauth2.credentials import Credentials
+
+from utils.drive_client import DriveImportError
 
 from utils.data_loader import (
     ColumnType,
@@ -577,3 +582,73 @@ def _process_uploaded_file(uploaded_file) -> None:
             display_name=uploaded_file.name,
         )
         st.session_state.last_file_id = file_id
+
+
+# ── v0.3.0 Phase 2.3: Drive ingestion ──────────────────────────────────────
+
+
+class _NamedBytesIO(BytesIO):
+    """BytesIO adapter that looks like a file-like object for ``load_file()``.
+
+    ``data_loader.load_file()`` calls ``file.read()`` and measures
+    ``len()`` on the returned bytes, then uses ``file.name.lower()`` for
+    extension detection.  It never accesses ``.size``.
+
+    BytesIO contract verified 2026-08-02 — the ``.size`` attribute set
+    below is harmless baggage (not consumed by the loader).
+    """
+
+    def __init__(self, data: bytes, name: str) -> None:
+        super().__init__(data)
+        self.name = name
+        self.size = len(data)
+
+
+def _ingest_drive_file(
+    downloader: Callable[[Credentials, str], tuple[bytes, str]],
+    credentials: Credentials,
+    file_id: str,
+) -> None:
+    """Download and ingest a file from Google Drive.
+
+    v0.3.0 Phase 2.3: Receives a downloader dependency — production
+    supplies ``download_drive_file``; tests supply a fake that returns
+    fixture bytes and a server-authoritative display name.
+
+    On success: adapts Drive bytes through ``_NamedBytesIO`` into the
+    existing ``load_file()`` parser, then calls ``_populate_data_state()``
+    with ``source="drive"``.  Early returns on download or parse failure
+    leave the prior ``DataContext`` and all derived session state untouched.
+    """
+    # Step 1: Download (all failures become DriveImportError — user-safe).
+    try:
+        file_bytes, display_name = downloader(credentials, file_id)
+    except DriveImportError as e:
+        st.error(f"❌ {str(e)}")
+        return
+
+    # Step 2: Adapt Drive bytes → existing parser.
+    file_obj = _NamedBytesIO(file_bytes, display_name)
+    df, error, warning = load_file(file_obj)
+
+    if error:
+        st.error(f"❌ {error}")
+        return
+
+    if warning:
+        st.warning(f"⚠️ {warning}")
+
+    # Step 3: Validate and populate atomically.
+    missing = validate_columns(df)
+    if missing:
+        st.warning(
+            f"⚠️ Missing expected columns: {', '.join(missing)}. " "Some features may be limited."
+        )
+
+    _populate_data_state(
+        df,
+        source="drive",
+        missing=missing,
+        file_bytes=file_bytes,
+        display_name=display_name,
+    )
