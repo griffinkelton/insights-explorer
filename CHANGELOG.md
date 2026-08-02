@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
+
+### Test class pins the verified missing-`build/` failure (spec v2.8.0 §3.1)
+
+**Commit:** [`a2a083e`](https://github.com/griffinkelton/insights-explorer/commit/a2a083e)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `tests/test_drive_picker_component.py` — new `TestMissingBuildDirectoryFailsLoudly` (3 tests): missing component dir → `StreamlitAPIException: No such component directory` at registration (raise site `LocalComponentRegistry.register_component`, `local_component_registry.py:52`); control test registers normally when the dir exists; exception message carries the absolute missing path | Testing | [tests/test_drive_picker_component.py](tests/test_drive_picker_component.py) |
+| CI-safe by design: `tmp_path`-based, never requires `build/` to exist (the Python CI job runs without it); exercises the live-session registration path directly since `declare_component` only registers under a `ScriptRunContext` — bare imports succeed without `build/` | Testing | [tests/test_drive_picker_component.py](tests/test_drive_picker_component.py) |
+| Pins the verified 2026-08-02 failure mode (fresh-checkout simulation): a missing `build/` fails the **entire page run** (error banner; nothing after the component renders) — fail-fast by design, so Phase 3 implementers have a test enforcing the spec's claim | Testing | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| Suite grows 628 → **631** passed / 0 warnings (still 30 modules — the +3 landed in an existing module) | Testing | [README.md](README.md) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.8.0 §3.1 Build/ policy), [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Build: Frontend Bundle on GCP Deploy (cloudbuild.yaml)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
