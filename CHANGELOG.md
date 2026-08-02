@@ -8,7 +8,7 @@
 
 ## v0.3.0 — Drive Import Release
 
-**Date:** 2026-08-02 | **Status:** 🚧 Release verification in progress | **Tests:** 663 (non-smoke) + 14 Playwright smoke
+**Date:** 2026-08-02 | **Status:** 🚧 Release verification in progress | **Tests:** 663 pytest + 14 Playwright smoke (dedicated CI job)
 
 ### Phase 1: Server-Side Foundation
 

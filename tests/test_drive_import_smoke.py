@@ -8,7 +8,7 @@ No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
 files.  In test mode (DRIVE_PICKER_TEST_MODE=1), the sidebar bypasses
 OAuth checks and uses dummy secrets; a query-param seam
-(?picker_seam=...) controls the fake component return value.
+(?picker_seam=none|cancel|error|picked) controls the fake return value.
 
 Requires: ``playwright`` (dev dependency) + ``python -m playwright install chromium``
 
@@ -52,6 +52,7 @@ BASE_PORT = 18599
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STARTUP_TIMEOUT = 45
 SIDEBAR_WAIT = 20_000  # ms — generous for Streamlit WebSocket initial render
+IFRAME_WAIT = 5_000  # ms — wait for component iframe to appear after click
 
 
 def _find_free_port() -> int:
@@ -150,6 +151,23 @@ def _wait_for_sidebar(page: Page) -> None:
     )
 
 
+def _click_import(page: Page) -> None:
+    """Click the Import button, then wait for the iframe to appear."""
+    sidebar = page.locator('[data-testid="stSidebar"]')
+    btn = sidebar.get_by_role("button", name="Import from Google Drive")
+    btn.click()
+    page.wait_for_timeout(IFRAME_WAIT)
+
+
+def _picker_iframes(page: Page) -> list:
+    """Return all iframes whose title contains 'drive_picker_transport'."""
+    return [
+        f
+        for f in page.locator("iframe").all()
+        if f.get_attribute("title") and "drive_picker_transport" in (f.get_attribute("title") or "")
+    ]
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Phase 3.2a: Platform smoke (no test mode)
 # ══════════════════════════════════════════════════════════════════════════
@@ -160,13 +178,11 @@ class TestPlatformSmoke:
 
     def test_app_loads_without_crash(self, streamlit_server):
         with _page(streamlit_server) as page:
-            # Page loaded successfully (verified by _page helper).
             assert page.url.startswith(streamlit_server)
 
     def test_sidebar_is_present(self, streamlit_server):
         with _page(streamlit_server) as page:
-            sidebar = page.locator('[data-testid="stSidebar"]')
-            assert sidebar.is_visible()
+            assert page.locator('[data-testid="stSidebar"]').is_visible()
 
     def test_no_credential_leak_in_page_source(self, streamlit_server):
         with _page(streamlit_server) as page:
@@ -184,21 +200,12 @@ class TestPlatformSmoke:
 class TestDriveImportVisibility:
     """Import button visibility and section rendering."""
 
-    def test_drive_import_section_visible_in_test_mode(self, streamlit_server_test_mode):
-        with _page(streamlit_server_test_mode) as page:
-            # The section header and import button appear after WebSocket render.
-            # Wait for the button as a reliable signal that the full sidebar is ready.
-            sidebar = page.locator('[data-testid="stSidebar"]')
-            import_btn = sidebar.get_by_role("button", name="Import from Google Drive")
-            import_btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
-            assert import_btn.is_visible(), "Drive Import button not visible in test mode"
-
     def test_import_button_visible_in_test_mode(self, streamlit_server_test_mode):
         with _page(streamlit_server_test_mode) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
-            import_btn = sidebar.get_by_role("button", name="Import from Google Drive")
-            import_btn.wait_for(state="visible", timeout=10_000)
-            assert import_btn.is_visible(), "Import button not visible in test mode"
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button not visible in test mode"
 
     def test_import_section_hidden_without_auth(self, streamlit_server):
         with _page(streamlit_server) as page:
@@ -213,80 +220,86 @@ class TestDriveImportOnDemandRender:
 
     def test_picker_iframe_not_visible_initially(self, streamlit_server_test_mode):
         with _page(streamlit_server_test_mode) as page:
-            iframes = page.locator("iframe").all()
-            picker_frames = [
-                f
-                for f in iframes
-                if f.get_attribute("title")
-                and "drive_picker_transport" in (f.get_attribute("title") or "")
-            ]
-            assert len(picker_frames) == 0, "Picker iframe should not exist before activation"
+            assert (
+                len(_picker_iframes(page)) == 0
+            ), "Picker iframe should not exist before activation"
 
     def test_picker_iframe_appears_after_click(self, streamlit_server_test_mode):
         with _page(streamlit_server_test_mode) as page:
-            sidebar = page.locator('[data-testid="stSidebar"]')
-            import_btn = sidebar.get_by_role("button", name="Import from Google Drive")
-            import_btn.click()
-            page.wait_for_timeout(3000)
-            iframes = page.locator("iframe").all()
-            assert len(iframes) > 0, "Expected at least one iframe after activation"
-
-
-class TestDriveImportReadyState:
-    """Component shows iframe after activation."""
-
-    def test_component_iframe_exists_after_click(self, streamlit_server_test_mode):
-        with _page(streamlit_server_test_mode) as page:
-            sidebar = page.locator('[data-testid="stSidebar"]')
-            sidebar.get_by_role("button", name="Import from Google Drive").click()
-            page.wait_for_timeout(3000)
-            iframes = page.locator("iframe").all()
-            assert len(iframes) > 0, "Component iframe should exist after activation"
+            _click_import(page)
+            assert len(_picker_iframes(page)) > 0, "Expected a Picker iframe after activation"
 
 
 class TestDriveImportCancelState:
-    """Cancel/reset: the sidebar still has buttons after activation."""
+    """Cancel seam: import button resets and Picker iframe is gone."""
 
-    def test_sidebar_buttons_present_after_activation(self, streamlit_server_test_mode):
-        with _page(streamlit_server_test_mode) as page:
+    def test_cancel_seam_resets_import_button(self, streamlit_server_test_mode):
+        url = f"{streamlit_server_test_mode}?picker_seam=cancel"
+        with _page(url) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
-            sidebar.get_by_role("button", name="Import from Google Drive").click()
+            _click_import(page)
+            # After cancel, the button should reappear and be enabled.
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button should be visible after cancel"
+            assert btn.is_enabled(), "Import button should be enabled after cancel"
+
+    def test_cancel_seam_removes_picker_iframe(self, streamlit_server_test_mode):
+        url = f"{streamlit_server_test_mode}?picker_seam=cancel"
+        with _page(url) as page:
+            _click_import(page)
+            # The Picker iframe should be gone after cancel is processed.
             page.wait_for_timeout(2000)
-            buttons = sidebar.locator("button").all()
-            assert len(buttons) > 0, "Sidebar buttons should still be present"
+            assert len(_picker_iframes(page)) == 0, "Picker iframe should be removed after cancel"
+
+
+class TestDriveImportErrorState:
+    """Error seam: component returns None (error), import button resets."""
+
+    def test_error_seam_resets_button(self, streamlit_server_test_mode):
+        url = f"{streamlit_server_test_mode}?picker_seam=error"
+        with _page(url) as page:
+            sidebar = page.locator('[data-testid="stSidebar"]')
+            _click_import(page)
+            # After error, the button should reappear.
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button should be visible after error"
 
 
 class TestDriveImportThemeSync:
-    """Theme propagation: check the iframe body for data-theme."""
+    """Theme propagation: the Picker iframe body has data-theme set."""
 
     def test_theme_propagates_to_iframe_body(self, streamlit_server_test_mode):
         with _page(streamlit_server_test_mode) as page:
-            sidebar = page.locator('[data-testid="stSidebar"]')
-            sidebar.get_by_role("button", name="Import from Google Drive").click()
-            page.wait_for_timeout(4000)
-            for iframe in page.locator("iframe").all():
-                try:
-                    body = iframe.content_frame().locator("body")
-                    theme = body.get_attribute("data-theme")
-                    if theme in ("dark", "light"):
-                        break
-                except Exception:
-                    continue
-            # Pass: either theme was found or component didn't load (no creds).
+            _click_import(page)
+            picker_frames = _picker_iframes(page)
+            assert len(picker_frames) >= 1, "Expected at least one Picker iframe for theme check"
+            # The component loads its own HTML; the body should have data-theme.
+            body = picker_frames[0].content_frame.locator("body")
+            theme = body.get_attribute("data-theme")
+            assert theme in (
+                "dark",
+                "light",
+            ), f"Expected body[data-theme] to be 'dark' or 'light', got {theme!r}"
 
 
 class TestDriveImportDuplicateProtection:
-    """Double-activation does not break the page."""
+    """Duplicate activation: two rapid clicks do not double-activate."""
 
-    def test_double_click_does_not_crash(self, streamlit_server_test_mode):
+    def test_rapid_double_click_produces_one_iframe(self, streamlit_server_test_mode):
         with _page(streamlit_server_test_mode) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
-            sidebar.get_by_role("button", name="Import from Google Drive").click()
-            page.wait_for_timeout(2000)
-            # Page still alive — sidebar visible.
-            assert page.locator(
-                '[data-testid="stSidebar"]'
-            ).is_visible(), "Sidebar should still be visible after activation"
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            # Click twice in rapid succession.
+            btn.click()
+            btn.click()
+            page.wait_for_timeout(IFRAME_WAIT)
+            # There should be exactly one Picker iframe, not two.
+            picker_frames = _picker_iframes(page)
+            assert (
+                len(picker_frames) == 1
+            ), f"Expected 1 Picker iframe after double-click, got {len(picker_frames)}"
 
 
 class TestDriveImportPickedSeam:
@@ -296,12 +309,12 @@ class TestDriveImportPickedSeam:
         url = f"{streamlit_server_test_mode}?picker_seam=picked"
         with _page(url) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
-            sidebar.get_by_role("button", name="Import from Google Drive").click()
-            page.wait_for_timeout(3000)
-            sidebar_text = sidebar.inner_text()
-            assert (
-                "Import from Google Drive" in sidebar_text
-            ), "Import button should reappear after seam-pick completes"
+            _click_import(page)
+            # After a "picked" seam, the picker is deactivated and the
+            # import button reappears.
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button should reappear after seam-pick completes"
 
 
 class TestDriveImportNoCredentialLeakTestMode:

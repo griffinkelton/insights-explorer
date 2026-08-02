@@ -44,10 +44,16 @@ logger = logging.getLogger(__name__)
 # Set DRIVE_PICKER_TEST_MODE=1 to bypass OAuth + secrets checks so
 # Playwright can exercise the Drive import UI without real credentials.
 # Query param ``picker_seam`` controls the fake component return:
-#   ?picker_seam=none     → component returns None (default)
+#   ?picker_seam=none     → component renders normally (visible iframe)
+#   ?picker_seam=cancel   → component returns None (simulates Picker cancel)
+#   ?picker_seam=error    → component returns None (simulates component error)
 #   ?picker_seam=picked   → component returns a valid picked payload
-#   ?picker_seam=cancel   → component returns None (cancel simulation)
 _DRIVE_PICKER_TEST_MODE = os.getenv("DRIVE_PICKER_TEST_MODE", "") == "1"
+
+if _DRIVE_PICKER_TEST_MODE:
+    _app_env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development"))
+    if _app_env == "production":
+        raise RuntimeError("DRIVE_PICKER_TEST_MODE must not be enabled in production")
 
 
 def _populate_data_state(
@@ -370,8 +376,11 @@ def _render_drive_picker() -> None:
     if st.session_state.drive_picker_active and st.session_state.drive_picker_request_id:
         if _DRIVE_PICKER_TEST_MODE:
             oauth_token = "test-token"
-            # Query-param seam: ?picker_seam=picked simulates a file pick.
-            # ?picker_seam=cancel or absent → component renders normally (visible iframe).
+            # Query-param seam controls the fake component return:
+            #   ?picker_seam=picked  → returns a valid picked payload
+            #   ?picker_seam=cancel  → returns None (simulates Picker cancel)
+            #   ?picker_seam=error   → returns None (simulates component error)
+            #   ?picker_seam=none or absent → component renders normally
             seam = st.query_params.get("picker_seam", "")
             if seam == "picked":
                 selection = {
@@ -379,6 +388,8 @@ def _render_drive_picker() -> None:
                     "requestId": st.session_state.drive_picker_request_id,
                     "fileId": "test-file-id-123",
                 }
+            elif seam in ("cancel", "error"):
+                selection = None
             else:
                 from components.drive_picker_component import drive_picker_transport
 
@@ -418,9 +429,7 @@ def _render_drive_picker() -> None:
                 return
 
             if _DRIVE_PICKER_TEST_MODE:
-                # Test mode: record successful pick in session state
-                # without attempting a real Drive download.
-                st.session_state._test_picker_picked = True
+                # Test mode: deactivate without attempting a real Drive download.
                 st.session_state.drive_picker_active = False
                 st.rerun()
             else:

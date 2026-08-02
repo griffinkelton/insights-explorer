@@ -29,7 +29,11 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest tests/ -v --tb=short --cov=utils --cov=components --cov=pages --cov-report=term-missing
+          python -m pytest tests/ \
+            --ignore=tests/test_drive_import_smoke.py \
+            -v --tb=short \
+            --cov=utils --cov=components --cov=pages \
+            --cov-report=term-missing
 
   frontend:
     runs-on: ubuntu-latest

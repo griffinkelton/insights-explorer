@@ -120,7 +120,7 @@ python -m pytest tests/ -v
 │   ├── sanitize.py             # Formula injection + PDF XML escaping
 │   └── styles.py               # Custom CSS + keyboard shortcuts + theme
 ├── assets/                     # Favicons, icons, PWA manifest
-├── tests/                      # Test suite (666+ tests, 0 warnings)
+├── tests/                      # Test suite (663 tests, 0 warnings)
 ├── .github/workflows/          # GitHub Actions CI (Python + frontend + Playwright)
 ├── cloudbuild.yaml             # GCP Cloud Build CI
 ├── requirements/               # base.txt (runtime), dev.txt (dev+test)
@@ -160,7 +160,7 @@ Select one CSV, XLSX, or Google Sheets file through Google Picker. The app fetch
 
 **Picker setup:** Requires a Google Cloud project with the Picker API enabled, a Picker API key, and an OAuth 2.0 client ID with `drive.file` scope. See `.streamlit/secrets.example.toml` for the required configuration keys.
 
-**Browser support:** Chrome (macOS, Windows), Safari (macOS), Firefox (macOS, Windows). See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for the full cross-browser acceptance matrix.
+**Browser validation target:** Chrome (macOS, Windows), Safari (macOS), and Firefox (macOS, Windows). Final support sign-off is pending the v0.3.0 manual browser matrix. See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 
 ---
 
@@ -199,7 +199,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (666+ tests) |
+| Testing | pytest (663 tests) |
 | CI/CD | GitHub Actions + Google Cloud Build |
 | Data | Pandas |
 | Charts | Plotly |
