@@ -25,6 +25,25 @@
 
 ---
 
+## 2026-08-01 — v0.3.0 Spec v2.8.0: Missing-Bundle Failure Mode (build/)
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
+
+### Build/ policy documents the verified missing-`build/` failure mode
+
+**Commit:** [`ce9cf45`](https://github.com/griffinkelton/insights-explorer/commit/ce9cf45)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| v0.3.0 spec bumped **v2.7.0 → v2.8.0** — Build/ policy block gains a blockquote: a missing `build/` does **not** degrade to a broken iframe — `declare_component` raises `StreamlitAPIException: No such component directory` at registration and the **entire page run fails** (error banner; nothing after the component renders) | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| Failure mode **verified 2026-08-02** via fresh-checkout simulation — Phase 3 implementers must treat a missing `build/` as a hard deploy error, not a UI fallback | Docs | [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md) |
+| Enforced in tests by `a2a083e` (`TestMissingBuildDirectoryFailsLoudly`, 3 tests): missing dir → registration raises, existing dir registers fine, absolute path in message | Testing | [tests/test_drive_picker_component.py](tests/test_drive_picker_component.py) |
+| Footer history preserved: v2.8.0 note prepended over the v2.7.0 → v2.1.0 chain | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md), [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Build: Frontend Bundle on GCP Deploy (cloudbuild.yaml)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
