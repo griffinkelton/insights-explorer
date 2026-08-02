@@ -52,9 +52,17 @@ sole ground truth:
 
 | Layer | Source | What it answers | Join key | When available |
 |---|---|---|---|---|
-| **GA4 / GTM behavior** | `pull_ga4_report()` → `DataContext` | Acquisition, navigation, engagement, device, events, session funnel | GA4 session ID or anonymous user/session identifier | Immediately on OAuth connect |
+| **GA4 / GTM behavior** | `pull_ga4_report()` → `DataContext` | Descriptive reach, pages, devices, aggregate trends. Channels if dimensions are added to the query. *(Event sequences, session funnels, and person-level retention require a new event-level query design — see warning below.)* | **None** in Gate 1. Gate 2 requires a separately approved, de-identified linkage key collected prospectively. | Immediately on OAuth connect |
 | **Questionnaire / Evidence warehouse** | Drive import (v0.3.0) → `DataContext`, evidence connector (future) | Self-reported demographics, health context, user pathway, responses | De-identified session ID and/or questionnaire transaction ID | When evidence connector is live and questionnaire data is loaded |
 | **SurveyMonkey follow-up** | CSV import or evidence connector | Awareness change, confidence, satisfaction, care-seeking, barriers | Privacy-approved survey/respondent linkage or cohort-level comparison | Opt-in only; separate cohort |
+
+> **Crucial limitation:** `pull_ga4_report()` currently returns **aggregate rows only**
+> (`date`, `pagePath`, `deviceCategory`, `sessions`, `users`, etc.). It contains
+> **no event-level data, no session IDs, and no identifiers**. The current GA4
+> aggregate report is sufficient for descriptive reach, page, device, and aggregate
+> trend findings only. Session sequences, retention, funnel progression, and
+> questionnaire linkage require a new event-level collection/query design and cannot
+> be inferred from the current `DataContext`.
 
 **Key principle:** GA4 demographic/geographic fields are behavioral context, not a
 substitute for race, ethnicity, gender, or other equity variables. Questionnaire
@@ -70,21 +78,56 @@ reports. The engine cannot reliably infer "funnel," "completion," "action," or
 
 Define with the team **before coding begins:**
 
-| Needed object | Example fields |
-|---|---|
-| Metric definition | `questionnaire_completion_rate`, numerator event, denominator event, event scope, grain |
-| Event mapping | Canonical `questionnaire_started` → property-specific `web_questionnaire_start` |
-| Funnel specification | Ordered steps, allowed re-entry, time window, same-session vs cross-session rule |
-| Action taxonomy | `care_navigation`, `resource_use`, `research_interest`, `contact_intent`, `referral_submitted` |
-| Dimension dictionary | Canonical channel, language, device, page category, content topic, user role |
-| Data-quality status | Validated, provisional, broken, unavailable, pre/post-incomparable |
-| Provenance | Source, query/report ID, date range, refresh time, schema version |
-| Interpretation limits | "Intent inferred," "descriptive only," "not causal," "small sample" |
+| Needed object | Example fields | Owner |
+|---|---|---|
+| Metric definition | `questionnaire_completion_rate`, numerator event, denominator event, event scope, grain | Product/engineering + analytics owner |
+| Event mapping | Canonical `questionnaire_started` → property-specific `web_questionnaire_start` | Product/engineering + analytics owner |
+| Funnel specification | Ordered steps, allowed re-entry, time window, same-session vs cross-session rule | Product/engineering + analytics owner |
+| Action taxonomy | `care_navigation`, `resource_use`, `research_interest`, `contact_intent`, `referral_submitted` | Program/evaluation lead |
+| Dimension dictionary | Canonical channel, language, device, page category, content topic, user role | Product/engineering + analytics owner |
+| Data-quality status | Validated, provisional, broken, unavailable, pre/post-incomparable | Analytics/evaluation owner |
+| Provenance | Source, query/report ID, date range, refresh time, schema version | Analytics/evaluation owner |
+| Interpretation limits | "Intent inferred," "descriptive only," "not causal," "small sample" | Analytics/evaluation owner |
+| Privacy/suppression | Small-cell, denominator, complementary-suppression, difference-attack rules | Privacy/security owner |
+| AI prompt/evidence rendering | Structured evidence contract, message-boundary rules | App owner |
+
+**Governance hard rule:** No metric moves from `provisional` to `validated` without
+named approval. "Completion," "resource action," and "care-seeking" each carry
+different program meanings — the engine must not treat them as interchangeable.
 
 Current GA4 events include repeated questionnaire events, starts, finishes,
 tailored-page events, outbound clicks, resource visibility, and form activity —
 without an event-level semantic contract, a generic "key event" or click count
 can easily be misrepresented as an outcome.
+
+### Required versioned schemas
+
+Four schemas must exist before code touches the engine:
+
+- **`MetricDefinition`** — numerator, denominator, event scope, grain, validation status.
+- **`ReportContract`** — source, grain, dimensions, metrics, privacy status, known limitations, truncation behavior.
+- **`InsightEvidence`** — structured evidence payload that Gemini receives (see below).
+- **`SuppressionDecision`** — reason, rule applied, affected cells, timestamp.
+
+**Minimal `ReportContract` for the current query:**
+
+```yaml
+report_id: ga4_page_device_daily_v1
+source: ga4_data_api
+grain: daily_page_path_device
+dimensions: [date, pagePath, deviceCategory]
+metrics: [sessions, totalUsers, activeUsers, engagementRate, bounceRate]
+privacy_status: aggregate_only
+known_limitations:
+  - no session identifier
+  - no event sequence
+  - no demographic linkage
+truncation_behavior: hard_cap_500000_rows
+```
+
+The current `GA4RequestMetadata` already captures dimensions, metrics, limit, and
+truncation — evolve it toward an explicit report contract rather than letting the
+insight layer infer capability from a `DataFrame`.
 
 ---
 
@@ -96,17 +139,32 @@ deterministic analysis pass and stores results in `st.session_state._ga4_insight
 
 ### Always computed (GA4 data only, no demographics needed)
 
-| Category | Specific findings |
+These are computable from the current `pull_ga4_report()` aggregate output:
+
+| Category | Specific findings | Notes |
+|---|---|---|
+| **Reach** | Total users, new vs returning, sessions, geography (country/region from GA4), top acquisition channels | Channel breakdown requires adding channel dimensions to the base query |
+| **Trends** | Week-over-week session change (with incomplete-week handling, annotated interventions), day-of-week patterns | Exclude incomplete periods |
+| **Top pages** | Highest-traffic page paths, grouped by topic where possible; volume-adjusted engagement metrics | — |
+| **Device** | Mobile vs desktop vs tablet split, device-specific engagement patterns | — |
+| **Anomalies** | Robust rolling median/MAD deviation flags with minimum-history and volume checks | — |
+| **Data-quality flags** | Missing days, anomalous zeroes, suspicious paths, row-cap/truncation status, sampling/thresholding warnings | Runs before any insight generation |
+
+### Deferred: requires event-level data or new query design
+
+These are **not computable** from the current aggregate query and require a
+separate event-level collection/query design:
+
+| Category | Why deferred |
 |---|---|
-| **Reach** | Total users, new vs returning, sessions, geography (country/region from GA4), top acquisition channels |
-| **Trends** | Week-over-week session change (with incomplete-week handling, annotated interventions), day-of-week patterns |
-| **Top pages** | Highest-traffic page paths, grouped by topic where possible; volume-adjusted engagement metrics |
-| **Device** | Mobile vs desktop vs tablet split, device-specific engagement patterns |
-| **Funnel** | Event-sequence completion rates with deduplication and temporal rules (versioned funnel definition) |
-| **Anomalies** | Robust rolling median/MAD deviation flags with minimum-history and volume checks |
-| **Retention** | Cohort return rates by acquisition channel (browser/device-based — not person-level) |
+| **Funnel** | Event-sequence completion with deduplication and temporal rules — requires event-level data, not aggregate rows |
+| **Retention** | Cohort return rates — requires `CohortSpec` querying or session-level data, not derivable from the current date/page/device table |
+| **Acquisition analysis** | Requires adding channel/source dimensions to the base query — feasible with a query change, not a data gap |
 
 ### Computed when demographics are available (via evidence connector, opt-in only)
+
+All remain blocked until linkage is validated in Gate 0B and the evidence
+connector is live:
 
 | Category | Specific findings |
 |---|---|
@@ -140,18 +198,49 @@ validated through landing-page review and qualitative feedback."*
 
 ---
 
-## Inference labels (required on every insight)
+## Threshold handling (three separate controls)
 
-Every surfaced finding carries exactly one inference label. This prevents
-overly confident AI language:
+### Hard rule
 
-| Label | Meaning | Example |
+**If GA4 reports sampling, thresholding, withheld rows, or an incomplete report,
+the engine emits a `DataQualityFinding` and does NOT create comparative, equity,
+anomaly, or ranking insights from that affected slice.**
+
+### Three distinct controls — never share a generic "low confidence" label
+
+| Control | Source | Behavior |
 |---|---|---|
-| **Observed** | Direct measurement, no comparison | "Completion was 50%." |
-| **Associated** | Correlation or statistical relationship, adjusted where possible | "Mobile sessions were associated with lower completion after adjusting for channel and language." |
-| **Hypothesis** | Plausible explanation requiring validation | "The mobile questionnaire flow may be contributing to abandonment." |
-| **Experiment-supported** | Supported by controlled test | "An A/B test showed the revised flow increased completion." |
-| **Not assessable** | Data or linkage insufficient for conclusion | "Care-seeking cannot be attributed because downstream linkage is unavailable." |
+| **GA4 thresholding** | Google has withheld/limited data (e.g., demographics, interests, audience fields) | Emit `DataQualityFinding`; block affected insights |
+| **App suppression** | Internal rules: small-cell, denominator threshold, complementary suppression, difference-attack protection | Suppress findings; surface `suppression_reason` not raw counts |
+| **Statistical uncertainty** | Valid aggregate estimate is too imprecise to interpret confidently | Show confidence interval; flag as "imprecise" not "unavailable" |
+
+---
+
+## Inference labels (composable, two fields)
+
+Every surfaced finding carries two independent labels. A measurement can be
+**observed** while its explanation is a **hypothesis** — these are separate
+dimensions:
+
+| `evidence_level` | Meaning | Example |
+|---|---|---|
+| **observed** | Direct measurement, no comparison | "Completion was 50%." |
+| **comparative** | Measured difference between groups or periods | "Completion was 6.2 pp lower on mobile." |
+| **associated** | Statistical relationship, adjusted where possible | "Mobile use associated with lower completion after adjusting for channel." |
+| **experiment_supported** | Supported by controlled test | "An A/B test showed the revised flow increased completion." |
+| **not_assessable** | Data or linkage insufficient | "Care-seeking cannot be attributed." |
+
+| `interpretation_status` | Meaning | Example |
+|---|---|---|
+| **none** | Pure measurement, no explanation claimed | (Default for observed metrics) |
+| **hypothesis** | Plausible explanation requiring validation | "The mobile questionnaire flow may be contributing to abandonment." |
+| **action_recommendation** | Specific, evidence-grounded next step | "Review mobile landing page with 3 users; consider simplified layout." |
+
+**Example:** `evidence_level=comparative`, `interpretation_status=hypothesis` →
+*"Observed completion was 6.2 pp lower on mobile (comparative). The mobile
+questionnaire flow may be contributing to abandonment (hypothesis)."* This
+prevents a real measured difference from being downgraded just because its
+explanation remains unproven.
 
 ---
 
@@ -162,7 +251,8 @@ data can establish ordering and correlation; they rarely establish causation.
 The AI should surface connections and flag evidence strength:
 
 1. **Acquisition → Intent:** What channel, campaign, or search query brought the
-   user in, and what problem were they trying to solve? *(Intent is inferred; label as hypothesis.)*
+   user in, and what problem were they trying to solve? *(Intent is inferred;
+   `interpretation_status=hypothesis`.)*
 2. **Intent → Pathway:** Did the landing page and early navigation route them
    into an appropriate questionnaire or content journey?
 3. **Pathway → Completion:** Which interactions precede finishing, and which
@@ -175,7 +265,7 @@ The AI should surface connections and flag evidence strength:
    with contact-center activity, trial matches, referrals (aggregate only,
    de-identified).
 7. **Every connection → Equity:** Repeat the pathway for each priority
-   population and flag differences with appropriate inference labels.
+   population and flag differences with appropriate evidence levels.
 
 ---
 
@@ -184,10 +274,14 @@ The AI should surface connections and flag evidence strength:
 | Cohort | Definition | Source |
 |---|---|---|
 | **All site visitors** | GA4 users or sessions | `pull_ga4_report()` |
-| **Questionnaire starters** | Users with `web_questionnaire_start` event | GA4 events |
-| **Questionnaire completers** | Users with `web_questionnaire_finish` event | GA4 events |
-| **Action-takers** | Users with a meaningful post-result action (provider finder, local-resource click, trial view, contact form, referral) | GA4 events + action taxonomy |
+| **Questionnaire starters** | Users with `web_questionnaire_start` event | GA4 events (requires event-level data) |
+| **Questionnaire completers** | Users with `web_questionnaire_finish` event | GA4 events (requires event-level data) |
+| **Action-takers** | Users with a meaningful post-result action (provider finder, local-resource click, trial view, contact form, referral) | GA4 events + action taxonomy (requires event-level data) |
 | **Survey respondents** | Separate, self-selected follow-up cohort | Evidence connector (future) |
+
+> **Note:** Cohorts defined by GA4 events (starters, completers, action-takers)
+> cannot be identified from the current aggregate query. They are aspirational
+> definitions awaiting event-level data access.
 
 ---
 
@@ -204,7 +298,7 @@ For each of the 25 target analyses (below), store before implementation:
 | **Inference type** | Descriptive, comparative, predictive, or causal |
 | **Confidence level** | High, moderate, low, or unusable |
 
-Several intended cross-layer analyses must initially be marked **partial/unavailable**
+Several intended cross-layer analyses must initially be marked **unavailable**
 because session persistence of questionnaire demographics remains unresolved.
 Page views by device can run from ordinary GA4 aggregates; "which interaction
 sequence predicts completion" requires consistent session/event sequence data;
@@ -362,6 +456,8 @@ evidence object** with explicit fields. Example:
 ```yaml
 insight_id: funnel.questionnaire.v2
 statement: "Observed completion was 50.0%."
+evidence_level: observed
+interpretation_status: none
 metric:
   numerator: 500
   denominator: 1000
@@ -376,20 +472,28 @@ quality:
   checks: ["event taxonomy validated", "partial current week excluded"]
 limitations:
   - "Completion does not indicate downstream care-seeking."
-inference_label: observed
 provenance:
   source: ga4
   report: funnel_report_v2
   period: "2026-01-01/2026-07-31"
   generated_at: "..."
+  analysis_run_id: "run_20260802_001"
+  registry_version: "0.1.0"
+  quality_gate_version: "0.1.0"
+  suppression_policy_version: "0.1.0"
 ```
 
-These objects are injected into every chat prompt's system context as a
-structured `[insights]` block. Gemini receives only these validated objects —
-never raw GA4 event names, page paths, or UTM parameters. The format allows
-Gemini to cite a specific insight ID, describe what it knows, disclose what
-it does not know, and avoid recalculating. It also makes UI drill-down, audit
-logging, evaluation, and future model-provider changes significantly easier.
+**Message-boundary rule:** Evidence objects are supplied as a structured
+`data`/`context` message — **not** injected into the system prompt. The system
+prompt remains fixed (role, privacy rules, inference-label behavior, response
+schema). Gemini receives only objects relevant to the user's current question.
+It cites `insight_id`; the UI resolves it to full provenance and drill-down.
+
+Gemini receives only these validated objects — never raw GA4 event names,
+page paths, or UTM parameters. The format allows Gemini to cite a specific
+insight ID, describe what it knows, disclose what it does not know, and avoid
+recalculating. It also makes UI drill-down, audit logging, evaluation, and
+future model-provider changes significantly easier.
 
 ---
 
@@ -430,19 +534,21 @@ Explicit decisions needed on:
 
 ---
 
-## Phasing: 4 gates (replacing "post-v0.3.0 candidate")
+## Phasing: 5 gates
 
-| Gate | Deliverable | AI role |
-|---|---|---|
-| **0. Data readiness** | Data dictionary, event taxonomy, relaunch crosswalk, quality checks, metric registry | None or limited explanation |
-| *(Gate 1 depends on Gate 0 — the semantic registry must exist before validated metrics can be computed.)* | | |
-| **1. GA4 descriptive insights** | Validated trends, channels, pages, device, basic funnels, data-quality alerts | Summarize and prioritize precomputed findings |
-| **2. Evidence overlay** | Linkage coverage, demographic completeness, suppression, equity descriptive comparisons | Explain approved aggregates; never infer missing demographics |
-| **3. Outcomes and evaluation** | Survey cohort reporting, downstream aggregate outcomes, hypothesis/experiment workflow | Synthesize mixed-method findings and recommend next tests |
+| Gate | Deliverable | AI role | Exit criterion |
+|---|---|---|---|
+| **0A: Measurement contract** | Metric registry, event dictionary, relaunch crosswalk, primary outcomes, suppression policy, inference labels, governance ownership | None | Stakeholders approve definitions and ownership |
+| **0B: Data feasibility** | GA4 API/BigQuery capability inventory, event/session grain decision, linkage prototype, coverage report, data-quality baseline | None | Every proposed Gate 1 metric has documented source/query/grain and status |
+| **1: GA4 descriptive insights** | Validated aggregate trends, channels (after query adds dims), pages, device, data-quality alerts | Summarize and prioritize precomputed findings | Gate 0B confirms each chosen insight is actually computable |
+| **2: Evidence overlay** | Linkage coverage, demographic completeness, suppression, equity descriptive comparisons | Explain approved aggregates; never infer missing demographics | Privacy review and validated de-identified linkage |
+| **3: Outcomes and evaluation** | Survey cohort reporting, downstream aggregate outcomes, hypothesis/experiment workflow | Synthesize mixed-method findings and recommend next tests | Selection-bias protocol and outcome definitions approved |
 
-Gate 0 is the current blocker: questionnaire demographics are self-reported, the
-platform is largely anonymous, and the feasibility of persistent custom
-demographic variables is not yet confirmed. Gate 2 requires the evidence
+Gates 0A and 0B are the current blockers: questionnaire demographics are
+self-reported, the platform is largely anonymous, and the feasibility of
+persistent custom demographic variables is not yet confirmed. The existing
+`pull_ga4_report()` is merely **one input** to Gate 0B — it is not the
+implicit engine for the entire roadmap. Gate 2 requires the evidence
 connector to be live and the linkage protocol to be validated.
 
 ---
@@ -453,35 +559,67 @@ These define the capability target. They are **not** implementation tasks.
 
 | # | Question | Demographics needed? | Current availability | Min. sample concern |
 |---|---|---|---|---|
-| 1 | Who is the platform reaching overall? | No | ✅ Available | — |
-| 2 | Are we reaching priority populations equitably? | Yes | ⚠️ Partial (linkage unconfirmed) | — |
-| 3 | Who completes the questionnaire? | Yes | ⚠️ Partial | — |
-| 4 | Who drops off, and where? | Yes | ⚠️ Partial | — |
-| 5 | Does the platform reach intended age groups? | Yes | ⚠️ Partial | — |
-| 6 | Are women reached and engaged differently? | Yes | ⚠️ Partial | — |
-| 7 | Are Black users reached and supported effectively? | Yes | ⚠️ Partial | Small cell risk |
-| 8 | Are Hispanic/Latino users reached effectively? | Yes | ⚠️ Partial | Small cell risk |
-| 9 | Is Spanish-language access functional and used? | Partial (language + questionnaire) | ⚠️ Partial | ~9 YTD — qualitative only |
-| 10 | Where do users first encounter the platform? | No | ✅ Available | — |
-| 11 | Which channels bring meaningful users? | Yes | ⚠️ Partial | — |
-| 12 | Which search needs bring people to the site? | No | ✅ Available | — |
-| 13 | What content does each audience need? | Yes | ⚠️ Partial | — |
-| 14 | Are users finding the right pathway? | Yes | ⚠️ Partial | — |
-| 15 | Do users understand and act on tailored results? | Yes | ⚠️ Partial | — |
+| 1 | Who is the platform reaching overall? | No | ✅ Available (aggregate only) | — |
+| 2 | Are we reaching priority populations equitably? | Yes | ❌ Unavailable (needs linkage + demographics) | — |
+| 3 | Who completes the questionnaire? | Yes | ❌ Unavailable (needs event-level data + linkage) | — |
+| 4 | Who drops off, and where? | Yes | ❌ Unavailable (needs event-sequence data + linkage) | — |
+| 5 | Does the platform reach intended age groups? | Yes | ❌ Unavailable (needs linkage) | — |
+| 6 | Are women reached and engaged differently? | Yes | ❌ Unavailable (needs linkage) | — |
+| 7 | Are Black users reached and supported effectively? | Yes | ❌ Unavailable (needs linkage) | — |
+| 8 | Are Hispanic/Latino users reached effectively? | Yes | ❌ Unavailable (needs linkage) | — |
+| 9 | Is Spanish-language access functional and used? | Partial (language + questionnaire) | ❌ Unavailable (needs event-level + linkage) | ~9 YTD — qualitative only |
+| 10 | Where do users first encounter the platform? | No | ✅ Available (aggregate only) | — |
+| 11 | Which channels bring meaningful users? | Yes | ⚠️ Partial (needs channel dims in query) | — |
+| 12 | Which search needs bring people to the site? | No | ✅ Available (aggregate only) | — |
+| 13 | What content does each audience need? | Yes | ❌ Unavailable (needs linkage) | — |
+| 14 | Are users finding the right pathway? | Yes | ❌ Unavailable (needs event-sequence + linkage) | — |
+| 15 | Do users understand and act on tailored results? | Yes | ❌ Unavailable (needs event-data + linkage) | — |
 | 16 | Which patterns predict completion? | Yes | ❌ Unavailable (needs session-level event sequence) | — |
 | 17 | Which patterns predict care-seeking? | Yes | ❌ Unavailable (needs downstream linkage) | — |
-| 18 | Are users progressing toward clinical research? | Yes | ⚠️ Partial | — |
-| 19 | Where does the research pathway leak? | Yes | ⚠️ Partial | Small cell risk at later steps |
-| 20 | Do local-resource features lead to action? | Yes | ⚠️ Partial | — |
-| 21 | Does the experience work across devices/browsers? | Partial | ✅ Available | — |
-| 22 | Are users returning for continued guidance? | Yes | ⚠️ Partial | — |
-| 23 | Did the March 2026 relaunch improve experience? | Yes | ⚠️ Partial (date unconfirmed) | — |
+| 18 | Are users progressing toward clinical research? | Yes | ❌ Unavailable (needs event-data + linkage) | — |
+| 19 | Where does the research pathway leak? | Yes | ❌ Unavailable (needs event-sequence + linkage) | Small cell risk at later steps |
+| 20 | Do local-resource features lead to action? | Yes | ❌ Unavailable (needs event-data + linkage) | — |
+| 21 | Does the experience work across devices/browsers? | Partial | ✅ Available (aggregate only) | — |
+| 22 | Are users returning for continued guidance? | Yes | ❌ Unavailable (needs session-level data) | — |
+| 23 | Did the March 2026 relaunch improve experience? | Yes | ⚠️ Partial (date unconfirmed; aggregate pre/post possible) | — |
 | 24 | Does the platform increase awareness/confidence/action? | Yes (survey required) | ❌ Unavailable | Survey cohort selection bias |
-| 25 | What actions should be prioritized next? | Yes | ⚠️ Partial | — |
+| 25 | What actions should be prioritized next? | Yes | ❌ Unavailable (needs most above analyses) | — |
 
-Of the 25, **~6 are available with GA4 alone** (#1, 10, 12, 21). The remaining
-19 need demographics, linkage, or both — and several (#16, 17, 24) are currently
-unavailable pending infrastructure or data.
+Of the 25, **~4 are available with the current GA4 aggregate query alone**
+(#1, 10, 12, 21 — descriptive reach, pages, devices). The remaining 21 need
+event-level data, demographics, linkage, or survey infrastructure — and most
+are currently unavailable. Several that were previously marked "Partial"
+have been downgraded to "Unavailable" because the current `pull_ga4_report()`
+returns aggregate rows, not session-level or event-level records.
+
+---
+
+## Immediate next step: measurement contract
+
+Before coding the Insights Engine, create one short companion document:
+
+```
+plans/ga4-measurement-contract.md
+```
+
+Start with **five rows only:**
+
+1. Daily reach
+2. Page/device engagement
+3. Questionnaire start
+4. Questionnaire completion
+5. One meaningful post-questionnaire action
+
+For each of the five, record:
+
+- Exact data source, query/report ID, grain
+- Numerator, denominator, event rules
+- Validation owner, privacy status, known limitations
+- Current feasibility (available, needs query changes, needs event-level data, unavailable)
+
+**Do not start the 25 analyses until these five pass Gates 0A and 0B.**
+This turns the sketch from a north-star document into a testable, governed
+data product plan.
 
 ---
 
@@ -518,7 +656,7 @@ Call it ready when every surfaced insight can answer:
 4. **Is the comparison valid across the relaunch boundary?**
 5. **What data-quality checks passed or failed?**
 6. **What population does it represent — and who is missing?**
-7. **Is this descriptive, associated, hypothesized, or experimentally supported?**
+7. **What is the evidence level (observed/comparative/associated/experiment-supported)?**
 8. **What uncertainty, suppression, or privacy constraint applies?**
 9. **Can the user inspect the evidence without seeing identifiers?**
 10. **What next action is justified, and what would validate it?**
