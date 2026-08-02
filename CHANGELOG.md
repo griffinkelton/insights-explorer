@@ -82,6 +82,68 @@
 
 ---
 
+## 2026-08-02 — Phase 2.1: create_context_from_drive() — Content-Derived Source ID
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 648
+
+### Drive context factory with content-derived identity + Drive-specific provenance + deep-copy contract
+
+**Commit:** [`dad05d1`](https://github.com/griffinkelton/insights-explorer/commit/dad05d1)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| New `create_context_from_drive()` in `utils/data_context.py` — follows the exact same pattern as `create_context_from_upload()` but with `drive:` prefix: `source_id = "drive:" + SHA-256(file_bytes)[:24]` (content-derived, same bytes = same Drive identity, distinguishable from `file:` uploads) | Feature | [utils/data_context.py](utils/data_context.py) |
+| Deep-copy contract: `raw_df`, `base_df`, `active_df` are all independent `df.copy(deep=True)` — identical to the upload factory | Design | [utils/data_context.py](utils/data_context.py) |
+| Provenance: `drive:{server_display_name}` or `drive:unknown` — server-authoritative name, never inferred from bytes | Design | [utils/data_context.py](utils/data_context.py) |
+| Validation: `TypeError` for non-DataFrame, `ValueError` for empty/non-bytes — matches the upload factory | Design | [utils/data_context.py](utils/data_context.py) |
+| Tests: 98→112 (14 new in `TestCreateContextFromDrive`): content-derived identity, same/different bytes, drive vs upload distinguishability, deep-copy non-mutation, provenance with/without display name, format validation, input validation, truncated default | Testing | [tests/test_data_context.py](tests/test_data_context.py) |
+| Suite: 634 → **648** passed | Testing | [tests/test_data_context.py](tests/test_data_context.py) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.9.0 §2.1 Drive context factory)
+
+---
+
+## 2026-08-02 — Phase 2.2: Atomic Ingestion — Prepare-Then-Commit for All Data Paths
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 648 (no change — behavioral refactor)
+
+### All three ingestion paths (upload, GA4, Drive) now prepare state locally, then commit session state atomically
+
+**Commit:** [`fe39afe`](https://github.com/griffinkelton/insights-explorer/commit/fe39afe)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `_populate_data_state()` refactored to prepare-then-commit: all values computed locally (`prepared_df`, `candidate_context`, `candidate_stats`, `candidate_quality`), then all 12 `st.session_state.*` assignments in one atomic block — a factory failure propagates before touching any state | Fix | [components/sidebar.py](components/sidebar.py) |
+| Added `"drive"` source branch using `create_context_from_drive(prepared_df, file_bytes, display_name=display_name)` from Phase 2.1 | Feature | [components/sidebar.py](components/sidebar.py) |
+| Funnel + forecast derived state cleared in the commit block (previously stale state from old dataset persisted) | Fix | [components/sidebar.py](components/sidebar.py) |
+| `_process_uploaded_file()` — removed premature `clear_data()` call before `load_file()`: a malformed replacement upload no longer destroys the prior valid dataset (was: `clear_data()` → `load_file()` → maybe fail; now: `load_file()` → if fails, prior context untouched) | Fix | [components/sidebar.py](components/sidebar.py) |
+| Import: `create_context_from_drive` added to sidebar imports for the new drive source branch | Feature | [components/sidebar.py](components/sidebar.py) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.9.0 §2.2 Atomic ingestion)
+
+---
+
+## 2026-08-02 — Phase 2.3: Drive Ingestion Through _NamedBytesIO + load_file()
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 658
+
+### BytesIO adapter makes Drive-downloaded bytes look like UploadedFile for the existing parser; downloader dependency injection for testability
+
+**Commit:** [`3e7957b`](https://github.com/griffinkelton/insights-explorer/commit/3e7957b)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| New `_NamedBytesIO(BytesIO)` adapter — provides `.name` (for `file.name.lower()` extension detection) and `.read()` (for `len(file.read())` measurement); `load_file()` never accesses `.size` so the adapter is safe as written | Feature | [components/sidebar.py](components/sidebar.py) |
+| New `_ingest_drive_file(downloader, credentials, file_id)` — downloader dependency injection pattern: production supplies `download_drive_file`, tests supply a fake; `Callable[[Credentials, str], tuple[bytes, str]]` typed | Feature | [components/sidebar.py](components/sidebar.py) |
+| Error paths preserve prior context: `DriveImportError` → `st.error()` + `return` (zero state mutation); `load_file()` parse failure → `st.error()` + `return` (zero state mutation); warning path (truncated data) → `st.warning()` + continues to populate | Design | [components/sidebar.py](components/sidebar.py) |
+| Imports: `BytesIO`, `Callable`, `Credentials`, `DriveImportError`, `download_drive_file` added to sidebar | Feature | [components/sidebar.py](components/sidebar.py) |
+| Tests: 7→16 sidebar tests (9 new): `TestNamedBytesIO` (5: interface contract, CSV/XLSX passthrough, `.size` irrelevance) + `TestIngestDriveFile` (4: integration, download failure preservation, parse failure preservation, truncation warning) | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+| Suite: 648 → **658** passed | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.9.0 §2.3 Drive loader integration)
+
+---
+
 ## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
@@ -929,10 +991,10 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 178 |
+| Total commits tracked | 181 |
 | Date range | July 25 – August 2, 2026 |
-| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download + typed error contract DriveImportError) |
-| Tests | 0 → 634 across 30 modules |
+| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download + typed error contract DriveImportError + content-derived Drive context factory + atomic ingestion refactor + _NamedBytesIO adapter) |
+| Tests | 0 → 658 across 30 modules |
 | CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
 | Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
 | Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
