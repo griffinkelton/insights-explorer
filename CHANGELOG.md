@@ -316,6 +316,21 @@
 
 ---
 
+### v1.6.0-era — AI & Data Processing Enhancements (2026-07-28)
+- **21d**: Column type detection — `detect_column_types()` + colored badges (📅🔢🏷️📝) in data preview
+- **21f**: Smart sampling — `smart_sample()` with stratified weekly sampling, replaces `head()` everywhere
+- **21a+b**: Chart JSON detection — `[CHART:{json}]` token in prompts, JSON-first `detect_chart_request()` with keyword fallback + retry logic
+- **21e**: Anomaly detection — 7-day rolling Z-score, collapsible anomaly table, red X markers on charts
+- **21c**: Comparative mode — sidebar toggle, dual-panel charts, `build_comparison_prompt()`
+- **CHANGED**: `utils/charts.py` — imports `find_date_column` from `utils/data_loader` (canonical source)
+- **CHANGED**: `utils/prompt_templates.py` — chart instruction in chat prompt, JSON + keyword hybrid detection
+- **CHANGED**: `components/chat.py` — CHART token stripping (post-detection), retry Gemini call, compare mode dual charts
+- **CHANGED**: `components/sidebar.py` — `_render_compare_controls()` between Clear Data and API counter
+- **CHANGED**: `app.py` — 5 compare mode session state variables
+- **CHANGED**: `utils/styles.py` — `.col-badge` CSS for type badges
+
+---
+
 ## 2026-07-28 — Static Analysis & Anti-Pattern Fixes
 
 ### Added Patterns 1 & 2 linters + fix BUG-005 on_click anti-pattern + docs sweep
@@ -783,35 +798,4 @@
 
 ---
 
----
-
-### v1.5.0 — Google Drive File Picker (2026-07-28)
-- **NEW**: `utils/drive_client.py` — list, download, and load Drive CSV/Sheets as DataFrames
-- **NEW**: `tests/test_drive_client.py` — 4 tests (list, export, token refresh, bad file)
-- **CHANGED**: `utils/ga4_client.py` — added `drive.readonly` OAuth scope
-- **CHANGED**: `components/sidebar.py` — `_render_drive_picker()` with file ID-based selectbox, 🔄 refresh button, BUG-005 compliant
-- **CHANGED**: `components/sidebar.py` — extracted `_populate_data_state()` shared helper (eliminates triplicated 8-line blocks across upload/GA4/Drive paths)
-- **CHANGED**: `app.py` — added `drive_files_cache` session state
-- **CHANGED**: `requirements.txt` — added `google-api-python-client>=2.0.0`
-- **CHANGED**: `tests/test_sidebar.py` — structural test for `_render_drive_picker()`
-- 236 tests (was 231) | Bug fix: upload path now correctly sets `data_source` + clears `summary`/`chat_history` on reload
-
----
-
-### v1.6.0 — AI & Data Processing Enhancements (2026-07-28)
-- **21d**: Column type detection — `detect_column_types()` + colored badges (📅🔢🏷️📝) in data preview
-- **21f**: Smart sampling — `smart_sample()` with stratified weekly sampling, replaces `head()` everywhere
-- **21a+b**: Chart JSON detection — `[CHART:{json}]` token in prompts, JSON-first `detect_chart_request()` with keyword fallback + retry logic
-- **21e**: Anomaly detection — 7-day rolling Z-score, collapsible anomaly table, red X markers on charts
-- **21c**: Comparative mode — sidebar toggle, dual-panel charts, `build_comparison_prompt()`
-- **CHANGED**: `utils/charts.py` — imports `find_date_column` from `utils/data_loader` (canonical source)
-- **CHANGED**: `utils/prompt_templates.py` — chart instruction in chat prompt, JSON + keyword hybrid detection
-- **CHANGED**: `components/chat.py` — CHART token stripping (post-detection), retry Gemini call, compare mode dual charts
-- **CHANGED**: `components/sidebar.py` — `_render_compare_controls()` between Clear Data and API counter
-- **CHANGED**: `app.py` — 5 compare mode session state variables
-- **CHANGED**: `utils/styles.py` — `.col-badge` CSS for type badges
-- 239 tests (was 236) | +3 JSON chart detection tests, updated 15 keyword tests with `method` tag
-
----
-
-*This changelog will be updated as each batch from the P1-P3 sprint is completed. Each completed item will be marked with its commit hash, date, files changed, and test impact.*
+*Legacy v1.x-era cleanup (2026-08-01): the v1.5.0 Drive picker entry was removed — that picker and its `drive.readonly` scope were removed in v0.1.0 hardening — and this era's test counts (236/239) are superseded by the current 628-test suite.*
