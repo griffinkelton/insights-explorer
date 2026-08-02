@@ -63,3 +63,40 @@ jobs:
           js_files=$(find build -name '*.js' -type f | wc -l | tr -d ' ')
           test "$js_files" -ge 1 || { echo "no JS assets in build/"; exit 1; }
           echo "bundle verified: build/index.html + $js_files JS asset(s)"
+
+  playwright:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+          cache-dependency-path: components/drive_picker_component_frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: components/drive_picker_component_frontend
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: components/drive_picker_component_frontend
+        run: npm run build
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run Drive-import browser smoke tests
+        run: python -m pytest tests/test_drive_import_smoke.py -v

@@ -75,7 +75,7 @@ function onPickerCallback(data: google.picker.ResponseObject): void {
     });
     button.disabled = false;
     setButtonLabel("✔ Imported — Open Another File");
-    setStatus(`✓ ${doc.name} selected`, "success");
+    setStatus("File selected \u2014 importing\u2026", "success");
     return;
   }
 

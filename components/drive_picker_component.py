@@ -30,6 +30,13 @@ _component = components.declare_component(
     path=str(_FRONTEND_DIR),
 )
 
+# ── Test seam ─────────────────────────────────────────────────────────
+
+# Module-level override for pytest-based tests.  When not None,
+# ``drive_picker_transport()`` returns this value instead of rendering
+# the real Streamlit component.  Never set in production code.
+_test_component_seam: PickerSelection | None = None
+
 
 class PickerSelection(TypedDict):
     """The only payload the wrapper will return to the sidebar.
@@ -58,9 +65,14 @@ def drive_picker_transport(
     The wrapper validates the raw component result and returns only an
     allowlisted ``PickerSelection`` shape or ``None`` — ``None`` for
     ``None``, strings, lists, malformed dicts, wrong ``kind``, or
-    ``picked`` without a non-empty ``fileId``. No file ID, filename,
-    MIME type, OAuth token, API key, or raw error text is ever returned.
+    ``picked`` without a non-empty ``fileId``. The wrapper returns only
+    the minimum allowlisted selection payload to the sidebar. It never
+    returns Picker filenames, MIME types, URLs, raw callback objects,
+    tokens, keys, or raw error text.
     """
+    if _test_component_seam is not None:
+        return _test_component_seam
+
     value = _component(
         oauthToken=oauth_token,
         developerKey=developer_key,

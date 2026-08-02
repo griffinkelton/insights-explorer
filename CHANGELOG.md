@@ -6,6 +6,58 @@
 
 ---
 
+## v0.3.0 — Drive Import Release
+
+**Date:** 2026-08-02 | **Status:** 🚧 Release verification in progress | **Tests:** 663 (non-smoke) + 14 Playwright smoke
+
+### Phase 1: Server-Side Foundation
+
+- `download_drive_file()` — 3-layer size validation, MIME allowlist, server-metadata authority
+- `DriveImportError` — 6 typed error codes, catch-all exception hardening, no raw API text exposure
+- `PickerSelection` wrapper — structural validation, metadata stripping at component boundary
+- Static analysis: token-level AST guard rejects `drive`/`drive.readonly`/`drive.metadata.readonly`
+
+### Phase 2: Provenance & Atomic Ingestion
+
+- `create_context_from_drive()` — content-derived source ID (SHA-256), Drive-specific provenance
+- Prepare-then-commit for all three ingestion paths (upload, GA4, Drive)
+- `_NamedBytesIO` adapter for parser reuse
+- Failure-preservation test matrix (12-field derived-state snapshots)
+- Upload replacement failure no longer destroys prior context
+
+### Phase 3.0–3.1: Picker Integration & UX
+
+- Declared Streamlit component (Option B) with bidirectional protocol
+- Request-freshness guard, duplicate-emission protection, reset-on-cancel
+- Theme synchronization (dark/light propagated to Picker iframe)
+- Button states: Ready, Loading, Imported, Retry
+- Filename display removed from frontend (server-authoritative metadata only)
+- Drive Import section visible only when authenticated + Picker secrets configured
+
+### Phase 3.2: Playwright Smoke Tests
+
+- 3 platform smoke tests (app loads, sidebar visible, no credential leaks)
+- 11 drive-import controlled-state tests (visibility, on-demand render, ready/cancel/theme/duplicate/picked-seam)
+- Test-mode seam (`DRIVE_PICKER_TEST_MODE=1` + `?picker_seam=` query param)
+- No real OAuth, API keys, or Drive files required
+- Dedicated Playwright CI job with explicit Chromium install
+
+### Documentation
+
+- README: Drive Import feature entry, scope clarification, supported formats, privacy model, Picker setup
+- CHANGELOG: v0.3.0 section
+- RELEASE_CHECKLIST: v0.3.0 manual browser matrix
+- Spec status updated
+
+### Remaining (manual gate)
+
+- 5-environment browser matrix (Chrome/Safari/Firefox on macOS/Windows)
+- Real-account CSV/XLSX/Sheets selection, cancel, second import, theme switching
+- Error-path verification (access denied, not found, unsupported type, oversized, empty)
+- Sensitive-output leakage check
+
+---
+
 ## 2026-08-02 — AI Studio API Key (AQ.) Pattern Added to Credential Guard
 
 **Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 633

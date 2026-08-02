@@ -1,64 +1,99 @@
-# v0.1.0 Release Checklist (Historical)
+# v0.3.0 Release Checklist
 
-> **Note:** This is the v0.1.0 release checklist — preserved as historical reference.
-> For the current release, see: [`plans/audit/✅ v0.2.0-release-checklist.md`](plans/audit/✅%20v0.2.0-release-checklist.md)
+> **Release:** v0.3.0 — Drive Import
+> **Date:** TBD (pending manual matrix)
+> **Release owner:** griffinkelton
+> **Tests:** 663 (pytest, non-smoke) + 14 Playwright smoke
 
-Release candidate SHA: `8d3567d`
-Date: `2026-07-30`
-Release owner: `griffinkelton`
-Independent reviewer: `GPT-5.6 audit + code-reviewer-deepseek`
+---
 
-## Repository safety
+## Phase 1–3.2: Automated Gates
 
-- [x] `email/` and `drive-download-*/` removed from current tree
-- [x] History rewrite completed and post-rewrite verification recorded (`git log --all -- email/ 'drive-download-*'` returns nothing)
-- [x] `.gitignore` and fixture-provenance policy prevent recurrence
+- [x] Phase 1: Server-side download (`download_drive_file`, `DriveImportError`, `PickerSelection` wrapper)
+- [x] Phase 2: Provenance + atomic ingestion (prepare-then-commit, `_NamedBytesIO`, failure-preservation matrix)
+- [x] Phase 3.0: Picker transport (declared component, request freshness, duplicate protection)
+- [x] Phase 3.1: Picker UX (theme sync, button states, cancel/reset, filename sanitization)
+- [x] Phase 3.2a: Platform Playwright smoke (app loads, sidebar visible, no credential leaks)
+- [x] Phase 3.2b: Drive-import Playwright controlled-state (14 tests, test-mode seam)
+- [x] CI: Dedicated Playwright job with explicit Chromium install
+- [x] CI: Frontend typecheck + production build gate
+- [x] CI: Credential guard (AIza/ya29/AQ. patterns)
+- [x] README: Drive Import feature, scope, formats, privacy model, Picker setup
+- [x] CHANGELOG: v0.3.0 section
+- [x] Spec status updated
 
-## Security and privacy
+---
 
-- [x] OAuth state/callback tests pass (`tests/test_ga4_client.py` — 28 tests, including redirect-URI mismatch + POSIX permissions)
-- [x] Export injection tests pass (Excel/Sheets, PDF, Markdown — `tests/test_exports.py`, `tests/test_drive_client.py`, `tests/test_scenarios.py`)
-- [x] No raw exceptions or tracebacks shown in production mode (`SHOW_DEBUG_DETAILS=false`)
-- [x] Privacy, Gemini, Drive, and OAuth disclosures reviewed and accurate
+## Phase 3.3: Manual Cross-Browser Matrix
 
-## Quality gates
+> **Execute after automated gates are green.** Record date, environment, browser version, pass/fail, tester, and any exception.
 
-- [x] Clean checkout: CI passes (`python -m pytest tests/ -v --tb=short` — 389 pass, 2 warnings)
-- [x] Required scenario tests pass (upload, custom metric, filter-to-zero, clear/reload, summary/chat failure)
-- [x] GA4 pagination has tested limit/continuation policy (hard cap at 500k with visible warning — `ga4_truncated` flag)
-- [x] Drive permission scope explicitly documented and justified (`drive.file` only, no `drive.readonly`)
+### Environment Matrix
 
-## Product integrity
+| # | OS | Browser | Date | Version | Result | Tester | Notes |
+|---|---|---|---|---|---|---|---|
+| 1 | macOS | Chrome | | | ⬜ | | |
+| 2 | macOS | Safari | | | ⬜ | | |
+| 3 | macOS | Firefox | | | ⬜ | | |
+| 4 | Windows | Chrome | | | ⬜ | | |
+| 5 | Windows | Firefox | | | ⬜ | | |
 
-- [x] Funnel labeled as "Page-path aggregation" with visible caveat
-- [x] Forecast labeled as "Linear trend projection" with assumptions disclosed
-- [x] API telemetry centralized in service layer (`api_success_count`, `api_failure_count`, `api_attempt_count`)
-- [x] Summary uses selected model (not always default)
-- [x] Streaming errors rendered as error states (not saved as assistant responses)
-- [x] Chart extraction is explicit opt-in (not silent background call)
-- [x] GA4 property IDs validated before pull (`isdigit()` check)
+### Functional Matrix (per environment)
 
-## Infrastructure
+| # | Test Case | Expected Result | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
+|---|---|---|---|---|---|---|---|
+| 1 | GA4 sign-in → Drive Import section visible | Section header + button appear | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 2 | Select CSV file via Picker | File imported, data preview renders | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 3 | Select XLSX file via Picker | File imported, data preview renders | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 4 | Select native Google Sheets via Picker | First sheet exported as CSV, imported | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 5 | Cancel Picker without selecting | No import, button resets to "Import from Google Drive" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 6 | Second import after completed import | New file replaces prior data, no stale state | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 7 | Theme switch (dark→light) during active Picker flow | Picker iframe receives updated theme | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 8 | Theme switch (light→dark) during active Picker flow | Picker iframe receives updated theme | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
-- [x] `SECURITY.md` present
-- [x] `LICENSE` (MIT) present
-- [x] `.gitignore` covers all cache/artifact paths
-- [x] `.env.example` documents all configurable env vars
-- [x] `docs/_build/` removed from tracking
-- [x] Pre-commit hooks include secret scanning (`detect-private-key`) and large-file detection (`check-added-large-files`)
-- [x] GitHub Actions installs from `requirements/dev.txt`, runs lint + tests + coverage
+### Error-Path Matrix (per environment)
 
-## Release
+| # | Error Case | Expected Behavior | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
+|---|---|---|---|---|---|---|---|
+| E1 | Access denied (file not shared) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E2 | File not found (deleted after Picker) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E3 | Unsupported type (non-CSV/XLSX/Sheets) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E4 | Oversized file (>100 MB) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E5 | Empty file (0 bytes) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E6 | Generic download failure (network/500) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
-- [x] Deferred-items issues created with acceptance criteria, labeled `post-v0.1.0` (#1–#7)
-- [x] CHANGELOG updated with v0.1.0 entry
-- [x] Git tag `v0.1.0` created (on `cd52de6`; latest hardening at `5485e43`)
-- [x] No known critical exceptions at time of tag (389 tests pass, 2 warnings)
+### Sensitive-Output Leakage Check (per environment)
+
+| # | Check | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
+|---|---|---|---|---|---|---|
+| L1 | No Drive file IDs in page/UI/log output | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L2 | No raw Google error messages in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L3 | No OAuth tokens (ya29...) in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L4 | No API keys (AIza...) in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L5 | No selected-file names from Picker in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+
+---
+
+## Phase 4: Release Closeout
+
+- [ ] Manual browser matrix complete (all 5 environments, all test cases pass)
+- [ ] Error-path matrix complete (all 6 error cases produce user-safe messages)
+- [ ] Sensitive-output leakage check complete (no Drive IDs, raw errors, tokens, keys, or Picker filenames)
+- [ ] CHANGELOG v0.3.0 entry finalized with commit hashes
+- [ ] Spec status updated to "✅ Complete"
+- [ ] README test count updated to final baseline
+- [ ] Clean checkout: `pytest tests/ --ignore=tests/test_drive_import_smoke.py -v` — all pass
+- [ ] Clean checkout: Playwright job green in CI
+- [ ] Frontend: `npm ci && npm run check && npm run build` — clean
+- [ ] Credential guard: `git ls-files -z | xargs -0 python scripts/check_credentials.py` — clean
+- [ ] Git tag `v0.3.0` created
+
+---
 
 ## Sign-off
 
-- [x] Release owner approval: ✅ PR 0–4 reviewed, 389 tests pass
-- [x] Independent reviewer approval: ✅ GPT-5.6 12-batch audit + code-reviewer-deepseek passes
+- [ ] Release owner approval: _____________ (date: ______)
+- [ ] Manual matrix reviewer: _____________ (date: ______)
 
 ---
 
