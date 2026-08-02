@@ -11,6 +11,7 @@ type Args = {
   appId: string;
   appOrigin: string;
   requestId: string;
+  theme: string; // "dark" | "light"
 };
 
 // ── Declare global gapi / google.picker ──────────────────────────────
@@ -30,19 +31,22 @@ let currentArgs: Args | null = null;
 let pickerReady = false;
 let pickerLibraryLoading = false;
 let eventSentForRequestId: string | null = null;
-
 // ── DOM ──────────────────────────────────────────────────────────────
 
 const button = document.querySelector<HTMLButtonElement>("#open-picker")!;
 const statusEl = document.querySelector<HTMLElement>("#status")!;
 
-function setStatus(message: string, success = false): void {
+function setStatus(message: string, kind: "info" | "success" | "error" = "info"): void {
   statusEl.textContent = message;
-  statusEl.className = success ? "success" : "";
+  statusEl.className = kind;
   Streamlit.setFrameHeight();
 }
 
-// ── Return channel (sanitized — no file ID, filename, MIME, or raw error) ──
+function setButtonLabel(text: string): void {
+  button.textContent = text;
+}
+
+// ── Return channel (sanitized) ───────────────────────────────────────
 
 function emit(value: Record<string, unknown>): void {
   Streamlit.setComponentValue(value);
@@ -55,21 +59,29 @@ function onPickerCallback(data: google.picker.ResponseObject): void {
   if (!currentArgs) return;
 
   if (data.action === google.picker.Action.PICKED) {
-    // Prevent duplicate events for the same request
     if (eventSentForRequestId === currentArgs.requestId) return;
+
+    const doc = data.docs?.[0];
+    if (!doc?.id) {
+      setStatus("No file selected.", "error");
+      return;
+    }
 
     eventSentForRequestId = currentArgs.requestId;
     emit({
-      kind: "transport_verified",
+      kind: "picked",
       requestId: currentArgs.requestId,
+      fileId: doc.id,
     });
-    button.disabled = true;
-    setStatus("✓ Transport verified", true);
+    button.disabled = false;
+    setButtonLabel("✔ Imported — Open Another File");
+    setStatus(`✓ ${doc.name} selected`, "success");
     return;
   }
 
   if (data.action === google.picker.Action.CANCEL) {
-    setStatus("Picker closed");
+    setButtonLabel("Open Google Drive Picker");
+    setStatus("Picker closed — no file selected.");
   }
 }
 
@@ -77,7 +89,7 @@ function onPickerCallback(data: google.picker.ResponseObject): void {
 
 function openPicker(): void {
   if (!currentArgs || !pickerReady) {
-    setStatus("Picker is unavailable.");
+    setStatus("Picker is unavailable.", "error");
     return;
   }
 
@@ -96,7 +108,6 @@ function openPicker(): void {
       .setOAuthToken(currentArgs.oauthToken)
       .setOrigin(currentArgs.appOrigin);
 
-    // appId is optional — skip when not configured
     if (currentArgs.appId) {
       builder.setAppId(currentArgs.appId);
     }
@@ -107,9 +118,10 @@ function openPicker(): void {
       .build();
 
     picker.setVisible(true);
-    setStatus("Picker opened.");
+    setButtonLabel("Opening Google Drive…");
+    setStatus("Choose a spreadsheet or CSV file.");
   } catch {
-    setStatus("Picker could not open");
+    setStatus("Picker could not open.", "error");
   }
 }
 
@@ -118,6 +130,9 @@ function openPicker(): void {
 function loadPickerLibrary(): void {
   if (pickerLibraryLoading || pickerReady) return;
   pickerLibraryLoading = true;
+
+  setStatus("Loading Google Drive Picker…");
+  setButtonLabel("Loading…");
 
   const script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
@@ -128,15 +143,23 @@ function loadPickerLibrary(): void {
         pickerReady = true;
         pickerLibraryLoading = false;
         button.disabled = false;
+        setButtonLabel("Open Google Drive Picker");
         setStatus("Ready");
       },
     });
   };
   script.onerror = () => {
     pickerLibraryLoading = false;
-    setStatus("Picker library could not load.");
+    setButtonLabel("Retry");
+    setStatus("Picker library could not load.", "error");
   };
   document.head.appendChild(script);
+}
+
+// ── Theme application ────────────────────────────────────────────────
+
+function applyTheme(theme: string): void {
+  document.body.setAttribute("data-theme", theme);
 }
 
 // ── Streamlit render callback ────────────────────────────────────────
@@ -145,8 +168,13 @@ function onRender(event: Event): void {
   const { args } = (event as CustomEvent<RenderData>).detail;
   currentArgs = args as Args;
 
-  // New requestId means a fresh attempt — allow a new event
-  // Always sync button state — pickerReady may have changed since last render
+  applyTheme(currentArgs.theme ?? "dark");
+
+  // New requestId means a fresh attempt — reset state, allow a new event.
+  if (eventSentForRequestId !== currentArgs.requestId) {
+    eventSentForRequestId = null;
+  }
+
   button.disabled = !pickerReady;
 
   loadPickerLibrary();

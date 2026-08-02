@@ -50,6 +50,7 @@ def drive_picker_transport(
     app_id: str,
     app_origin: str,
     request_id: str,
+    theme: str = "dark",
     key: str,
 ) -> PickerSelection | None:
     """Render the declared component; return a validated selection or ``None``.
@@ -66,6 +67,7 @@ def drive_picker_transport(
         appId=app_id,
         appOrigin=app_origin,
         requestId=request_id,
+        theme=theme,
         key=key,
         default=None,
     )

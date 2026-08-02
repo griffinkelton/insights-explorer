@@ -369,6 +369,7 @@ def _render_drive_picker() -> None:
             app_id=project_number,
             app_origin=app_origin,
             request_id=st.session_state.drive_picker_request_id,
+            theme=st.session_state.get("theme", "dark"),
             key=f"drive_picker_{st.session_state.drive_picker_request_id}",
         )
 
