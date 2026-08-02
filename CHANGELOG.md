@@ -144,6 +144,25 @@
 
 ---
 
+## 2026-08-02 — Phase 2.4: Failure-Preservation Test Matrix
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 664
+
+### 6 tests prove all three ingestion paths preserve prior state on any failure — full 12-field derived-state snapshots
+
+**Commit:** [`08cb2b2`](https://github.com/griffinkelton/insights-explorer/commit/08cb2b2)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `TestPhase24FailurePreservation` (4 tests): upload replacement parse failure → all 12 derived-state keys unchanged (last_file_id intentionally updates to prevent re-processing loop); GA4 context factory failure (RuntimeError propagates, zero state mutation); Drive context factory failure (ValueError propagates, zero state mutation); successful commit → every state field replaced (data_context, custom_metrics, stats, missing_columns, quality_report, summary, chat_history, data_source, data_cleared, funnel_steps, funnel_data cleared, forecast_* purged) | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+| `TestDriveIngestionEnhanced` (2 tests): Drive download failure (DriveImportError) → full 12-field snapshot comparison; Drive loader failure (load_file error) → full 12-field snapshot comparison — complements the Phase 2.3 tests which only verified `_populate_data_state` was not called | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+| `_FakeSessionState(dict)` helper — supports both attribute-style (`st.session_state.key`) and dict-style (`st.session_state["key"]`) access patterns that the production code uses; `_snap_state()` snapshots 11 named keys + all `forecast_*` keys | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+| Suite: 658 → **664** passed (16→22 sidebar tests) | Testing | [tests/test_sidebar.py](tests/test_sidebar.py) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.9.0 §2.4 Failure-preservation tests)
+
+---
+
 ## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
@@ -991,10 +1010,10 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 181 |
+| Total commits tracked | 182 |
 | Date range | July 25 – August 2, 2026 |
-| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download + typed error contract DriveImportError + content-derived Drive context factory + atomic ingestion refactor + _NamedBytesIO adapter) |
-| Tests | 0 → 658 across 30 modules |
+| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download + typed error contract DriveImportError + content-derived Drive context factory + atomic ingestion refactor + _NamedBytesIO adapter + failure-preservation test matrix) |
+| Tests | 0 → 664 across 30 modules |
 | CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
 | Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
 | Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
