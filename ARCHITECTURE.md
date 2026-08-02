@@ -38,7 +38,7 @@ insights-explorer/
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
 │   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
-│   └── ...                      # Additional test modules + conftest.py (581 total, 0 warnings)
+│   └── ...                      # Additional test modules + conftest.py (628 total, 0 warnings)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -198,18 +198,37 @@ insights-explorer/
 
 | Module | Tests | Coverage |
 |---|---|---|
-| `test_data_loader.py` | 20 | `load_file` (6), `validate_columns` (8), `get_dataset_stats` (6) |
-| `test_prompt_templates.py` | 58 | `build_summary_prompt` (9), `build_chat_prompt` (11), `_sanitize_question` (18), `detect_chart_request` (20) |
-| `test_gemini_client.py` | 14 | `generate_response` (8), `validate_api_key` (6) |
-| `test_ga4_client.py` | 28 | `credentials_to_dict/from_dict` (3), `get_auth_url`/`exchange_code` (7), `pull_ga4_report` (10), `TestOAuthStateStore` (8) |
-| `test_exports.py` | 8 | `TestClassifyApiError` (4), `TestExcelExport` (2), `TestPdfExport` (2) |
-| `test_learn_page.py` | 19 | Structural parsing, 8 learner-journey sections, content checks, back-to-app button |
-| `test_error_boundary.py` | 14 | `render_error_card` — 5 exception types, context, stack traces |
+| `test_data_context.py` | 98 | DataContext lifecycle, filters, custom metrics, drive-import factory |
+| `test_prompt_templates.py` | 61 | prompts, sanitization, chart detection |
+| `test_styles.py` | 50 | theme constants, focus-visible, reduced-motion |
+| `test_learn_page.py` | 39 | structural parsing, learner-journey sections, content checks |
+| `test_forecasting.py` | 31 | linear trend projection, date handling |
+| `test_scenarios.py` | 27 | scenario-level integration groups |
+| `test_ga4_client.py` | 27 | OAuth flow, credentials, GA4 report pull |
+| `test_static_analysis.py` | 25 | BUGLOG pattern gates + Drive scope guard + token safety |
+| `test_onboarding.py` | 25 | onboarding replay, force_replay |
+| `test_funnels.py` | 24 | page-path aggregation, literal matching |
+| `test_commands.py` | 22 | command palette |
+| `test_data_loader.py` | 20 | file parsing, validation, stats |
+| `test_custom_metrics.py` | 20 | custom metrics lifecycle |
+| `test_drive_client.py` | 18 | download, MIME allowlist, 3-layer size validation, error classification |
 | `test_data_quality.py` | 18 | `assess_data_quality` — completeness, duplicates, outliers, grades A–F |
-| `test_static_analysis.py` | 12 | All 6 BUGLOG patterns CI-gated: def-before-call, file I/O guard, Streamlit exception guard, on_click anti-pattern, drive.readonly gate, silent except:pass scanner |
-| `test_app.py` | 20 | Structural tests for app.py — syntax, imports, structure, session state (#13) |
-| Additional modules | — | `test_chat`, `test_charts`, `test_sidebar`, `test_summary`, `test_forecasting`, `test_funnels`, `test_commands`, `test_drive_client`, `test_custom_metrics`, `test_onboarding`, `test_components_init`, `test_session`, `test_scenarios`, `test_styles`, `test_data_context` |
-| **Total** | **581** | All util modules + components + pages + error boundary + data quality + static analysis + scenarios + app structure + data context (0 warnings) |
+| `test_app.py` | 16 | app.py structure, session state |
+| `test_gemini_client.py` | 14 | API calls, error handling, key validation |
+| `test_credential_guard.py` | 13 | credential-shaped string scanning |
+| `test_drive_picker_component.py` | 10 | component wrapper contract, allowlisted shapes |
+| `test_error_boundary.py` | 9 | `render_error_card` — exception types, context, stack traces |
+| `test_charts.py` | 9 | chart generation, theme cache keys |
+| `test_exports.py` | 8 | error classification, Excel/PDF export smoke tests |
+| `test_sidebar.py` | 7 | sidebar structure, drive import branch |
+| `test_components_init.py` | 7 | component orchestration |
+| `test_token_safety.py` | 6 | credential vars in display/logging/exceptions, no `exc_info` on Drive errors |
+| `test_chat.py` | 6 | chat, streaming, export |
+| `test_summary.py` | 5 | AI summary generation |
+| `test_hero.py` | 5 | empty state |
+| `test_data_preview.py` | 5 | metrics, filters, quality |
+| `test_session.py` | 3 | clear_data semantics |
+| **Total** | **628** | All 30 test modules — util, components, pages, scenarios, data context, security guards (0 warnings) |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 
