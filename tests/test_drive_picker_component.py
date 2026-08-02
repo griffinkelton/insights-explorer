@@ -23,7 +23,7 @@ def _call_component(raw_value: object) -> PickerSelection | None:
     ) as mock_component:
         result = drive_picker_transport(
             oauth_token="test-token",
-            developer_key="test-key",
+            dev_key="test-key",
             app_id="123456789012",
             app_origin="http://localhost:8501",
             request_id="req-1",

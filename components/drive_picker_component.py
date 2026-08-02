@@ -3,7 +3,7 @@
 This is the Option-B component selected by Phase 0 — the replacement for
 the rejected :func:`components.html` hidden-input bridge. It uses
 Streamlit's supported bidirectional component protocol: Python supplies
-arguments (oauth_token, developer_key, app_id, app_origin, request_id),
+arguments (oauth_token, dev_key, app_id, app_origin, request_id),
 and the frontend returns one validated selection via
 ``Streamlit.setComponentValue()``.
 
@@ -46,7 +46,7 @@ class PickerSelection(TypedDict):
 def drive_picker_transport(
     *,
     oauth_token: str,
-    developer_key: str,
+    dev_key: str,
     app_id: str,
     app_origin: str,
     request_id: str,
@@ -65,7 +65,7 @@ def drive_picker_transport(
     """
     value = _component(
         oauthToken=oauth_token,
-        developerKey=developer_key,
+        developerKey=dev_key,
         appId=app_id,
         appOrigin=app_origin,
         requestId=request_id,

@@ -91,7 +91,7 @@ def _populate_data_state(
         try:
             prepared_df[date_cols[0]] = pd.to_datetime(prepared_df[date_cols[0]], errors="coerce")
         except Exception:
-            pass
+            pass  # Date coercion is best-effort; failures are harmless.
 
     # Build candidate DataContext (may raise — handled by caller).
     if source == "ga4":
@@ -339,14 +339,14 @@ def _render_drive_picker() -> None:
 
     # Check Picker secrets — in test mode, use dummy values.
     if _DRIVE_PICKER_TEST_MODE:
-        picker_key = "test-picker-key"
+        dev_key = "test-picker-key"
         project_number = "123456789"
         app_origin = "http://localhost:8501"
     else:
-        picker_key = st.secrets.get("GOOGLE_PICKER_API_KEY", "")
+        dev_key = st.secrets.get("GOOGLE_PICKER_API_KEY", "")
         project_number = st.secrets.get("GOOGLE_CLOUD_PROJECT_NUMBER", "")
         app_origin = st.secrets.get("DRIVE_PICKER_APP_ORIGIN", "")
-        if not picker_key or not project_number or not app_origin:
+        if not dev_key or not project_number or not app_origin:
             return
 
     # Section header.
@@ -395,7 +395,7 @@ def _render_drive_picker() -> None:
 
                 selection = drive_picker_transport(
                     oauth_token=oauth_token,
-                    developer_key=picker_key,
+                    dev_key=dev_key,
                     app_id=project_number,
                     app_origin=app_origin,
                     request_id=st.session_state.drive_picker_request_id,
@@ -406,7 +406,9 @@ def _render_drive_picker() -> None:
             creds_dict = st.session_state.ga4_creds
             oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
             if not oauth_token:
-                st.error("No valid OAuth token available. " "Please reconnect your Google account.")
+                st.error(
+                    "No valid OAuth credential available. " "Please reconnect your Google account."
+                )
                 st.session_state.drive_picker_active = False
                 return
 
@@ -414,7 +416,7 @@ def _render_drive_picker() -> None:
 
             selection = drive_picker_transport(
                 oauth_token=oauth_token,
-                developer_key=picker_key,
+                dev_key=dev_key,
                 app_id=project_number,
                 app_origin=app_origin,
                 request_id=st.session_state.drive_picker_request_id,
