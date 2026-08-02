@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-08-01 — v0.3.0 Build: Frontend Bundle on GCP Deploy (cloudbuild.yaml)
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+
+### Frontend build step added to Cloud Build so the bundle exists before Streamlit starts
+
+**Commit:** [`b0b63f1`](https://github.com/griffinkelton/insights-explorer/commit/b0b63f1)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `cloudbuild.yaml` — new `build-frontend` step (`node:20`): `npm ci` + `npm run build` (`tsc --noEmit && vite build`) + bundle assertion (`build/index.html` + hashed JS assets) in `components/drive_picker_component_frontend`, mirroring the GitHub Actions frontend gate | CI/CD | [cloudbuild.yaml](cloudbuild.yaml) |
+| Step runs **before** `install-and-test` so `build/` exists in the Cloud Build workspace when Streamlit starts (the wrapper hard-codes `path=.../build`) — closes the missing-bundle deploy failure mode | CI/CD | [components/drive_picker_component.py](components/drive_picker_component.py) |
+| Timeout 600s → **900s** (covers both heavy steps: npm ci + vite build, then venv + pip install + pytest); header comment updated to note frontend failures also fail the build | CI/CD | [cloudbuild.yaml](cloudbuild.yaml) |
+| Build/ policy pinned in v0.3.0 spec (v2.6.0): gitignored + built at deploy time, never committed; `cloudbuild.yaml` owns the GCP deploy build, GitHub Actions owns CI verification | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+
+**Related:** [cloudbuild.yaml](cloudbuild.yaml), [.github/workflows/test.yml](.github/workflows/test.yml), [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Spec v2.5.0: #30 Playwright Deferral
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
