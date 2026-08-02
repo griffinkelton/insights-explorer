@@ -274,6 +274,50 @@ def create_context_from_ga4(
     )
 
 
+def create_context_from_drive(
+    df: pd.DataFrame,
+    file_bytes: bytes,
+    display_name: str = "",
+) -> DataContext:
+    """Create a DataContext from a Drive-imported file.
+
+    Uses SHA-256 of the downloaded file content for source_id with a
+    ``drive:`` prefix — identical bytes imported twice produce the same
+    Drive source identity, while the same bytes uploaded locally remain
+    distinguishable through the ``file:`` prefix.
+
+    Args:
+        df: Validated DataFrame from data_loader.load_file().
+        file_bytes: Raw file bytes downloaded server-side (for content-
+                    derived source_id — never from Picker metadata).
+        display_name: Human-readable filename from the Drive API
+                      (server-authoritative name, stored in provenance).
+
+    Returns:
+        DataContext with version=0 and provenance reflecting the
+        server-authoritative display name.
+
+    Raises:
+        TypeError: if df is not a pandas DataFrame.
+        ValueError: if file_bytes is empty or not bytes.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+    if not isinstance(file_bytes, bytes) or not file_bytes:
+        raise ValueError("file_bytes must be non-empty bytes")
+
+    content_hash = hashlib.sha256(file_bytes).hexdigest()[:24]
+    base = df.copy(deep=True)
+    return DataContext(
+        source_id=f"drive:{content_hash}",
+        version=0,
+        raw_df=df.copy(deep=True),
+        base_df=base,
+        active_df=base.copy(deep=True),
+        provenance=(f"drive:{display_name}",) if display_name else ("drive:unknown",),
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Transition Functions (return new DataContext)
 # ══════════════════════════════════════════════════════════════════════════════

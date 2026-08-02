@@ -14,6 +14,7 @@ from utils.data_context import (
     DataContext,
     FilterState,
     GA4RequestMetadata,
+    create_context_from_drive,
     create_context_from_ga4,
     create_context_from_upload,
     fingerprint_frame,
@@ -305,6 +306,101 @@ class TestCreateContextFromGA4:
         assert ctx.raw_df is not sample_df
         assert ctx.base_df is not sample_df
         assert ctx.active_df is not sample_df
+
+
+# ── create_context_from_drive ──────────────────────────────────────────────
+
+
+class TestCreateContextFromDrive:
+    """v0.3.0 Phase 2.1 — Drive context factory with content-derived identity."""
+
+    def test_source_id_is_content_derived(self, sample_df, sample_bytes):
+        """drive: prefix + SHA-256 of file content — same as upload but distinguishable."""
+        ctx = create_context_from_drive(sample_df, sample_bytes)
+        expected_hash = hashlib.sha256(sample_bytes).hexdigest()[:24]
+        assert ctx.source_id == f"drive:{expected_hash}"
+        assert ctx.source_id.startswith("drive:")
+        assert len(ctx.source_id) == len("drive:") + 24
+
+    def test_same_bytes_same_drive_id(self, sample_df):
+        """Identical bytes imported twice produce the same Drive source identity."""
+        b = sample_df.to_csv(index=False).encode()
+        ctx1 = create_context_from_drive(sample_df, b)
+        ctx2 = create_context_from_drive(sample_df.copy(), b)
+        assert ctx1.source_id == ctx2.source_id
+
+    def test_drive_vs_upload_prefix_distinguishable(self, sample_df, sample_bytes):
+        """Same bytes imported via Drive vs upload produce different source_ids."""
+        ctx_drive = create_context_from_drive(sample_df, sample_bytes)
+        ctx_upload = create_context_from_upload(sample_df, sample_bytes)
+        assert ctx_drive.source_id != ctx_upload.source_id
+        assert ctx_drive.source_id.startswith("drive:")
+        assert ctx_upload.source_id.startswith("file:")
+
+    def test_different_bytes_different_drive_id(self, sample_df):
+        """Different content produces different Drive source_id."""
+        b1 = sample_df.to_csv(index=False).encode()
+        b2 = sample_df.assign(a=[9, 9, 9]).to_csv(index=False).encode()
+        ctx1 = create_context_from_drive(sample_df, b1)
+        ctx2 = create_context_from_drive(sample_df, b2)
+        assert ctx1.source_id != ctx2.source_id
+
+    def test_version_starts_at_zero(self, sample_df, sample_bytes):
+        ctx = create_context_from_drive(sample_df, sample_bytes)
+        assert ctx.version == 0
+
+    def test_all_frames_are_deep_copies(self, sample_df, sample_bytes):
+        """raw_df, base_df, active_df are independent deep copies."""
+        ctx = create_context_from_drive(sample_df, sample_bytes)
+        assert ctx.raw_df is not sample_df
+        assert ctx.base_df is not sample_df
+        assert ctx.active_df is not sample_df
+        assert ctx.raw_df is not ctx.base_df
+        assert ctx.base_df is not ctx.active_df
+
+    def test_does_not_mutate_source_dataframe(self, sample_df):
+        """Mutating the input DataFrame after context creation does not affect context."""
+        b = sample_df.to_csv(index=False).encode()
+        ctx = create_context_from_drive(sample_df, b)
+        # Mutate original
+        sample_df["a"] = [999, 999, 999]
+        # Context frames are unchanged
+        assert ctx.raw_df["a"].tolist() == [1, 2, 3]
+        assert ctx.base_df["a"].tolist() == [1, 2, 3]
+        assert ctx.active_df["a"].tolist() == [1, 2, 3]
+
+    def test_provenance_uses_server_display_name(self, sample_df, sample_bytes):
+        """Provenance reflects the server-authoritative name from the Drive API."""
+        ctx = create_context_from_drive(sample_df, sample_bytes, "Report (Server Copy).xlsx")
+        assert ctx.provenance == ("drive:Report (Server Copy).xlsx",)
+
+    def test_provenance_without_display_name(self, sample_df, sample_bytes):
+        """Missing display name → 'drive:unknown'."""
+        ctx = create_context_from_drive(sample_df, sample_bytes)
+        assert ctx.provenance == ("drive:unknown",)
+
+    def test_provenance_always_category_detail(self, sample_df, sample_bytes):
+        """All Drive provenance entries use category:detail format."""
+        ctx1 = create_context_from_drive(sample_df, sample_bytes)
+        ctx2 = create_context_from_drive(sample_df, sample_bytes, "report.csv")
+        for entry in (*ctx1.provenance, *ctx2.provenance):
+            assert ":" in entry, f"Provenance entry '{entry}' missing category:detail format"
+
+    def test_factory_raises_typeerror_on_non_dataframe(self):
+        with pytest.raises(TypeError, match="must be a pandas DataFrame"):
+            create_context_from_drive("not_a_df", b"some bytes")  # type: ignore[arg-type]
+
+    def test_factory_raises_valueerror_on_empty_bytes(self, sample_df):
+        with pytest.raises(ValueError, match="non-empty bytes"):
+            create_context_from_drive(sample_df, b"")
+
+    def test_factory_raises_valueerror_on_non_bytes(self, sample_df):
+        with pytest.raises(ValueError, match="non-empty bytes"):
+            create_context_from_drive(sample_df, "not bytes")  # type: ignore[arg-type]
+
+    def test_truncated_defaults_false(self, sample_df, sample_bytes):
+        ctx = create_context_from_drive(sample_df, sample_bytes)
+        assert ctx.truncated is False
 
 
 # ── with_filtered_data ───────────────────────────────────────────────────────
