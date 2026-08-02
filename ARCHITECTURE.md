@@ -38,7 +38,7 @@ insights-explorer/
 │   ├── test_prompt_templates.py # 58 tests — prompts, sanitization, chart detection
 │   ├── test_ga4_client.py       # 28 tests — OAuth flow, credentials, GA4 report pull, state persistence
 │   ├── test_exports.py          # 8 tests — error classification, Excel/PDF export smoke tests
-│   └── ...                      # Additional test modules + conftest.py (628 total, 0 warnings)
+│   └── ...                      # Additional test modules + conftest.py (631 total, 0 warnings)
 ├── .streamlit/
 │   └── config.toml              # Secure defaults (headless, XSRF, CORS)
 ├── assets/
@@ -228,7 +228,7 @@ insights-explorer/
 | `test_hero.py` | 5 | empty state |
 | `test_data_preview.py` | 5 | metrics, filters, quality |
 | `test_session.py` | 3 | clear_data semantics |
-| **Total** | **628** | All 30 test modules — util, components, pages, scenarios, data context, security guards (0 warnings) |
+| **Total** | **631** | All 30 test modules — util, components, pages, scenarios, data context, security guards (0 warnings) |
 
 Mocks used: `unittest.mock.patch` for Gemini API (`_get_client`), GA4 Data API (`BetaAnalyticsDataClient`), OAuth Flow, and token refresh (`Request`).
 

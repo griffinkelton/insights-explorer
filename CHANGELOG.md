@@ -8,7 +8,7 @@
 
 ## 2026-08-01 — v0.3.0 Build: Frontend Bundle on GCP Deploy (cloudbuild.yaml)
 
-**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
 
 ### Frontend build step added to Cloud Build so the bundle exists before Streamlit starts
 
@@ -27,7 +27,7 @@
 
 ## 2026-08-01 — v0.3.0 Spec v2.5.0: #30 Playwright Deferral
 
-**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
 
 ### Defer Playwright smoke coverage to Phase 3 core (IDEAS #30 fast-follow ordering)
 
@@ -46,7 +46,7 @@
 
 ## 2026-08-01 — v0.3.0 Phase 1: Drive Import Server-Side Foundation
 
-**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
 
 ### Drive import server-side download + component validation + CI frontend gate (v0.3.0 spec §1.2–1.4)
 
@@ -818,7 +818,7 @@
 | Total commits tracked | 170 |
 | Date range | July 25 – August 1, 2026 |
 | Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download) |
-| Tests | 0 → 628 across 30 modules |
+| Tests | 0 → 631 across 30 modules |
 | CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
 | Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
 | Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
@@ -836,4 +836,4 @@
 
 ---
 
-*Legacy v1.x-era cleanup (2026-08-01): the v1.5.0 Drive picker entry was removed — that picker and its `drive.readonly` scope were removed in v0.1.0 hardening — and this era's test counts (236/239) are superseded by the current 628-test suite.*
+*Legacy v1.x-era cleanup (2026-08-01): the v1.5.0 Drive picker entry was removed — that picker and its `drive.readonly` scope were removed in v0.1.0 hardening — and this era's test counts (236/239) are superseded by the current 631-test suite.*
