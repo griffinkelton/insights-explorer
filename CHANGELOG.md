@@ -6,6 +6,44 @@
 
 ---
 
+## 2026-08-02 — AI Studio API Key (AQ.) Pattern Added to Credential Guard
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 633
+
+### AI Studio key format (AQ.) added to credential guard — caught after live-key exposure in chat
+
+**Commit:** [`ca87456`](https://github.com/griffinkelton/insights-explorer/commit/ca87456)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `scripts/check_credentials.py` — new regex `GOOGLE_AI_STUDIO_KEY = re.compile(r"AQ\.[0-9A-Za-z_-]{30,}")` added to PATTERNS tuple (3 patterns: `AIza`, `AQ.`, `ya29`); docstring updated to mention AI Studio keys and `AQ....` placeholder exemption | Security | [scripts/check_credentials.py](scripts/check_credentials.py) |
+| `tests/test_credential_guard.py` — `FAKE_AI_STUDIO_KEY` runtime-built var, new `test_flags_real_ai_studio_key` (asserts hits + correct label), new `test_allows_doc_placeholder_aq_dots` (`AQ....` not flagged) | Testing | [tests/test_credential_guard.py](tests/test_credential_guard.py) |
+| Suite: 631 → **633** passed | Testing | [README.md](README.md) |
+
+**Related:** [.pre-commit-config.yaml](.pre-commit-config.yaml), [scripts/check_credentials.py](scripts/check_credentials.py)
+
+---
+
+## 2026-08-02 — v0.3.0 Spec v2.9.0 + GA4 Insights Sketch (Doc-Only)
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 633 (unchanged — docs only)
+
+### Spec refined to v2.9.0 (Phase 2 atomicity, typed errors, multimodal deferral) + GA4 insights engine design sketch created and reframed as trust layer
+
+**Commits:** [`5d06920`](https://github.com/griffinkelton/insights-explorer/commit/5d06920) (spec), [`eb9d33d`](https://github.com/griffinkelton/insights-explorer/commit/eb9d33d) (DOCIDX + closeout), [`b122527`](https://github.com/griffinkelton/insights-explorer/commit/b122527) (sketch v1), [`8b15e5c`](https://github.com/griffinkelton/insights-explorer/commit/8b15e5c) (sketch v2), [`2912950`](https://github.com/griffinkelton/insights-explorer/commit/2912950) (DOCIDX refresh)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| v0.3.0 spec bumped **v2.8.0 → v2.9.0**: broadened atomicity to all ingestion paths (upload, GA4, Drive), `DriveImportError` + 6 fixed codes, `_NamedBytesIO` adapter for parser reuse, 9→19 Phase 2 tests, step dependency table (2.0/2.1/2.2 parallelism), multimodal/provider abstraction deferred from v0.3.0, Phase 1 goal reworded to past tense | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| DOCUMENTATION_INDEX + Phase 1 closeout: all spec rows bumped to v2.9.0 + date 2026-08-02; closeout header + links: v2.2.0 → v2.9.0; cloudbuild + missing-build/ regression evidence added to closeout rows | Docs | [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md), [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md) |
+| New `plans/🔵 ga4-insights-sketch.md` (v1: 275 lines, v2: 523 lines) — trust-layer design: 5-layer pipeline (sources→normalization→deterministic metrics→insight candidates→Gemini→UI), semantic metric registry, inference labels (Observed/Associated/Hypothesis/Experiment/Not assessable), linkage protocol, data quality gate, 7 equity gaps, survey population separation, structured evidence objects (YAML), prompt injection protection, insights dashboard, operational design, 4-gate phasing (0. Data readiness → 1. GA4 descriptive → 2. Evidence overlay → 3. Outcomes), definition of done (10 questions) | Docs | [plans/🔵 ga4-insights-sketch.md](plans/🔵%20ga4-insights-sketch.md) |
+| Cross-refs `evidence-connector-design.md`; sketch is 🔵 aspirational — defers everything to post-v0.3.0 | Docs | [plans/🔵 evidence-connector-design.md](plans/🔵%20evidence-connector-design.md) |
+| DOCIDX footer + sketch rows updated to reflect v2 trust-layer reframing (523 lines, 5-layer pipeline, 4-gate phasing) | Docs | [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md), [plans/🔵 ga4-insights-sketch.md](plans/🔵%20ga4-insights-sketch.md), [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
@@ -853,10 +891,10 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 170 |
-| Date range | July 25 – August 1, 2026 |
+| Total commits tracked | 175 |
+| Date range | July 25 – August 2, 2026 |
 | Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download) |
-| Tests | 0 → 631 across 30 modules |
+| Tests | 0 → 633 across 30 modules |
 | CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
 | Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
 | Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
