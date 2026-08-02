@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-08-01 — v0.3.0 Spec v2.5.0: #30 Playwright Deferral
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+
+### Defer Playwright smoke coverage to Phase 3 core (IDEAS #30 fast-follow ordering)
+
+**Commit:** [`cc71a48`](https://github.com/griffinkelton/insights-explorer/commit/cc71a48) | **Issue:** [#8](https://github.com/griffinkelton/insights-explorer/issues/8)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| v0.3.0 spec §Fast-Follow: #30 Playwright explicitly **deferred** — no install, deps, or CI jobs before Phase 3 core integration works (an early seam would lock tests to the Phase 0/2 UI instead of the production flow) | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| Tracking identifier recorded: `test/playwright-drive-import-smoke` (issue or branch only — no packages, no CI changes) | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| No-secret boundary restated: no OAuth tokens / API keys / Picker credentials; no Google Picker interaction; app-controlled surfaces only (import button, on-demand render, readiness/error/cancel UI, theme sync, duplicate/rerun protection) via a test-mode component seam or fake result | Security | [IDEAS.md #30](IDEAS.md) |
+| GitHub issue [#8](https://github.com/griffinkelton/insights-explorer/issues/8) created to track the smoke test through Phase 3 | Docs | [Issue #8](https://github.com/griffinkelton/insights-explorer/issues/8) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md), [IDEAS.md #30](IDEAS.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Phase 1: Drive Import Server-Side Foundation
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
