@@ -25,6 +25,7 @@ from utils.ga4_client import (
     pull_ga4_report,
 )
 from utils.data_context import (
+    create_context_from_drive,
     create_context_from_ga4,
     create_context_from_upload,
     rebuild_metrics_context,
@@ -44,52 +45,76 @@ def _populate_data_state(
     ga4_metadata: GA4RequestMetadata | None = None,
     display_name: str = "",
 ) -> None:
-    """Populate session state with loaded data — shared by upload and GA4 paths.
+    """Populate session state with loaded data — shared by upload, GA4, and Drive paths.
 
     v0.2.0: Creates a DataContext — the sole owner of loaded, filtered, and
     custom-metric state.
 
+    v0.3.0 Phase 2.2: Prepare-then-commit — all derived state is computed
+    locally before any session-state assignment. A failed DataContext
+    construction or derived-state computation leaves the prior loaded
+    context untouched.
+
     Args:
         df: The loaded DataFrame.
-        source: "file" or "ga4".
+        source: "file", "ga4", or "drive".
         missing: List of expected-but-missing column names.
-        file_bytes: Raw file bytes for content-derived source_id (upload only).
+        file_bytes: Raw file bytes for content-derived source_id (upload/Drive only).
         ga4_start_date: GA4 date range start e.g. "7daysAgo" (GA4 only).
-        display_name: Human-readable filename for provenance (upload only).
+        display_name: Human-readable filename for provenance (upload/Drive only).
     """
-    # Reset custom metrics when loading new data (columns may differ)
-    st.session_state.custom_metrics = {}
+    # ── Phase 1: prepare all values locally ──
+    prepared_df = df.copy(deep=True)
 
-    date_cols = [c for c in df.columns if "date" in c.lower()]
+    date_cols = [c for c in prepared_df.columns if "date" in c.lower()]
     if date_cols:
         try:
-            df[date_cols[0]] = pd.to_datetime(df[date_cols[0]], errors="coerce")
+            prepared_df[date_cols[0]] = pd.to_datetime(prepared_df[date_cols[0]], errors="coerce")
         except Exception:
-            pass  # Mixed-format or invalid dates are expected — coerce handles them gracefully
+            pass
+
+    # Build candidate DataContext (may raise — handled by caller).
+    if source == "ga4":
+        if ga4_metadata is not None:
+            candidate_context = create_context_from_ga4(
+                prepared_df, property_id="", metadata=ga4_metadata
+            )
+        else:
+            candidate_context = create_context_from_ga4(
+                prepared_df,
+                st.session_state.get("ga4_property_id", "unknown"),
+                date_range=(ga4_start_date, "today") if ga4_start_date else None,
+            )
+    elif source == "drive":
+        candidate_context = create_context_from_drive(
+            prepared_df, file_bytes, display_name=display_name
+        )
+    else:
+        candidate_context = create_context_from_upload(
+            prepared_df, file_bytes, display_name=display_name
+        )
+
+    # Compute derived state locally.
+    candidate_stats = get_dataset_stats(prepared_df)
+    candidate_quality = assess_data_quality(prepared_df, missing)
+
+    # ── Phase 2: commit atomically ──
+    st.session_state.data_context = candidate_context
+    st.session_state.custom_metrics = {}
     st.session_state.missing_columns = missing
-    st.session_state.stats = get_dataset_stats(df)
-    st.session_state.stats["missing_columns"] = missing
-    st.session_state.quality_report = assess_data_quality(df, missing)
+    st.session_state.stats = {**candidate_stats, "missing_columns": missing}
+    st.session_state.quality_report = candidate_quality
     st.session_state.summary = None
     st.session_state.chat_history = []
     st.session_state.data_source = source
     st.session_state.data_cleared = False
-    # v0.2.0: Create DataContext — sole owner of data state
-    if source == "ga4":
-        if ga4_metadata is not None:
-            st.session_state.data_context = create_context_from_ga4(
-                df, property_id="", metadata=ga4_metadata
-            )
-        else:
-            st.session_state.data_context = create_context_from_ga4(
-                df,
-                st.session_state.get("ga4_property_id", "unknown"),
-                date_range=(ga4_start_date, "today") if ga4_start_date else None,
-            )
-    else:
-        st.session_state.data_context = create_context_from_upload(
-            df, file_bytes, display_name=display_name
-        )
+    # Clear derived state that belongs to the prior context.
+    st.session_state.funnel_steps = []
+    st.session_state.funnel_data = None
+    for key in list(st.session_state.keys()):
+        if key.startswith("forecast_"):
+            del st.session_state[key]
+    # No return — session state is the single source of truth.
 
 
 def render_sidebar() -> None:
@@ -519,10 +544,9 @@ def _process_uploaded_file(uploaded_file) -> None:
     if not should_process:
         return
 
-    if is_new_file and st.session_state.data_context is not None:
-        clear_data()
-        st.session_state.data_cleared = False
-
+    # v0.3.0 Phase 2.2: Do NOT call clear_data() before load_file().
+    # _populate_data_state() overwrites every state key atomically —
+    # a failed replacement upload must leave the prior dataset untouched.
     df, error, warning = load_file(uploaded_file)
 
     if error:
