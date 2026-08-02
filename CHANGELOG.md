@@ -61,6 +61,27 @@
 
 ---
 
+## 2026-08-02 — Phase 2.0: DriveImportError + Catch-All Hardening
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 634
+
+### Typed error contract (6 codes) for all download failures + unwrapped Exception mapping
+
+**Commits:** [`8b207c1`](https://github.com/griffinkelton/insights-explorer/commit/8b207c1) (DriveImportError), [`8291692`](https://github.com/griffinkelton/insights-explorer/commit/8291692) (catch-all hardening)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| New `DriveImportError(RuntimeError)` with `code` + `message` — 6 fixed codes: `not_found`, `access_denied`, `unsupported_type`, `too_large`, `empty_file`, `download_failed` | Feature | [utils/drive_client.py](utils/drive_client.py) |
+| All download failures migrated: `ValueError` → `DriveImportError` (unsupported MIME, 3-layer size checks, empty file), `RuntimeError` → `DriveImportError` (404/403/5xx from `_raise_classified_drive_error`), `_BoundedBytesIO.write()` → `DriveImportError` (stream cap) | Refactor | [utils/drive_client.py](utils/drive_client.py) |
+| Catch-all `except Exception` wrapper around entire `download_drive_file()` body — unexpected failures (token refresh, service construction, `int(size)` conversion, non-`HttpError` transport) now become `DriveImportError("download_failed", ...)` with `from None` (no traceback exposes raw request/token context) | Security | [utils/drive_client.py](utils/drive_client.py) |
+| `DriveImportError` is a `RuntimeError` subclass — backwards-compatible with existing `except RuntimeError` handlers in sidebar/error-boundary | Design | [utils/drive_client.py](utils/drive_client.py) |
+| Tests: 18→21 (all 6 `.code` values asserted; new `test_handles_generic_http_error` for `download_failed` via 500; new `test_service_build_failure_maps_to_download_failed` via `ConnectionError`; new `test_non_http_downloader_failure_maps_to_download_failed` via `OSError` + `__cause__ is None`) | Testing | [tests/test_drive_client.py](tests/test_drive_client.py) |
+| Suite: 633 → **634** passed | Testing | [tests/test_drive_client.py](tests/test_drive_client.py) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) (v2.9.0 §2.0 DriveImportError prerequisite)
+
+---
+
 ## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
@@ -908,10 +929,10 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 176 |
+| Total commits tracked | 178 |
 | Date range | July 25 – August 2, 2026 |
-| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download) |
-| Tests | 0 → 633 across 30 modules |
+| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download + typed error contract DriveImportError) |
+| Tests | 0 → 634 across 30 modules |
 | CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
 | Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
 | Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
