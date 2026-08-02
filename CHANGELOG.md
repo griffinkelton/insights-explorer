@@ -762,13 +762,13 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 50 |
-| Date range | July 25–29, 2026 |
-| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening |
-| Tests | 0 → 359 across 19 modules |
-| CI/CD | Cloud Build + smoke test |
-| Documentation | 18 MD files totaling 100+ KB |
-| Plans | 21-item IMPLEMENTATION_PLAN + 6 UNIFIED plans + 3 derived sprint plans + 1 maintenance round (7 commits) |
+| Total commits tracked | 170 |
+| Date range | July 25 – August 1, 2026 |
+| Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download) |
+| Tests | 0 → 628 across 30 modules |
+| CI/CD | GitHub Actions CI (Python + frontend build gate) + Cloud Build + smoke test + pre-commit hooks (incl. credential guard) |
+| Documentation | 119 MD files (~1.3 MB) incl. 37 plan/spec files under `plans/` + Sphinx docs |
+| Plans | 37 files across `plans/00-meta`, `00-sprints`, `audit`, `maintenance`, `p1-p2`, `p3-p4`, `p5-p6` |
 
 ---
 
