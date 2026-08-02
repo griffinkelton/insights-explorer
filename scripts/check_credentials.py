@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Pre-commit guard: reject credential-shaped strings in staged files.
 
-Catches real Google API keys (``AIza...``) and Google OAuth access tokens
-(``ya29...``) before they reach git history — a regression guard for the
-IDEAS #29 credential-rotation incident.
+Catches real Google API keys (``AIza...``), Google AI Studio API keys
+(``AQ....``), and Google OAuth access tokens (``ya29...``) before they
+reach git history — a regression guard for the IDEAS #29 credential-
+rotation incident.
 
 Deliberate non-matches (kept safe by minimum-length requirements):
   - ``ya29.abc123``  — test fixture in tests/test_ga4_client.py (payload too short)
   - ``AIza...``      — doc placeholder in phase-0 spike spec (dots, too short)
+  - ``AQ....``       — doc placeholder (dots, too short)
 
 Usage (via pre-commit): receives staged filenames as argv. Also accepts
 tracked-file lists piped from ``git ls-files -z | xargs -0`` for CI.
@@ -23,12 +25,17 @@ from pathlib import Path
 # The doc placeholder "AIza..." never matches (dots, too short).
 GOOGLE_API_KEY = re.compile(r"AIza[0-9A-Za-z_-]{30,}")
 
+# Real Google AI Studio API keys: "AQ." + long base64url payload.
+# The doc placeholder "AQ...." never matches (dots, too short).
+GOOGLE_AI_STUDIO_KEY = re.compile(r"AQ\.[0-9A-Za-z_-]{30,}")
+
 # Real Google OAuth access tokens: "ya29." + long base64url payload.
 # The test fixture "ya29.abc123" never matches (payload too short).
 GOOGLE_OAUTH_TOKEN = re.compile(r"ya29\.[0-9A-Za-z_-]{10,}")
 
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("Google API key", GOOGLE_API_KEY),
+    ("Google AI Studio API key", GOOGLE_AI_STUDIO_KEY),
     ("Google OAuth access token", GOOGLE_OAUTH_TOKEN),
 )
 

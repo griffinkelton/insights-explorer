@@ -20,6 +20,7 @@ SCRIPT_PATH = PROJECT_ROOT / "scripts" / "check_credentials.py"
 
 # Built at runtime — never a contiguous string in this source file.
 FAKE_KEY = "AIza" + "Sy" + "Dg1234567890AbCdEfGhIjKlMnOpQrStUv"
+FAKE_AI_STUDIO_KEY = "AQ." + ("z" * 40)
 FAKE_TOKEN = "ya29." + ("x" * 40)
 
 
@@ -67,6 +68,18 @@ class TestScanText:
         guard = self._guard()
         # tests/test_ga4_client.py fixture — payload too short to match
         hits = guard.scan_text('"token": "ya29.abc123"')
+        assert not hits
+
+    def test_flags_real_ai_studio_key(self):
+        guard = self._guard()
+        hits = guard.scan_text(f'GEMINI_API_KEY = "{FAKE_AI_STUDIO_KEY}"')
+        assert hits
+        assert "Google AI Studio API key" in hits[0][1]
+
+    def test_allows_doc_placeholder_aq_dots(self):
+        guard = self._guard()
+        # "AQ...." placeholder must NOT be flagged
+        hits = guard.scan_text('GEMINI_API_KEY = "AQ...."')
         assert not hits
 
     def test_allows_identifier_oauth_token_equal(self):
