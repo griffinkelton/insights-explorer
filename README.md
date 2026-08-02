@@ -61,7 +61,19 @@ GEMINI_API_KEY=your_api_key_here
 
 > 📚 **Learn Page:** Visit `/learn` in the app for an interactive, analyst-first learning experience — predict, inspect, and verify your way through the app's workflows.
 
-### 4. Launch
+### 4. Build the Drive Picker frontend (optional)
+
+```bash
+cd components/drive_picker_component_frontend
+npm install && npm run build
+cd ../..
+```
+
+> If you skip this step, the app runs fine — only the Drive import feature
+> is unavailable. The app fails fast with a clear error if the Picker
+> component is imported without a built frontend bundle.
+
+### 5. Launch
 
 ```bash
 streamlit run app.py
@@ -69,7 +81,7 @@ streamlit run app.py
 
 Opens at **http://localhost:8501** 🎉
 
-### 5. Run tests
+### 6. Run tests
 
 ```bash
 python -m pytest tests/ -v
