@@ -2,9 +2,30 @@
 # Triggers on every push to the repo. Requires Cloud Build API enabled at:
 # https://console.cloud.google.com/cloud-build/triggers
 #
-# The build will fail if any test fails (pytest exits with non-zero).
+# The build will fail if the frontend bundle build fails or any test fails (pytest exits with non-zero).
 
 steps:
+  - name: 'node:20'
+    id: 'build-frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Building frontend production bundle ==="
+        cd components/drive_picker_component_frontend
+
+        echo "=== Installing frontend dependencies ==="
+        npm ci
+
+        echo "=== Typechecking + building ==="
+        npm run build
+
+        echo "=== Verifying bundle artifacts ==="
+        test -f build/index.html || { echo "build/index.html missing"; exit 1; }
+        js_files=$(find build -name '*.js' -type f | wc -l | tr -d ' ')
+        test "$js_files" -ge 1 || { echo "no JS assets in build/"; exit 1; }
+        echo "bundle verified: build/index.html + $js_files JS asset(s)"
+
   - name: 'python:${_PYTHON_VERSION}'
     id: 'install-and-test'
     entrypoint: 'bash'
@@ -23,7 +44,8 @@ steps:
         python -m pytest tests/ -v --tb=short --cov=utils --cov=components --cov=pages --cov-report=term
 
 # ── Timeout (default is 10 min) ────────────────────────────────────────────
-timeout: 600s
+# Covers both steps (npm ci + vite build, then venv + pip install + pytest).
+timeout: 900s
 
 # ── Substitutions (override via gcloud builds submit --substitutions) ────────
 substitutions:
