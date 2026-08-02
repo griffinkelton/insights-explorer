@@ -6,6 +6,30 @@
 
 ---
 
+## 2026-08-01 — v0.3.0 Phase 1: Drive Import Server-Side Foundation
+
+**Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 628
+
+### Drive import server-side download + component validation + CI frontend gate (v0.3.0 spec §1.2–1.4)
+
+**Commit:** [`9754189`](https://github.com/griffinkelton/insights-explorer/commit/9754189)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| `utils/drive_client.py` — new `download_drive_file()`: 3-layer size validation (metadata preflight → `_BoundedBytesIO` hard cap rejecting writes over 100 MB on **both** `get_media` and Sheets `export_media` paths → final `len()` check), server metadata authority (`files().get` for name/MIME/size), MIME allowlist (CSV / XLSX / native Sheets export-to-CSV), zero-byte rejection | Feature | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| `utils/drive_client.py` — typed `RuntimeError` categories (`not_found` / `access_denied` / `too_large` / `unsupported_type` / `download_failed`) with allowlisted structured logging — no `exc_info`, no raw API text, no file IDs | Security | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+| `components/drive_picker_component.py` — wrapper structurally validates raw component value into `PickerSelection` (`kind` / `requestId` / `fileId`) or `None`; extra Picker metadata stripped at the boundary | Feature | [components/drive_picker_component.py](components/drive_picker_component.py) |
+| `tests/test_drive_client.py` — ~16 new `TestDownloadDriveFile` tests incl. adversarial streamed-cap and independent final-check cases | Testing | [tests/test_drive_client.py](tests/test_drive_client.py) |
+| `tests/test_token_safety.py` (new) — source scans: credential vars never reach `st.*` display (incl. `st.exception` / `st.json` / `st.code` / `st.dataframe`), logger calls, or `raise`; no `exc_info=True` in `drive_client.py` | Testing | [tests/test_token_safety.py](tests/test_token_safety.py) |
+| `tests/test_static_analysis.py` — `TestDriveScopeRestricted`: token-level AST guard rejects `drive` / `drive.readonly` / `drive.metadata.readonly`, allows `drive.file` | Testing | [tests/test_static_analysis.py](tests/test_static_analysis.py) |
+| `tests/test_drive_picker_component.py` (new) — wrapper contract tests (malformed/empty/wrong-kind ignored, metadata stripped) | Testing | [tests/test_drive_picker_component.py](tests/test_drive_picker_component.py) |
+| `.github/workflows/test.yml` — frontend CI gate: `npm ci` + `tsc` typecheck + `vite build` + bundle artifact assertion (index.html + hashed JS assets), Node 20 pinned | CI/CD | [.github/workflows/test.yml](.github/workflows/test.yml) |
+| v0.3.0 spec — Phase 2 test renamed to `test_successful_drive_import_replaces_previous_context` (atomic-import consistency; failure case `test_failed_drive_import_preserves_existing_context` already present) | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+
+**Related:** [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md), [plans/00-sprints/✅ phase-0-debug-summary.md](plans/00-sprints/✅%20phase-0-debug-summary.md)
+
+---
+
 ## 2026-08-01 — Credential Rotation (IDEAS #29)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete
