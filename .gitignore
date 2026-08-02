@@ -1,5 +1,8 @@
 .env
+.env.*
+!.env.example
 venv/
+.venv/
 __pycache__/
 *.pyc
 .DS_Store
@@ -16,6 +19,14 @@ htmlcov/
 # Security
 .streamlit/secrets.toml
 oauth_state_*.json
+# Google credential / token filenames (common defaults from sample code)
+token.json
+credentials.json
+secrets.json
+# Private key files
+*.pem
+*.key
+id_rsa
 
 # Build artifacts
 docs/_build/
