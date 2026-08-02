@@ -221,3 +221,286 @@ class TestIngestDriveFile:
         first_warning = fake_st.warning.call_args_list[0][0][0]
         assert "50,000" in first_warning
         assert "truncated" in first_warning.lower() or "showing" in first_warning.lower()
+
+
+# ── v0.3.0 Phase 2.4: failure-preservation tests ──────────────────────────
+
+
+class _FakeSessionState(dict):
+    """A dict that also supports Streamlit's attribute-style access.
+
+    ``_populate_data_state()`` and ``_process_uploaded_file()`` use both
+    ``st.session_state.key`` and ``st.session_state["key"]`` access patterns.
+    A plain dict only supports the latter.
+    """
+
+    def __getattr__(self, name: str):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name: str, value) -> None:
+        self[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        try:
+            del self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+
+def _snap_state(state_dict: dict) -> dict:
+    """Return a snapshot of all derived-state keys the ingestion paths own.
+
+    Does not deep-copy — callers that mutate values must do their own copy.
+    """
+    keys = [
+        "data_context",
+        "custom_metrics",
+        "stats",
+        "missing_columns",
+        "quality_report",
+        "summary",
+        "chat_history",
+        "data_source",
+        "data_cleared",
+        "funnel_steps",
+        "funnel_data",
+    ]
+    snap = {k: state_dict.get(k) for k in keys}
+    # Capture forecast_* keys (dynamically named).
+    for k in sorted(state_dict):
+        if k.startswith("forecast_"):
+            snap[k] = state_dict[k]
+    return snap
+
+
+def _make_pre_existing_state() -> dict:
+    """Build a realistic pre-existing session state snapshot.
+
+    Every value is a sentinel that is clearly distinguishable from the
+    empty / reset values that _populate_data_state assigns on success.
+    """
+    return {
+        "data_context": "PRIOR_CONTEXT",
+        "custom_metrics": {"old_metric": "a + b"},
+        "stats": {"rows": 999},
+        "missing_columns": ["old_missing"],
+        "quality_report": {"score": 95},
+        "summary": "Old summary text.",
+        "chat_history": [{"role": "user", "content": "prior question"}],
+        "data_source": "old_source",
+        "data_cleared": False,
+        "funnel_steps": ["/step-1", "/step-2"],
+        "funnel_data": "old_funnel_df",
+        "forecast_session_abc": "old_forecast_data",
+        "last_file_id": "old_file.csv-2048",
+        # Extra key that ingestion should never touch.
+        "theme": "dark",
+        "selected_model": "gemini-2.5-flash",
+    }
+
+
+class TestPhase24FailurePreservation:
+    """All ingestion paths must preserve prior state on any failure.
+
+    The contract: a failing download, parse, or DataContext construction
+    leaves every derived-state field identical to its pre-attempt value.
+
+    These tests use a real dict as st.session_state (monkeypatched) so
+    we can snapshot all 12+ fields and assert bit-for-bit preservation.
+    """
+
+    # ── upload path ───────────────────────────────────────────────────
+
+    def test_upload_replacement_parse_failure_preserves_existing_state(self, monkeypatch):
+        """_process_uploaded_file: load_file error → state unchanged."""
+        import copy
+        from unittest.mock import MagicMock
+        from components.sidebar import _process_uploaded_file
+
+        prior = _make_pre_existing_state()
+        session = _FakeSessionState(copy.deepcopy(prior))
+        monkeypatch.setattr("components.sidebar.st.session_state", session)
+        monkeypatch.setattr("components.sidebar.st.error", MagicMock())
+
+        def _fail_load(file_obj):
+            return None, "Malformed CSV", None
+
+        monkeypatch.setattr("components.sidebar.load_file", _fail_load)
+
+        mock_file = MagicMock()
+        mock_file.name = "broken.csv"
+        mock_file.size = 512
+
+        _process_uploaded_file(mock_file)
+
+        # last_file_id is intentionally updated on error (prevents re-processing
+        # loop) — everything else must be identical.
+        expected = _FakeSessionState(copy.deepcopy(prior))
+        expected["last_file_id"] = "broken.csv-512"
+
+        # Snapshot the derived keys only (ignore theme, selected_model, etc.).
+        assert _snap_state(session) == _snap_state(expected)
+        # Also verify the untouched extras.
+        assert session["theme"] == "dark"
+        assert session["selected_model"] == "gemini-2.5-flash"
+
+    # ── GA4 path ──────────────────────────────────────────────────────
+
+    def test_ga4_context_factory_failure_preserves_existing_state(self, monkeypatch):
+        """_populate_data_state(ga4): factory raises → state unchanged."""
+        import copy
+        import pandas as pd
+        import pytest
+        from components.sidebar import _populate_data_state
+
+        prior = _make_pre_existing_state()
+        session = _FakeSessionState(copy.deepcopy(prior))
+        monkeypatch.setattr("components.sidebar.st.session_state", session)
+
+        def _raise_factory(*args, **kwargs):
+            raise RuntimeError("GA4 factory crash")
+
+        monkeypatch.setattr("components.sidebar.create_context_from_ga4", _raise_factory)
+
+        with pytest.raises(RuntimeError, match="GA4 factory crash"):
+            _populate_data_state(
+                pd.DataFrame({"a": [1]}),
+                source="ga4",
+                missing=[],
+                ga4_start_date="7daysAgo",
+            )
+
+        # Exception propagated — zero state mutation occurred.
+        assert _snap_state(session) == _snap_state(prior)
+
+    # ── Drive path ────────────────────────────────────────────────────
+
+    def test_drive_context_factory_failure_preserves_existing_state(self, monkeypatch):
+        """_populate_data_state(drive): factory raises → state unchanged."""
+        import copy
+        import pandas as pd
+        import pytest
+        from components.sidebar import _populate_data_state
+
+        prior = _make_pre_existing_state()
+        session = _FakeSessionState(copy.deepcopy(prior))
+        monkeypatch.setattr("components.sidebar.st.session_state", session)
+
+        def _raise_factory(*args, **kwargs):
+            raise ValueError("Drive factory crash")
+
+        monkeypatch.setattr("components.sidebar.create_context_from_drive", _raise_factory)
+
+        with pytest.raises(ValueError, match="Drive factory crash"):
+            _populate_data_state(
+                pd.DataFrame({"b": [2]}),
+                source="drive",
+                missing=[],
+                file_bytes=b"test",
+                display_name="test.csv",
+            )
+
+        assert _snap_state(session) == _snap_state(prior)
+
+    # ── successful commit ─────────────────────────────────────────────
+
+    def test_successful_import_replaces_existing_state_only_after_commit(self, monkeypatch):
+        """_populate_data_state(file): success → all state fields replaced."""
+        import pandas as pd
+        from components.sidebar import _populate_data_state
+
+        prior = _FakeSessionState(_make_pre_existing_state())
+        monkeypatch.setattr("components.sidebar.st.session_state", prior)
+
+        # Supply deterministic factories so the test doesn't depend on
+        # real implementations.
+        monkeypatch.setattr(
+            "components.sidebar.create_context_from_upload",
+            lambda df, fb, display_name="": "NEW_CONTEXT",
+        )
+        monkeypatch.setattr(
+            "components.sidebar.get_dataset_stats",
+            lambda df: {"new": "stats"},
+        )
+        monkeypatch.setattr(
+            "components.sidebar.assess_data_quality",
+            lambda df, m: {"new": "quality"},
+        )
+
+        _populate_data_state(
+            pd.DataFrame({"x": [1, 2]}),
+            source="file",
+            missing=["col-a"],
+        )
+
+        # Every derived-state field must now reflect the new import.
+        assert prior["data_context"] == "NEW_CONTEXT"
+        assert prior["custom_metrics"] == {}
+        assert prior["missing_columns"] == ["col-a"]
+        assert prior["stats"] == {"new": "stats", "missing_columns": ["col-a"]}
+        assert prior["quality_report"] == {"new": "quality"}
+        assert prior["summary"] is None
+        assert prior["chat_history"] == []
+        assert prior["data_source"] == "file"
+        assert prior["data_cleared"] is False
+        assert prior["funnel_steps"] == []
+        assert prior["funnel_data"] is None
+        assert "forecast_session_abc" not in prior
+        # Extra keys survive untouched.
+        assert prior["theme"] == "dark"
+
+
+class TestDriveIngestionEnhanced:
+    """Full-state-snapshot versions of the existing Drive ingestion tests.
+
+    These complement the Phase 2.3 TestIngestDriveFile tests (which
+    verified that _populate_data_state is not called) by also proving
+    that every derived-state key is unaltered.
+    """
+
+    def test_drive_download_failure_preserves_all_derived_state(self, monkeypatch):
+        """DriveImportError → error shown, every derived-state key unchanged."""
+        import copy
+        from unittest.mock import MagicMock
+        from components.sidebar import _ingest_drive_file
+        from utils.drive_client import DriveImportError
+
+        prior = _make_pre_existing_state()
+        session = _FakeSessionState(copy.deepcopy(prior))
+        monkeypatch.setattr("components.sidebar.st.session_state", session)
+        monkeypatch.setattr("components.sidebar.st.error", MagicMock())
+
+        def _fail_dl(creds, file_id):
+            raise DriveImportError("not_found", "File not found.")
+
+        _ingest_drive_file(_fail_dl, MagicMock(), "file123")
+
+        assert _snap_state(session) == _snap_state(prior)
+
+    def test_drive_loader_failure_preserves_all_derived_state(self, monkeypatch):
+        """load_file error → error shown, every derived-state key unchanged."""
+        import copy
+        from unittest.mock import MagicMock
+        from components.sidebar import _ingest_drive_file
+
+        prior = _make_pre_existing_state()
+        session = _FakeSessionState(copy.deepcopy(prior))
+        monkeypatch.setattr("components.sidebar.st.session_state", session)
+        monkeypatch.setattr("components.sidebar.st.error", MagicMock())
+
+        # Download succeeds but the bytes are unparseable.
+        def _empty_dl(creds, file_id):
+            return b"garbage", "junk.csv"
+
+        # Override load_file so the raw bytes don't accidentally parse.
+        monkeypatch.setattr(
+            "components.sidebar.load_file",
+            lambda f: (None, "Unparseable file", None),
+        )
+
+        _ingest_drive_file(_empty_dl, MagicMock(), "file123")
+
+        assert _snap_state(session) == _snap_state(prior)
