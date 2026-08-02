@@ -44,6 +44,23 @@
 
 ---
 
+## 2026-08-02 — Closeout Baseline + BytesIO Contract (Doc-Only)
+
+**Date:** 2026-08-02 | **Status:** ✅ Complete | **Tests:** 633 (unchanged — docs only)
+
+### Closeout current-baseline updated to 633; _NamedBytesIO contract verified in spec
+
+**Commits:** [`5c8838d`](https://github.com/griffinkelton/insights-explorer/commit/5c8838d) (closeout), [`35259eb`](https://github.com/griffinkelton/insights-explorer/commit/35259eb) (spec)
+
+| Change | Type | Related Docs |
+|---|---|---|
+| Phase 1 closeout audit: two stale values fixed — current repository baseline 631→633 (AI Studio guard +2 at `ca87456`) and CHANGELOG reference refreshed to 633; historical Phase 1 evidence (628 tests, `9754189`) preserved in 3 places | Docs | [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md) |
+| v0.3.0 spec §2.3: blockquote added confirming `_NamedBytesIO` BytesIO contract — `data_loader.load_file()` calls `file.read()` + `len()`, never accesses `.size`; `.size` attribute is harmless baggage (verified 2026-08-02) | Docs | [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md) |
+
+**Related:** [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md), [plans/00-sprints/🔵 v0.3.0-drive-import-spec.md](plans/00-sprints/🔵%20v0.3.0-drive-import-spec.md)
+
+---
+
 ## 2026-08-01 — v0.3.0 Regression: Missing-Bundle Failure Mode (build/)
 
 **Date:** 2026-08-01 | **Status:** ✅ Complete | **Tests:** 631
@@ -891,7 +908,7 @@
 
 | Metric | Value |
 |---|---|
-| Total commits tracked | 175 |
+| Total commits tracked | 176 |
 | Date range | July 25 – August 2, 2026 |
 | Features shipped | GA4 Insight Explorer core, GA4 live OAuth, keyboard shortcuts, API key validation, prompt injection hardening, error boundary, learn page, data quality scorecard, app icon/favicon, OAuth security hardening, theme toggle, component refactor, streaming responses, conversation memory, Markdown report export, custom metrics, forecasting, funnel/aggregation views, command palette, DataContext refactor + onboarding tour, Gemini per-request token accounting, Google Drive import (declared Picker component + server-side download) |
 | Tests | 0 → 633 across 30 modules |
