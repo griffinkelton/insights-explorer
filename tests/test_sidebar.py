@@ -48,10 +48,10 @@ class TestSidebarStructure:
         code = re.sub(r"#.*$", "", code, flags=re.MULTILINE)
         assert "on_click=" not in code, "BUG-005: on_click= anti-pattern in _render_clear_button"
 
-    def test_no_drive_picker_function(self):
-        """v0.1.0: _render_drive_picker was removed (Drive import removed)."""
+    def test_has_drive_picker_function(self):
+        """v0.3.0 Phase 3.0: _render_drive_picker must exist in sidebar."""
         source = open(MODULE).read()
-        assert "def _render_drive_picker()" not in source
+        assert "def _render_drive_picker()" in source
 
     def test_clear_data_uses_button_if_pattern(self):
         """Clear Data must use `if st.button(...)` pattern per BUG-005."""

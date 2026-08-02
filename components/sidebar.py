@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from google.oauth2.credentials import Credentials
 
-from utils.drive_client import DriveImportError
+from utils.drive_client import DriveImportError, download_drive_file
 
 from utils.data_loader import (
     ColumnType,
@@ -130,7 +130,7 @@ def render_sidebar() -> None:
         uploaded_file = _render_file_uploader()
         st.divider()
         _render_ga4_connect()
-        st.divider()
+        _render_drive_picker()
         _render_privacy_notice()
         _render_clear_button()
         _render_compare_controls()
@@ -288,9 +288,100 @@ def _render_ga4_connect() -> None:
             if st.button("✕ Disconnect", use_container_width=True):
                 st.session_state.ga4_creds = None
                 st.session_state.ga4_property_id = ""
+                st.session_state.drive_picker_active = False
                 if st.session_state.data_source == "ga4":
                     clear_data()
                 st.rerun()
+
+
+# ── v0.3.0 Phase 3.0: Drive Picker integration ──────────────────────────
+
+
+def _render_drive_picker() -> None:
+    """Render the Google Drive Picker for importing analytics files.
+
+    Only shown when the user is authenticated with GA4 (the OAuth grant
+    includes the ``drive.file`` scope needed for Picker + download).
+
+    Reads Picker secrets from ``st.secrets``:
+    ``GOOGLE_PICKER_API_KEY``, ``GOOGLE_CLOUD_PROJECT_NUMBER``, and
+    ``DRIVE_PICKER_APP_ORIGIN``.  If any are missing, the section is
+    hidden silently (no error — not every deployment uses Drive import).
+
+    On selection: verifies request freshness, extracts credentials from
+    the GA4 session, and calls :func:`_ingest_drive_file` with the
+    production ``download_drive_file`` downloader.
+    """
+    # Only shown when authenticated with GA4.
+    if st.session_state.ga4_creds is None:
+        return
+
+    # Session-state defaults.
+    if "drive_picker_request_id" not in st.session_state:
+        st.session_state.drive_picker_request_id = ""
+    if "drive_picker_active" not in st.session_state:
+        st.session_state.drive_picker_active = False
+
+    # Check Picker secrets — if any are missing, hide the section.
+    picker_key = st.secrets.get("GOOGLE_PICKER_API_KEY", "")
+    project_number = st.secrets.get("GOOGLE_CLOUD_PROJECT_NUMBER", "")
+    app_origin = st.secrets.get("DRIVE_PICKER_APP_ORIGIN", "")
+    if not picker_key or not project_number or not app_origin:
+        return
+
+    # Section header.
+    st.divider()
+    theme = st.session_state.get("theme", "dark")
+    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
+    st.markdown(
+        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
+        f"📂 Google Drive Import</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Activation button.
+    if st.button(
+        "📂 Import from Google Drive",
+        use_container_width=True,
+        type="primary",
+    ):
+        import uuid
+
+        st.session_state.drive_picker_request_id = str(uuid.uuid4())
+        st.session_state.drive_picker_active = True
+        st.rerun()
+
+    # When active, render the declared Picker component and process
+    # any returned selection.
+    if st.session_state.drive_picker_active and st.session_state.drive_picker_request_id:
+        creds_dict = st.session_state.ga4_creds
+        oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
+        if not oauth_token:
+            st.error("No valid OAuth token available. " "Please reconnect your Google account.")
+            st.session_state.drive_picker_active = False
+            return
+
+        from components.drive_picker_component import drive_picker_transport
+
+        selection = drive_picker_transport(
+            oauth_token=oauth_token,
+            developer_key=picker_key,
+            app_id=project_number,
+            app_origin=app_origin,
+            request_id=st.session_state.drive_picker_request_id,
+            key=f"drive_picker_{st.session_state.drive_picker_request_id}",
+        )
+
+        if selection is not None:
+            # Request-freshness guard: ignore stale selections from
+            # previous renders (e.g. browser-back or double-click).
+            if selection["requestId"] != st.session_state.drive_picker_request_id:
+                return
+
+            creds = credentials_from_dict(creds_dict)
+            _ingest_drive_file(download_drive_file, creds, selection["fileId"])
+            st.session_state.drive_picker_active = False
+            st.rerun()
 
 
 def _render_privacy_notice() -> None:
