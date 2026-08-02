@@ -8,6 +8,7 @@ from googleapiclient.errors import HttpError
 
 from utils.drive_client import (
     MAX_DRIVE_IMPORT_BYTES,
+    DriveImportError,
     download_drive_file,
     write_dataframe_to_drive,
     write_drive_file,
@@ -147,24 +148,26 @@ class TestDownloadDriveFile:
 
     # ── Size validation (3 layers) ────────────────────────────────────────
 
-    def test_rejects_file_over_100mb_metadata(self):
-        """Layer 1: metadata size > 100 MB raises ValueError (fast path)."""
-        with pytest.raises(ValueError, match="100 MB"):
+    def test_layer1_too_large_metadata(self):
+        """Layer 1: metadata size > 100 MB raises DriveImportError(code='too_large')."""
+        with pytest.raises(DriveImportError, match="100 MB") as exc_info:
             self._download(
                 {"name": "big.csv", "mimeType": CSV_MIME, "size": MAX_DRIVE_IMPORT_BYTES + 1}
             )
+        assert exc_info.value.code == "too_large"
 
-    def test_rejects_file_over_100mb_streamed(self):
-        """Layer 2: export stream exceeding the cap aborts via bounded writer."""
+    def test_layer2_too_large_streamed(self):
+        """Layer 2: export stream exceeding cap aborts via bounded writer (code='too_large')."""
         with patch("utils.drive_client.MAX_DRIVE_IMPORT_BYTES", 100):
-            with pytest.raises(ValueError, match="100 MB"):
+            with pytest.raises(DriveImportError, match="100 MB") as exc_info:
                 self._download(
                     {"name": "Report", "mimeType": SHEETS_MIME, "size": None},
                     chunks=[b"x" * 100, b"y" * 100],
                 )
+            assert exc_info.value.code == "too_large"
 
-    def test_final_byte_check_enforced(self):
-        """Layer 3: final len() check rejects oversized bytes (safety net).
+    def test_layer3_final_byte_check(self):
+        """Layer 3: final len() check rejects oversized bytes (safety net, code='too_large').
 
         Uses an unbounded writer so the streamed cap doesn't fire first —
         proving the final check is an independent guard.
@@ -172,23 +175,26 @@ class TestDownloadDriveFile:
         with patch("utils.drive_client.MAX_DRIVE_IMPORT_BYTES", 100), patch(
             "utils.drive_client._BoundedBytesIO", io.BytesIO
         ):
-            with pytest.raises(ValueError, match="100 MB"):
+            with pytest.raises(DriveImportError, match="100 MB") as exc_info:
                 self._download(
                     {"name": "big.csv", "mimeType": CSV_MIME, "size": None},
                     chunks=[b"x" * 200],
                 )
+            assert exc_info.value.code == "too_large"
 
     # ── MIME allowlist + empty files ──────────────────────────────────────
 
     def test_rejects_unsupported_mime_type(self):
-        """application/pdf is not in the import allowlist."""
-        with pytest.raises(ValueError, match="cannot be imported"):
+        """application/pdf is not in the import allowlist (code='unsupported_type')."""
+        with pytest.raises(DriveImportError, match="cannot be imported") as exc_info:
             self._download({"name": "doc.pdf", "mimeType": "application/pdf", "size": 10})
+        assert exc_info.value.code == "unsupported_type"
 
     def test_rejects_zero_byte_file(self):
-        """An empty download raises a clear user-facing error."""
-        with pytest.raises(ValueError, match="empty"):
+        """An empty download raises DriveImportError(code='empty_file')."""
+        with pytest.raises(DriveImportError, match="empty") as exc_info:
             self._download({"name": "empty.csv", "mimeType": CSV_MIME, "size": 0}, chunks=[])
+        assert exc_info.value.code == "empty_file"
 
     # ── Server metadata authority ─────────────────────────────────────────
 
@@ -213,20 +219,33 @@ class TestDownloadDriveFile:
     # ── Error classification ──────────────────────────────────────────────
 
     def test_handles_404_error(self):
-        """Drive 404 -> user-friendly RuntimeError, no raw API text."""
+        """Drive 404 -> DriveImportError(code='not_found'), no raw API text."""
         service = MagicMock()
         service.files().get().execute.side_effect = HttpError(MagicMock(status=404), b"not found")
         with patch("utils.drive_client.build", return_value=service):
-            with pytest.raises(RuntimeError, match="permission"):
+            with pytest.raises(DriveImportError, match="permission") as exc_info:
                 download_drive_file(MagicMock(), "file123")
+        assert exc_info.value.code == "not_found"
 
     def test_handles_403_error(self):
-        """Drive 403 -> user-friendly RuntimeError suggesting reconnect."""
+        """Drive 403 -> DriveImportError(code='access_denied'), suggests reconnect."""
         service = MagicMock()
         service.files().get().execute.side_effect = HttpError(MagicMock(status=403), b"forbidden")
         with patch("utils.drive_client.build", return_value=service):
-            with pytest.raises(RuntimeError, match="reconnect"):
+            with pytest.raises(DriveImportError, match="reconnect") as exc_info:
                 download_drive_file(MagicMock(), "file123")
+        assert exc_info.value.code == "access_denied"
+
+    def test_handles_generic_http_error(self):
+        """Drive 500 -> DriveImportError(code='download_failed')."""
+        service = MagicMock()
+        service.files().get().execute.side_effect = HttpError(
+            MagicMock(status=500), b"server error"
+        )
+        with patch("utils.drive_client.build", return_value=service):
+            with pytest.raises(DriveImportError, match="try again") as exc_info:
+                download_drive_file(MagicMock(), "file123")
+        assert exc_info.value.code == "download_failed"
 
     # ── Credentials + behavior ────────────────────────────────────────────
 

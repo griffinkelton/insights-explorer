@@ -22,6 +22,21 @@ from utils.sanitize import safe_spreadsheet_value
 
 logger = logging.getLogger(__name__)
 
+
+class DriveImportError(RuntimeError):
+    """Public, typed error for Drive-import failures.
+
+    The UI and tests branch on ``.code``, not on message text. Codes are
+    stable and document the full error taxonomy for Phase 2+3 UX mapping.
+
+    Never attach raw Google error payloads, file IDs, or request URLs.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 # Supported MIME types for Drive import (server-authoritative allowlist).
 # Google Sheets is exported server-side as CSV (first sheet only).
 DRIVE_IMPORT_MIME_TYPES = {
@@ -52,7 +67,7 @@ class _BoundedBytesIO(io.BytesIO):
 
     def write(self, data: bytes) -> int:
         if self.tell() + len(data) > MAX_DRIVE_IMPORT_BYTES:
-            raise ValueError("The selected file exceeds the 100 MB limit.")
+            raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
         return super().write(data)
 
 
@@ -84,8 +99,9 @@ def download_drive_file(
         - CSV/XLSX: filename used as-is from server metadata.
 
     Raises:
-        ValueError: If file is empty, exceeds 100 MB, or unsupported MIME.
-        RuntimeError: If the Drive API returns an error (404, 403, etc.).
+        DriveImportError: With fixed codes — ``unsupported_type``,
+            ``too_large``, ``empty_file``, ``not_found``,
+            ``access_denied``, or ``download_failed``.
     """
     service = _build_drive_service(credentials)
 
@@ -102,12 +118,15 @@ def download_drive_file(
     # MIME allowlist — reject anything not importable.
     if mime_type not in DRIVE_IMPORT_MIME_TYPES:
         logger.warning("Drive import rejected: category=unsupported_mime")
-        raise ValueError("This file type cannot be imported. Use CSV, XLSX, or Google Sheets.")
+        raise DriveImportError(
+            "unsupported_type",
+            "This file type cannot be imported. Use CSV, XLSX, or Google Sheets.",
+        )
 
     # Layer 1: metadata preflight (fast path for CSV/XLSX).
     if size is not None and int(size) > MAX_DRIVE_IMPORT_BYTES:
         logger.warning("Drive import rejected: category=file_too_large")
-        raise ValueError("The selected file exceeds the 100 MB limit.")
+        raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
 
     # Layer 2: streamed byte cap with bounded in-memory writer.
     buffer = _BoundedBytesIO()
@@ -131,12 +150,12 @@ def download_drive_file(
     # Layer 3: final byte check (safety net).
     if len(file_bytes) > MAX_DRIVE_IMPORT_BYTES:
         logger.warning("Drive import rejected: category=file_too_large")
-        raise ValueError("The selected file exceeds the 100 MB limit.")
+        raise DriveImportError("too_large", "The selected file exceeds the 100 MB limit.")
 
     # Zero-byte rejection.
     if not file_bytes:
         logger.warning("Drive import rejected: category=empty_file")
-        raise ValueError("The selected file is empty.")
+        raise DriveImportError("empty_file", "The selected file is empty.")
 
     # Google Sheets: first sheet only; avoid a double '.csv' extension.
     if mime_type == "application/vnd.google-apps.spreadsheet":
@@ -151,7 +170,7 @@ def download_drive_file(
 
 
 def _raise_classified_drive_error(error: HttpError) -> None:
-    """Raise a user-facing RuntimeError for a Drive API HttpError.
+    """Raise a DriveImportError for a Drive API HttpError.
 
     Never exposes raw API error text, request URLs, file IDs, or token
     fragments. Logs only an allowlisted error category — never
@@ -161,12 +180,21 @@ def _raise_classified_drive_error(error: HttpError) -> None:
     status = getattr(error.resp, "status", None)
     if status == 404:
         logger.warning("Drive download failed: category=not_found")
-        raise RuntimeError("File not found or access denied. Check that you have permission.")
+        raise DriveImportError(
+            "not_found",
+            "File not found or access denied. Check that you have permission.",
+        )
     if status == 403:
         logger.warning("Drive download failed: category=access_denied")
-        raise RuntimeError("Access denied. Try reconnecting your Google account.")
+        raise DriveImportError(
+            "access_denied",
+            "Access denied. Try reconnecting your Google account.",
+        )
     logger.warning("Drive download failed: category=download_failed")
-    raise RuntimeError("Could not download the file. Please try again.")
+    raise DriveImportError(
+        "download_failed",
+        "Could not download the file. Please try again.",
+    )
 
 
 def _build_sheets_service(credentials: Credentials):
