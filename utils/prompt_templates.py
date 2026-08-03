@@ -111,6 +111,22 @@ def build_chat_prompt(
     Optional conversation_history adds context for follow-up questions.
     """
 
+    # Guard: df may be None if no data is loaded.
+    # Empty DataFrames proceed through normal flow (they have 0 columns, 0 rows).
+    stats = stats or {}
+    if df is None:
+        sanitized = _sanitize_question(user_question)
+        return (
+            f"You are a helpful data analyst assistant. "
+            f"The user has not loaded any data yet.\n\n"
+            f'USER QUESTION:\n"""\n{sanitized}\n"""\n\n'
+            f"INSTRUCTIONS: Politely ask the user to upload a GA4 export file or "
+            f"connect to Google Analytics before asking data-specific questions. "
+            f"If their question is about the app itself (not data), answer helpfully."
+        )
+
+    # Handle empty df: proceed with empty columns but valid stats.
+
     # Build a compact numeric summary of key columns
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     agg_stats = {}

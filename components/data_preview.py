@@ -1,6 +1,7 @@
 """Data preview — metrics row, preview table, quality scorecard, and filters."""
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from utils.charts import find_date_column, find_column
 from utils.data_context import DataContext, with_filtered_data, with_filters_cleared
@@ -45,6 +46,9 @@ def render_data_preview() -> None:
             "Export a narrower date range from GA4 for complete data."
         )
 
+    # ── Key Insights (auto-computed on data load) ───────────────────
+    _render_key_insights(base_df, display_df, stats)
+
     # ── Metrics row ──────────────────────────────────────────────────────
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -78,9 +82,10 @@ def render_data_preview() -> None:
             unsafe_allow_html=True,
         )
 
-    # ── Data quality scorecard ───────────────────────────────────────────
+    # ── Data quality scorecard (collapsed — shown on demand) ────────────
     if st.session_state.get("quality_report"):
-        _render_quality_scorecard(st.session_state.quality_report)
+        with st.expander("📋 Data Quality Report", expanded=False):
+            _render_quality_scorecard(st.session_state.quality_report)
 
     # ── Anomaly detection table (uses original df, not augmented) ───────
     if base_df is not None:
@@ -114,6 +119,194 @@ def render_data_preview() -> None:
         with st.expander("🔍 Filter Data", expanded=False):
             if ctx is not None:
                 _render_data_filters(ctx)
+
+
+def _render_key_insights(
+    base_df: pd.DataFrame | None,
+    display_df: pd.DataFrame,
+    stats: dict | None,
+) -> None:
+    """Render auto-computed key insights: trends, top pages, device split, anomalies.
+
+    All computations are deterministic (no AI). Uses the raw/base dataframe
+    to avoid filter-compounding.
+    """
+    if base_df is None or base_df.empty:
+        return
+
+    stats = stats or {}
+    date_col = find_date_column(base_df)
+    numeric_cols = base_df.select_dtypes(include=["number"]).columns.tolist()
+
+    # ── Find key metric column ──────────────────────────────────────────
+    metric_col = find_column(base_df, ["sessions", "activeUsers", "totalUsers", "screenPageViews"])
+    if not metric_col:
+        metric_col = numeric_cols[0] if numeric_cols else None
+
+    # ── Find page column ─────────────────────────────────────────────────
+    page_col = find_column(
+        base_df, ["landingPage", "pagePath", "pageTitle", "unifiedPagePathScreen"]
+    )
+
+    # ── Build insight cards ──────────────────────────────────────────────
+    insights: list[dict] = []
+
+    # 1. Trend insight (day-over-day or week-over-week)
+    if date_col and metric_col and len(base_df) >= 2:
+        try:
+            df_sorted = base_df.sort_values(date_col)
+            if len(df_sorted) >= 7:
+                # Compare last 7 days vs prior 7 days
+                recent = df_sorted[metric_col].tail(7).sum()
+                prior = df_sorted[metric_col].iloc[-14:-7].sum()
+                if prior > 0:
+                    change_pct = ((recent - prior) / prior) * 100
+                    direction = "↑" if change_pct >= 0 else "↓"
+                    color = "#34d399" if change_pct >= 0 else "#f87171"
+                    insights.append(
+                        {
+                            "title": "7-Day Trend",
+                            "value": f"{direction} {abs(change_pct):.1f}%",
+                            "detail": f"{metric_col} — last 7d vs prior 7d",
+                            "color": color,
+                        }
+                    )
+            elif len(df_sorted) >= 2:
+                # Day-over-day
+                recent = df_sorted[metric_col].iloc[-1]
+                prior = df_sorted[metric_col].iloc[-2]
+                if prior > 0:
+                    change_pct = ((recent - prior) / prior) * 100
+                    direction = "↑" if change_pct >= 0 else "↓"
+                    color = "#34d399" if change_pct >= 0 else "#f87171"
+                    insights.append(
+                        {
+                            "title": "Day-over-Day",
+                            "value": f"{direction} {abs(change_pct):.1f}%",
+                            "detail": f"{metric_col} — today vs yesterday",
+                            "color": color,
+                        }
+                    )
+        except Exception:
+            pass  # Trend comparison is best-effort; non-critical if it fails.
+
+    # 2. Top page insight
+    if page_col and metric_col:
+        try:
+            top_pages = (
+                base_df.groupby(page_col)[metric_col].sum().sort_values(ascending=False).head(3)
+            )
+            if not top_pages.empty and top_pages.iloc[0] > 0:
+                top_name = str(top_pages.index[0])[:50]
+                insights.append(
+                    {
+                        "title": "Top Page",
+                        "value": f"{top_name}",
+                        "detail": f"{int(top_pages.iloc[0]):,} {metric_col}",
+                        "color": "#818cf8",
+                    }
+                )
+        except Exception:
+            pass  # Trend comparison is best-effort; non-critical if it fails.
+
+    # 3. Device split
+    device_col = find_column(base_df, ["deviceCategory", "device", "platform"])
+    if device_col and metric_col:
+        try:
+            device_split = base_df.groupby(device_col)[metric_col].sum()
+            total = device_split.sum()
+            if total > 0:
+                parts = []
+                for dev, val in device_split.sort_values(ascending=False).items():
+                    pct = (val / total) * 100
+                    parts.append(f"{dev}: {pct:.0f}%")
+                insights.append(
+                    {
+                        "title": "Device Split",
+                        "value": " · ".join(parts[:3]),
+                        "detail": f"By {metric_col}",
+                        "color": "#c4b5fd",
+                    }
+                )
+        except Exception:
+            pass  # Trend comparison is best-effort; non-critical if it fails.
+
+    # 4. Anomaly count
+    if date_col and metric_col and len(base_df) >= 7:
+        try:
+            anomaly_df = detect_anomalies(base_df, date_col, metric_col)
+            anom_count = anomaly_df["is_anomaly"].sum()
+            if anom_count > 0:
+                insights.append(
+                    {
+                        "title": "Anomalies",
+                        "value": f"{int(anom_count)} days",
+                        "detail": f">2σ from rolling mean in {metric_col}",
+                        "color": "#fbbf24",
+                    }
+                )
+        except Exception:
+            pass  # Trend comparison is best-effort; non-critical if it fails.
+
+    if not insights:
+        return
+
+    # ── Render insight cards + trend sparkline ────────────────────────────
+    st.markdown("### 📊 Key Insights")
+
+    # Trend sparkline (if date_col + metric_col available)
+    if date_col and metric_col and len(base_df) >= 2:
+        try:
+            df_sorted = base_df.sort_values(date_col)
+            spark_fig = go.Figure()
+            spark_fig.add_trace(
+                go.Scatter(
+                    x=df_sorted[date_col],
+                    y=df_sorted[metric_col],
+                    mode="lines",
+                    line=dict(color="#818cf8", width=2),
+                    fill="tozeroy",
+                    fillcolor="rgba(99,102,241,0.08)",
+                    name=metric_col,
+                )
+            )
+            spark_fig.update_layout(
+                height=180,
+                margin=dict(l=0, r=0, t=10, b=0),
+                xaxis=dict(showgrid=False, zeroline=False, visible=False),
+                yaxis=dict(showgrid=False, zeroline=False, visible=False),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+            )
+            st.plotly_chart(
+                spark_fig,
+                use_container_width=True,
+                config={"displayModeBar": False},
+                key=f"trend_spark_{st.session_state.get('theme', 'dark')}",
+            )
+        except Exception:
+            pass  # Sparkline is best-effort visual; non-critical if it fails.
+
+    # Insight cards
+    cols = st.columns(min(len(insights), 4))
+    for i, insight in enumerate(insights):
+        with cols[i % 4]:
+            st.markdown(
+                f'<div style="background:var(--bg-card);border:1px solid var(--border);'
+                f'border-radius:var(--radius-md);padding:1rem;height:100%;">'
+                f'<div style="font-size:0.72rem;color:var(--text-muted);'
+                f'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">'
+                f'{insight["title"]}</div>'
+                f'<div style="font-size:1.1rem;font-weight:700;color:{insight["color"]};">'
+                f'{insight["value"]}</div>'
+                f'<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;">'
+                f'{insight["detail"]}</div>'
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
 
 def _render_data_filters(context) -> None:

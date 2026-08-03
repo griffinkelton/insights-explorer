@@ -680,11 +680,17 @@ ACCESSIBILITY_CSS = """
 # ═══════════════════════════════════════════════════════════════════════════════
 
 THEME_SYNC_JS = """
-    // ── Theme sync: copy data-theme from hidden div to document root ──
-    const themeEl = document.getElementById('theme-data');
-    if (themeEl) {
-        document.documentElement.setAttribute('data-theme', themeEl.dataset.theme);
-    }
+    // ── Theme sync: apply theme directly (avoids duplicate-ID bug from st.rerun) ──
+    (function applyTheme() {
+        const attr = 'data-theme';
+        const root = document.documentElement;
+        // Read from the *last* #theme-data element (Streamlit appends, doesn't replace)
+        const all = document.querySelectorAll('#theme-data');
+        const el = all[all.length - 1];
+        if (el && el.dataset.theme) {
+            root.setAttribute(attr, el.dataset.theme);
+        }
+    })();
 """
 
 # ═══════════════════════════════════════════════════════════════════════════════

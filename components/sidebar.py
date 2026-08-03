@@ -337,6 +337,16 @@ def _render_drive_picker() -> None:
     if "drive_picker_active" not in st.session_state:
         st.session_state.drive_picker_active = False
 
+    # Section header (always shown when authenticated — even if secrets are missing)
+    st.divider()
+    theme = st.session_state.get("theme", "dark")
+    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
+    st.markdown(
+        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
+        f"📂 Google Drive Import</p>",
+        unsafe_allow_html=True,
+    )
+
     # Check Picker secrets — in test mode, use dummy values.
     if _DRIVE_PICKER_TEST_MODE:
         dev_key = "test-picker-key"
@@ -347,17 +357,22 @@ def _render_drive_picker() -> None:
         project_number = st.secrets.get("GOOGLE_CLOUD_PROJECT_NUMBER", "")
         app_origin = st.secrets.get("DRIVE_PICKER_APP_ORIGIN", "")
         if not dev_key or not project_number or not app_origin:
+            # When authenticated but Picker secrets are missing, show a
+            # configuration hint so the user knows why the button is hidden.
+            with st.expander("⚙️ Setup Required", expanded=False):
+                st.caption(
+                    "To enable Drive import, configure these secrets in "
+                    "`.streamlit/secrets.toml`:\n\n"
+                    "```toml\n"
+                    'GOOGLE_PICKER_API_KEY = "AIza..."\n'
+                    'GOOGLE_CLOUD_PROJECT_NUMBER = "123456789"\n'
+                    'DRIVE_PICKER_APP_ORIGIN = "https://your-app.run.app"\n'
+                    "```\n\n"
+                    "See [RELEASE_CHECKLIST.md]("
+                    "https://github.com/griffinkelton/insights-explorer/blob/main/RELEASE_CHECKLIST.md"
+                    ") for full setup instructions."
+                )
             return
-
-    # Section header.
-    st.divider()
-    theme = st.session_state.get("theme", "dark")
-    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    st.markdown(
-        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
-        f"📂 Google Drive Import</p>",
-        unsafe_allow_html=True,
-    )
 
     # Activation button.
     if st.button(
