@@ -73,23 +73,39 @@ def main() -> None:
 
     print(f"🌐 Opening {BASE_URL} in headed Chromium...")
     print("   Sign into Google when the OAuth redirect appears.")
-    print("   Once the sidebar shows 'Import from Google Drive', the script finishes.\n")
+    print("   Once the sidebar shows 'Import from Google Drive', press Enter.\n")
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
-        context = browser.new_context(viewport={"width": 1280, "height": 900})
+        # Launch with flags that make the browser look less automated.
+        # Google OAuth may reject browsers it detects as headless/automated.
+        browser = pw.chromium.launch(
+            headless=False,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+            ],
+        )
+        # Create a context that looks like a normal browser session.
+        context = browser.new_context(
+            viewport={"width": 1280, "height": 900},
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            ),
+        )
         page = context.new_page()
 
-        # Navigate to the app — Streamlit may trigger an OAuth redirect.
+        # Navigate to the app — Streamlit will trigger an OAuth redirect.
         page.goto(BASE_URL, wait_until="domcontentloaded", timeout=30_000)
 
         # Hand control to you: complete Google sign-in in the browser window.
         print("🔐 Complete Google OAuth in the browser window that opened.")
-        print("   The script will detect the Drive Import button automatically.\n")
-        page.pause()
+        print("   After the sidebar shows 'Import from Google Drive',")
+        print("   come back to this terminal and press Enter.\n")
+        input("Press Enter when you've finished signing in... ")
 
-        # After you resume (click "Resume" in Playwright Inspector or close it),
-        # wait for the authenticated sidebar state.
+        # Wait for the authenticated sidebar state.
         _wait_for_import_button(page)
 
         # Save the authenticated session for reuse by the E2E test suite.
