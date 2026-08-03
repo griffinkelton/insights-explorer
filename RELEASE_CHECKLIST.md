@@ -3,7 +3,7 @@
 > **Release:** v0.3.0 — Drive Import
 > **Date:** 2026-08-03
 > **Release owner:** griffinkelton
-> **Tests:** 672 pytest (unit/integration) + 14 Playwright smoke + 8 E2E real-Drive leakage + 7 error-path = 701 total
+> **Tests:** 672 pytest (unit/integration, incl. 7 error-path E1-E6) + 14 Playwright smoke + 8 E2E real-Drive leakage = 694 total
 
 ---
 
@@ -30,8 +30,8 @@
 
 | Suite | Count | Command | What It Covers |
 |-------|-------|---------|----------------|
-| Unit/Integration | 672 | `pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e` | DataContext, GA4 client, Drive client, error paths, components, chat, charts, forecasting, session, all Python logic |
-| Error-Path E1-E6 | 7 | `pytest tests/test_drive_import_errors.py -v` | `access_denied`, `not_found`, `unsupported_type`, `too_large`, `empty_file`, `download_failed` + success path |
+| Unit/Integration (incl. E1-E6) | 672 | `pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e` | DataContext, GA4 client, Drive client, error paths (7 E1-E6 tests included here), components, chat, charts, forecasting, session, all Python logic |
+| Error-Path E1-E6 (subset of 672) | 7 | `pytest tests/test_drive_import_errors.py -v` | `access_denied`, `not_found`, `unsupported_type`, `too_large`, `empty_file`, `download_failed` + success path |
 | Playwright Smoke | 14 | `DRIVE_PICKER_TEST_MODE=1 pytest tests/test_drive_import_smoke.py -v` | App loads, sidebar visible, no credential leaks, import button visibility, on-demand render, cancel, error, theme sync, duplicate protection |
 | E2E Real-Drive Leakage | 8 | `E2E_REAL_DRIVE=1 pytest tests/e2e/test_drive_picker_e2e.py -v` | L1-L5 sensitive-output checks (no Drive IDs, raw errors, OAuth tokens, API keys, Picker filenames in page source) |
 | Frontend Typecheck + Build | — | `cd components/drive_picker_component_frontend && npm ci && npm run check && npm run build` | TypeScript compilation, Vite production build |
@@ -171,13 +171,13 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 
 ## Phase 4: Release Closeout
 
-- [ ] Manual browser matrix — Chrome/macOS: ✅ (Functional #1-#8), other envs: deferred
-- [ ] Clean checkout: full validation sequence (Section 7 above) — all green
-- [ ] Frontend: `npm ci && npm run check && npm run build` — clean
-- [ ] Credential guard: `python scripts/check_credentials.py` — clean
+- [x] Manual browser matrix — Chrome/macOS: ✅ (Functional #1-#8, 2026-08-03, griffinkelton), other envs: deferred to interstitial
+- [x] Clean checkout: full validation sequence (Section 7 above) — all green (re-verified 2026-08-03: 672 pytest + 14 smoke + credential guard + frontend build)
+- [x] Frontend: `npm ci && npm run check && npm run build` — clean (2026-08-03, vite 6.4.3)
+- [x] Credential guard: `python scripts/check_credentials.py` — clean (exit 0, 2026-08-03)
 - [x] CHANGELOG v0.3.0 entry finalized with final commit hash + test baseline
 - [x] Spec status updated to "✅ Complete"
-- [ ] Git tag `v0.3.0` created and pushed
+- [x] Git tag `v0.3.0` created and pushed (points at `007f3c4`, 2026-08-03)
 
 ### Deferred to v0.3.0→v0.4.0 interstitial
 - [ ] Picker sidebar width fix

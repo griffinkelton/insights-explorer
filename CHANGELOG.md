@@ -8,7 +8,7 @@
 
 ## v0.3.0 — Drive Import Release
 
-**Date:** 2026-08-02 | **Status:** 🚧 Release verification in progress | **Tests:** 663 pytest + 14 Playwright smoke (dedicated CI job)
+**Date:** 2026-08-03 | **Status:** ✅ Released | **Tests:** 694 (672 pytest + 14 Playwright smoke + 8 E2E leakage) | **Tag:** `v0.3.0` (`007f3c4`)
 
 ### Phase 1: Server-Side Foundation
 
@@ -49,12 +49,20 @@
 - RELEASE_CHECKLIST: v0.3.0 manual browser matrix
 - Spec status updated
 
-### Remaining (manual gate)
+### Release verification (2026-08-03)
 
-- 5-environment browser matrix (Chrome/Safari/Firefox on macOS/Windows)
-- Real-account CSV/XLSX/Sheets selection, cancel, second import, theme switching
-- Error-path verification (access denied, not found, unsupported type, oversized, empty)
-- Sensitive-output leakage check
+- Error-path E1-E6: automated simulation (`tests/test_drive_import_errors.py` — 7 tests, included in the 672 pytest baseline)
+- Sensitive-output L1-L5: automated E2E leakage suite (`tests/e2e/test_drive_picker_e2e.py` — 8 tests, real session, 8/8 pass)
+- Playwright controlled-state smoke: 14 tests (13 pass + 1 pre-existing xfail), `DRIVE_PICKER_TEST_MODE=1` seam
+- Manual browser matrix: **Functional #1–#8 all pass on Chrome/macOS** (2026-08-03)
+- Final gates re-verified 2026-08-03: credential guard clean, frontend typecheck + build clean
+- Tagged `v0.3.0` at `007f3c4` and pushed
+
+### Deferred to v0.3.0 → v0.4.0 interstitial
+
+- Cross-browser manual matrix (Safari/macOS, Firefox/macOS, Chrome/Win, Firefox/Win)
+- Picker sidebar width/UX polish (works, but cramped in ~300px sidebar)
+- Light mode visual design polish
 
 ---
 

@@ -85,7 +85,14 @@ Opens at **http://localhost:8501** 🎉
 ### 6. Run tests
 
 ```bash
-python -m pytest tests/ -v
+# Full unit/integration suite (672 tests)
+python -m pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e -v
+
+# Playwright controlled-state smoke (needs Chromium)
+DRIVE_PICKER_TEST_MODE=1 python -m pytest tests/test_drive_import_smoke.py -v
+
+# E2E real-Drive leakage (needs a saved auth session; see RELEASE_CHECKLIST.md)
+E2E_REAL_DRIVE=1 python -m pytest tests/e2e/test_drive_picker_e2e.py -v
 ```
 
 ---
@@ -120,7 +127,7 @@ python -m pytest tests/ -v
 │   ├── sanitize.py             # Formula injection + PDF XML escaping
 │   └── styles.py               # Custom CSS + keyboard shortcuts + theme
 ├── assets/                     # Favicons, icons, PWA manifest
-├── tests/                      # Test suite (663 tests, 0 warnings)
+├── tests/                      # Test suite (672 pytest + 14 Playwright smoke + 8 E2E)
 ├── .github/workflows/          # GitHub Actions CI (Python + frontend + Playwright)
 ├── cloudbuild.yaml             # GCP Cloud Build CI
 ├── requirements/               # base.txt (runtime), dev.txt (dev+test)
@@ -199,7 +206,7 @@ Your GA4 export should include columns like:
 | UI | Streamlit |
 | AI | Gemini 2.5 Flash (via `google-genai`) |
 | Auth | OAuth 2.0 + Google Analytics Data API |
-| Testing | pytest (663 tests) |
+| Testing | pytest (672) + Playwright smoke (14) + E2E leakage (8) |
 | CI/CD | GitHub Actions + Google Cloud Build |
 | Data | Pandas |
 | Charts | Plotly |
