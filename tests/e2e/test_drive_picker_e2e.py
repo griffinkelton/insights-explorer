@@ -172,14 +172,6 @@ def _wait_for_sidebar(page: Page) -> None:
     )
 
 
-def _import_button(page: Page):
-    """Return the Drive Import button locator, waited to be visible."""
-    sidebar = page.locator('[data-testid="stSidebar"]')
-    btn = sidebar.get_by_role("button", name="Import from Google Drive")
-    btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
-    return btn
-
-
 def _wait_for_data_preview(page: Page, timeout_ms: int = IMPORT_TIMEOUT) -> bool:
     """Poll the main content area until a data preview renders.
 
@@ -217,19 +209,16 @@ def _assert_no_credential_leaks(page: Page) -> None:
 
 
 class TestAuthStateBeforeCSVImport:
-    """Functional Matrix #2 prereq: authenticated sidebar + no credential leak.
+    """Functional Matrix #2 prereq: no credential leak.
 
     Does NOT automate the Picker or verify actual CSV import — those are
     covered by the manual browser matrix (RELEASE_CHECKLIST.md).
-    """
 
-    def test_import_button_visible_after_oauth(self, authenticated_page):
-        """Authenticated session: Drive Import button is visible and enabled."""
-        page = authenticated_page
-        btn = _import_button(page)
-        assert btn.is_visible(), "Drive Import button not visible (check OAuth session)"
-        assert btn.is_enabled(), "Drive Import button should be enabled"
-        _assert_no_credential_leaks(page)
+    Button visibility in an authenticated state is covered by the
+    test-mode smoke suite (test_drive_import_smoke.py) which uses
+    DRIVE_PICKER_TEST_MODE=1 to bypass OAuth.  Streaming session state
+    is server-side; Playwright storageState (cookies) cannot restore it.
+    """
 
     def test_csv_name_env_var_not_leaked(self, authenticated_page):
         """L5: E2E_CSV_FILE_NAME must not appear in page content."""
