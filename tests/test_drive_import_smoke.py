@@ -3,6 +3,14 @@
 Phase 3.2a (platform smoke): app loads, sidebar visible, no credential leaks.
 Phase 3.2b (drive-import controlled-state): import-button visibility, on-demand
 component rendering, ready/cancel/error UI, theme sync, duplicate protection.
+Phase 3.2c (dialog acceptance — interstitial PR 2): the Picker moves into
+st.dialog per plans/00-sprints/🔵 interstitial-ui-polish-spec.md §5.6.
+These five tests were added BEFORE the PR 2 dialog code lands:
+close-on-cancel / close-on-picked pass today (vacuously — no dialog exists
+yet) and become real guards after PR 2 ships; dialog-open, theme-in-dialog,
+and error-stays-open are marked strict-xfail until PR 2 implements the
+dialog. When PR 2 lands, remove the xfail marker and all five must pass
+(smoke suite grows 14 → 19).
 
 No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
@@ -19,6 +27,7 @@ module-level skip is acceptable.
 """
 
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -30,7 +39,7 @@ from typing import Generator
 import pytest
 
 try:
-    from playwright.sync_api import Page, sync_playwright
+    from playwright.sync_api import Page, expect, sync_playwright
 
     _HAS_PLAYWRIGHT = True
 except ImportError:
@@ -337,3 +346,115 @@ class TestDriveImportNoCredentialLeakTestMode:
             assert "AIza" not in html, "Possible API key leak in test mode"
             assert "ya29" not in html, "Possible OAuth token leak in test mode"
             assert "AQ." not in html, "Possible AI Studio key leak in test mode"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Phase 3.2c: Dialog acceptance tests (interstitial PR 2 — spec §5.6)
+# Added 2026-08-03 BEFORE the PR 2 dialog code lands. The cancel/picked
+# tests pass vacuously today (no dialog exists yet) and become real guards
+# after PR 2. The dialog-open / theme-in-dialog / error-stays-open tests
+# are strict-xfail until PR 2 implements the dialog: an unexpected pass
+# (XPASS) fails the suite loudly — the signal to remove the marker.
+# ══════════════════════════════════════════════════════════════════════════
+
+_DIALOG_PR2_PENDING = "PR 2 (st.dialog Picker) not implemented yet — interstitial spec §5.6"
+
+
+class TestDriveImportDialogClose:
+    """Cancel/picked seams leave no dialog open.
+
+    Passes vacuously today (there is no dialog to close); after PR 2 these
+    become the real guards that the seams close the dialog on cancel and
+    on a successful pick.
+    """
+
+    def test_dialog_closes_on_cancel_seam(self, streamlit_server_test_mode):
+        url = f"{streamlit_server_test_mode}?picker_seam=cancel"
+        with _page(url) as page:
+            sidebar = page.locator('[data-testid="stSidebar"]')
+            _click_import(page)
+            page.wait_for_timeout(2000)
+            assert (
+                page.locator('[data-testid="stDialog"]').count() == 0
+            ), "Dialog should be closed after cancel seam"
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button should be visible after cancel"
+            assert btn.is_enabled(), "Import button should be enabled after cancel"
+
+    def test_dialog_closes_after_picked_seam(self, streamlit_server_test_mode):
+        url = f"{streamlit_server_test_mode}?picker_seam=picked"
+        with _page(url) as page:
+            sidebar = page.locator('[data-testid="stSidebar"]')
+            _click_import(page)
+            page.wait_for_timeout(2000)
+            assert (
+                page.locator('[data-testid="stDialog"]').count() == 0
+            ), "Dialog should be closed after picked seam (success path)"
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Import button should be visible after import"
+            assert btn.is_enabled(), "Import button should be enabled after import"
+
+
+@pytest.mark.xfail(reason=_DIALOG_PR2_PENDING, strict=True)
+class TestDriveImportDialogPending:
+    """Dialog behaviors requiring PR 2 — strict-xfail until the dialog lands.
+
+    When PR 2 ships these must pass. If any passes before then (XPASS with
+    strict=True) the suite fails loudly — that is the signal to remove that
+    test's marker (or the class marker once all three pass) and keep them
+    as permanent tests. If PR 2 lands partially, prefer per-test markers
+    so only the implemented tests flip to permanent.
+    """
+
+    def test_dialog_opens_on_click(self, streamlit_server_test_mode):
+        """stDialog appears after clicking Import, with the Picker iframe inside."""
+        with _page(streamlit_server_test_mode) as page:
+            _click_import(page)
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            assert dlg.is_visible(), "Expected st.dialog to open after clicking Import"
+            inside = dlg.locator('iframe[title*="drive_picker_transport"]')
+            inside.wait_for(state="attached", timeout=10_000)
+            assert inside.count() == 1, "Expected exactly one Picker iframe inside the dialog"
+
+    def test_theme_propagates_to_dialog_component(self, streamlit_server_test_mode):
+        """In-dialog theme control flips iframe data-theme without closing the dialog (F3)."""
+        with _page(streamlit_server_test_mode) as page:
+            _click_import(page)
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            body0 = dlg.frame_locator('iframe[title*="drive_picker_transport"]').locator("body")
+            body0.wait_for(state="attached", timeout=10_000)
+            theme0 = body0.get_attribute("data-theme")
+            assert theme0 in ("dark", "light"), f"Unexpected initial theme {theme0!r}"
+            # F3 decision: the in-dialog theme control (a button named
+            # *Light Mode*/*Dark Mode* inside the dialog, reusing
+            # _render_theme_toggle logic). The sidebar toggle is
+            # backdrop-blocked while the dialog is open.
+            toggle = dlg.get_by_role("button", name=re.compile("Light Mode|Dark Mode"))
+            toggle.wait_for(state="visible", timeout=10_000)
+            toggle.click()
+            # Pattern (b): the full rerun must keep the dialog open.
+            dlg.wait_for(state="visible", timeout=15_000)
+            assert dlg.is_visible(), "Dialog closed after theme toggle — pattern (b) broken"
+            # Poll for the iframe theme flip instead of a fixed sleep —
+            # robust on slow CI once this test goes permanent post-PR-2.
+            expected = "light" if theme0 == "dark" else "dark"
+            body1 = dlg.frame_locator('iframe[title*="drive_picker_transport"]').locator("body")
+            expect(body1).to_have_attribute("data-theme", expected, timeout=10_000)
+
+    def test_error_state_keeps_dialog_open(self, streamlit_server_test_mode):
+        """Error seam: st.error renders inside the dialog and the dialog stays open (D5)."""
+        url = f"{streamlit_server_test_mode}?picker_seam=error"
+        with _page(url) as page:
+            _click_import(page)
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            # D5: failed import renders st.error inside the dialog and keeps
+            # it open for retry — verified via the stAlert surface.
+            alert = dlg.locator('[data-testid="stAlert"]')
+            alert.wait_for(state="visible", timeout=10_000)
+            assert alert.is_visible(), "Expected st.error inside the dialog after failed import"
+            assert dlg.is_visible(), "Dialog should stay open on error (retry in place)"

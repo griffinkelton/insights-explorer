@@ -64,6 +64,12 @@
 - Picker sidebar width/UX polish (works, but cramped in ~300px sidebar)
 - Light mode visual design polish
 
+### Interstitial sprint (v0.3.0 → v0.4.0) — design + test scaffolding
+
+- Design doc + implementation specs: `plans/🔵 interstitial-ui-polish-design.md`, `plans/00-sprints/🔵 interstitial-ui-polish-spec.md` (Workstream A+C), `plans/00-sprints/🔵 interstitial-light-mode-spec.md` (Workstream B)
+- Phase 0 spike verified 2026-08-03 (Streamlit 1.60): `st.dialog` render, pattern-(b) persistence across reruns, no `st.sidebar` in dialog body. Findings: F1 — no click-outside dismissal in `st.dialog` (no backdrop element → dismissal = X + ESC only, D7 revised); F2 — dismissal lock real and testable; F3 — modal backdrop blocks the sidebar → **in-dialog theme control decision**
+- 5 Playwright dialog acceptance tests added pre-PR-2 (`tests/test_drive_import_smoke.py` Phase 3.2c, spec §5.6): cancel/picked seam-close tests pass today (vacuously); dialog-open, theme-in-dialog, error-stays-open marked **strict-xfail** pending PR 2. Smoke suite now 19 collected (16 pass + 3 xfail); remove the markers when PR 2 lands
+
 ---
 
 ## 2026-08-02 — AI Studio API Key (AQ.) Pattern Added to Credential Guard
