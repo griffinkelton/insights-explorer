@@ -1,6 +1,6 @@
 # 🔵 Interstitial Light-Mode Polish — Implementation Spec (Workstream B)
 
-> **Status:** 🔵 In design — implementation not started
+> **Status:** 🟡 In implementation — **PR-L1–L4 landed on `main` (2026-08-03, see §4)**; PR-L5 (C1–C3 verification) and PR-L6 (docs) pending
 > **Date:** 2026-08-03
 > **Based on:** [`plans/🔵 interstitial-ui-polish-design.md`](../🔵%20interstitial-ui-polish-design.md) §3 (Workstream B); deferred from [`plans/00-sprints/🔵 interstitial-ui-polish-spec.md`](./🔵%20interstitial-ui-polish-spec.md) (D1, D11)
 > **Scope:** Full light-mode redesign of the app UI. **Standalone** — no dependency on Workstream A/C (which already cover B1 component theming + B6 dialog light styling).
@@ -64,16 +64,18 @@ The theme toggle works and `LIGHT_THEME_CSS` has broad coverage (buttons, metric
 
 ## 4. Phased plan
 
-| Phase | Scope | Effort | PR |
-|---|---|---|---|
-| 1 | **B2a/B2e token consolidation + blanket-rule fix** in `styles.py`; `test_styles.py` updated | 0.5d | PR-L1 |
-| 2 | **B2b–B2d**: sidebar helpers, OAuth captions, privacy-card class | 0.5d | PR-L2 |
-| 3 | **A1 hero** light overrides (`.hero-*` classes) | 0.5d | PR-L3 |
-| 4 | **A2–A4**: learning-challenge borders, data-preview accents + grade palette | 0.5d | PR-L4 |
-| 5 | **C1–C3 verification** + any required tweaks (onboarding tour, charts light font) | 0.5d | PR-L5 |
-| 6 | Docs: CHANGELOG (interstitial heading) + `RELEASE_CHECKLIST.md` interstitial row "Light mode design polish" checked off | — | PR-L6 |
+| Phase | Scope | Effort | PR | Status |
+|---|---|---|---|---|
+| 1 | **B2a/B2e token consolidation + blanket-rule fix** in `styles.py`; `test_styles.py` updated | 0.5d | PR-L1 | ✅ landed `6d67346` |
+| 2 | **B2b–B2d**: sidebar helpers, OAuth captions, privacy-card class | 0.5d | PR-L2 | ✅ landed `a0faea7` |
+| 3 | **A1 hero** light overrides (`.hero-*` classes) | 0.5d | PR-L3 | ✅ landed `9e97d60` |
+| 4 | **A2–A4**: learning-challenge borders, data-preview accents + grade palette | 0.5d | PR-L4 | ✅ landed `f639402` |
+| 5 | **C1–C3 verification** + any required tweaks (onboarding tour, charts light font) | 0.5d | PR-L5 | 🔵 pending |
+| 6 | Docs: CHANGELOG (interstitial heading) + `RELEASE_CHECKLIST.md` interstitial row "Light mode design polish" checked off | — | PR-L6 | 🔵 pending |
 
 Order rationale: token foundation first (everything else consumes it), then shared sidebar, then the three broken surfaces, then verification-only items.
+
+**Status (2026-08-03):** Phases 1–4 landed on `main` (PR-L1 `6d67346` → PR-L4 `f639402`). The app-level theme-sync root cause was also fixed (`6486645`): `st.html(..., unsafe_allow_javascript=True)` so `THEME_SYNC_JS` executes and `html[data-theme]` is set — without it, every light override (L3/L4) stayed inert via the toggle. 717 unit tests green; 20/20 Playwright smoke suite.
 
 ## 5. Testing & verification
 
