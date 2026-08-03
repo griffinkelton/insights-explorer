@@ -303,6 +303,28 @@ class TestBlanketRuleScoped:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Privacy card class (interstitial PR-L2 — B2d)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestPrivacyCardClass:
+    """B2d: COMPONENT_CSS defines .privacy-card using theme tokens."""
+
+    def test_privacy_card_rule_uses_tokens(self):
+        match = re.search(r"\.privacy-card \{(.*?)\}", styles.COMPONENT_CSS, re.DOTALL)
+        assert match, ".privacy-card rule missing from COMPONENT_CSS"
+        body = match.group(1)
+        assert "background: var(--bg-card);" in body
+        assert "border: 1px solid var(--border);" in body
+        assert "border-radius" in body
+
+    def test_privacy_card_text_uses_secondary(self):
+        match = re.search(r"\.privacy-card-text \{(.*?)\}", styles.COMPONENT_CSS, re.DOTALL)
+        assert match, ".privacy-card-text rule missing from COMPONENT_CSS"
+        assert "color: var(--text-secondary);" in match.group(1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Focus-visible
 # ═══════════════════════════════════════════════════════════════════════════════
 

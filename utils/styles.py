@@ -585,6 +585,22 @@ COMPONENT_CSS = """
         font-size: 0.8rem;
     }
 
+    /* ── Privacy card (interstitial PR-L2, B2d) ──
+       Replaces the inline theme-branched rgba from the sidebar; tokens
+       resolve correctly in both themes. */
+    .privacy-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin: 0.5rem 0;
+    }
+    .privacy-card-text {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
     /* ── Dialog (Drive Picker — interstitial PR 2, B6) ──
        Streamlit's st.dialog Paper carries no [theme] config defaults, so
        the surface is themed explicitly here. The X button uses

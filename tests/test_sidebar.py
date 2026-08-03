@@ -60,6 +60,72 @@ class TestSidebarStructure:
         assert "clear_data()" in source
 
 
+# ── Interstitial PR-L2 (Workstream B): theme-token refactor ───────────────
+# B2b section-header helper, B2c OAuth caption vars, B2d .privacy-card.
+# Guard rail: sidebar must not re-introduce inline theme-branched colors.
+
+
+class TestInterstitialLightTokens:
+    """B2b/B2c/B2d: sidebar uses CSS vars — no inline theme-branched colors."""
+
+    def test_section_header_helper_exists(self):
+        source = open(MODULE).read()
+        assert "def _section_header" in source
+
+    def test_section_headers_use_helper(self):
+        """All four section headers call _section_header (no inline color)."""
+        source = open(MODULE).read()
+        assert '_section_header("🔗 Google Analytics 4 (Live)")' in source
+        assert '_section_header("📂 Google Drive Import")' in source
+        assert '_section_header("🤖 AI Model")' in source
+        assert '_section_header("🧮 Custom Metrics")' in source
+
+    def test_no_theme_branch_color_variables(self):
+        """The old theme-branched inline color variables are gone."""
+        source = open(MODULE).read()
+        for var in (
+            "title_color =",
+            "subtitle_color =",
+            "section_color =",
+            "metrics_color =",
+            "footer_color =",
+            "privacy_bg =",
+            "privacy_border =",
+            "privacy_text =",
+        ):
+            assert var not in source, f"{var} theme-branch still present"
+
+    def test_no_raw_theme_hex_text_colors(self):
+        """No dark-optimized raw hexes remain in text styles (B2c/B2d).
+
+        Intentional hexes deliberately excluded (keep this list updated):
+        #6366f1/#8b5cf6 (logo gradient, static brand) and
+        #059669/#d97706 (tier badge — tier-based, not theme-based).
+        """
+        source = open(MODULE).read()
+        for hex_code in (
+            "#1f2937",
+            "#f0f0f5",
+            "#6b7280",
+            "#9898b0",
+            "#686880",
+            "#818cf8",
+            "#9ca3af",
+        ):
+            assert hex_code not in source, f"{hex_code} hard-coded text color"
+
+    def test_oauth_redirect_uses_vars(self):
+        source = open(MODULE).read()
+        assert "color:var(--text-secondary)" in source
+        assert "color:var(--text-muted)" in source
+        assert "color:var(--accent-hover)" in source
+
+    def test_privacy_card_uses_class(self):
+        source = open(MODULE).read()
+        assert 'class="privacy-card"' in source
+        assert 'class="privacy-card-text"' in source
+
+
 # ── v0.3.0 Phase 2.3: Drive ingestion unit tests ──────────────────────────
 
 

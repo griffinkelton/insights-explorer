@@ -138,6 +138,25 @@ def _populate_data_state(
     # No return — session state is the single source of truth.
 
 
+def _section_header(label: str) -> None:
+    """Render a sidebar section header from a theme token (interstitial PR-L2, B2b).
+
+    Uses ``var(--text-primary)``, replacing the repeated inline
+    ``section_color`` theme-branch pattern that drifted across 4 call sites.
+
+    Note: in light mode the ``[data-theme="light"] .stMarkdown p`` rule
+    (``color: var(--text-secondary) !important``) overrides this inline
+    value, so headers render secondary there — matching pre-refactor
+    behavior. Delivering true ``--text-primary`` in light would require a
+    dedicated ``.section-header`` class with ``!important`` (out of scope).
+    """
+    st.markdown(
+        f'<p style="font-size:0.8rem;font-weight:600;color:var(--text-primary);'
+        f'margin-bottom:0.3rem;">{label}</p>',
+        unsafe_allow_html=True,
+    )
+
+
 def render_sidebar() -> None:
     """Render the full sidebar and return the uploaded file (if any)."""
     with st.sidebar:
@@ -163,18 +182,15 @@ def render_sidebar() -> None:
 
 
 def _render_logo() -> None:
-    """Render the app logo and title in the sidebar."""
-    theme = st.session_state.get("theme", "dark")
-    title_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    subtitle_color = "#6b7280" if theme == "light" else "#9898b0"
+    """Render the app logo and title in the sidebar (theme tokens, PR-L2 B2b)."""
     st.markdown(
-        f"""
+        """
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;">
         <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
                     display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📊</div>
         <div>
-            <div style="font-weight:700;font-size:1.1rem;color:{title_color};line-height:1.3;">Insight Explorer</div>
-            <div style="font-size:0.75rem;color:{subtitle_color};">GA4 Analytics + AI</div>
+            <div style="font-weight:700;font-size:1.1rem;color:var(--text-primary);line-height:1.3;">Insight Explorer</div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);">GA4 Analytics + AI</div>
         </div>
     </div>
     """,
@@ -193,13 +209,7 @@ def _render_file_uploader():
 
 def _render_ga4_connect() -> None:
     """Render the GA4 live connection: sign-in, property ID, pull data, disconnect."""
-    theme = st.session_state.get("theme", "dark")
-    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    st.markdown(
-        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
-        f"🔗 Google Analytics 4 (Live)</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("🔗 Google Analytics 4 (Live)")
 
     if st.session_state.ga4_creds is None:
         # Not connected — show sign-in
@@ -208,9 +218,9 @@ def _render_ga4_connect() -> None:
                 auth_url, _ = get_auth_url(REDIRECT_URI)
                 st.markdown(
                     f'<meta http-equiv="refresh" content="0;url={auth_url}">'
-                    f'<p style="color:#9898b0;font-size:0.85rem;">Redirecting to Google...</p>'
-                    f'<p style="color:#686880;font-size:0.75rem;">'
-                    f'If not redirected, <a href="{auth_url}" style="color:#818cf8;">click here</a></p>',
+                    f'<p style="color:var(--text-secondary);font-size:0.85rem;">Redirecting to Google...</p>'
+                    f'<p style="color:var(--text-muted);font-size:0.75rem;">'
+                    f'If not redirected, <a href="{auth_url}" style="color:var(--accent-hover);">click here</a></p>',
                     unsafe_allow_html=True,
                 )
                 st.stop()
@@ -350,13 +360,7 @@ def _render_drive_picker() -> None:
 
     # Section header (always shown when authenticated — even if secrets are missing)
     st.divider()
-    theme = st.session_state.get("theme", "dark")
-    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    st.markdown(
-        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
-        f"📂 Google Drive Import</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("📂 Google Drive Import")
 
     # ── Diagnostic: show OAuth scope info (hidden by default) ──
     if not _DRIVE_PICKER_TEST_MODE and st.session_state.ga4_creds is not None:
@@ -640,16 +644,11 @@ def _render_and_process_picker_production() -> None:
 
 
 def _render_privacy_notice() -> None:
-    """Render the privacy disclaimer card."""
-    theme = st.session_state.get("theme", "dark")
-    privacy_bg = "rgba(79,70,229,0.04)" if theme == "light" else "rgba(99,102,241,0.06)"
-    privacy_border = "rgba(79,70,229,0.1)" if theme == "light" else "rgba(99,102,241,0.12)"
-    privacy_text = "#6b7280" if theme == "light" else "#9898b0"
+    """Render the privacy disclaimer card (interstitial PR-L2, B2d)."""
     st.markdown(
-        f"""
-    <div style="background:{privacy_bg};border:1px solid {privacy_border};
-                border-radius:12px;padding:0.9rem 1rem;margin:0.5rem 0;">
-        <div style="font-size:0.78rem;color:{privacy_text};line-height:1.5;">
+        """
+    <div class="privacy-card">
+        <div class="privacy-card-text">
             🔒 <b>Privacy</b><br>
             Uploaded analytics data is processed in the active session. When you use AI
             features, the app sends the relevant prompt and selected data context to
@@ -687,13 +686,7 @@ def _render_model_selector() -> None:
     from utils.gemini_client import AVAILABLE_MODELS, DEFAULT_MODEL
 
     st.divider()
-    theme = st.session_state.get("theme", "dark")
-    section_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    st.markdown(
-        f'<p style="font-size:0.8rem;font-weight:600;color:{section_color};margin-bottom:0.3rem;">'
-        f"🤖 AI Model</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("🤖 AI Model")
 
     model_keys = list(AVAILABLE_MODELS.keys())
     model_labels = [AVAILABLE_MODELS[k]["label"] for k in model_keys]
@@ -743,12 +736,10 @@ def _render_api_counter() -> None:
 
 
 def _render_footer() -> None:
-    """Render the sidebar footer."""
+    """Render the sidebar footer (theme token, PR-L2 B2b)."""
     st.divider()
-    theme = st.session_state.get("theme", "dark")
-    footer_color = "#9ca3af" if theme == "light" else "#686880"
     st.markdown(
-        f'<div style="font-size:0.72rem;color:{footer_color};">Built with ❤️ using Streamlit + Gemini</div>',
+        '<div style="font-size:0.72rem;color:var(--text-muted);">Built with ❤️ using Streamlit + Gemini</div>',
         unsafe_allow_html=True,
     )
 
@@ -775,13 +766,7 @@ def _render_custom_metrics() -> None:
         return
 
     st.divider()
-    theme = st.session_state.get("theme", "dark")
-    metrics_color = "#1f2937" if theme == "light" else "#f0f0f5"
-    st.markdown(
-        f'<p style="font-size:0.8rem;font-weight:600;color:{metrics_color};margin-bottom:0.3rem;">'
-        f"🧮 Custom Metrics</p>",
-        unsafe_allow_html=True,
-    )
+    _section_header("🧮 Custom Metrics")
 
     # List existing custom metrics with delete buttons
     metrics = st.session_state.custom_metrics
