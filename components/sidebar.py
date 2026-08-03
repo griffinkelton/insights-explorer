@@ -365,9 +365,14 @@ def _render_drive_picker() -> None:
                     "`.streamlit/secrets.toml`:\n\n"
                     "```toml\n"
                     'GOOGLE_PICKER_API_KEY = "AIza..."\n'
-                    'GOOGLE_CLOUD_PROJECT_NUMBER = "123456789"\n'
-                    'DRIVE_PICKER_APP_ORIGIN = "https://your-app.run.app"\n'
+                    'GOOGLE_CLOUD_PROJECT_NUMBER = "123456789012"\n'
+                    'DRIVE_PICKER_APP_ORIGIN = "http://localhost:8501"\n'
                     "```\n\n"
+                    "The project number is a 12-digit numeric ID (not the project name). "
+                    "You may need to enable the "
+                    "[Cloud Resource Manager API]"
+                    "(https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com) "
+                    "first. Find it in GCP Console → IAM & Admin → Settings.\n\n"
                     "See [RELEASE_CHECKLIST.md]("
                     "https://github.com/griffinkelton/insights-explorer/blob/main/RELEASE_CHECKLIST.md"
                     ") for full setup instructions."
