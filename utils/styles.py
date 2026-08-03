@@ -932,13 +932,25 @@ def inject_favicon_meta(theme: str = "dark") -> None:
 def inject_custom_css(theme: str = "dark") -> None:
     """Inject the app's custom CSS theme and theme-sync JS.
 
-    Uses ``st.html()`` (Streamlit 1.38+) so the theme is fully replaced on
-    every render. ``st.markdown(unsafe_allow_html=True)`` can silently skip
-    replacement on ``st.rerun()`` when the container position matches.
+    Uses ``st.html()`` (Streamlit 1.33+; the ``unsafe_allow_javascript``
+    flag needs >=1.52 — verified against the streamlit GitHub tags) so the
+    theme is fully replaced on every render.
+    ``st.markdown(unsafe_allow_html=True)`` can silently skip replacement
+    on ``st.rerun()`` when the container position matches.
+
+    ``unsafe_allow_javascript=True`` is REQUIRED: ``st.html`` ignores
+    inline ``<script>`` tags by default, so without it ``THEME_SYNC_JS``
+    never executes and ``data-theme`` never reaches ``<html>`` — leaving
+    every ``[data-theme="light"]`` rule inert (only the preemptive
+    ``html/body/.stApp`` background flipped on toggle).
+
+    Security: the payload is ``build_theme_css(theme)`` — static
+    app-owned constants with only the validated theme value interpolated;
+    no user input ever reaches this HTML.
 
     Args:
         theme: "dark" (default) or "light". Sets data-theme on the
             document element via a hidden div + JS snippet.
             Raises ValueError for unknown theme values.
     """
-    st.html(build_theme_css(theme))
+    st.html(build_theme_css(theme), unsafe_allow_javascript=True)

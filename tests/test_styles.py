@@ -455,6 +455,16 @@ class TestInjectCustomCss:
             styles.inject_custom_css("dark")
         assert mock_html.call_args[0][0] == styles.build_theme_css("dark")
 
+    def test_html_enables_javascript_for_theme_sync(self):
+        """Theme-sync fix: st.html must run THEME_SYNC_JS or data-theme
+        never reaches <html> and [data-theme=light] rules stay inert."""
+        mock_html = MagicMock()
+        with patch.object(styles.st, "html", mock_html):
+            styles.inject_custom_css("dark")
+        assert (
+            mock_html.call_args[1].get("unsafe_allow_javascript") is True
+        ), "inject_custom_css must pass unsafe_allow_javascript=True"
+
     def test_output_is_same_as_build_theme_css(self):
         assert self._call("dark") == styles.build_theme_css("dark")
         assert self._call("light") == styles.build_theme_css("light")

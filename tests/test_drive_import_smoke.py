@@ -8,6 +8,11 @@ inside st.dialog per plans/00-sprints/🔵 interstitial-ui-polish-spec.md
 §5.6. These five tests were added before the PR 2 code (2026-08-03) and
 went permanent with it: dialog-open, close-on-cancel, close-on-picked,
 theme-in-dialog (F3), and error-stays-open (D5).
+Phase 3.2d (app-level theme-sync regression): the sidebar theme toggle
+must set html[data-theme] in the top-level document so the
+[data-theme="light"] override block actually engages. Guards the
+st.html(unsafe_allow_javascript=True) fix in utils/styles.py (Streamlit
+strips <script> from st.html payloads by default).
 
 No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
@@ -356,6 +361,31 @@ class TestDriveImportNoCredentialLeakTestMode:
             assert "AIza" not in html, "Possible API key leak in test mode"
             assert "ya29" not in html, "Possible OAuth token leak in test mode"
             assert "AQ." not in html, "Possible AI Studio key leak in test mode"
+
+
+class TestAppLevelThemeSync:
+    """Theme-sync root-cause regression: the app-level toggle flips
+    html[data-theme] so the [data-theme="light"] CSS rules engage.
+
+    Before the fix, st.html() silently dropped THEME_SYNC_JS (Streamlit
+    ignores <script> unless unsafe_allow_javascript=True), so data-theme
+    never reached <html> and every [data-theme="light"] override stayed
+    inert — only the preemptive page background flipped.
+    """
+
+    def test_toggle_flips_html_data_theme(self, streamlit_server_test_mode):
+        with _page(streamlit_server_test_mode) as page:
+            # The sync script must have run by the time the sidebar renders.
+            page.locator("html[data-theme]").wait_for(state="attached", timeout=SIDEBAR_WAIT)
+            initial = page.locator("html").get_attribute("data-theme")
+            assert initial in ("dark", "light"), f"Unexpected initial data-theme {initial!r}"
+            toggle = page.locator('[data-testid="stSidebar"]').get_by_role(
+                "button", name=re.compile("Light Mode|Dark Mode")
+            )
+            toggle.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            toggle.click()
+            expected = "light" if initial == "dark" else "dark"
+            expect(page.locator("html")).to_have_attribute("data-theme", expected, timeout=10_000)
 
 
 # ══════════════════════════════════════════════════════════════════════════
