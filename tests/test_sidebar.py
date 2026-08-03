@@ -504,3 +504,219 @@ class TestDriveIngestionEnhanced:
         _ingest_drive_file(_empty_dl, MagicMock(), "file123")
 
         assert _snap_state(session) == _snap_state(prior)
+
+
+# ── Interstitial PR 2: Drive Picker dialog state model ────────────────────
+# Reuses _FakeSessionState from the Phase 2.4 section above (dict with
+# Streamlit-style attribute access).
+
+
+def _rerun_abort():
+    """Simulate st.rerun() aborting the script run."""
+    raise SystemExit("st.rerun")
+
+
+class TestDrivePickerDialogState:
+    """Interstitial PR 2: dialog gating, state model, and test-mode seams."""
+
+    def test_drive_import_ready_false_without_auth(self, monkeypatch):
+        from components.sidebar import drive_import_ready
+
+        monkeypatch.setattr("components.sidebar._DRIVE_PICKER_TEST_MODE", False)
+        ss = _FakeSessionState(ga4_creds=None)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        assert drive_import_ready() is False
+
+    def test_drive_import_ready_true_in_test_mode(self, monkeypatch):
+        from components.sidebar import drive_import_ready
+
+        monkeypatch.setattr("components.sidebar._DRIVE_PICKER_TEST_MODE", True)
+        assert drive_import_ready() is True
+
+    def test_activate_drive_picker_sets_flags(self, monkeypatch):
+        from components.sidebar import activate_drive_picker
+
+        ss = _FakeSessionState()
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+
+        activate_drive_picker()
+
+        assert ss["drive_picker_active"] is True
+        assert ss["drive_picker_importing"] is False
+        assert len(ss["drive_picker_request_id"]) == 36  # fresh UUID
+
+    def test_dialog_not_created_when_inactive(self, monkeypatch):
+        from components.sidebar import _maybe_show_drive_picker_dialog
+
+        ss = _FakeSessionState(drive_picker_active=False)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        created = []
+        monkeypatch.setattr(
+            "components.sidebar.st.dialog",
+            lambda *a, **k: created.append((a, k)) or (lambda fn: lambda: None),
+        )
+
+        _maybe_show_drive_picker_dialog()
+
+        assert created == [], "Dialog must not be created while inactive"
+
+    def test_dialog_dismissible_tracks_importing(self, monkeypatch):
+        from components.sidebar import _maybe_show_drive_picker_dialog
+
+        captured = {}
+
+        def _fake_dialog(*args, **kwargs):
+            captured["kwargs"] = kwargs
+            return lambda fn: lambda: None  # don't run the dialog body
+
+        monkeypatch.setattr("components.sidebar.st.dialog", _fake_dialog)
+
+        ss = _FakeSessionState(drive_picker_active=True, drive_picker_importing=False)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        _maybe_show_drive_picker_dialog()
+        assert captured["kwargs"]["width"] == "large"
+        assert captured["kwargs"]["dismissible"] is True
+
+        ss2 = _FakeSessionState(drive_picker_active=True, drive_picker_importing=True)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss2)
+        _maybe_show_drive_picker_dialog()
+        assert captured["kwargs"]["dismissible"] is False, "Locked while importing (D7)"
+
+    def test_on_dismiss_resets_dialog_state(self, monkeypatch):
+        from components.sidebar import _maybe_show_drive_picker_dialog
+
+        captured = {}
+
+        def _fake_dialog(*args, **kwargs):
+            captured["on_dismiss"] = kwargs.get("on_dismiss")
+            return lambda fn: lambda: None
+
+        monkeypatch.setattr("components.sidebar.st.dialog", _fake_dialog)
+        ss = _FakeSessionState(drive_picker_active=True, drive_picker_importing=True)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+
+        _maybe_show_drive_picker_dialog()
+        assert callable(captured["on_dismiss"])
+        captured["on_dismiss"]()
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_dialog_theme_toggle_flips_theme(self, monkeypatch):
+        from components.sidebar import _render_dialog_theme_control
+
+        ss = _FakeSessionState(theme="dark", drive_picker_importing=False)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.button", lambda *a, **k: True)  # clicked
+        monkeypatch.setattr("components.sidebar.st.rerun", lambda: None)
+
+        _render_dialog_theme_control()
+
+        assert ss["theme"] == "light"
+
+    def test_cancel_seam_closes_dialog(self, monkeypatch):
+        import pytest
+        from components.sidebar import _render_and_process_picker_test_mode
+
+        class _Q:
+            def get(self, key, default=""):
+                return "cancel"
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_importing=True,
+            drive_picker_request_id="r1",
+        )
+        monkeypatch.setattr("components.sidebar.st.query_params", _Q())
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.rerun", _rerun_abort)
+
+        with pytest.raises(SystemExit):
+            _render_and_process_picker_test_mode()
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_error_seam_keeps_dialog_open(self, monkeypatch):
+        from unittest.mock import MagicMock
+        from components.sidebar import _render_and_process_picker_test_mode
+
+        class _Q:
+            def get(self, key, default=""):
+                return "error"
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_importing=True,
+            drive_picker_request_id="r1",
+        )
+        monkeypatch.setattr("components.sidebar.st.query_params", _Q())
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        mock_error = MagicMock()
+        monkeypatch.setattr("components.sidebar.st.error", mock_error)
+
+        _render_and_process_picker_test_mode()
+
+        assert ss["drive_picker_active"] is True, "Dialog must stay open on error (D5)"
+        assert ss["drive_picker_importing"] is False
+        mock_error.assert_called_once()
+        msg = mock_error.call_args[0][0]
+        assert "failed" in msg.lower()
+
+    def test_picked_seam_closes_dialog(self, monkeypatch):
+        import pytest
+        from components.sidebar import _render_and_process_picker_test_mode
+
+        class _Q:
+            def get(self, key, default=""):
+                return "picked"
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_importing=True,
+            drive_picker_request_id="r1",
+        )
+        monkeypatch.setattr("components.sidebar.st.query_params", _Q())
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.rerun", _rerun_abort)
+
+        with pytest.raises(SystemExit):
+            _render_and_process_picker_test_mode()
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_importing_lifecycle_around_ingest(self, monkeypatch):
+        """drive_picker_importing is True during ingest and reset after."""
+        from components.sidebar import _render_and_process_picker_production
+        import components.sidebar as sidebar_mod
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_request_id="r1",
+            ga4_creds={"access_token": "tok", "token": "tok"},
+        )
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.rerun", lambda: None)
+
+        class _Secrets:
+            def get(self, key, default=""):
+                return "x"
+
+        monkeypatch.setattr("components.sidebar.st.secrets", _Secrets())
+        monkeypatch.setattr(
+            "components.drive_picker_component.drive_picker_transport",
+            lambda **kwargs: {"kind": "picked", "requestId": "r1", "fileId": "f1"},
+        )
+        monkeypatch.setattr("components.sidebar.credentials_from_dict", lambda d: "creds")
+
+        seen = []
+
+        def _ingest(downloader, creds, file_id):
+            seen.append(ss["drive_picker_importing"])
+            return True
+
+        monkeypatch.setattr(sidebar_mod, "_ingest_drive_file", _ingest)
+
+        _render_and_process_picker_production()
+
+        assert seen == [True], "importing flag must be True during ingest"
+        assert ss["drive_picker_importing"] is False
+        assert ss["drive_picker_active"] is False, "Dialog closes after successful import"

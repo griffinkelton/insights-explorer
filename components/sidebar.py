@@ -43,11 +43,12 @@ logger = logging.getLogger(__name__)
 # ── v0.3.0 Phase 3.2: Test-only Drive Picker seam ─────────────────────
 # Set DRIVE_PICKER_TEST_MODE=1 to bypass OAuth + secrets checks so
 # Playwright can exercise the Drive import UI without real credentials.
-# Query param ``picker_seam`` controls the fake component return:
+# Query param ``picker_seam`` controls the fake outcome at the dialog
+# level (interstitial PR 2):
 #   ?picker_seam=none     → component renders normally (visible iframe)
-#   ?picker_seam=cancel   → component returns None (simulates Picker cancel)
-#   ?picker_seam=error    → component returns None (simulates component error)
-#   ?picker_seam=picked   → component returns a valid picked payload
+#   ?picker_seam=cancel   → dialog closes (simulates Picker cancel)
+#   ?picker_seam=error    → st.error shown inside dialog; dialog stays open
+#   ?picker_seam=picked   → dialog closes (simulates successful selection)
 _DRIVE_PICKER_TEST_MODE = os.getenv("DRIVE_PICKER_TEST_MODE", "") == "1"
 
 if _DRIVE_PICKER_TEST_MODE:
@@ -326,6 +327,14 @@ def _render_drive_picker() -> None:
     On selection: verifies request freshness, extracts credentials from
     the GA4 session, and calls :func:`_ingest_drive_file` with the
     production ``download_drive_file`` downloader.
+
+    Interstitial PR 2: the Picker component now renders inside an
+    ``st.dialog`` modal (``width="large"``) instead of inline in the ~300px
+    sidebar. The dialog is gated on ``drive_picker_active`` (pattern b —
+    survives full-app reruns, incl. theme toggles), carries an in-dialog
+    theme control (F3), and locks dismissal while ``drive_picker_importing``
+    is True (D7). Errors render inside the dialog, which stays open for
+    retry (D5).
     """
     # Only shown when authenticated with GA4.
     if not _DRIVE_PICKER_TEST_MODE and st.session_state.ga4_creds is None:
@@ -336,6 +345,8 @@ def _render_drive_picker() -> None:
         st.session_state.drive_picker_request_id = ""
     if "drive_picker_active" not in st.session_state:
         st.session_state.drive_picker_active = False
+    if "drive_picker_importing" not in st.session_state:
+        st.session_state.drive_picker_importing = False
 
     # Section header (always shown when authenticated — even if secrets are missing)
     st.divider()
@@ -408,81 +419,224 @@ def _render_drive_picker() -> None:
                 )
             return
 
-    # Activation button.
+    # Activation button (shared by the sidebar and the hero card — opens
+    # the Picker dialog via the pattern-(b) gate below).
     if st.button(
         "📂 Import from Google Drive",
         use_container_width=True,
         type="primary",
     ):
-        import uuid
+        activate_drive_picker()
 
-        st.session_state.drive_picker_request_id = str(uuid.uuid4())
-        st.session_state.drive_picker_active = True
+    # ── Picker dialog (interstitial PR 2) ──
+    # Pattern (b): while drive_picker_active, the dialog is (re)created on
+    # every run so it survives full-app reruns, including theme toggles
+    # (spike Core 2). Called from inside ``with st.sidebar:`` but renders
+    # as a centered modal, never inside the sidebar (spike S4).
+    _maybe_show_drive_picker_dialog()
 
-    # When active, render the Picker component and process any returned
-    # selection.  Renders in the same cycle as the button click.
-    if st.session_state.drive_picker_active and st.session_state.drive_picker_request_id:
-        if _DRIVE_PICKER_TEST_MODE:
-            oauth_token = "test-token"
-            seam = st.query_params.get("picker_seam", "")
-            if seam == "picked":
-                selection = {
-                    "kind": "picked",
-                    "requestId": st.session_state.drive_picker_request_id,
-                    "fileId": "test-file-id-123",
-                }
-            elif seam in ("cancel", "error"):
-                selection = None
-            else:
-                from components.drive_picker_component import drive_picker_transport
 
-                selection = drive_picker_transport(
-                    oauth_token=oauth_token,
-                    dev_key=dev_key,
-                    app_id=project_number,
-                    app_origin=app_origin,
-                    request_id=st.session_state.drive_picker_request_id,
-                    theme=st.session_state.get("theme", "dark"),
-                    key=f"drive_picker_{st.session_state.drive_picker_request_id}",
-                )
-        else:
-            creds_dict = st.session_state.ga4_creds
-            oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
-            if not oauth_token:
-                st.error(
-                    "No valid OAuth credential available. " "Please reconnect your Google account."
-                )
-                st.session_state.drive_picker_active = False
-                return
+def activate_drive_picker() -> None:
+    """Open the Drive Picker dialog — shared by the sidebar button and hero card.
 
-            from components.drive_picker_component import drive_picker_transport
+    Sets a fresh request ID and flips ``drive_picker_active`` so the dialog
+    gate (pattern b) opens on this run or the next.
+    """
+    import uuid
 
-            selection = drive_picker_transport(
-                oauth_token=oauth_token,
-                dev_key=dev_key,
-                app_id=project_number,
-                app_origin=app_origin,
-                request_id=st.session_state.drive_picker_request_id,
-                theme=st.session_state.get("theme", "dark"),
-                key=f"drive_picker_{st.session_state.drive_picker_request_id}",
-            )
+    st.session_state.drive_picker_request_id = str(uuid.uuid4())
+    st.session_state.drive_picker_active = True
+    st.session_state.drive_picker_importing = False
 
-        if selection is not None:
-            if selection["requestId"] != st.session_state.drive_picker_request_id:
-                return
 
-            if _DRIVE_PICKER_TEST_MODE:
-                st.session_state.drive_picker_active = False
-                st.rerun()
-            else:
-                from utils.drive_client import download_drive_file
+def drive_import_ready() -> bool:
+    """True when Drive import can be offered to the user.
 
-                creds = credentials_from_dict(creds_dict)
-                ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
-                if not ok:
-                    return
-                st.session_state.drive_picker_active = False
-                st.rerun()
+    Test mode → always ready. Production → authenticated with GA4 AND all
+    three Picker secrets configured. Used by the hero-card entry point so
+    it never renders a dead Import button.
+    """
+    if _DRIVE_PICKER_TEST_MODE:
+        return True
+    if st.session_state.ga4_creds is None:
+        return False
+    try:
+        return bool(
+            st.secrets.get("GOOGLE_PICKER_API_KEY", "")
+            and st.secrets.get("GOOGLE_CLOUD_PROJECT_NUMBER", "")
+            and st.secrets.get("DRIVE_PICKER_APP_ORIGIN", "")
+        )
+    except FileNotFoundError:
+        # No secrets file at all — the Picker cannot work without its config.
+        return False
+
+
+def _render_dialog_theme_control() -> None:
+    """In-dialog light/dark toggle (interstitial F3 decision).
+
+    The modal backdrop covers the sidebar while the dialog is open, so the
+    sidebar's theme toggle is unreachable during an active flow — this
+    control is the user-facing way to switch themes mid-flow. Reuses the
+    sidebar toggle's label scheme (the Playwright contract: a button named
+    *Light Mode*/*Dark Mode* inside the dialog). Disabled while importing,
+    consistent with the dismissal lock.
+    """
+    current = st.session_state.get("theme", "dark")
+    new_theme = "light" if current == "dark" else "dark"
+    label = "☀️ Light Mode" if current == "dark" else "🌙 Dark Mode"
+    importing = st.session_state.get("drive_picker_importing", False)
+    if st.button(label, key="dialog_theme_toggle", disabled=importing):
+        st.session_state.theme = new_theme
+        st.rerun()
+
+
+def _drive_picker_dialog_body() -> None:
+    """Body of the Drive Picker dialog.
+
+    MUST never touch ``st.sidebar`` (spike Core 3). Renders the in-dialog
+    theme control (F3) above the Picker component + selection processing.
+    """
+    _render_dialog_theme_control()
+    _render_and_process_picker()
+
+
+def _maybe_show_drive_picker_dialog() -> None:
+    """Create/show the Picker dialog while ``drive_picker_active`` (pattern b).
+
+    Called every run from inside ``with st.sidebar:`` — the dialog renders
+    as a centered modal regardless of caller context (spike S4).
+
+    ``dismissible`` is computed per-run so dismissal (X / ESC) can be
+    locked while ``drive_picker_importing`` is True (spike S3). On dismiss,
+    ``on_dismiss`` resets the state so the dialog closes.
+    """
+    if not st.session_state.get("drive_picker_active"):
+        return
+    importing = st.session_state.get("drive_picker_importing", False)
+
+    def _on_dismiss() -> None:
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+
+    dialog = st.dialog(
+        "Import from Google Drive",
+        width="large",
+        dismissible=not importing,
+        on_dismiss=_on_dismiss,
+    )
+    dialog(_drive_picker_dialog_body)()
+
+
+def _render_and_process_picker() -> None:
+    """Render the Picker component (or test seam) and process any selection.
+
+    Runs inside the dialog body. Production errors render as ``st.error``
+    INSIDE the dialog, which stays open for retry (D5). On success the
+    dialog closes (``active=False`` + rerun).
+    """
+    if _DRIVE_PICKER_TEST_MODE:
+        _render_and_process_picker_test_mode()
+        return
+    _render_and_process_picker_production()
+
+
+def _render_and_process_picker_test_mode() -> None:
+    """Test-mode Picker flow driven by the ``picker_seam`` query param.
+
+    Seams simulate the app-controlled outcomes at the dialog level:
+      ``cancel`` → close the dialog (simulates Picker cancel)
+      ``error``  → show ``st.error`` inside the dialog and keep it open (D5)
+      ``picked`` → close the dialog (simulates a successful selection)
+      ``none``   → render the real component (visible iframe)
+    No real OAuth, secrets, or Drive access.
+    """
+    seam = st.query_params.get("picker_seam", "")
+    if seam == "cancel":
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        st.rerun()
+        return
+    if seam == "error":
+        st.session_state.drive_picker_importing = False
+        # Test-mode only: the seam simulates a persistent failed state —
+        # the component is intentionally NOT re-rendered here (production
+        # re-renders it each run so the user can retry).
+        st.error("Import failed. Check the file format and try again.")
+        return
+    if seam == "picked":
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        st.rerun()
+        return
+
+    # "none" (or absent): render the real component with dummy secrets.
+    from components.drive_picker_component import drive_picker_transport
+
+    selection = drive_picker_transport(
+        oauth_token="test-token",
+        dev_key="test-picker-key",
+        app_id="123456789",
+        app_origin="http://localhost:8501",
+        request_id=st.session_state.drive_picker_request_id,
+        theme=st.session_state.get("theme", "dark"),
+        key=f"drive_picker_{st.session_state.drive_picker_request_id}",
+    )
+    if selection is not None:
+        if selection["requestId"] != st.session_state.drive_picker_request_id:
+            return
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        st.rerun()
+
+
+def _render_and_process_picker_production() -> None:
+    """Production Picker flow: real component + server-authoritative ingest."""
+    creds_dict = st.session_state.ga4_creds
+    oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
+    if not oauth_token:
+        st.error("No valid OAuth credential available. Please reconnect your Google account.")
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        return  # dialog closes on the next rerun
+
+    dev_key = st.secrets.get("GOOGLE_PICKER_API_KEY", "")
+    project_number = st.secrets.get("GOOGLE_CLOUD_PROJECT_NUMBER", "")
+    app_origin = st.secrets.get("DRIVE_PICKER_APP_ORIGIN", "")
+    if not dev_key or not project_number or not app_origin:
+        # Gating normally prevents this; close defensively.
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        return
+
+    from components.drive_picker_component import drive_picker_transport
+
+    selection = drive_picker_transport(
+        oauth_token=oauth_token,
+        dev_key=dev_key,
+        app_id=project_number,
+        app_origin=app_origin,
+        request_id=st.session_state.drive_picker_request_id,
+        theme=st.session_state.get("theme", "dark"),
+        key=f"drive_picker_{st.session_state.drive_picker_request_id}",
+    )
+    if selection is None:
+        return
+    if selection["requestId"] != st.session_state.drive_picker_request_id:
+        return
+
+    from utils.drive_client import download_drive_file
+
+    creds = credentials_from_dict(creds_dict)
+    st.session_state.drive_picker_importing = True
+    try:
+        ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
+    finally:
+        st.session_state.drive_picker_importing = False
+    if not ok:
+        # st.error already rendered inside the dialog; keep it open (D5).
+        return
+    st.session_state.drive_picker_active = False
+    st.rerun()
 
 
 def _render_privacy_notice() -> None:

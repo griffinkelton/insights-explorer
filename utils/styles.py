@@ -325,6 +325,27 @@ LIGHT_THEME_CSS = """
         border-color: rgba(217, 119, 6, 0.15);
         color: var(--text-primary);
     }
+
+    /* ── Light theme: Dialog (B6) ── */
+    [data-theme="light"] [data-testid="stDialog"] section[role="dialog"] {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15);
+    }
+    [data-theme="light"] [data-testid="stDialog"] h2 {
+        color: var(--text-primary) !important;
+    }
+    [data-theme="light"] [data-testid="stDialog"] .stMarkdown p,
+    [data-theme="light"] [data-testid="stDialog"] .stCaption {
+        color: var(--text-secondary) !important;
+    }
+    [data-theme="light"] [data-testid="stDialog"] button[aria-label="Close"] {
+        color: var(--text-secondary) !important;
+    }
+    [data-theme="light"] [data-testid="stDialog"] button[aria-label="Close"]:hover {
+        color: var(--text-primary) !important;
+    }
 """
 
 COMPONENT_CSS = """
@@ -552,6 +573,31 @@ COMPONENT_CSS = """
     /* ── Tooltip ── */
     .stTooltip {
         font-size: 0.8rem;
+    }
+
+    /* ── Dialog (Drive Picker — interstitial PR 2, B6) ──
+       Streamlit's st.dialog Paper carries no [theme] config defaults, so
+       the surface is themed explicitly here. The X button uses
+       currentColor — override it or it disappears on dark cards. */
+    [data-testid="stDialog"] section[role="dialog"] {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    }
+    [data-testid="stDialog"] h2 {
+        color: var(--text-primary) !important;
+    }
+    [data-testid="stDialog"] .stMarkdown p,
+    [data-testid="stDialog"] .stCaption {
+        color: var(--text-secondary) !important;
+    }
+    [data-testid="stDialog"] button[aria-label="Close"] {
+        color: var(--text-secondary) !important;
+    }
+    [data-testid="stDialog"] button[aria-label="Close"]:hover {
+        color: var(--text-primary) !important;
     }
 
     /* ── Column type badges ── */

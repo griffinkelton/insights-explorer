@@ -3,14 +3,11 @@
 Phase 3.2a (platform smoke): app loads, sidebar visible, no credential leaks.
 Phase 3.2b (drive-import controlled-state): import-button visibility, on-demand
 component rendering, ready/cancel/error UI, theme sync, duplicate protection.
-Phase 3.2c (dialog acceptance — interstitial PR 2): the Picker moves into
-st.dialog per plans/00-sprints/🔵 interstitial-ui-polish-spec.md §5.6.
-These five tests were added BEFORE the PR 2 dialog code lands:
-close-on-cancel / close-on-picked pass today (vacuously — no dialog exists
-yet) and become real guards after PR 2 ships; dialog-open, theme-in-dialog,
-and error-stays-open are marked strict-xfail until PR 2 implements the
-dialog. When PR 2 lands, remove the xfail marker and all five must pass
-(smoke suite grows 14 → 19).
+Phase 3.2c (dialog acceptance — interstitial PR 2): the Picker renders
+inside st.dialog per plans/00-sprints/🔵 interstitial-ui-polish-spec.md
+§5.6. These five tests were added before the PR 2 code (2026-08-03) and
+went permanent with it: dialog-open, close-on-cancel, close-on-picked,
+theme-in-dialog (F3), and error-stays-open (D5).
 
 No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
@@ -277,14 +274,21 @@ class TestDriveImportErrorState:
     """Error seam: component returns None (error), import button resets."""
 
     def test_error_seam_resets_button(self, streamlit_server_test_mode):
+        """Error seam: the sidebar Import button stays present and enabled.
+
+        D5 keeps the dialog open on error, so this asserts button presence
+        (Playwright visibility ignores backdrop occlusion) while
+        ``test_error_state_keeps_dialog_open`` owns the in-dialog contract.
+        """
         url = f"{streamlit_server_test_mode}?picker_seam=error"
         with _page(url) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
             _click_import(page)
-            # After error, the button should reappear.
+            # After error, the button should still be present and enabled.
             btn = sidebar.get_by_role("button", name="Import from Google Drive")
             btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
-            assert btn.is_visible(), "Import button should be visible after error"
+            assert btn.is_visible(), "Import button should be present after error"
+            assert btn.is_enabled(), "Import button should be enabled after error"
 
 
 class TestDriveImportThemeSync:
@@ -311,11 +315,17 @@ class TestDriveImportDuplicateProtection:
         with _page(streamlit_server_test_mode) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
             btn = sidebar.get_by_role("button", name="Import from Google Drive")
-            # Click twice in rapid succession.
+            # Click twice in rapid succession. The second click is forced:
+            # once the dialog opens (PR 2), its full-viewport backdrop
+            # covers the sidebar button — force bypasses the occlusion
+            # actionability check so we can still prove no double-activation.
             btn.click()
-            btn.click()
+            btn.click(force=True)
             page.wait_for_timeout(IFRAME_WAIT)
-            # There should be exactly one Picker iframe, not two.
+            # Exactly one dialog and one Picker iframe, not two of either.
+            assert (
+                page.locator('[data-testid="stDialog"]').count() == 1
+            ), "Expected exactly one dialog after double-click"
             picker_frames = _picker_iframes(page)
             assert (
                 len(picker_frames) == 1
@@ -350,22 +360,16 @@ class TestDriveImportNoCredentialLeakTestMode:
 
 # ══════════════════════════════════════════════════════════════════════════
 # Phase 3.2c: Dialog acceptance tests (interstitial PR 2 — spec §5.6)
-# Added 2026-08-03 BEFORE the PR 2 dialog code lands. The cancel/picked
-# tests pass vacuously today (no dialog exists yet) and become real guards
-# after PR 2. The dialog-open / theme-in-dialog / error-stays-open tests
-# are strict-xfail until PR 2 implements the dialog: an unexpected pass
-# (XPASS) fails the suite loudly — the signal to remove the marker.
+# Added 2026-08-03 before the PR 2 code landed; permanent since PR 2.
 # ══════════════════════════════════════════════════════════════════════════
-
-_DIALOG_PR2_PENDING = "PR 2 (st.dialog Picker) not implemented yet — interstitial spec §5.6"
 
 
 class TestDriveImportDialogClose:
     """Cancel/picked seams leave no dialog open.
 
-    Passes vacuously today (there is no dialog to close); after PR 2 these
-    become the real guards that the seams close the dialog on cancel and
-    on a successful pick.
+    Real guards for the dialog-close contract: the cancel seam simulates
+    Picker cancel, the picked seam simulates a successful selection —
+    both must leave no dialog behind and reset the sidebar button.
     """
 
     def test_dialog_closes_on_cancel_seam(self, streamlit_server_test_mode):
@@ -397,15 +401,13 @@ class TestDriveImportDialogClose:
             assert btn.is_enabled(), "Import button should be enabled after import"
 
 
-@pytest.mark.xfail(reason=_DIALOG_PR2_PENDING, strict=True)
-class TestDriveImportDialogPending:
-    """Dialog behaviors requiring PR 2 — strict-xfail until the dialog lands.
+class TestDriveImportDialog:
+    """Dialog behaviors implemented by PR 2 (previously strict-xfail).
 
-    When PR 2 ships these must pass. If any passes before then (XPASS with
-    strict=True) the suite fails loudly — that is the signal to remove that
-    test's marker (or the class marker once all three pass) and keep them
-    as permanent tests. If PR 2 lands partially, prefer per-test markers
-    so only the implemented tests flip to permanent.
+    Permanent acceptance tests: the dialog opens on Import click with the
+    Picker iframe inside; the in-dialog theme control (F3) flips the
+    iframe's data-theme without closing the dialog; the error seam renders
+    st.error inside the dialog and keeps it open for retry (D5).
     """
 
     def test_dialog_opens_on_click(self, streamlit_server_test_mode):
