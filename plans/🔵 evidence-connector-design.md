@@ -38,9 +38,33 @@ items buildable.  Without it, they are blocked on demographic data access.
 
 ---
 
+## Data Access Reality (2026-08-03)
+
+> **Discovery:** The BrainGuide Evidence dashboard at `dashboard.dev2.mybrainguide.org`
+> is hosted as a client-side SPA on Amazon S3 + CloudFront CDN. Every server path
+> — including Parquet file paths in the manifest — returns the same SPA HTML shell
+> (20,603 bytes). CloudFront's custom error routing intercepts all direct file
+> access. **The Parquet files listed in `/data/manifest.json` cannot be fetched
+> via direct HTTP GET requests, even with valid credentials.**
+
+Confirmed access options:
+
+| Option | Status |
+|---|---|
+| Direct S3 bucket access (IAM credentials) | ❌ Unavailable — requires Greg Magnuson |
+| Direct data export from BigQuery backend | ❌ Unavailable — requires Greg Magnuson |
+| Headless browser (Playwright) to authenticate and scrape rendered SPA data | ✅ Only viable path |
+
+This changes the connector architecture: instead of downloading Parquet files
+via HTTP, the connector uses Playwright to load the authenticated dashboard SPA,
+wait for React/Evidence to render tables, and extract the rendered data from
+the DOM.
+
+---
+
 ## Concept Overview
 
-A **first-class, admin-only data source connector** for Evidence-built static dashboards. Evidence is a static-site data-product framework that pre-compiles every query into Parquet files and lists them in a public `/data/manifest.json`. This connector resolves that manifest, downloads only allowlisted datasets, validates schemas, stages encrypted extracts, and exposes curated aggregate overlays alongside GA4 data — without attempting person-level attribution.
+A **first-class, admin-only data source connector** for Evidence-built static dashboards. Evidence is a static-site data-product framework that pre-compiles every query into Parquet files, but those files are served through a client-side SPA (not directly accessible via HTTP). This connector uses a headless browser (Playwright) to authenticate, load the dashboard SPA, wait for data tables to render, and extract the rendered aggregate data — without attempting person-level attribution.
 
 **What it is:** An approved, read-only connector for a specific class of data source (Evidence static dashboards) with strict source configuration, secure server-side secrets, an allowlisted dataset catalog, immutable ingestion metadata, and aggregate-only GA4 overlays.
 
@@ -181,14 +205,22 @@ Admin UI (Insights Explorer)
     ▼
 Server-side connector service
     ├── Host allowlist + HTTPS validation
-    ├── Auth adapter (none / HTTP Basic / approved cookie flow)
-    ├── Evidence manifest resolver
-    ├── Parquet downloader + schema validator
+    ├── Auth adapter (headless browser with Playwright storageState reuse)
+    ├── Evidence manifest resolver (discovers available datasets)
+    ├── SPA renderer + table extractor (Playwright — see below)
     └── Audit log / sync metadata
     │
     ▼
+SPA Rendering Pipeline (Playwright, headless Chromium)
+    ├── Reuse saved OAuth session (storageState, same pattern as auth_setup.py)
+    ├── Navigate to dashboard URL, wait for Evidence to hydrate
+    ├── For each allowlisted dataset page: wait for table render
+    ├── Extract <table> / grid data → pandas DataFrame
+    └── Return extracted DataFrames + schema metadata
+    │
+    ▼
 LocalStagingStore  (OS app-data dir, outside repository root)
-    ├── evidence/raw/          # downloaded Parquet, 30-day retention
+    ├── evidence/raw/          # extracted CSV, 30-day retention
     ├── evidence/curated/      # approved aggregate Parquet/DuckDB
     ├── evidence/quarantine/   # failed validation, limited retention
     ├── metadata/catalog.sqlite
@@ -200,6 +232,25 @@ Insights Explorer analysis layer
     ├── GA4 / Evidence / overlay modes
     └── Suppression and QA rules
 ```
+
+### Headless Browser Extraction
+
+Since the Parquet files are not directly accessible, the connector uses
+Playwright with a saved authenticated session (same storageState pattern as
+`tests/e2e/auth_setup.py`):
+
+1. **One-time setup:** Run an interactive script that launches a headed
+   browser, you sign into the Evidence dashboard manually, and it saves
+   the session cookies to an OS-keychain-protected file.
+2. **Sync:** Launch headless Chromium with the saved session, navigate
+   to each allowlisted dataset's dashboard page, wait for the Evidence
+   SPA to render data tables, extract via `page.locator('table').inner_text()`
+   or similar, and parse into DataFrames.
+3. **Validation:** Compare extracted schema against the dataset catalog;
+   compare row counts against expected ranges; fail to quarantine on mismatch.
+
+This approach is slower and more fragile than direct Parquet access, but
+it is the only available path without S3 credentials or a BigQuery export.
 
 ### Local Staging Store Location
 
@@ -507,20 +558,27 @@ class DataConnector(Protocol):
 
 > **`validate_catalog_entry()` is called before any data reaches `active_df`.** A failed validation returns a `SyncResult` with `status="catalog_validation_failed"` and moves the file to `quarantine/`. It never partially loads bad data into the Explorer.
 
-**Sync pipeline steps:**
+**Sync pipeline steps (headless browser):**
 
-1. Fetch the stable manifest endpoint
-2. Parse only expected manifest structures
-3. Resolve only allowlisted dataset names and only same-origin asset URLs
-4. Download the current Parquet asset
-5. Verify content type, file size, and expected schema
+1. Fetch the stable manifest endpoint (still accessible — SPA serves it as JSON)
+2. Parse only expected manifest structures; discover dataset names and hashes
+3. For each allowlisted dataset, navigate Playwright to the dataset's dashboard page
+4. Wait for the Evidence SPA to hydrate and render `<table>` elements
+5. Extract rendered table data → `pd.DataFrame`
 6. Call `validate_catalog_entry()` — abort to quarantine on failure
 7. Store a `SyncRecord` with checksum and schema fingerprint
-8. Write immutable raw extract to `LocalStagingStore.raw_path()`
+8. Write extracted CSV to `LocalStagingStore.raw_path()`
 9. Transform only approved datasets into curated aggregates
 10. Return a data-quality report — not raw data directly to the UI
 
-**Change detection:** Compare `manifest_hash` in `SyncRecord` against the previous sync. Only re-download and re-process datasets whose hash changed.
+**Change detection:** Compare `manifest_hash` in `SyncRecord` against the
+previous sync. Only re-extract and re-process datasets whose hash changed.
+
+**Fragility note:** SPA-based extraction depends on Evidence's DOM structure.
+If the dashboard redesigns its table markup or switches rendering libraries,
+the extractor will break. The connector must fail loudly (not silently return
+empty data) and surface a clear "SPA structure changed — extraction needs
+update" error.
 
 ---
 
@@ -714,8 +772,11 @@ Every cache key must include both source IDs and versions, mapping version, and 
   2. ☐ Permitted use confirmed
   3. ☐ Retention period confirmed
   4. ☐ Approved/named users confirmed
-  - This turns a documentation requirement into a product guardrail that Codebuff can implement.
-- Test authentication without storing secrets in code
+- **SPA proof-of-concept:** Use Playwright to navigate to the dashboard,
+  authenticate (reusing saved session from a one-time manual sign-in),
+  wait for Evidence to render, and extract a single table as a DataFrame.
+  This validates the headless-browser extraction approach before building
+  the full connector.
 - Fetch manifest; display dataset names, current asset hashes, sizes, and schemas
 - **Do NOT yet expose data in the Explorer or write any local files**
 - Confirm staging path resolves outside repository root (`assert_outside_repo()`)
@@ -770,8 +831,10 @@ The v0.1.0 release added `@st.cache_data` to `validate_columns`, `get_dataset_st
 
 ## What NOT to Build Yet
 
-- Arbitrary "connect any website" support
-- Headless-browser credential automation
+- Arbitrary "connect any website" support (Evidence dashboards ONLY)
+- **Headless-browser credential automation** — the one-time auth setup uses
+  manual sign-in (same pattern as `tests/e2e/auth_setup.py`); sync reuses
+  saved session state. Never automate the login form itself.
 - Storage of passwords in Streamlit state or application configuration
 - Full raw-dashboard ingest by default
 - Individual-level GA4-to-demographic linking
@@ -788,21 +851,27 @@ When ready to implement Phase A, give Codebuff the design doc plus this context 
 ```
 ## v0.4.0 Evidence Connector — /plan constraints
 
-Source: plans/🔵 evidence-connector-design.md (updated 2026-07-30)
+Source: plans/🔵 evidence-connector-design.md (updated 2026-08-03)
+
+CRITICAL: The Evidence dashboard is a client-side SPA behind CloudFront.
+Parquet files listed in /data/manifest.json are NOT directly accessible
+via HTTP GET — every path returns the SPA HTML shell. Data must be
+extracted via headless browser (Playwright) from rendered DOM tables.
 
 Phase A only. New files to scaffold:
 - utils/connector_types.py          — DataConnector Protocol + 5 result dataclasses
-- utils/evidence_connector.py       — EvidenceStaticConnector (Phase A: test_connection + discover_datasets + preview_schema only)
+- utils/evidence_connector.py       — EvidenceSPAConnector (Phase A: test_connection + discover_datasets + extract_one_table)
 - utils/local_staging_store.py      — LocalStagingStore with OS app-data paths + assert_outside_repo()
-- utils/sync_metadata.py            — SyncRecord dataclass
+- utils/sync_metadata.py            — SyncRecord dataclass (note: source is SPA DOM, not Parquet)
 - utils/content_key_mapping.py      — MAPPING_VERSION, normalize_path(), PATH_OVERRIDES stub (TODO: manual audit)
-- tests/test_evidence_connector.py  — mock manifest, allowlist, SSRF rejection, schema validation
+- tests/test_evidence_connector.py  — mock SPA HTML, table extraction, schema validation, SSRF rejection
 - tests/test_local_staging_store.py — assert_outside_repo() raises for repo-root paths
 - tests/test_data_context_backwards_compat.py — v0.2 fields only still construct correctly
 
 No changes to: DataContext, components, Explorer UI, prompt_templates.py in Phase A.
 PATH_OVERRIDES in content_key_mapping.py must stay as a TODO stub — do not populate.
 LocalStagingStore.assert_outside_repo() must be called in every sync path and tested in CI.
+SPA extractor must fail loudly (not silently return empty) if DOM structure changes.
 ```
 
 ---
