@@ -2,7 +2,39 @@
 
 > **Status:** 🔵 Design / Planning — not yet scheduled
 > **Related:** IDEAS.md #26 | **Predecessor:** v0.2.0 DataContext refactor + v0.3.0 analysis quality release
+> **Cross-refs:** `ROADMAP.md` (version→gate mapping), `BRAINTREE_CHECKLIST.md` (task tracker), `🔵 ga4-insights-sketch.md` (engine design), `ga4-measurement-contract.md` (metric governance)
 > **Target version:** v0.4.0
+
+---
+
+## What This Connector Unlocks
+
+When this connector ships (v0.4.0), it makes the following BRAINTREE_CHECKLIST
+items buildable.  Without it, they are blocked on demographic data access.
+
+### Unlocks immediately (Phase A — manual sync, session-only)
+
+| Checklist item | Description | How the connector enables it |
+|---|---|---|
+| Gate 2.1 | Build evidence connector | ✅ This IS the connector |
+| Gate 2.2 | Linkage coverage report | Manifest discovery → dataset inventory → feasibility report |
+| Gate 2.3–2.6 | Equity reach, funnel equity, pathway equity, language access | Evidence datasets (`questionnaire_*`, `top_content_by_demographic`) provide the demographic dimension |
+
+### Unlocks with Phase B+ (local encrypted persistence)
+
+| Checklist item | Description | How the connector enables it |
+|---|---|---|
+| Gate 2.7–2.8 | Small-cell suppression, difference-attack protection | Cached aggregates with `min_reporting_cell` enforcement |
+| Gate 3.1 | Survey cohort reporting | Evidence `questionnaire_*` + `traffic_attribution` datasets |
+| T.1–T.8 | Trust layer: provenance, inference labels, audit trail | `SyncRecord` metadata + source lineage in DataContext |
+
+### Does NOT unlock (still blocked on event-level GA4 data)
+
+| Checklist item | Why still blocked |
+|---|---|
+| Gate 1.6 (retention) | Requires session-level GA4 data — not in current aggregate query |
+| Gate 1.7 (funnel) | Requires event-sequence data — not computable from Evidence datasets alone |
+| Top 25 #3–4, 14–19 | All require session-level event data + linkage — blocked until Gate 0B decides on event-level GA4 query |
 
 ---
 
