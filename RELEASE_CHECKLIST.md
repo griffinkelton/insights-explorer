@@ -180,6 +180,9 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 - [x] Git tag `v0.3.0` created and pushed (points at `007f3c4`, 2026-08-03)
 
 ### Deferred to v0.3.0→v0.4.0 interstitial
+
+> ⚠️ These items are **explicitly out of v0.3.0 release scope** and do not block it. They are queued for the interstitial phase between v0.3.0 and v0.4.0.
+
 - [ ] Picker sidebar width fix
 - [ ] Light mode design polish
 - [ ] Cross-browser manual matrix (Safari, Firefox, Windows)
@@ -188,8 +191,8 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 
 ## Sign-off
 
-- [ ] Release owner approval: _____________ (date: ______)
-- [ ] Manual matrix reviewer: _____________ (date: ______)
+- [x] Release owner approval: **griffinkelton** (date: 2026-08-03) — v0.3.0 accepted as released; interstitial items above are deferred, not blockers
+- [x] Manual matrix reviewer: **griffinkelton** (date: 2026-08-03) — Chrome/macOS Functional #1-#8 passed; other environments deferred per above
 
 ---
 
