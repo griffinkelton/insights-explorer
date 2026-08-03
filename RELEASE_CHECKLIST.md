@@ -1,9 +1,9 @@
 # v0.3.0 Release Checklist
 
 > **Release:** v0.3.0 — Drive Import
-> **Date:** TBD (pending manual matrix)
+> **Date:** 2026-08-03
 > **Release owner:** griffinkelton
-> **Tests:** 672 pytest (unit/integration) + 14 Playwright smoke + 8 E2E real-Drive leakage = 694 total
+> **Tests:** 672 pytest (unit/integration) + 14 Playwright smoke + 8 E2E real-Drive leakage + 7 error-path = 701 total
 
 ---
 
@@ -121,7 +121,7 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 
 | # | OS | Browser | Date | Version | Result | Tester | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | macOS | Chrome | | | ⬜ | | |
+| 1 | macOS | Chrome | 2026-08-03 | — | ✅ | griffinkelton | Functional #1-#8 all pass |
 | 2 | macOS | Safari | | | ⬜ | | |
 | 3 | macOS | Firefox | | | ⬜ | | |
 | 4 | Windows | Chrome | | | ⬜ | | |
@@ -131,14 +131,14 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 
 | # | Test Case | Expected Result | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
 |---|---|---|---|---|---|---|---|
-| 1 | GA4 sign-in → Drive Import section visible | Section header + button appear | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 2 | Select CSV file via Picker | File imported, data preview renders | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 3 | Select XLSX file via Picker | File imported, data preview renders | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 4 | Select native Google Sheets via Picker | First sheet exported as CSV, imported | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 5 | Cancel Picker without selecting | No import, button resets to "Import from Google Drive" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 6 | Second import after completed import | New file replaces prior data, no stale state | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 7 | Theme switch (dark→light) during active Picker flow | Picker iframe receives updated theme | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 8 | Theme switch (light→dark) during active Picker flow | Picker iframe receives updated theme | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 1 | GA4 sign-in → Drive Import section visible | Section header + button appear | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 2 | Select CSV file via Picker | File imported, data preview renders | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 3 | Select XLSX file via Picker | File imported, data preview renders | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 4 | Select native Google Sheets via Picker | First sheet exported as CSV, imported | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 5 | Cancel Picker without selecting | No import, button resets | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 6 | Second import after completed import | New file replaces prior data | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 7 | Theme switch during active Picker flow | Picker iframe receives updated theme | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 8 | Theme switch (reverse) during active Picker flow | Picker iframe receives updated theme | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ### Error-Path Matrix (per environment)
 
@@ -171,13 +171,18 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 
 ## Phase 4: Release Closeout
 
-- [ ] Manual browser matrix complete (all 5 environments, Functional #1-#8 pass)
+- [ ] Manual browser matrix — Chrome/macOS: ✅ (Functional #1-#8), other envs: deferred
 - [ ] Clean checkout: full validation sequence (Section 7 above) — all green
 - [ ] Frontend: `npm ci && npm run check && npm run build` — clean
 - [ ] Credential guard: `python scripts/check_credentials.py` — clean
-- [ ] CHANGELOG v0.3.0 entry finalized with final commit hash + test baseline
-- [ ] Spec status updated to "✅ Complete"
+- [x] CHANGELOG v0.3.0 entry finalized with final commit hash + test baseline
+- [x] Spec status updated to "✅ Complete"
 - [ ] Git tag `v0.3.0` created and pushed
+
+### Deferred to v0.3.0→v0.4.0 interstitial
+- [ ] Picker sidebar width fix
+- [ ] Light mode design polish
+- [ ] Cross-browser manual matrix (Safari, Firefox, Windows)
 
 ---
 
