@@ -435,7 +435,7 @@ def _render_drive_picker() -> None:
             oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
             if not oauth_token:
                 st.error(
-                    "No valid OAuth credential available. Please reconnect your Google account."
+                    "No valid OAuth credential available. " "Please reconnect your Google account."
                 )
                 st.session_state.drive_picker_active = False
                 return
@@ -443,6 +443,12 @@ def _render_drive_picker() -> None:
             st.session_state._drive_picker_dev_key = dev_key
             st.session_state._drive_picker_app_id = project_number
             st.session_state._drive_picker_app_origin = app_origin
+            # Temporary diagnostic: confirm config was stored.
+            st.info(
+                "🔍 Sidebar: stored Picker config — "
+                f"oauth_token={'✓' if oauth_token else '✗'} "
+                f"dev_key={'✓' if dev_key else '✗'}",
+            )
 
 
 def _render_privacy_notice() -> None:

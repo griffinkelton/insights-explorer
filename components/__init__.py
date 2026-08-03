@@ -89,10 +89,6 @@ def _render_drive_picker_overlay() -> None:
     if not st.session_state.get("drive_picker_request_id"):
         return
 
-    # Only render in the main area (not sidebar context).
-    # Streamlit doesn't expose a direct check, but the sidebar runs first
-    # and sets the config; we render the iframe here at full width.
-
     oauth_token = st.session_state.get("_drive_picker_oauth_token", "")
     dev_key = st.session_state.get("_drive_picker_dev_key", "")
     app_id = st.session_state.get("_drive_picker_app_id", "")
@@ -100,6 +96,14 @@ def _render_drive_picker_overlay() -> None:
     request_id = st.session_state["drive_picker_request_id"]
 
     if not oauth_token or not dev_key:
+        # Diagnostic: show why the overlay is returning early.
+        st.info(
+            f"🔍 Picker overlay: drive_picker_active=True, but config incomplete. "
+            f"oauth_token={'set' if oauth_token else 'MISSING'}, "
+            f"dev_key={'set' if dev_key else 'MISSING'}. "
+            f"This likely means the sidebar config-storing block did not run. "
+            f"Try clicking 'Import from Google Drive' again."
+        )
         return
 
     # ── Full-width Picker container ──
