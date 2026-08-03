@@ -41,3 +41,41 @@ class TestHeroStructure:
                 # Check nearby lines for a comment explaining the reason
                 context = "\n".join(lines[max(0, i - 1) : i + 1])
                 assert "#" in context, f"except Exception: pass without comment at line {i + 1}"
+
+
+# ── Interstitial PR-L3 (Workstream B): A1 hero light-mode classes ─────────
+
+
+class TestHeroLightTokens:
+    """A1: hero uses the .hero-* class set — no inline theme colors remain."""
+
+    def test_hero_uses_class_set(self):
+        source = open(HERO).read()
+        for cls in (
+            'class="hero-section"',
+            'class="hero-emoji"',
+            'class="hero-title"',
+            'class="hero-subtitle"',
+            'class="hero-cards"',
+            'class="hero-card"',
+            'class="hero-card-icon"',
+            'class="hero-card-title"',
+            'class="hero-card-caption"',
+            'class="hero-hint"',
+        ):
+            assert cls in source, f"{cls} missing from hero markup"
+
+    def test_no_raw_hexes_in_hero(self):
+        """All former inline dark-palette values moved to CSS classes."""
+        source = open(HERO).read()
+        for hex_code in (
+            "#9898b0",  # subtitle (was --text-secondary)
+            "#1a1a26",  # cards (was --bg-card)
+            "#f0f0f5",  # card titles (was --text-primary)
+            "#686880",  # captions/hint (was --text-muted)
+            "#c4b5fd",  # hero-title gradient
+            "#818cf8",
+            "#6366f1",
+        ):
+            assert hex_code not in source, f"{hex_code} hard-coded in hero"
+        assert "rgba(255,255,255,0.06)" not in source, "dark border still inline"

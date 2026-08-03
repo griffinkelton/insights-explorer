@@ -325,6 +325,57 @@ class TestPrivacyCardClass:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Hero classes (interstitial PR-L3 — A1)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestHeroClasses:
+    """A1: COMPONENT_CSS defines the .hero-* class set with tokens."""
+
+    @staticmethod
+    def _rule(selector):
+        match = re.search(selector + r" \{(.*?)\}", styles.COMPONENT_CSS, re.DOTALL)
+        assert match, f"{selector} rule missing from COMPONENT_CSS"
+        return match.group(1)
+
+    def test_hero_title_gradient_defined(self):
+        body = self._rule(r"\.hero-title")
+        assert "linear-gradient" in body
+        assert "-webkit-background-clip: text" in body
+        assert "-webkit-text-fill-color: transparent" in body
+
+    def test_hero_title_light_override_present(self):
+        """Light override must re-declare clip+fill AFTER the background
+        shorthand (which resets background-clip to border-box) or the
+        gradient paints a box behind invisible text."""
+        match = re.search(
+            r'\[data-theme="light"\] \.hero-title \{(.*?)\}',
+            styles.LIGHT_THEME_CSS,
+            re.DOTALL,
+        )
+        assert match, "light hero-title gradient override missing"
+        body = match.group(1)
+        assert "background: linear-gradient" in body
+        assert "-webkit-background-clip: text" in body
+        assert "background-clip: text" in body
+        assert "-webkit-text-fill-color: transparent" in body
+        # The clip/fill must come AFTER the shorthand in the same block.
+        assert body.index("background: linear-gradient") < body.index("background-clip: text")
+
+    def test_hero_card_uses_tokens(self):
+        body = self._rule(r"\.hero-card")
+        assert "background: var(--bg-card);" in body
+        assert "border: 1px solid var(--border);" in body
+        assert "border-radius: 16px" in body
+
+    def test_hero_text_uses_tokens(self):
+        assert "color: var(--text-secondary);" in self._rule(r"\.hero-subtitle")
+        assert "color: var(--text-primary);" in self._rule(r"\.hero-card-title")
+        assert "color: var(--text-muted);" in self._rule(r"\.hero-card-caption")
+        assert "color: var(--text-muted);" in self._rule(r"\.hero-hint")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Focus-visible
 # ═══════════════════════════════════════════════════════════════════════════════
 

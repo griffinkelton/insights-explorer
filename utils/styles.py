@@ -278,6 +278,18 @@ LIGHT_THEME_CSS = """
         background-clip: text;
     }
 
+    /* ── Light theme: Hero title gradient (A1) — darker indigo on white ──
+       The background shorthand resets background-clip to border-box, so
+       the clip + fill MUST be re-declared after it (same pattern as the
+       [data-theme="light"] h1 rule) or the gradient paints a full box
+       behind invisible text. */
+    [data-theme="light"] .hero-title {
+        background: linear-gradient(135deg, #6366f1, #4f46e5, #3730a3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
     /* ── Light theme: Metric hover shadow ── */
     [data-theme="light"] [data-testid="stMetric"]:hover {
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
@@ -572,6 +584,65 @@ COMPONENT_CSS = """
     }
     .hero-section, [data-testid="stMetric"] {
         animation: fadeIn 0.5s ease-out;
+    }
+
+    /* ── Hero / empty state (interstitial PR-L3, A1) ──
+       Token-based: surfaces resolve correctly in both themes. The hero
+       title gradient is the only raw-hex value; light-mode override in
+       LIGHT_THEME_CSS provides the darker indigo gradient for white bg. */
+    .hero-section {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    .hero-emoji {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        filter: drop-shadow(0 8px 24px rgba(99, 102, 241, 0.3));
+    }
+    .hero-title {
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #c4b5fd, #818cf8, #6366f1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .hero-subtitle {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+    .hero-cards {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .hero-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.2rem 1.4rem;
+        text-align: center;
+        min-width: 140px;
+    }
+    .hero-card-icon {
+        font-size: 1.6rem;
+        margin-bottom: 0.3rem;
+    }
+    .hero-card-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+    .hero-card-caption {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+    }
+    .hero-hint {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
     }
 
     /* ── Scrollbar ── */
