@@ -53,7 +53,7 @@
 
 - Error-path E1-E6: automated simulation (`tests/test_drive_import_errors.py` — 7 tests, included in the 672 pytest baseline)
 - Sensitive-output L1-L5: automated E2E leakage suite (`tests/e2e/test_drive_picker_e2e.py` — 8 tests, real session, 8/8 pass)
-- Playwright controlled-state smoke: 14 tests (13 pass + 1 pre-existing xfail), `DRIVE_PICKER_TEST_MODE=1` seam
+- Playwright controlled-state smoke: 14 tests (14/14 pass), `DRIVE_PICKER_TEST_MODE=1` seam — fixed env-var bleed where the documented invocation leaked `DRIVE_PICKER_TEST_MODE=1` into the non-test-mode server
 - Manual browser matrix: **Functional #1–#8 all pass on Chrome/macOS** (2026-08-03)
 - Final gates re-verified 2026-08-03: credential guard clean, frontend typecheck + build clean
 - Tagged `v0.3.0` at `007f3c4` and pushed

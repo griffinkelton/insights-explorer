@@ -66,8 +66,17 @@ def _start_streamlit(port: int, *, test_mode: bool = False) -> subprocess.Popen:
     env["STREAMLIT_SERVER_HEADLESS"] = "true"
     env["STREAMLIT_SERVER_PORT"] = str(port)
     env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+
+    # Guard against parent-env bleed: if the test suite was invoked with
+    # DRIVE_PICKER_TEST_MODE=1 in the shell (the documented way to run this
+    # module), os.environ.copy() would inherit it into a non-test-mode
+    # server, silently enabling the test seam and defeating the
+    # unauthenticated-state assertions below.  Explicitly strip it unless
+    # this server is supposed to run in test mode.
     if test_mode:
         env["DRIVE_PICKER_TEST_MODE"] = "1"
+    else:
+        env.pop("DRIVE_PICKER_TEST_MODE", None)
 
     proc = subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", str(PROJECT_ROOT / "app.py")],
@@ -207,14 +216,14 @@ class TestDriveImportVisibility:
             btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
             assert btn.is_visible(), "Import button not visible in test mode"
 
-    @pytest.mark.xfail(
-        reason="Module-scoped fixture may carry auth state across tests — needs investigation"
-    )
     def test_import_section_hidden_without_auth(self, streamlit_server):
         with _page(streamlit_server) as page:
             sidebar = page.locator('[data-testid="stSidebar"]')
             btn_count = sidebar.get_by_role("button", name="Import from Google Drive").count()
             assert btn_count == 0, "Import button should be hidden when not authenticated"
+            assert (
+                "Google Drive Import" not in sidebar.inner_text()
+            ), "Drive Import section should not render when not authenticated"
 
 
 class TestDriveImportOnDemandRender:
