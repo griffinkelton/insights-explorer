@@ -172,7 +172,7 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 ## Phase 4: Release Closeout
 
 - [x] Manual browser matrix — Chrome/macOS: ✅ (Functional #1-#8, 2026-08-03, griffinkelton), other envs: deferred to interstitial
-- [x] Clean checkout: full validation sequence (Section 7 above) — all green (re-verified 2026-08-03: 672 pytest + 14 smoke + credential guard + frontend build)
+- [x] Clean checkout: full validation sequence (Section 7 above) — all green (re-verified 2026-08-03: 672 pytest + 14 smoke + **8 E2E leakage (8/8, real session)** + credential guard + frontend build)
 - [x] Frontend: `npm ci && npm run check && npm run build` — clean (2026-08-03, vite 6.4.3)
 - [x] Credential guard: `python scripts/check_credentials.py` — clean (exit 0, 2026-08-03)
 - [x] CHANGELOG v0.3.0 entry finalized with final commit hash + test baseline
