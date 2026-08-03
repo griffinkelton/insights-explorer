@@ -3,7 +3,7 @@
 > **Release:** v0.3.0 — Drive Import
 > **Date:** TBD (pending manual matrix)
 > **Release owner:** griffinkelton
-> **Tests:** 663 (pytest, non-smoke) + 14 Playwright smoke
+> **Tests:** 672 pytest (unit/integration) + 14 Playwright smoke + 8 E2E real-Drive leakage = 694 total
 
 ---
 
@@ -21,12 +21,101 @@
 - [x] README: Drive Import feature, scope, formats, privacy model, Picker setup
 - [x] CHANGELOG: v0.3.0 section
 - [x] Spec status updated
+- [x] Error-path E1-E6: unit-test simulation (`tests/test_drive_import_errors.py` — 7 tests)
+- [x] Sensitive-output L1-L5: automated leakage suite (`tests/e2e/test_drive_picker_e2e.py` — 8 tests)
+
+---
+
+## Test Suite Breakdown
+
+| Suite | Count | Command | What It Covers |
+|-------|-------|---------|----------------|
+| Unit/Integration | 672 | `pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e` | DataContext, GA4 client, Drive client, error paths, components, chat, charts, forecasting, session, all Python logic |
+| Error-Path E1-E6 | 7 | `pytest tests/test_drive_import_errors.py -v` | `access_denied`, `not_found`, `unsupported_type`, `too_large`, `empty_file`, `download_failed` + success path |
+| Playwright Smoke | 14 | `DRIVE_PICKER_TEST_MODE=1 pytest tests/test_drive_import_smoke.py -v` | App loads, sidebar visible, no credential leaks, import button visibility, on-demand render, cancel, error, theme sync, duplicate protection |
+| E2E Real-Drive Leakage | 8 | `E2E_REAL_DRIVE=1 pytest tests/e2e/test_drive_picker_e2e.py -v` | L1-L5 sensitive-output checks (no Drive IDs, raw errors, OAuth tokens, API keys, Picker filenames in page source) |
+| Frontend Typecheck + Build | — | `cd components/drive_picker_component_frontend && npm ci && npm run check && npm run build` | TypeScript compilation, Vite production build |
+
+---
+
+## How to Run — Complete Validation Sequence
+
+Run these in order from the project root.  All should pass before signing off.
+
+### 1. Python unit/integration suite
+```bash
+# All unit + integration tests (excludes Playwright smoke and E2E)
+python -m pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e -v
+```
+
+### 2. Drive error-path simulation (E1-E6)
+```bash
+# Simulates all 6 DriveImportError codes via dependency injection.
+# No real Drive API, OAuth, or Playwright needed.
+python -m pytest tests/test_drive_import_errors.py -v
+```
+
+### 3. Playwright controlled-state smoke (Phase 3.2b)
+```bash
+# Requires: playwright installed, Chromium available.
+# Uses DRIVE_PICKER_TEST_MODE=1 to bypass OAuth + Picker secrets.
+# Covers: button visibility, on-demand render, cancel, error, theme,
+#         duplicate protection, import section visibility.
+DRIVE_PICKER_TEST_MODE=1 python -m pytest tests/test_drive_import_smoke.py -v
+```
+
+### 4. Frontend typecheck + production build
+```bash
+# Ensures the Picker component TypeScript compiles and builds cleanly.
+cd components/drive_picker_component_frontend
+npm ci
+npm run check
+npm run build
+cd ../..
+```
+
+### 5. Credential guard scan
+```bash
+# Scans all tracked files for AIza/ya29/AQ. credential-shaped strings.
+# Must return exit code 0 (clean).
+python scripts/check_credentials.py
+```
+
+### 6. E2E real-Drive leakage (Phase 3.3 L1-L5) — one-time setup required first
+```bash
+# ── One-time setup (interactive, requires real Google account) ──
+# Place dummy CSV, XLSX, and native Google Sheets files in your Drive.
+# Then save a Playwright auth session:
+E2E_REAL_DRIVE=1 python tests/e2e/auth_setup.py
+
+# ── Set env vars with your test file display names ──
+export E2E_CSV_FILE_NAME="dummy-ga4-export-messy"
+export E2E_XLSX_FILE_NAME="dummy-ga4-export"
+export E2E_SHEET_FILE_NAME="dummy-ga4-export-sheets"
+
+# ── Run leakage tests ──
+E2E_REAL_DRIVE=1 python -m pytest tests/e2e/test_drive_picker_e2e.py -v
+```
+
+### 7. Full clean-checkout validation
+```bash
+# From a clean clone (no cached session state):
+python -m pytest tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e -v
+DRIVE_PICKER_TEST_MODE=1 python -m pytest tests/test_drive_import_smoke.py -v
+python scripts/check_credentials.py
+cd components/drive_picker_component_frontend && npm ci && npm run check && npm run build
+```
 
 ---
 
 ## Phase 3.3: Manual Cross-Browser Matrix
 
 > **Execute after automated gates are green.** Record date, environment, browser version, pass/fail, tester, and any exception.
+>
+> **Already automated (no manual verification needed for these):**
+> - L1-L5 Sensitive-output leakage (covered by E2E suite — 8 tests)
+> - E1-E6 Error-path user-safe messages (covered by error-path suite — 7 tests)
+> - Button visibility, on-demand render, cancel/error/theme/duplicate states (covered by smoke suite — 14 tests)
 
 ### Environment Matrix
 
@@ -53,40 +142,42 @@
 
 ### Error-Path Matrix (per environment)
 
-| # | Error Case | Expected Behavior | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
-|---|---|---|---|---|---|---|---|
-| E1 | Access denied (file not shared) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| E2 | File not found (deleted after Picker) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| E3 | Unsupported type (non-CSV/XLSX/Sheets) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| E4 | Oversized file (>100 MB) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| E5 | Empty file (0 bytes) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| E6 | Generic download failure (network/500) | User-safe error, no raw API text | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+> **E1-E6 user-safe messages verified by automated unit tests (`tests/test_drive_import_errors.py`).**
+> Manual verification confirms the full end-to-end flow from Picker through download to error display.
+
+| # | Error Case | Expected Behavior | Automated | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
+|---|---|---|---|---|---|---|---|---|
+| E1 | Access denied (file not shared) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E2 | File not found (deleted after Picker) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E3 | Unsupported type (non-CSV/XLSX/Sheets) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E4 | Oversized file (>100 MB) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E5 | Empty file (0 bytes) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| E6 | Generic download failure (network/500) | User-safe error, no raw API text | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ### Sensitive-Output Leakage Check (per environment)
 
-| # | Check | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
-|---|---|---|---|---|---|---|
-| L1 | No Drive file IDs in page/UI/log output | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| L2 | No raw Google error messages in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| L3 | No OAuth tokens (ya29...) in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| L4 | No API keys (AIza...) in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| L5 | No selected-file names from Picker in page/UI | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+> **L1-L5 verified by automated E2E suite (`tests/e2e/test_drive_picker_e2e.py`).**
+> Manual spot-check confirms no regression in real browser rendering.
+
+| # | Check | Automated | Chrome/macOS | Safari/macOS | Firefox/macOS | Chrome/Win | Firefox/Win |
+|---|---|---|---|---|---|---|---|
+| L1 | No Drive file IDs in page/UI/log output | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L2 | No raw Google error messages in page/UI | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L3 | No OAuth tokens (ya29...) in page/UI | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L4 | No API keys (AIza...) in page/UI | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| L5 | No selected-file names from Picker in page/UI | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ---
 
 ## Phase 4: Release Closeout
 
-- [ ] Manual browser matrix complete (all 5 environments, all test cases pass)
-- [ ] Error-path matrix complete (all 6 error cases produce user-safe messages)
-- [ ] Sensitive-output leakage check complete (no Drive IDs, raw errors, tokens, keys, or Picker filenames)
-- [ ] CHANGELOG v0.3.0 entry finalized with commit hashes
-- [ ] Spec status updated to "✅ Complete"
-- [ ] README test count updated to final baseline
-- [ ] Clean checkout: `pytest tests/ --ignore=tests/test_drive_import_smoke.py -v` — all pass
-- [ ] Clean checkout: Playwright job green in CI
+- [ ] Manual browser matrix complete (all 5 environments, Functional #1-#8 pass)
+- [ ] Clean checkout: full validation sequence (Section 7 above) — all green
 - [ ] Frontend: `npm ci && npm run check && npm run build` — clean
-- [ ] Credential guard: `git ls-files -z | xargs -0 python scripts/check_credentials.py` — clean
-- [ ] Git tag `v0.3.0` created
+- [ ] Credential guard: `python scripts/check_credentials.py` — clean
+- [ ] CHANGELOG v0.3.0 entry finalized with final commit hash + test baseline
+- [ ] Spec status updated to "✅ Complete"
+- [ ] Git tag `v0.3.0` created and pushed
 
 ---
 
