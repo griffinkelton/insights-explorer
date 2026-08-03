@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from google.oauth2.credentials import Credentials
 
-from utils.drive_client import DriveImportError, download_drive_file
+from utils.drive_client import DriveImportError
 
 from utils.data_loader import (
     ColumnType,
@@ -420,78 +420,29 @@ def _render_drive_picker() -> None:
         st.session_state.drive_picker_active = True
         st.rerun()
 
-    # When active, render the declared Picker component and process
-    # any returned selection.
+    # The Picker component itself renders in the main content area
+    # (full width, not cramped in sidebar). On button click we store
+    # the config in session state; _render_drive_picker_overlay() in
+    # __init__.py picks it up and renders the iframe.
     if st.session_state.drive_picker_active and st.session_state.drive_picker_request_id:
         if _DRIVE_PICKER_TEST_MODE:
-            oauth_token = "test-token"
-            # Query-param seam controls the fake component return:
-            #   ?picker_seam=picked  → returns a valid picked payload
-            #   ?picker_seam=cancel  → returns None (simulates Picker cancel)
-            #   ?picker_seam=error   → returns None (simulates component error)
-            #   ?picker_seam=none or absent → component renders normally
-            seam = st.query_params.get("picker_seam", "")
-            if seam == "picked":
-                selection = {
-                    "kind": "picked",
-                    "requestId": st.session_state.drive_picker_request_id,
-                    "fileId": "test-file-id-123",
-                }
-            elif seam in ("cancel", "error"):
-                selection = None
-            else:
-                from components.drive_picker_component import drive_picker_transport
-
-                selection = drive_picker_transport(
-                    oauth_token=oauth_token,
-                    dev_key=dev_key,
-                    app_id=project_number,
-                    app_origin=app_origin,
-                    request_id=st.session_state.drive_picker_request_id,
-                    theme=st.session_state.get("theme", "dark"),
-                    key=f"drive_picker_{st.session_state.drive_picker_request_id}",
-                )
+            st.session_state._drive_picker_oauth_token = "test-token"
+            st.session_state._drive_picker_dev_key = dev_key
+            st.session_state._drive_picker_app_id = project_number
+            st.session_state._drive_picker_app_origin = app_origin
         else:
             creds_dict = st.session_state.ga4_creds
             oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
             if not oauth_token:
                 st.error(
-                    "No valid OAuth credential available. " "Please reconnect your Google account."
+                    "No valid OAuth credential available. Please reconnect your Google account."
                 )
                 st.session_state.drive_picker_active = False
                 return
-
-            from components.drive_picker_component import drive_picker_transport
-
-            selection = drive_picker_transport(
-                oauth_token=oauth_token,
-                dev_key=dev_key,
-                app_id=project_number,
-                app_origin=app_origin,
-                request_id=st.session_state.drive_picker_request_id,
-                theme=st.session_state.get("theme", "dark"),
-                key=f"drive_picker_{st.session_state.drive_picker_request_id}",
-            )
-
-        if selection is not None:
-            # Request-freshness guard: ignore stale selections from
-            # previous renders (e.g. browser-back or double-click).
-            if selection["requestId"] != st.session_state.drive_picker_request_id:
-                return
-
-            if _DRIVE_PICKER_TEST_MODE:
-                # Test mode: deactivate without attempting a real Drive download.
-                st.session_state.drive_picker_active = False
-                st.rerun()
-            else:
-                creds = credentials_from_dict(creds_dict)
-                ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
-                if not ok:
-                    # Import failed — keep the error message visible.
-                    # Don't deactivate the picker or rerun.
-                    return
-                st.session_state.drive_picker_active = False
-                st.rerun()
+            st.session_state._drive_picker_oauth_token = oauth_token
+            st.session_state._drive_picker_dev_key = dev_key
+            st.session_state._drive_picker_app_id = project_number
+            st.session_state._drive_picker_app_origin = app_origin
 
 
 def _render_privacy_notice() -> None:
