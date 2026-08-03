@@ -456,7 +456,11 @@ def _render_drive_picker() -> None:
                 st.rerun()
             else:
                 creds = credentials_from_dict(creds_dict)
-                _ingest_drive_file(download_drive_file, creds, selection["fileId"])
+                ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
+                if not ok:
+                    # Import failed — keep the error message visible.
+                    # Don't deactivate the picker or rerun.
+                    return
                 st.session_state.drive_picker_active = False
                 st.rerun()
 
@@ -776,7 +780,7 @@ def _ingest_drive_file(
     downloader: Callable[[Credentials, str], tuple[bytes, str]],
     credentials: Credentials,
     file_id: str,
-) -> None:
+) -> bool:
     """Download and ingest a file from Google Drive.
 
     v0.3.0 Phase 2.3: Receives a downloader dependency — production
@@ -787,13 +791,17 @@ def _ingest_drive_file(
     existing ``load_file()`` parser, then calls ``_populate_data_state()``
     with ``source="drive"``.  Early returns on download or parse failure
     leave the prior ``DataContext`` and all derived session state untouched.
+
+    Returns:
+        True if the file was successfully downloaded and ingested,
+        False if an error occurred (the error is displayed via st.error).
     """
     # Step 1: Download (all failures become DriveImportError — user-safe).
     try:
         file_bytes, display_name = downloader(credentials, file_id)
     except DriveImportError as e:
         st.error(f"❌ {str(e)}")
-        return
+        return False
 
     # Step 2: Adapt Drive bytes → existing parser.
     file_obj = _NamedBytesIO(file_bytes, display_name)
@@ -801,7 +809,7 @@ def _ingest_drive_file(
 
     if error:
         st.error(f"❌ {error}")
-        return
+        return False
 
     if warning:
         st.warning(f"⚠️ {warning}")
@@ -820,3 +828,4 @@ def _ingest_drive_file(
         file_bytes=file_bytes,
         display_name=display_name,
     )
+    return True
