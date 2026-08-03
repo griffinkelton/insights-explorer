@@ -368,6 +368,20 @@ LIGHT_THEME_CSS = """
     [data-theme="light"] [data-testid="stDialog"] button[aria-label="Close"]:hover {
         color: var(--text-primary) !important;
     }
+
+    /* ── Learning challenge cards (A2 — interstitial PR-L4) ──
+       The dark-only alpha tints are near-invisible on white; light uses
+       stronger tints for visible borders. */
+    [data-theme="light"] .challenge-card {
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+    [data-theme="light"] .challenge-card--attempted {
+        border-color: rgba(99, 102, 241, 0.35);
+    }
+    [data-theme="light"] .challenge-card--solved {
+        border-color: rgba(22, 163, 74, 0.4);
+        background: rgba(5, 150, 105, 0.07);
+    }
 """
 
 COMPONENT_CSS = """
@@ -670,6 +684,23 @@ COMPONENT_CSS = """
         font-size: 0.78rem;
         color: var(--text-secondary);
         line-height: 1.5;
+    }
+
+    /* ── Learning challenge cards (A2 — interstitial PR-L4) ──
+       Dark values map 1:1 to the old inline styles (L5 no-op); light
+       overrides live in LIGHT_THEME_CSS. */
+    .challenge-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin: 0.75rem 0 1rem 0;
+    }
+    .challenge-card--attempted {
+        border-color: #818cf820;
+    }
+    .challenge-card--solved {
+        border-color: #22c55e40;
+        background: #0a2a0a20;
     }
 
     /* ── Dialog (Drive Picker — interstitial PR 2, B6) ──

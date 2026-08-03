@@ -69,11 +69,13 @@ def render_learning_challenge(
     attempted = st.session_state[attempted_key]
 
     # ── Card wrapper ────────────────────────────────────────────────────
-    border_color = "#22c55e40" if solved else "#818cf820" if attempted else "#ffffff10"
+    # State styling lives in CSS (.challenge-card--solved/--attempted) so
+    # both themes stay legible — the old inline white border and green
+    # background were near-invisible on white (A2, light-mode spec).
+    # The base .challenge-card rule styles the "default" (unsolved) state.
+    state_cls = "solved" if solved else "attempted" if attempted else "default"
     st.markdown(
-        f"""<div style="border:1px solid {border_color};border-radius:12px;
-        padding:1.25rem 1.5rem;margin:0.75rem 0 1rem 0;
-        background:{"#0a2a0a20" if solved else "transparent"};"
+        f"""<div class="challenge-card challenge-card--{state_cls}"
         id="challenge-{key}">""",
         unsafe_allow_html=True,
     )

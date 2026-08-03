@@ -376,6 +376,46 @@ class TestHeroClasses:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Challenge cards (interstitial PR-L4 — A2)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestChallengeCardClass:
+    """A2: .challenge-card state borders live in COMPONENT_CSS (dark
+    defaults) with visible light overrides in LIGHT_THEME_CSS."""
+
+    @staticmethod
+    def _rule(selector):
+        match = re.search(selector + r" \{(.*?)\}", styles.COMPONENT_CSS, re.DOTALL)
+        assert match, f"{selector} rule missing from COMPONENT_CSS"
+        return match.group(1)
+
+    def test_base_rule_uses_border_token(self):
+        body = self._rule(r"\.challenge-card")
+        assert "border: 1px solid var(--border);" in body
+        assert "border-radius: 12px" in body
+
+    def test_attempted_modifier_present(self):
+        body = self._rule(r"\.challenge-card--attempted")
+        assert "border-color: #818cf820;" in body
+
+    def test_solved_modifier_present(self):
+        body = self._rule(r"\.challenge-card--solved")
+        assert "border-color: #22c55e40;" in body
+        assert "background: #0a2a0a20;" in body
+
+    def test_light_overrides_present(self):
+        for selector in (
+            r"\[data-theme=\"light\"\] \.challenge-card",
+            r"\[data-theme=\"light\"\] \.challenge-card--attempted",
+            r"\[data-theme=\"light\"\] \.challenge-card--solved",
+        ):
+            assert re.search(
+                selector + r" \{(.*?)\}", styles.LIGHT_THEME_CSS, re.DOTALL
+            ), f"{selector} light override missing from LIGHT_THEME_CSS"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Focus-visible
 # ═══════════════════════════════════════════════════════════════════════════════
 

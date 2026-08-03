@@ -18,6 +18,17 @@ from utils.charts import generate_forecast_chart, generate_funnel_chart
 from utils.gemini_client import generate_response
 
 
+def _accent(dark_hex: str, light_hex: str) -> str:
+    """Return the accent color for the current theme (interstitial A3/A4).
+
+    The insight/grade accents were dark-optimized (e.g. #c4b5fd is
+    low-contrast on white); the light variants are tuned for readable
+    contrast on white backgrounds. Dark mode is untouched (L5).
+    """
+    is_light = st.session_state.get("theme", "dark") == "light"
+    return light_hex if is_light else dark_hex
+
+
 def render_data_preview() -> None:
     """Render metrics row, preview table, quality card, and filter expander."""
     ctx = st.session_state.get("data_context")
@@ -162,7 +173,11 @@ def _render_key_insights(
                 if prior > 0:
                     change_pct = ((recent - prior) / prior) * 100
                     direction = "↑" if change_pct >= 0 else "↓"
-                    color = "#34d399" if change_pct >= 0 else "#f87171"
+                    color = (
+                        _accent("#34d399", "#059669")
+                        if change_pct >= 0
+                        else _accent("#f87171", "#dc2626")
+                    )
                     insights.append(
                         {
                             "title": "7-Day Trend",
@@ -178,7 +193,11 @@ def _render_key_insights(
                 if prior > 0:
                     change_pct = ((recent - prior) / prior) * 100
                     direction = "↑" if change_pct >= 0 else "↓"
-                    color = "#34d399" if change_pct >= 0 else "#f87171"
+                    color = (
+                        _accent("#34d399", "#059669")
+                        if change_pct >= 0
+                        else _accent("#f87171", "#dc2626")
+                    )
                     insights.append(
                         {
                             "title": "Day-over-Day",
@@ -203,7 +222,7 @@ def _render_key_insights(
                         "title": "Top Page",
                         "value": f"{top_name}",
                         "detail": f"{int(top_pages.iloc[0]):,} {metric_col}",
-                        "color": "#818cf8",
+                        "color": _accent("#818cf8", "#4f46e5"),
                     }
                 )
         except Exception:
@@ -225,7 +244,7 @@ def _render_key_insights(
                         "title": "Device Split",
                         "value": " · ".join(parts[:3]),
                         "detail": f"By {metric_col}",
-                        "color": "#c4b5fd",
+                        "color": _accent("#c4b5fd", "#6366f1"),
                     }
                 )
         except Exception:
@@ -242,7 +261,7 @@ def _render_key_insights(
                         "title": "Anomalies",
                         "value": f"{int(anom_count)} days",
                         "detail": f">2σ from rolling mean in {metric_col}",
-                        "color": "#fbbf24",
+                        "color": _accent("#fbbf24", "#d97706"),
                     }
                 )
         except Exception:
@@ -264,7 +283,7 @@ def _render_key_insights(
                     x=df_sorted[date_col],
                     y=df_sorted[metric_col],
                     mode="lines",
-                    line=dict(color="#818cf8", width=2),
+                    line=dict(color=_accent("#818cf8", "#4f46e5"), width=2),
                     fill="tozeroy",
                     fillcolor="rgba(99,102,241,0.08)",
                     name=metric_col,
@@ -410,13 +429,13 @@ def _render_data_filters(context) -> None:
 def _render_quality_scorecard(report) -> None:
     """Render the data quality scorecard as a styled A-F grade card."""
     grade_colors = {
-        "A": "#34d399",
-        "B": "#818cf8",
-        "C": "#fbbf24",
-        "D": "#f59e0b",
-        "F": "#f87171",
+        "A": _accent("#34d399", "#059669"),
+        "B": _accent("#818cf8", "#4f46e5"),
+        "C": _accent("#fbbf24", "#d97706"),
+        "D": _accent("#f59e0b", "#c2410c"),
+        "F": _accent("#f87171", "#dc2626"),
     }
-    color = grade_colors.get(report.grade, "#686880")
+    color = grade_colors.get(report.grade, _accent("#686880", "#6b7280"))
 
     with st.container(border=True):
         col_grade, col_stats = st.columns([0.2, 0.8])
@@ -426,7 +445,7 @@ def _render_quality_scorecard(report) -> None:
                 f'<div style="text-align:center;padding:1rem 0;">'
                 f'<div style="font-size:3.5rem;font-weight:800;color:{color};'
                 f'line-height:1;">{report.grade}</div>'
-                f'<div style="font-size:0.7rem;color:#686880;text-transform:uppercase;'
+                f'<div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;'
                 f'letter-spacing:0.08em;">Data Quality</div>'
                 f"</div>",
                 unsafe_allow_html=True,

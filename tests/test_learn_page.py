@@ -167,6 +167,33 @@ class TestProgressiveDisclosure:
         assert "st.expander" in component_source
 
 
+# ── Challenge card theming (interstitial PR-L4 — A2) ────────────────────────
+
+
+class TestChallengeCardTheming:
+    """A2: challenge-card state borders/backgrounds moved to CSS classes so
+    light mode gets visible borders (the old inline #ffffff10 border and
+    #0a2a0a20 background were near-invisible on white)."""
+
+    @staticmethod
+    def _read_component() -> str:
+        with open("components/learning_challenge.py") as f:
+            return f.read()
+
+    def test_card_uses_challenge_card_classes(self):
+        source = self._read_component()
+        assert 'class="challenge-card challenge-card--{' in source
+
+    def test_no_inline_white_border(self):
+        assert "#ffffff10" not in self._read_component()
+
+    def test_no_inline_green_background(self):
+        assert "#0a2a0a20" not in self._read_component()
+
+    def test_no_inline_border_color_branch(self):
+        assert "border_color =" not in self._read_component()
+
+
 # ── Repository architecture section ─────────────────────────────────────────
 
 
