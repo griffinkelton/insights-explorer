@@ -1,4 +1,11 @@
-"""Phase 3.3 Real-Drive E2E tests — Functional Matrix #2-#4 + Leakage Checks.
+"""Phase 3.3 Real-Drive E2E tests — auth-state verification + Leakage Checks.
+
+IMPORTANT: These tests verify authenticated sidebar state and the absence
+of credential/sensitive-output leakage. They do NOT automate Google's
+Picker UI (cross-origin iframe, blocked by bot detection). The full
+Picker → import flow for Functional Matrix #2–#4 is covered by the
+manual browser matrix in RELEASE_CHECKLIST.md. The test-mode seam
+(test_drive_import_smoke.py) covers app-controlled UI surfaces.
 
 These tests require a real Google OAuth session saved by ``auth_setup.py``.
 They use Playwright's ``storageState`` to reuse that session headlessly.
@@ -20,10 +27,7 @@ Prerequisites:
 No-secret boundary:
     - No hardcoded file IDs, filenames, or credentials.
     - The saved session file is gitignored.
-    - Assertions check app-side post-import state ONLY — we do not automate
-      Google's Picker UI inside the cross-origin iframe (best-effort and
-      unstable).  Instead we rely on the test-mode seam for UI surface tests
-      and use these real-Drive tests for the import outcome.
+    - Assertions check app-side authenticated state + leakage ONLY.
 
 See: docs/codebuff-prompt-e2e-drive-picker.md
 """
@@ -195,39 +199,14 @@ def _wait_for_data_preview(page: Page, timeout_ms: int = IMPORT_TIMEOUT) -> bool
     return False
 
 
-def _assert_no_leaked_metadata(page: Page) -> None:
-    """Assert the page content does not contain sensitive Drive metadata.
+def _assert_no_credential_leaks(page: Page) -> None:
+    """Assert the page does not contain credential-shaped strings.
 
-    Checks L1 (no Drive file IDs) and L5 (no Picker filenames display).
-    Note: the app already passes only opaque fileId to the server and
-    uses server-authoritative filename/MIME — these checks confirm that
-    the server-side filename never leaks the raw Drive ID format.
+    Checks L3 (no OAuth tokens) and L4 (no API keys) via simple
+    substring matching.  L1 (Drive file IDs) and L5 (Picker filenames)
+    are tested in TestSensitiveOutputLeakage.
     """
     html = page.content()
-
-    # Drive file IDs are alphanumeric strings that appear in URLs/JSON.
-    # We check for the common pattern: a long alphanumeric string that
-    # looks like a Drive ID (25+ chars, no spaces, mixed case + hyphens).
-    # This is a heuristic — it won't catch every possible format.
-    import re
-
-    drive_id_pattern = re.compile(r"[a-zA-Z0-9_-]{25,}")
-    matches = drive_id_pattern.findall(html)
-
-    # Exclude known-safe tokens (e.g., the dummy test-file-id from test mode,
-    # session IDs, or CSS class names).  In production, Drive IDs should
-    # never appear in rendered page content.
-    dangerous = [m for m in matches if "test-file-id" not in m and "st-" not in m]
-    if dangerous:
-        # Only flag if the match appears in page TEXT, not script/style.
-        # We use a simple check: is the match inside a visible text node?
-        # For now, flag all long-token matches as potential leaks.
-        pass  # Heuristic false-positives are common; keep as warning only.
-
-    # L4 & L5: actually, the RELEASE_CHECKLIST defines L1-L5 differently:
-    #   L1 = no Drive file IDs
-    #   L5 = no selected-file names from Picker
-    # We check both via simpler pattern matching:
     assert "AIza" not in html, "L4 FAIL: API key leak in page source"
     assert "ya29" not in html, "L3 FAIL: OAuth token leak in page source"
 
@@ -237,58 +216,48 @@ def _assert_no_leaked_metadata(page: Page) -> None:
 # ══════════════════════════════════════════════════════════════════════════
 
 
-class TestFunctionalCSVImport:
-    """Functional Matrix #2: Select CSV file via Picker → data preview renders."""
+class TestAuthStateBeforeCSVImport:
+    """Functional Matrix #2 prereq: authenticated sidebar + no credential leak.
 
-    def test_csv_import_renders_preview(self, authenticated_page):
-        """Import a CSV file and verify the data preview appears.
+    Does NOT automate the Picker or verify actual CSV import — those are
+    covered by the manual browser matrix (RELEASE_CHECKLIST.md).
+    """
 
-        Because automating Google's Picker UI inside its cross-origin
-        iframe is unreliable and blocked by bot detection, this test
-        only asserts the authenticated sidebar state (the Drive Import
-        button is visible after OAuth) and the absence of credential
-        leakage.  The full Picker → import flow is validated in the
-        manual browser matrix (Phase 3.3, RELEASE_CHECKLIST.md).
-
-        The test-mode seam (tests/test_drive_import_smoke.py) validates
-        the app-controlled UI surfaces (button states, cancel, error,
-        theme, duplicate protection).
-        """
+    def test_import_button_visible_after_oauth(self, authenticated_page):
+        """Authenticated session: Drive Import button is visible and enabled."""
         page = authenticated_page
-
-        # Gate 1: authenticated state — Drive Import button visible.
         btn = _import_button(page)
         assert btn.is_visible(), "Drive Import button not visible (check OAuth session)"
         assert btn.is_enabled(), "Drive Import button should be enabled"
+        _assert_no_credential_leaks(page)
 
-        # Gate 2: no credential leakage in authenticated page.
-        _assert_no_leaked_metadata(page)
-
-    def test_raw_file_name_not_displayed(self, authenticated_page):
-        """L5: Picker-selected filename must not appear in page content."""
+    def test_csv_name_env_var_not_leaked(self, authenticated_page):
+        """L5: E2E_CSV_FILE_NAME must not appear in page content."""
         page = authenticated_page
-        html = page.content()
-
-        # If E2E_CSV_FILE_NAME is set, assert it is NOT in the page.
         csv_name = os.getenv("E2E_CSV_FILE_NAME", "")
         if csv_name:
             assert (
-                csv_name not in html
+                csv_name not in page.content()
             ), f"L5 FAIL: Picker filename '{csv_name}' leaked into page content"
 
 
-class TestFunctionalXLSXImport:
-    """Functional Matrix #3: Select XLSX file via Picker → data preview renders."""
+class TestAuthStateBeforeXLSXImport:
+    """Functional Matrix #3 prereq: authenticated sidebar + no credential leak.
 
-    def test_xlsx_import_authenticated_state(self, authenticated_page):
-        """Verify authenticated state (import button visible, no credential leak)."""
+    Does NOT automate the Picker or verify actual XLSX import — those are
+    covered by the manual browser matrix (RELEASE_CHECKLIST.md).
+    """
+
+    def test_import_button_visible_after_oauth(self, authenticated_page):
+        """Authenticated session: Drive Import button is visible and enabled."""
         page = authenticated_page
         btn = _import_button(page)
         assert btn.is_visible()
-        _assert_no_leaked_metadata(page)
+        assert btn.is_enabled()
+        _assert_no_credential_leaks(page)
 
-    def test_raw_xlsx_name_not_displayed(self, authenticated_page):
-        """L5: XLSX filename must not appear in page content."""
+    def test_xlsx_name_env_var_not_leaked(self, authenticated_page):
+        """L5: E2E_XLSX_FILE_NAME must not appear in page content."""
         page = authenticated_page
         xlsx_name = os.getenv("E2E_XLSX_FILE_NAME", "")
         if xlsx_name:
@@ -297,18 +266,23 @@ class TestFunctionalXLSXImport:
             ), f"L5 FAIL: Picker filename '{xlsx_name}' leaked into page content"
 
 
-class TestFunctionalSheetsImport:
-    """Functional Matrix #4: Select native Google Sheet → exported as CSV, imported."""
+class TestAuthStateBeforeSheetsImport:
+    """Functional Matrix #4 prereq: authenticated sidebar + no credential leak.
 
-    def test_sheets_import_authenticated_state(self, authenticated_page):
-        """Verify authenticated state (import button visible, no credential leak)."""
+    Does NOT automate the Picker or verify actual Sheets import — those are
+    covered by the manual browser matrix (RELEASE_CHECKLIST.md).
+    """
+
+    def test_import_button_visible_after_oauth(self, authenticated_page):
+        """Authenticated session: Drive Import button is visible and enabled."""
         page = authenticated_page
         btn = _import_button(page)
         assert btn.is_visible()
-        _assert_no_leaked_metadata(page)
+        assert btn.is_enabled()
+        _assert_no_credential_leaks(page)
 
-    def test_raw_sheet_name_not_displayed(self, authenticated_page):
-        """L5: Sheet filename must not appear in page content."""
+    def test_sheet_name_env_var_not_leaked(self, authenticated_page):
+        """L5: E2E_SHEET_FILE_NAME must not appear in page content."""
         page = authenticated_page
         sheet_name = os.getenv("E2E_SHEET_FILE_NAME", "")
         if sheet_name:
@@ -326,11 +300,12 @@ class TestSensitiveOutputLeakage:
     """L1-L5: No Drive IDs, raw errors, tokens, keys, or filenames in page."""
 
     def test_l1_no_drive_file_ids_in_page(self, authenticated_page):
-        """L1: No Drive file IDs appear in page/UI/log output."""
+        """L1: No Drive file IDs appear in page/UI/log output.
+
+        Drive file IDs are long alphanumeric strings (30+ chars).
+        We flag any such token that isn't a known-safe test-mode marker.
+        """
         html = authenticated_page.content()
-        # Drive file IDs are long alphanumeric strings.  We check that
-        # no 25+ char alphanumeric token appears that isn't a known-safe
-        # CSS class or test-mode marker.
         import re
 
         matches = re.findall(r"[a-zA-Z0-9_-]{30,}", html)
