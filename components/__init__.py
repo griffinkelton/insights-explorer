@@ -38,9 +38,6 @@ def render_all() -> None:
 def _render_main_content() -> None:
     """Main content area — hero, data preview, summary, chat, footer."""
 
-    # Drive Picker overlay — renders at full width in main area (not cramped sidebar)
-    _render_drive_picker_overlay()
-
     st.markdown(
         '<h1 style="margin-bottom:0.3rem;">GA4 Insight Explorer</h1>',
         unsafe_allow_html=True,
@@ -67,118 +64,6 @@ def _render_main_content() -> None:
         "Exports via [Google Sheets & Drive](https://developers.google.com/sheets/api) · "
         "[Gemini API Key](https://aistudio.google.com/apikey)"
     )
-
-
-def _render_drive_picker_overlay() -> None:
-    """Render the Google Drive Picker in the main content area (full width).
-
-    The sidebar's _render_drive_picker() stores config in session state
-    when the user clicks "Import from Google Drive". This function picks
-    it up, renders the Picker iframe at full width, and processes the
-    selection on return.
-    """
-    import os
-
-    from components.sidebar import _ingest_drive_file
-    from components.drive_picker_component import drive_picker_transport
-    from utils.drive_client import download_drive_file
-    from utils.ga4_client import credentials_from_dict
-
-    if not st.session_state.get("drive_picker_active"):
-        return
-    if not st.session_state.get("drive_picker_request_id"):
-        return
-
-    oauth_token = st.session_state.get("_drive_picker_oauth_token", "")
-    dev_key = st.session_state.get("_drive_picker_dev_key", "")
-    app_id = st.session_state.get("_drive_picker_app_id", "")
-    app_origin = st.session_state.get("_drive_picker_app_origin", "")
-    request_id = st.session_state["drive_picker_request_id"]
-
-    if not oauth_token or not dev_key:
-        st.warning(
-            f"Picker overlay: config incomplete. "
-            f"oauth={'set' if oauth_token else 'MISSING'} "
-            f"dev_key={'set' if dev_key else 'MISSING'}"
-        )
-        return
-
-    # Diagnostic: confirm overlay reached rendering stage.
-    st.info(
-        "Picker overlay rendering — "
-        f"request_id={request_id[:8]}... "
-        f"token={'set' if oauth_token else 'MISSING'} "
-        f"key={'set' if dev_key else 'MISSING'}"
-    )
-
-    # ── Full-width Picker container ──
-    st.markdown(
-        '<div style="margin: 1rem 0 0.5rem 0; font-weight: 600; font-size: 0.95rem;">'
-        "📂 Select a file from Google Drive</div>",
-        unsafe_allow_html=True,
-    )
-    st.caption("Choose a CSV, XLSX, or Google Sheets file to import.")
-
-    _DRIVE_PICKER_TEST_MODE = os.getenv("DRIVE_PICKER_TEST_MODE", "") == "1"
-
-    if _DRIVE_PICKER_TEST_MODE:
-        seam = st.query_params.get("picker_seam", "")
-        if seam == "picked":
-            selection = {
-                "kind": "picked",
-                "requestId": request_id,
-                "fileId": "test-file-id-123",
-            }
-        elif seam in ("cancel", "error"):
-            selection = None
-        else:
-            selection = drive_picker_transport(
-                oauth_token=oauth_token,
-                dev_key=dev_key,
-                app_id=app_id,
-                app_origin=app_origin,
-                request_id=request_id,
-                theme=st.session_state.get("theme", "dark"),
-                key=f"drive_picker_{request_id}",
-            )
-    else:
-        selection = drive_picker_transport(
-            oauth_token=oauth_token,
-            dev_key=dev_key,
-            app_id=app_id,
-            app_origin=app_origin,
-            request_id=request_id,
-            theme=st.session_state.get("theme", "dark"),
-            key=f"drive_picker_{request_id}",
-        )
-
-    # ── Process selection ──
-    if selection is not None:
-        if selection["requestId"] != request_id:
-            return  # Stale selection from a previous render.
-
-        if _DRIVE_PICKER_TEST_MODE:
-            st.session_state.drive_picker_active = False
-            st.session_state._drive_picker_oauth_token = ""
-            st.rerun()
-        else:
-            creds_dict = st.session_state.ga4_creds
-            creds = credentials_from_dict(creds_dict)
-            ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
-            if not ok:
-                return  # Error is already displayed; keep picker active.
-            st.session_state.drive_picker_active = False
-            st.session_state._drive_picker_oauth_token = ""
-            st.rerun()
-
-    # ── Cancel button ──
-    col_cancel, _ = st.columns([1, 3])
-    with col_cancel:
-        if st.button("✕ Cancel", key="drive_picker_cancel_main"):
-            st.session_state.drive_picker_active = False
-            st.session_state.drive_picker_request_id = ""
-            st.session_state._drive_picker_oauth_token = ""
-            st.rerun()
 
 
 def _handle_oauth_callback() -> None:

@@ -418,20 +418,33 @@ def _render_drive_picker() -> None:
 
         st.session_state.drive_picker_request_id = str(uuid.uuid4())
         st.session_state.drive_picker_active = True
-        # Don't call st.rerun() — let the main area pick up the config
-        # in this same render cycle.  st.rerun() in Streamlit 1.60 may
-        # not re-execute the script as expected.
 
-    # The Picker component itself renders in the main content area
-    # (full width, not cramped in sidebar). On button click we store
-    # the config in session state; _render_drive_picker_overlay() in
-    # __init__.py picks it up and renders the iframe.
+    # When active, render the Picker component and process any returned
+    # selection.  Renders in the same cycle as the button click.
     if st.session_state.drive_picker_active and st.session_state.drive_picker_request_id:
         if _DRIVE_PICKER_TEST_MODE:
-            st.session_state._drive_picker_oauth_token = "test-token"
-            st.session_state._drive_picker_dev_key = dev_key
-            st.session_state._drive_picker_app_id = project_number
-            st.session_state._drive_picker_app_origin = app_origin
+            oauth_token = "test-token"
+            seam = st.query_params.get("picker_seam", "")
+            if seam == "picked":
+                selection = {
+                    "kind": "picked",
+                    "requestId": st.session_state.drive_picker_request_id,
+                    "fileId": "test-file-id-123",
+                }
+            elif seam in ("cancel", "error"):
+                selection = None
+            else:
+                from components.drive_picker_component import drive_picker_transport
+
+                selection = drive_picker_transport(
+                    oauth_token=oauth_token,
+                    dev_key=dev_key,
+                    app_id=project_number,
+                    app_origin=app_origin,
+                    request_id=st.session_state.drive_picker_request_id,
+                    theme=st.session_state.get("theme", "dark"),
+                    key=f"drive_picker_{st.session_state.drive_picker_request_id}",
+                )
         else:
             creds_dict = st.session_state.ga4_creds
             oauth_token = creds_dict.get("access_token") or creds_dict.get("token", "")
@@ -441,10 +454,35 @@ def _render_drive_picker() -> None:
                 )
                 st.session_state.drive_picker_active = False
                 return
-            st.session_state._drive_picker_oauth_token = oauth_token
-            st.session_state._drive_picker_dev_key = dev_key
-            st.session_state._drive_picker_app_id = project_number
-            st.session_state._drive_picker_app_origin = app_origin
+
+            from components.drive_picker_component import drive_picker_transport
+
+            selection = drive_picker_transport(
+                oauth_token=oauth_token,
+                dev_key=dev_key,
+                app_id=project_number,
+                app_origin=app_origin,
+                request_id=st.session_state.drive_picker_request_id,
+                theme=st.session_state.get("theme", "dark"),
+                key=f"drive_picker_{st.session_state.drive_picker_request_id}",
+            )
+
+        if selection is not None:
+            if selection["requestId"] != st.session_state.drive_picker_request_id:
+                return
+
+            if _DRIVE_PICKER_TEST_MODE:
+                st.session_state.drive_picker_active = False
+                st.rerun()
+            else:
+                from utils.drive_client import download_drive_file
+
+                creds = credentials_from_dict(creds_dict)
+                ok = _ingest_drive_file(download_drive_file, creds, selection["fileId"])
+                if not ok:
+                    return
+                st.session_state.drive_picker_active = False
+                st.rerun()
 
 
 def _render_privacy_notice() -> None:
