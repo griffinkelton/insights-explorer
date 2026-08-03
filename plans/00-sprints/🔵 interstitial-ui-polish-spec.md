@@ -1,7 +1,7 @@
 # 🔵 Interstitial UI/UX Polish — Implementation Spec
 
-> **Status:** 🔵 In design — implementation not started
-> **Date:** 2026-08-03 (refined with external review feedback)
+> **Status:** 🔵 In design — **Phase 0 spike ✅ complete (2026-08-03, see Appendix A)**; Phase 1 not started
+> **Date:** 2026-08-03 (refined with external review feedback + spike results)
 > **Based on:** [`plans/🔵 interstitial-ui-polish-design.md`](../🔵%20interstitial-ui-polish-design.md)
 > **Scope:** Workstream A (Drive Picker in `st.dialog`) + Workstream C (import-flow UX enhancements). Workstream B (light-mode redesign) is **deferred** to a future spec.
 > **Delivery:** Incremental PRs per item, unversioned on `main` (no tag).
@@ -20,10 +20,10 @@ v0.3.0 shipped Drive Import, but the Google Picker renders inside the ~300px sid
 | D1 | Spec scope | **A + C now; B (light mode) deferred** to a future spec |
 | D2 | Priority | Workstream A (Picker-in-dialog) is the priority |
 | D3 | File format | Plain Markdown spec (the earlier "MMD" was a typo) |
-| D4 | Dialog persistence | **Keep dialog open across reruns** — gate on a session flag so theme-switch-during-flow works (Functional #7–#8 parity) |
+| D4 | Dialog persistence | **Keep dialog open across reruns** — gate on a session flag so theme-switch-during-flow works (Functional #7–#8 parity). Theme-switch-during-flow delivered via an **in-dialog theme control** (F3 decision, 2026-08-03) |
 | D5 | Import error UX | **Error stays inside the dialog** with retry (fixed no-secret copy, e.g. "Import failed. Check the file format and try again." — never filenames/IDs/raw API text); dialog does not close on error |
 | D6 | Entry points | **Sidebar button + main-area entry** (empty-state hero card) |
-| D7 | Dismissal | **Hybrid:** standard dismissible (X / ESC / click-outside) for idle & error states; **lock dismissal while importing** via a `drive_picker_importing` flag |
+| D7 | Dismissal | **X + ESC only** (click-outside is **not available** in Streamlit 1.60 — verified no backdrop element, spike); **lock dismissal while importing** via a `drive_picker_importing` flag (lock verified in spike) |
 | D8 | Dialog width | `width="large"` |
 | D9 | Component Cancel button (C1) | **Include** |
 | D10 | Success flow | **`st.toast` + auto-close dialog** |
@@ -41,6 +41,8 @@ v0.3.0 shipped Drive Import, but the Google Picker renders inside the ~300px sid
 - **C1 is a flow-level control** (intentional abandonment of the Picker specifically) vs. the dialog X/ESC which is container-level — both are needed and cheap (maps to existing `?picker_seam=cancel`).
 - **`width="large"` clamping on small viewports is Streamlit's responsibility** — C8 is a P2 verification item, not a P0 implementation task.
 - **Hero card gives three parallel import paths** (Upload / Connect GA4 / Drive Import) with equal visual weight; sidebar remains the primary entry.
+- **Click-outside dismissal does not exist in Streamlit 1.60's `st.dialog`** (verified in spike): the `stDialog` overlay is a full-viewport fixed div with a single Paper child — no backdrop element, no backdrop click handler. The only dismissal surfaces are the X button (`aria-label="Close"`) and ESC, both gated by `dismissible`. So D7 reduces to X + ESC + the import lock; no custom backdrop work is needed or possible.
+- **The modal backdrop blocks the sidebar while the dialog is open** (verified in spike) — the app's theme toggle (`_render_theme_toggle`) is unreachable during an active flow. **Decision (F3, 2026-08-03): in-dialog theme control.** Rejected alternative: test-seam-only would ship a known regression (theme changes only when the dialog is closed) with no compensating complexity saving — the spike already verified the `data-theme` propagation mechanism, so the toggle is a ~5-line reuse of `_render_theme_toggle()` logic (theme flip + `st.rerun()`).
 
 ## 3. Scope
 
@@ -68,10 +70,10 @@ Verify before committing to the architecture. Do **not** merge spike code. The s
 
 **Fail path:** if (2) does not hold, fall back to pattern (a) and document "dialog closes on unrelated full reruns" as an **accepted limitation** before proceeding to Phase 1.
 
-**Supporting items (inform D7/D8; non-blocking if they fall back as noted):**
+**Supporting items (inform D7/D8; non-blocking if they fall back as noted) — S3–S5 all verified, see Appendix A:**
 | # | Spike item | Success criterion | Fallback if it fails |
 |---|---|---|---|
-| S3 | Dynamic `dismissible`: can `dismissible` be computed per-run (e.g. re-decoration), or must it be static? | Reliable way to lock dismissal while `drive_picker_importing=True` | Static `dismissible=True` + in-dialog "Importing…" lock state (toast still reports outcome server-side) |
+| S3 | Dynamic `dismissible`: can `dismissible` be computed per-run (e.g. re-decoration), or must it be static? | Reliable way to lock dismissal while `drive_picker_importing=True` | ~~Static `dismissible=True` + in-dialog "Importing…" lock state~~ — **not needed: dynamic `dismissible` verified working** |
 | S4 | Calling the dialog function from inside `with st.sidebar:` renders the modal correctly (not into the sidebar) | Modal renders in viewport center regardless of caller context | Define/call the dialog from the main-area path; sidebar only sets the flag |
 | S5 | Component re-mount on dialog open: Picker lib reload is idempotent and `key=f"drive_picker_{request_id}"` stays stable | No double-load loops; ready state restored in ~1s | Accept 1s lib reload on open |
 
@@ -85,7 +87,7 @@ Verify before committing to the architecture. Do **not** merge spike code. The s
 
 ```python
 @st.dialog("Import from Google Drive", width="large",
-           dismissible=not st.session_state.get("drive_picker_importing", False))  # per spike S3
+           dismissible=not st.session_state.get("drive_picker_importing", False))  # per spike S3 — dynamic dismissible verified
 def drive_picker_dialog() -> None:
     _render_and_process_picker()  # component render + selection handling (moved from sidebar inline path)
 
@@ -118,9 +120,9 @@ if st.session_state.get("drive_picker_active"):
 | Pick a file | Component emits `{kind:"picked", requestId, fileId}` → freshness check → `drive_picker_importing=True` → `_ingest_drive_file()` → success: `st.toast("✓ Data imported from Drive")`, `active=False`, `importing=False`, `st.rerun()` (closes dialog, D10) |
 | Ingest error (download/parse) | `st.error` renders **inside dialog** with fixed no-secret copy (e.g. "Import failed. Check the file format and try again." — never filenames/IDs/raw API text), dialog stays open, `importing=False`, component button resets → retry or dismiss (D5) |
 | Cancel (component Cancel btn C1 / Picker CANCEL) | Component emits explicit `{kind:"cancel", requestId}` (see §5.6) → `active=False`, `st.rerun()` closes dialog; sidebar button resets |
-| Dismiss (X / ESC / click-outside) while idle/error | `on_dismiss` → `active=False`; state reset (D7 — allowed in these states) |
-| Dismiss attempt while importing | **Locked** (D7): dialog not dismissible; "Importing…" state visible |
-| Theme toggle during active flow | Full rerun; `drive_picker_active` still True → dialog re-called → stays open; component gets new `theme` arg (S2) |
+| Dismiss (X / ESC) while idle/error | `on_dismiss` → `active=False`; state reset (D7 — allowed in these states). Click-outside is not available in Streamlit 1.60 (no backdrop) |
+| Dismiss attempt while importing | **Locked** (D7, verified): X and ESC both blocked; "Importing…" state visible |
+| Theme toggle during active flow | Full rerun; `drive_picker_active` still True → dialog re-called → stays open; component gets new `theme` arg (verified). **Sidebar toggle is backdrop-blocked while dialog is open** → dialog body includes its own theme control (F3 decision) — reuses `_render_theme_toggle()` logic; fires `st.rerun()`; de-risked by Core 2 |
 | Second import | Button available; new `requestId`; fresh dialog; frontend relabels "✔ Imported — Open Another File" (existing) |
 
 ### 5.4 Cancel-close asymmetry (important design consequence)
@@ -131,6 +133,8 @@ Today the component only emits on **PICKED**; a Picker CANCEL returns `None` to 
 
 ### 5.5 Theme contract for new surfaces (D11)
 - Dialog container: add `[data-theme="light"]` rules in `utils/styles.py` for the Streamlit dialog surface.
+- **In-dialog theme control (F3 decision):** small light/dark toggle in the dialog body (header or footer area), reusing `_render_theme_toggle()`'s logic (`st.session_state.theme` flip + `st.rerun()`). It only needs to satisfy "user can switch theme while the Picker is open" — it does not replace the sidebar toggle. Hidden or disabled while `drive_picker_importing=True` (consistent with the dismissal lock; avoids mid-ingest chrome changes).
+- **PR 2 implementation note (flagged by review, 2026-08-03):** the in-dialog theme toggle fires a **full-app `st.rerun()`** to flip `data-theme` on the component iframe. This does **not** close the dialog when gated on `drive_picker_active` — verified by Core 2 in the spike. No additional gating needed; do not switch the toggle to a fragment (`st.fragment`) without re-verifying this interaction.
 - Component `index.html`: keep self-contained `data-theme` blocks (iframes can't read parent CSS vars) but align light values to app tokens (`#ffffff` bg, `--bg-card`-equivalent button) instead of today's `#fafafa`/`#f0f0f5`.
 - Broader light-mode redesign remains deferred (B2–B5).
 - **Small-viewport behavior:** `width="large"` clamps to viewport width natively in Streamlit — no custom CSS needed. C8 (responsive verification) is a P2 check, not a P0 task.
@@ -142,7 +146,7 @@ Today the component only emits on **PICKED**; a Picker CANCEL returns `None` to 
   1. `test_dialog_opens_on_click` — `[data-testid="stDialog"]` visible after clicking Import; iframe inside it.
   2. `test_dialog_closes_on_cancel_seam` — `?picker_seam=cancel` → dialog gone, sidebar button visible/enabled.
   3. `test_dialog_closes_after_picked_seam` — `?picker_seam=picked` → dialog gone (success path).
-  4. `test_theme_propagates_to_dialog_component` — theme arg reaches iframe body `data-theme` in both themes; dialog stays open across the toggle.
+  4. `test_theme_propagates_to_dialog_component` — theme arg reaches iframe body `data-theme` in both themes; dialog stays open across the toggle. *(Theme change driven via the **in-dialog theme control** (F3 decision) — the sidebar toggle is backdrop-blocked while the dialog is open. In test mode the toggle still renders inside the dialog and is clickable.)*
   5. `test_error_state_keeps_dialog_open` — after a failed import (error seam), dialog stays open and `st.error` is visible — verifies the deliberate "stay in dialog + retry" decision (D5).
 - Dismissal-lock-while-importing, duplicate-click, and second-import coverage are **follow-ups** once the happy path is confirmed (not committed here).
 - **Unit tests:** update `test_sidebar.py` for the new state model (`drive_picker_importing` lifecycle; cancel closes dialog). `test_drive_picker_component.py` extended for the new cancel shape (allowlisted, no metadata).
@@ -175,7 +179,7 @@ Today the component only emits on **PICKED**; a Picker CANCEL returns `None` to 
 
 - **Incremental PRs** (D14), each with a reviewable scope, a passing test suite, and a clear rollback boundary:
   - **PR 1 (docs):** Phase 0 spike verification result + gating/dismissal decision record (Appendix A).
-  - **PR 2 (Workstream A):** state model + dialog refactor of `_render_drive_picker()`; hero-card entry; `test_sidebar.py` updates; new Playwright dialog tests (incl. error-stays-open).
+  - **PR 2 (Workstream A):** state model + dialog refactor of `_render_drive_picker()`; **in-dialog theme control (F3)**; hero-card entry; `test_sidebar.py` updates; new Playwright dialog tests (incl. error-stays-open).
   - **PR 3 (Workstream C P0):** C1 cancel (component + wrapper cancel shape), C2 toast, C3 dialog copy.
   - **PR 4 (Workstream C P1, if time permits):** C4 status states, C6 retry, C7 a11y.
   - Docs: CHANGELOG entry (general interstitial heading — D16) + `RELEASE_CHECKLIST.md` interstitial rows checked off as they land.
@@ -214,7 +218,9 @@ Per-workstream pass criteria — each row is an independent merge gate (maps to 
 |---|---|
 | Custom component re-mounts inside dialog (state loss / lib reload) | S1/S5 spike; stable `key`; idempotent lib load |
 | Dialog persistence semantics differ from expectation | S2 spike gates the whole design; fallback documented |
-| Dynamic `dismissible` unsupported | S3 spike; fallback = static dismissible + lock-state overlay |
+| Dynamic `dismissible` unsupported | ✅ **Resolved by spike (2026-08-03)** — dynamic `dismissible` verified: X + ESC lock while importing and restore after unlock. Fallback no longer needed |
+| Click-outside dismissal unavailable in Streamlit 1.60 | Not a defect — platform has no backdrop element. Documented in D7/§5.3; tests assert X + ESC, never click-outside |
+| Sidebar theme toggle unreachable while dialog open (backdrop blocks it) | ✅ **Decision made (F3, 2026-08-03): in-dialog theme control** — reuses `_render_theme_toggle()` logic, fires full-app rerun (de-risked by Core 2), hidden while importing |
 | Cancel-close asymmetry (Python can't see None-cancel) | §5.4 explicit cancel protocol extension — boundary-safe |
 | Hero-card gating duplicates sidebar logic | Single shared flag-setting helper + dialog; hero card only visible when gated |
 | Test flakiness around dialog timing | Generous waits (reuse `SIDEBAR_WAIT`), dialog locator `[data-testid="stDialog"]` |
@@ -231,13 +237,27 @@ Per-workstream pass criteria — each row is an independent merge gate (maps to 
 
 ---
 
-## Appendix A — Spike results (fill in after Phase 0)
+## Appendix A — Spike results (Phase 0, executed 2026-08-03)
 
-| Item | Result | Notes |
+**Environment:** Streamlit **1.60.0**, headless Chromium (Playwright), macOS. Scratch app in `/tmp/spike_dialog.py` (real `drive_picker_transport`, pattern-(b) gating, dialog called from `with st.sidebar:` context). Repo untouched — no spike code merged. Verifier: `/tmp/spike_verify.py` (13/14 → corrected S3 → all pass).
+
+| Item | Result | Evidence / notes |
 |---|---|---|
-| Core 1 — component renders in dialog, no re-mount | | |
-| Core 2 — pattern (b) survives reruns incl. theme toggle | | |
-| Core 3 — no `st.sidebar` inside dialog body | | |
-| S3 — dynamic `dismissible` | | |
-| S4 — dialog called from `with st.sidebar:` context | | |
-| S5 — re-mount idempotency / stable `key` | | |
+| **Core 1** — component renders in dialog, no re-mount | ✅ **PASS** | Dialog opens on Import click; `width="large"` → 1280px at 1280-wide viewport; iframe (`title="drive_picker_transport"`) present inside `[data-testid="stDialog"]`, count=1; iframe body `data-theme="dark"` initially |
+| **Core 2** — pattern (b) survives reruns incl. theme toggle | ✅ **PASS** | After an in-dialog theme toggle (full `st.rerun()`), dialog stays open, **exactly one iframe** (no double-mount), iframe body `data-theme` flips dark→light. Pattern (b) confirmed — no fallback to pattern (a) needed |
+| **Core 3** — no `st.sidebar` inside dialog body | ✅ **PASS** | Dialog body touches only `st.caption`/`st.button`/component; `stDialog` renders as a full-viewport centered modal, never inside the sidebar |
+| **S3** — dynamic `dismissible` | ✅ **PASS** | Per-run `dismissible=not importing` works. T1: ESC closes when idle ✅ · T2: X (`aria-label="Close"`) closes when idle ✅ · T3: X blocked while importing ✅ · T4: ESC blocked while importing ✅ · T5: ESC closes after unlock ✅ (initial T5 fail was a test race — needed to wait for the re-render, not `dialog visible`, which returns instantly) |
+| **S4** — dialog called from `with st.sidebar:` context | ✅ **PASS** | Modal renders centered regardless of caller context; sidebar contains no `stDialog` |
+| **S5** — re-mount idempotency / stable `key` | ✅ **PASS** | No double-load loop; single iframe across reruns; ready state restores in ~1s |
+
+### Notable platform findings
+
+- **F1 — No click-outside dismissal in Streamlit 1.60.** `stDialog` is a full-viewport `position:fixed` div whose only child is the Paper; there is **no backdrop element** and no backdrop click handler (DOM-dumped and click-tested). Dismissal surfaces are exactly two: the X button and ESC. → D7 revised to X + ESC only; **no custom backdrop work is possible or needed**; tests must never assert click-outside.
+- **F2 — Dismissal lock is real and testable.** `dismissible=False` blocks both X and ESC; flipping back restores them. The `drive_picker_importing` flag drives this cleanly. Caveat: after a locked ESC press, the test must wait for the next render (e.g., toggle label flip) before pressing ESC again — the dialog element stays visible through reruns, so `wait_for(visible)` is not a re-render signal.
+- **F3 — Modal backdrop blocks the sidebar.** The full-viewport overlay covers the sidebar, so the app's theme toggle (`_render_theme_toggle`, sidebar line ~606) is **unreachable while the dialog is open**. **DECISION (2026-08-03, adopted): in-dialog theme control.** Small light/dark toggle in the dialog body reusing `_render_theme_toggle()` logic (theme flip + `st.rerun()`), hidden/disabled while `drive_picker_importing=True`. Rationale: test-seam-only would ship a known regression (theme changes only with the dialog closed) for no real complexity saving — the spike already proved the component iframe's `data-theme` flips correctly on rerun, so the toggle is minimal and directly satisfies D4's intent. |
+
+### Spike verdict
+- All 3 core criteria pass → **architecture confirmed; Phase 1 may proceed.**
+- No fallbacks triggered (pattern (a) not needed; static-dismissible fallback not needed).
+- `st.dialog` DOM anchors for tests: `[data-testid="stDialog"]`, X = `button[aria-label="Close"]`, ESC = `page.keyboard.press("Escape")`.
+- Scratch files kept out of the repo (`/tmp/spike_dialog.py`, `/tmp/spike_verify.py`). PR 1 = this Appendix A + D7 revision.
