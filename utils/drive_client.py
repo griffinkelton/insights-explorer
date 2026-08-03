@@ -200,7 +200,10 @@ def _raise_classified_drive_error(error: HttpError) -> None:
         logger.warning("Drive download failed: category=access_denied")
         raise DriveImportError(
             "access_denied",
-            "Access denied. Try reconnecting your Google account.",
+            "Access denied. Check the 🔍 Drive Import Diagnostics in the sidebar. "
+            "Common causes: (1) Drive API not enabled in GCP, "
+            "(2) Picker API key and OAuth client are in different GCP projects, "
+            "(3) OAuth token missing the drive.file scope — try reconnecting.",
         )
     logger.warning("Drive download failed: category=download_failed")
     raise DriveImportError(

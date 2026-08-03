@@ -347,6 +347,34 @@ def _render_drive_picker() -> None:
         unsafe_allow_html=True,
     )
 
+    # ── Diagnostic: show OAuth scope info (hidden by default) ──
+    if not _DRIVE_PICKER_TEST_MODE and st.session_state.ga4_creds is not None:
+        with st.expander("🔍 Drive Import Diagnostics", expanded=False):
+            creds_dict = st.session_state.ga4_creds
+            scopes = creds_dict.get("scopes") or []
+            has_drive_scope = any("drive" in s for s in scopes)
+
+            st.caption(
+                f"**OAuth scopes on current token:** "
+                f"{'✅ drive.file present' if has_drive_scope else '❌ drive.file MISSING'}"
+            )
+            if scopes:
+                for s in scopes:
+                    st.caption(f"• `{s}`")
+            else:
+                st.caption("⚠️ No scopes recorded — token may be stale. Try reconnecting.")
+
+            st.caption(
+                "**Common fixes for 403 errors:**\n\n"
+                "1. **Drive API not enabled** → "
+                "[Enable it here](https://console.cloud.google.com/apis/library/drive.googleapis.com)\n\n"
+                "2. **Picker API key + OAuth client in same project?** → "
+                "Both must be in the same GCP project for `drive.file` to grant file access. "
+                "Check [Credentials page](https://console.cloud.google.com/apis/credentials)\n\n"
+                "3. **Reconnect after enabling Drive API** → "
+                "Disconnect + Sign in again to get a fresh token with the `drive.file` scope."
+            )
+
     # Check Picker secrets — in test mode, use dummy values.
     if _DRIVE_PICKER_TEST_MODE:
         dev_key = "test-picker-key"
@@ -359,7 +387,8 @@ def _render_drive_picker() -> None:
         if not dev_key or not project_number or not app_origin:
             # When authenticated but Picker secrets are missing, show a
             # configuration hint so the user knows why the button is hidden.
-            with st.expander("⚙️ Setup Required", expanded=False):
+            # (The diagnostic expander above is rendered first.)
+            with st.expander("⚙️ Setup Required", expanded=True):
                 st.caption(
                     "To enable Drive import, configure these secrets in "
                     "`.streamlit/secrets.toml`:\n\n"
