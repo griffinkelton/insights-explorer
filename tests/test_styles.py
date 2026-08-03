@@ -283,14 +283,14 @@ class TestReducedMotion:
 
 
 class TestInjectCustomCss:
-    """inject_custom_css() delegates to build_theme_css() and calls st.markdown."""
+    """inject_custom_css() delegates to build_theme_css() and calls st.html."""
 
     @staticmethod
     def _call(theme="dark"):
-        mock_md = MagicMock()
-        with patch.object(styles.st, "markdown", mock_md):
+        mock_html = MagicMock()
+        with patch.object(styles.st, "html", mock_html):
             styles.inject_custom_css(theme)
-        return mock_md.call_args[0][0]
+        return mock_html.call_args[0][0]
 
     def test_dark_theme_passes_validation(self):
         html = self._call("dark")
@@ -304,11 +304,11 @@ class TestInjectCustomCss:
         with pytest.raises(ValueError, match="Unknown theme"):
             styles.inject_custom_css("red")
 
-    def test_calls_st_markdown_with_unsafe_allow_html(self):
-        mock_md = MagicMock()
-        with patch.object(styles.st, "markdown", mock_md):
+    def test_calls_st_html_with_theme_output(self):
+        mock_html = MagicMock()
+        with patch.object(styles.st, "html", mock_html):
             styles.inject_custom_css("dark")
-        assert mock_md.call_args[1].get("unsafe_allow_html") is True
+        assert mock_html.call_args[0][0] == styles.build_theme_css("dark")
 
     def test_output_is_same_as_build_theme_css(self):
         assert self._call("dark") == styles.build_theme_css("dark")

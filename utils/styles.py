@@ -709,8 +709,18 @@ def build_theme_css(theme: str) -> str:
     """
     if theme not in VALID_THEMES:
         raise ValueError(f"Unknown theme '{theme}'. Valid themes: {sorted(VALID_THEMES)}")
+    bg_color = "#0e0e16" if theme == "dark" else "#ffffff"
     theme_div = f'<div id="theme-data" data-theme="{theme}" style="display:none;"></div>'
+    # Preemptive style prevents white flash (FOUC) before CSS variables load.
+    preemptive = (
+        f"<style>"
+        f"html{{background:{bg_color}!important}}"
+        f"body{{background:{bg_color}!important}}"
+        f".stApp{{background:{bg_color}!important}}"
+        f"</style>"
+    )
     return (
+        f"{preemptive}\n"
         f"{theme_div}\n"
         f"<style>\n"
         f"{BASE_TOKENS_CSS}\n"
@@ -779,11 +789,13 @@ def inject_favicon_meta(theme: str = "dark") -> None:
 def inject_custom_css(theme: str = "dark") -> None:
     """Inject the app's custom CSS theme and theme-sync JS.
 
-    Delegates to build_theme_css() for constant assembly.
+    Uses ``st.html()`` (Streamlit 1.38+) so the theme is fully replaced on
+    every render. ``st.markdown(unsafe_allow_html=True)`` can silently skip
+    replacement on ``st.rerun()`` when the container position matches.
 
     Args:
-        theme: \"dark\" (default) or \"light\". Sets data-theme on the
+        theme: "dark" (default) or "light". Sets data-theme on the
             document element via a hidden div + JS snippet.
             Raises ValueError for unknown theme values.
     """
-    st.markdown(build_theme_css(theme), unsafe_allow_html=True)
+    st.html(build_theme_css(theme))
