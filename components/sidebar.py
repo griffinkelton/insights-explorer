@@ -418,7 +418,9 @@ def _render_drive_picker() -> None:
 
         st.session_state.drive_picker_request_id = str(uuid.uuid4())
         st.session_state.drive_picker_active = True
-        st.rerun()
+        # Don't call st.rerun() — let the main area pick up the config
+        # in this same render cycle.  st.rerun() in Streamlit 1.60 may
+        # not re-execute the script as expected.
 
     # The Picker component itself renders in the main content area
     # (full width, not cramped in sidebar). On button click we store
