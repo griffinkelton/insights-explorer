@@ -231,6 +231,78 @@ class TestBothThemeSelectors:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Light theme token consolidation (interstitial PR-L1 — B2a/B2e)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLightTokenConsolidation:
+    """B2a: LIGHT_THEME_CSS uses semantic vars — no raw hexes at usage sites."""
+
+    # The hexes consolidated into tokens; may appear only as var definitions.
+    _CONSOLIDATED = ("#e5e7eb", "#e0e0eb", "#f5f5fa", "#f3f4f6", "#d1d5db", "#9ca3af")
+
+    @staticmethod
+    def _light_var_block():
+        """First [data-theme="light"] { ... } block holds variable definitions."""
+        match = re.search(r'\[data-theme="light"\] \{(.*?)\}', styles.LIGHT_THEME_CSS, re.DOTALL)
+        assert match, "light variable block missing"
+        return match.group(1)
+
+    def test_light_semantic_tokens_defined(self):
+        block = self._light_var_block()
+        for token in (
+            "--hover",
+            "--code-bg",
+            "--code-inline-bg",
+            "--scroll-thumb",
+            "--scroll-thumb-hover",
+        ):
+            assert f"{token}:" in block, f"{token} missing from light var block"
+
+    def test_usage_sites_reference_vars(self):
+        css = styles.LIGHT_THEME_CSS
+        assert "background: var(--hover) !important" in css
+        assert "background: var(--code-bg) !important" in css
+        assert "background: var(--code-inline-bg) !important" in css
+        assert "background: var(--scroll-thumb);" in css
+        assert "background: var(--scroll-thumb-hover)" in css
+
+    def test_no_raw_hexes_outside_var_block(self):
+        """Consolidated hexes may appear only as variable definitions."""
+        css = styles.LIGHT_THEME_CSS
+        outside = css.replace(self._light_var_block(), "", 1)
+        for hex_code in self._CONSOLIDATED:
+            assert hex_code not in outside, f"{hex_code} leaked into a usage site"
+
+    def test_hover_drift_fixed(self):
+        """The two secondary-button hover rules used different hexes; now one token."""
+        css = styles.LIGHT_THEME_CSS
+        assert "#e0e0eb" not in css
+        assert css.count("background: var(--hover) !important") >= 2
+
+
+class TestBlanketRuleScoped:
+    """B2e: the global p/span/div color rule is scoped to .stMarkdown containers."""
+
+    def test_no_blanket_p_span_div_rule(self):
+        blanket = '[data-theme="light"] p, [data-theme="light"] span, ' '[data-theme="light"] div'
+        assert blanket not in styles.LIGHT_THEME_CSS
+
+    def test_markdown_container_rule_present(self):
+        match = re.search(
+            r'\[data-theme="light"\] \.stMarkdown \{(.*?)\}',
+            styles.LIGHT_THEME_CSS,
+            re.DOTALL,
+        )
+        assert match, "scoped .stMarkdown color rule missing"
+        assert "color: var(--text-primary)" in match.group(1)
+
+    def test_markdown_paragraph_stays_secondary(self):
+        assert '[data-theme="light"] .stMarkdown p {' in styles.LIGHT_THEME_CSS
+        assert "color: var(--text-secondary) !important;" in styles.LIGHT_THEME_CSS
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Focus-visible
 # ═══════════════════════════════════════════════════════════════════════════════
 

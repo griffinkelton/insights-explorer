@@ -69,6 +69,13 @@ LIGHT_THEME_CSS = """
         --warning: #d97706;
         --danger: #dc2626;
         --border: rgba(0, 0, 0, 0.1);
+        /* Light-mode semantic tokens (B2a consolidation — no raw hexes at
+           usage sites; only these definitions may hold literal values) */
+        --hover: #e5e7eb;
+        --code-bg: #f5f5fa;
+        --code-inline-bg: #f3f4f6;
+        --scroll-thumb: #d1d5db;
+        --scroll-thumb-hover: #9ca3af;
     }
 
     /* ── Light theme: App background ── */
@@ -95,7 +102,10 @@ LIGHT_THEME_CSS = """
     [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3 {
         color: var(--text-primary) !important;
     }
-    [data-theme="light"] p, [data-theme="light"] span, [data-theme="light"] div {
+    /* Blanket p/span/div rule removed (B2e): it could override intended
+       muted text app-wide. Scoped to .stMarkdown containers — children
+       inherit; paragraphs stay secondary via the rule below. */
+    [data-theme="light"] .stMarkdown {
         color: var(--text-primary);
     }
     [data-theme="light"] .stMarkdown p {
@@ -121,7 +131,7 @@ LIGHT_THEME_CSS = """
         border: 1px solid var(--border) !important;
     }
     [data-theme="light"] .stButton > button[kind="secondary"]:hover {
-        background: #e5e7eb !important;
+        background: var(--hover) !important;
         border-color: rgba(0, 0, 0, 0.15) !important;
     }
     /* ── Light theme: Metrics ── */
@@ -275,26 +285,26 @@ LIGHT_THEME_CSS = """
 
     /* ── Light theme: Secondary button hover ── */
     [data-theme="light"] .stButton > button[kind="secondary"]:hover {
-        background: #e0e0eb !important;
+        background: var(--hover) !important;
     }
 
     /* ── Light theme: Code blocks ── */
     [data-theme="light"] .stCode,
     [data-theme="light"] .stCodeBlock {
-        background: #f5f5fa !important;
+        background: var(--code-bg) !important;
         border-color: rgba(0, 0, 0, 0.08) !important;
     }
     [data-theme="light"] code {
-        background: #f3f4f6 !important;
+        background: var(--code-inline-bg) !important;
         color: var(--text-primary) !important;
     }
 
     /* ── Light theme: Scrollbar ── */
     [data-theme="light"] ::-webkit-scrollbar-thumb {
-        background: #d1d5db;
+        background: var(--scroll-thumb);
     }
     [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+        background: var(--scroll-thumb-hover);
     }
 
     /* ── Light theme: Tooltips ── */
