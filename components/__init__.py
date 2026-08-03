@@ -96,7 +96,20 @@ def _render_drive_picker_overlay() -> None:
     request_id = st.session_state["drive_picker_request_id"]
 
     if not oauth_token or not dev_key:
+        st.warning(
+            f"Picker overlay: config incomplete. "
+            f"oauth={'set' if oauth_token else 'MISSING'} "
+            f"dev_key={'set' if dev_key else 'MISSING'}"
+        )
         return
+
+    # Diagnostic: confirm overlay reached rendering stage.
+    st.info(
+        "Picker overlay rendering — "
+        f"request_id={request_id[:8]}... "
+        f"token={'set' if oauth_token else 'MISSING'} "
+        f"key={'set' if dev_key else 'MISSING'}"
+    )
 
     # ── Full-width Picker container ──
     st.markdown(
