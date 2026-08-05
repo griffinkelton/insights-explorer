@@ -145,6 +145,52 @@ class TestTourHtmlBuilder:
         assert "outline" in _TOUR_HTML_TEMPLATE
 
 
+# ── C1 (light-mode spec §3.3): live theme sync ─────────────────────────────
+
+
+class TestTourThemeSync:
+    """The tour iframe must follow the app toggle live (C1).
+
+    st.components.v1.html() only reloads the iframe when the HTML payload
+    changes, and a theme toggle leaves the payload byte-identical — so a
+    one-shot detect at load goes stale.  The template must therefore
+    observe the parent's html[data-theme] attribute with a
+    MutationObserver and sync both directions (set light / clear dark).
+    """
+
+    def test_template_uses_mutation_observer_on_parent_theme(self):
+        from components.onboarding_tour import _TOUR_HTML_TEMPLATE
+
+        assert "MutationObserver" in _TOUR_HTML_TEMPLATE
+        assert "attributeFilter" in _TOUR_HTML_TEMPLATE
+        assert "['data-theme']" in _TOUR_HTML_TEMPLATE
+        assert "window.parent.document.documentElement" in _TOUR_HTML_TEMPLATE
+
+    def test_sync_both_directions(self):
+        """syncTheme must set light AND clear it back to dark defaults."""
+        from components.onboarding_tour import _TOUR_HTML_TEMPLATE
+
+        assert "setAttribute('data-theme', 'light')" in _TOUR_HTML_TEMPLATE
+        assert "removeAttribute('data-theme')" in _TOUR_HTML_TEMPLATE
+
+    def test_initial_sync_called_at_entry(self):
+        """The entry point must call syncTheme() once before observing."""
+        from components.onboarding_tour import _TOUR_HTML_TEMPLATE
+
+        entry_marker = "// ── Entry point"
+        entry_block = _TOUR_HTML_TEMPLATE[_TOUR_HTML_TEMPLATE.index(entry_marker) :]
+        assert "syncTheme();" in entry_block
+        assert "new MutationObserver(syncTheme)" in entry_block
+
+    def test_light_block_aligns_accent_tokens(self):
+        """Light accent tokens match the app palette (styles.py light)."""
+        from components.onboarding_tour import _TOUR_HTML_TEMPLATE
+
+        assert "--accent: #4f46e5" in _TOUR_HTML_TEMPLATE
+        assert "--accent-hover: #6366f1" in _TOUR_HTML_TEMPLATE
+        assert "--success: #059669" in _TOUR_HTML_TEMPLATE
+
+
 # ── render_onboarding_tour behavior ─────────────────────────────────────────
 
 

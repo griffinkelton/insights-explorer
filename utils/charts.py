@@ -9,6 +9,24 @@ from utils.data_loader import find_date_column
 
 logger = logging.getLogger(__name__)
 
+# Light-mode --text-secondary token equivalent (styles.py) for Plotly fonts.
+_LIGHT_FONT_COLOR = "#6b7280"
+
+
+def _accent_for(theme: str, dark: str, light: str) -> str:
+    """Pick the theme-appropriate accent color.
+
+    Dark values stay canonical (L5 guard rail — never change them); light
+    variants are tuned for contrast on white (e.g. indigo-600 instead of
+    indigo-400, amber-600 instead of amber-500).
+    """
+    return dark if theme != "light" else light
+
+
+def _font_color(theme: str) -> str:
+    """Plotly font color — dark is canonical, light maps to the token."""
+    return "#9898b0" if theme == "dark" else _LIGHT_FONT_COLOR
+
 
 def generate_chart(
     df: pd.DataFrame,
@@ -24,8 +42,9 @@ def generate_chart(
 
     Returns {"fig": go.Figure, "type": "line"|"bar"} or None.
     """
-    template = "plotly_dark" if theme == "dark" else "plotly_light"
-    font_color = "#9898b0" if theme == "dark" else "#4b5563"
+    template = "plotly_dark" if theme == "dark" else "plotly_white"
+    font_color = _font_color(theme)
+    series_color = _accent_for(theme, "#818cf8", "#4f46e5")
     chart_type = chart_config.get("chart_type", "bar")
     try:
         date_col = find_date_column(df)
@@ -41,7 +60,7 @@ def generate_chart(
                     title="Sessions Over Time",
                     markers=True,
                     template=template,
-                    color_discrete_sequence=["#818cf8"],
+                    color_discrete_sequence=[series_color],
                 )
                 fig.update_traces(line=dict(width=2.5), marker=dict(size=6))
                 fig.update_layout(
@@ -67,7 +86,7 @@ def generate_chart(
                     orientation="h",
                     title=f"Top Pages by {sessions_col.replace('_', ' ').title()}",
                     template=template,
-                    color_discrete_sequence=["#818cf8"],
+                    color_discrete_sequence=[series_color],
                     text_auto=".1s",
                 )
                 fig.update_traces(textposition="outside", textfont=dict(color=font_color, size=11))
@@ -95,7 +114,7 @@ def generate_chart(
                 orientation="h",
                 title=f"{num_col.replace('_', ' ').title()} by {cat_col.replace('_', ' ').title()}",
                 template=template,
-                color_discrete_sequence=["#818cf8"],
+                color_discrete_sequence=[series_color],
             )
             fig.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
@@ -137,10 +156,10 @@ def generate_forecast_chart(
     if result is None:
         return None
 
-    template = "plotly_dark" if theme == "dark" else "plotly_light"
-    font_color = "#9898b0" if theme == "dark" else "#4b5563"
-    actual_color = "#818cf8"  # Indigo
-    forecast_color = "#f59e0b"  # Amber
+    template = "plotly_dark" if theme == "dark" else "plotly_white"
+    font_color = _font_color(theme)
+    actual_color = _accent_for(theme, "#818cf8", "#4f46e5")  # Indigo
+    forecast_color = _accent_for(theme, "#f59e0b", "#d97706")  # Amber
     band_color = "rgba(245, 158, 11, 0.15)"  # Semi-transparent amber
 
     daily = result.daily
@@ -240,9 +259,11 @@ def generate_funnel_chart(
     if funnel_data is None or not funnel_data.steps:
         return None
 
-    template = "plotly_dark" if theme == "dark" else "plotly_light"
-    font_color = "#9898b0" if theme == "dark" else "#4b5563"
-    bar_color = "#818cf8"
+    template = "plotly_dark" if theme == "dark" else "plotly_white"
+    font_color = _font_color(theme)
+    bar_color = _accent_for(theme, "#818cf8", "#4f46e5")
+    dropoff_color = _accent_for(theme, "#f87171", "#dc2626")
+    annotation_bg = "rgba(0,0,0,0.4)" if theme == "dark" else "rgba(255,255,255,0.85)"
 
     steps = funnel_data.steps
     counts = funnel_data.counts
@@ -260,7 +281,7 @@ def generate_funnel_chart(
         else:
             labels.append(
                 f"{step}<br>{count:,.0f} {metric_label}<br>"
-                f"<span style='color:#f87171;font-size:0.85em;'>{dp:+.1f}% change</span>"
+                f"<span style='color:{dropoff_color};font-size:0.85em;'>{dp:+.1f}% change</span>"
             )
 
     fig.add_trace(
@@ -294,8 +315,8 @@ def generate_funnel_chart(
                 y=mid_y,
                 text=f"{dropoff[i]:+.1f}%",
                 showarrow=False,
-                font=dict(color="#f87171", size=11),
-                bgcolor="rgba(0,0,0,0.4)",
+                font=dict(color=dropoff_color, size=11),
+                bgcolor=annotation_bg,
                 borderpad=4,
             )
 

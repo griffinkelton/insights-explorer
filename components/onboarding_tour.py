@@ -96,6 +96,10 @@ _TOUR_HTML_TEMPLATE = """<!DOCTYPE html>
     --border: rgba(0,0,0,0.08);
     --text: #1e1e2e;
     --muted: #686880;
+    /* Aligned to the app's light accent tokens (styles.py) for contrast on white */
+    --accent: #4f46e5;
+    --accent-hover: #6366f1;
+    --success: #059669;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -182,12 +186,14 @@ _TOUR_HTML_TEMPLATE = """<!DOCTYPE html>
   function setCompleted() { localStorage.setItem(STORAGE_KEY, 'true'); }
   function clearCompleted() { localStorage.removeItem(STORAGE_KEY); }
 
-  function detectTheme() {
+  function syncTheme() {
     try {
       var parentHtml = window.parent.document.documentElement;
       var theme = parentHtml.getAttribute('data-theme');
       if (theme === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
       }
     } catch (_) { /* cross-origin — ignore */ }
   }
@@ -259,7 +265,20 @@ _TOUR_HTML_TEMPLATE = """<!DOCTYPE html>
   }
 
   // ── Entry point ──────────────────────────────────────────────────────
-  detectTheme();
+  // Sync once on load, then keep following the app toggle live.
+  // st.components.v1.html() only reloads the iframe when the HTML payload
+  // changes, and a theme toggle leaves the payload byte-identical — so a
+  // one-shot detect would go stale.  The MutationObserver propagates the
+  // parent's html[data-theme] flip without any reload (C1, light-mode
+  // spec §3.3).
+  syncTheme();
+  try {
+    var themeObserver = new MutationObserver(syncTheme);
+    themeObserver.observe(window.parent.document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+  } catch (_) { /* cross-origin — ignore */ }
 
   if (FORCE_REPLAY) {
     clearCompleted();
