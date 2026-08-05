@@ -2,7 +2,7 @@
 
 Index for the migration decision material: moving the `insights-explorer` product from a Streamlit UI to a **React frontend (`insights-whisperer-30` components) + FastAPI backend** built on the existing Python `utils/` layer.
 
-> **Status (2026-08-05):** all ten documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no code written**, nothing committed to git.
+> **Status (2026-08-05):** all eleven documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; **`master-plan.md` is the execution coordinator** (phases 0–6 + cross-cutting tracks + target file layout); final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no code written**, nothing committed to git.
 
 ---
 
@@ -12,10 +12,11 @@ Index for the migration decision material: moving the `insights-explorer` produc
 
 ---
 
-## The ten documents
+## The eleven documents
 
 | File | What it is | Contents | Status |
 |---|---|---|---|
+| **`master-plan.md`** | **The execution coordinator — START IMPLEMENTATION HERE.** | Phases 0–6 with inputs/tasks/exit criteria, 5 cross-cutting workstreams (state, contract, tests, security, CI/CD), target repo file layout, critical-path dependencies, open decisions, consolidated risk register, doc→phase source map | 🔵 Plan (no code) |
 | **`insights-explorer-migration-ingest.md`** | **The compiled archive** — the master record of everything provided and verified. Start here. | **Part 1** synthesis (decision, evidence chain, artifact map, batch 1–3 deltas) · **Part 2** verbatim source archive (11 pasted reviews + 4 file copies, URLs collapsed to `[URL1]`–`[URL5]`) · **Part 3** external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE/AI SDK, MSW/TanStack — live-verified 2026-08-05) · **Part 4** cross-check & reconciliation ledger (verified claims, contract reconciliation, batch-3 verification) | 🔵 Ingested |
 | **`insights-explorer-migration-plan.md`** | **The 6-phase plan** — the actionable roadmap. | Executive summary, repo comparison, risk table, **Phases 1–6** (FastAPI skeleton → utils decoupling → wire real utils → port React UI → GA4 OAuth + Drive Picker → cutover/retire Streamlit), API contract draft, success metrics, open questions, next actions + 3 addenda + **Research Fold-In Log** | 🔵 Plan (no code) |
 | **`freebuff-prompt-wire-react-store.md`** | **F3 — the frontend wiring prompt** (for an AI coding agent). | 13-step change list for `explorer-store.tsx`: remove mocks, real `fetch()` calls, GA4/Drive integration, SSE chat, typed client, `.env` files | 🟡 Reference |
@@ -52,10 +53,23 @@ Frozen, dated snapshot of the source UI repo (`griffinkelton/insights-whisperer-
                           │ glm-5-2-vs-perplexity-migration-comparison.md     │
                           │ (independent audit lens — GLM facts verified)     │
                           └───────────────────────────────────────────────────┘
+                                            │
+                    ┌───────────────────────┼───────────────────────┐
+                    ▼                       ▼                       ▼
+            ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────────┐
+            │ master-plan.md   │   │ 7 support docs:  │   │ whisperer-30-        │
+            │ EXECUTION        │   │ env-rotation ·   │   │ reference/ (captured │
+            │ COORDINATOR      │   │ branch-freeze ·  │   │ source UI repo, 18   │
+            │ (phases 0–6 +    │   │ session-state ·  │   │ files)               │
+            │ cross-cutting +  │   │ test-layer ·     │   └──────────────────────┘
+            │ file layout)     │   │ dockerfile ·     │
+            └──────────────────┘   │ comparison       │
+                                   └──────────────────┘
 ```
 
 - **The archive is the source of truth.** Everything else derives from it; when docs disagree, the archive's **Part 4 ledger** records which choice is canonical.
 - **The plan is the executable view.** It consumes the archive's research (Part 3) and reconciliation (Part 4) and folds them into its phase sections.
+- **`master-plan.md` is the execution coordinator.** It sequences the phases (0–6), adds cross-cutting workstreams and the target file layout, and points each phase at its input docs — implement from it, consult the source docs for detail.
 - **F3 and F4 are the two halves of implementation** — F4 builds the backend (Phase 1), F3 wires the frontend store (Phase 4). They share the same API contract, so the plan's contract section + Part 4 reconciliation keep them aligned.
 - **The comparison doc is an audit artifact** — it informed the decision but drives no phases.
 - **Two support docs feed the plan directly:** `session-state-inventory.md` (state-migration checklist for Phases 2/4) and `dockerfile-pattern.md` (hosting pattern for Phase 6).
@@ -78,11 +92,13 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 | **Round 2 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 2: GA4 quota/pagination numbers (10 concurrent/property, 250k rows/request max), Gemini SDK (`google-genai` + `thoughts_token_count`), AI SDK pin (`ai@^7.0.48` — corrects a research "v4" claim), bun-in-CI (`oven-sh/setup-bun@v2`) |
 | **Round 3 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 3: AI SDK v7 + `toTextStreamResponse` confirmed, Start/Lovable→Vite strip list, **Cloud Run path** (timeouts/session affinity/HTTP2), MSW streaming tests, Recharts×React 19, Python 3.14 floors (pandas≥2.3.3), Gemini model hygiene (2.0-flash shut down) |
 | **Internal Reconciliation (2026-08-05)** | archive, plan, F4, dockerfile, new doc | Single 100 MB ingestion size policy (Drive/upload mismatch closed); field-level measurement-contract mapping; 742-test layer inventory (new doc); **Vercel hosting evaluation — SPA yes, FastAPI no** |
+| **Master Plan (2026-08-05)** | new doc: `master-plan.md` | The execution coordinator — phases 0–6 with per-phase inputs/tasks/exit criteria, 5 cross-cutting workstreams, target file layout, critical path, open decisions, risk register, doc→phase map; README + DOCIDX re-indexed to eleven docs |
 
 ## Suggested reading paths
 
 - **New to the project (30 min):** README → plan §"Decision" + "Comprehensive Plan" → archive Part 1 (§1.1–1.2) → skim F4.
-- **About to implement Phase 1:** plan Phase 1 (with amendments) → F4 in full → F3 §3 (API base) → archive Part 4 §4.2 (canonical contract choices).
+- **About to implement anything:** `master-plan.md` first (phase → inputs → tasks → exit criteria), then the phase's source docs.
+- **About to implement Phase 1:** `master-plan.md` §5 → plan Phase 1 (with amendments) → F4 in full → F3 §3 (API base) → archive Part 4 §4.2 (canonical contract choices).
 - **About to do OAuth/Drive (Phase 5):** plan Phase 5 amendments → archive Part 3 §3.2–3.4 → F4 OAuth section + Batch 3 addendum.
 - **Reviewing the decision itself:** archive Part 1 (§1.1–1.8) + Part 2 verbatim pastes + comparison doc.
 
@@ -95,4 +111,4 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 3. **Contracts:** adopt the Part 4 §4.2 canonical choices (`/healthz`, `authorization_url`, `{ dataset }` wrapper, `credentials: "include"`, `setSourceFromApi`, `/api/v1`).
 4. **Fold-in complete:** the 7 research corrections are already in the plan's phase sections (see Research Fold-In Log).
 
-*All ten files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*
+*All eleven files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*
