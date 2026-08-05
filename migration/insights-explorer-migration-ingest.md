@@ -3200,4 +3200,15 @@ Peer review of the migration package ("tighten before Phase 1") produced this re
 | Three release gates | master-plan §14 | No-regression · Contract · User-flow |
 | Doc lifecycle + wording | README | Active vs reference vs archive classification; "nothing committed to git" corrected to "no migration product code written" |
 
+### 4.13 ChatGPT review refinement (2026-08-05)
+
+Second review pass (ChatGPT) refined two locked decisions and added an 8-gate priority checklist. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Upload cap refined | master-plan §4–5, §13; canonical blocks (F3/F4/plan) | Browser cap 32 MB → **25 MB** (margin below Cloud Run's 32 MiB HTTP/1 boundary); 100 MB Drive/server-side cap retained **subject to memory, MIME, row-count, and decompression safeguards**; end-to-end HTTP/2 explicitly **not** selected merely for 100 MB browser uploads; signed Cloud Storage deferred until real file-size evidence requires it |
+| State-placement architecture | master-plan §5, cross-cutting A, §13 | Replaces the binary Redis/Valkey-vs-Postgres framing with a state-type → home map (cookie / ephemeral Redis-Valkey / shared store / Cloud Storage / memory cache / encrypted durable / Postgres-later); durable DB provider choice postponed until real multi-user/audit requirements exist |
+| 8-gate priority checklist | master-plan Phase 0 | Gate → owner → completion evidence → status; items 1–6 must precede the vertical slice (item 7); item 8 keeps GA4/Drive/chat/exports deferred |
+| Wording fixes | master-plan §5 | "Drive stays at 100 MB because server-to-server" completed with streaming-download + decompression/row-count/cleanup/memory safeguards; "choose one store now" replaced with an architecture (state-placement) choice |
+
 *— End of compiled archive —*

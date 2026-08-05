@@ -22,11 +22,11 @@ Single source of truth for implementation-facing documents. Anything below that 
 | API naming | snake_case at the boundary |
 | React mapping | `api.ts` performs snake_case → camelCase normalization — never individual components |
 | Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
-| Upload policy | Browser cap **32 MB** (`MAX_BROWSER_UPLOAD_BYTES`); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`) |
+| Upload policy | Browser cap **25 MB** (`MAX_BROWSER_UPLOAD_BYTES` — margin below Cloud Run's 32 MiB HTTP/1 boundary); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`, subject to memory/MIME/row-count/decompression safeguards) |
 
-Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any 25 MB upload default. See `master-plan.md` §4–5 and archive §4.12.
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `master-plan.md` §4–5 and archive §4.12–4.13.
 
-**F4-specific supersession:** §7 `max_upload_bytes = 25 MB` → `MAX_BROWSER_UPLOAD_BYTES = 32 MB` (browser) / `MAX_INGEST_BYTES = 100 MB` (server-side/Drive); §1 layout gains `api/stores/` (SessionStore/DatasetStore interfaces); the in-memory session in §4 is dev-only — a shared staging store must be proven before Phase 5.
+**F4-specific supersession:** §7 `max_upload_bytes = 25 MB` is retained as the browser cap (`MAX_BROWSER_UPLOAD_BYTES = 25 MB`); `MAX_INGEST_BYTES = 100 MB` applies to server-side/Drive with safeguards; §1 layout gains `api/stores/` (SessionStore/DatasetStore interfaces); the in-memory session in §4 is dev-only — shared ephemeral session/OAuth storage + object storage for raw uploads must be proven before Phase 5 (state placement, archive §4.13).
 
 ## 1. Target layout
 

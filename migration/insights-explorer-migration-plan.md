@@ -20,11 +20,11 @@ Single source of truth for implementation-facing documents. Anything below that 
 | API naming | snake_case at the boundary |
 | React mapping | `api.ts` performs snake_case → camelCase normalization — never individual components |
 | Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
-| Upload policy | Browser cap **32 MB** (`MAX_BROWSER_UPLOAD_BYTES`); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`) |
+| Upload policy | Browser cap **25 MB** (`MAX_BROWSER_UPLOAD_BYTES` — margin below Cloud Run's 32 MiB HTTP/1 boundary); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`, subject to memory/MIME/row-count/decompression safeguards) |
 
-Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any 25 MB upload default. See `master-plan.md` §4–5 and archive §4.12.
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `master-plan.md` §4–5 and archive §4.12–4.13.
 
-**Plan-specific supersession:** the draft endpoint table's bare `/api/...` paths are now `/api/v1/...`; Phase 1 upload cap is 32 MB for browser uploads and 100 MB for server-side/Drive; session storage is decided in Phase 1 (interface + in-memory; shared store proven before Phase 5), not deferred to Phase 6. Coordination: `master-plan.md` supersedes this document for *execution order*; this document remains the phase-shape source.
+**Plan-specific supersession:** the draft endpoint table's bare `/api/...` paths are now `/api/v1/...`; Phase 1 upload cap is **25 MB** for browser uploads and 100 MB for server-side/Drive (with safeguards); session architecture is decided in Phase 1 as **state placement** (interface + in-memory; shared ephemeral store + object storage proven before Phase 5), not deferred to Phase 6. Coordination: `master-plan.md` supersedes this document for *execution order*; this document remains the phase-shape source.
 
 ## Executive Summary
 

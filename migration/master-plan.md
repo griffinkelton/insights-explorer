@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-05
 **Status:** 🔵 Planning — no migration product code written (planning docs are committed on `main`). This document is the **execution coordinator** for everything in `migration/`.
-**Revised:** 2026-08-05 — review feedback folded in: session store & upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates.
+**Revised:** 2026-08-05 — review feedback folded in (first pass: session store & upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates). **Second revision (2026-08-05):** upload cap locked at 25 MB, session decision reframed as state placement, 8-gate priority checklist.
 **How to use this document:** implement *from here*, consult the source docs for detail. Each phase lists its inputs (specific docs/sections), tasks, and exit criteria. Nothing in this plan is executed until it is explicitly approved.
 
 ---
@@ -77,7 +77,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 **Suggested PR seams (from the archive's incremental-PR principle):** one PR per phase deliverable; Phase 0 splits into PR-0a (security gate) / PR-0b (branch + policy).
 
-**Phase 0/1 gates — locked before product code (master-plan revision 2026-08-05):** (1) browser-upload architecture decided (32 MB browser cap is the default); (2) `SessionStore`/`DatasetStore` interfaces defined and a shared staging store proven before Phase 5; (3) canonical API decisions record published to all implementation-facing docs with old paths marked superseded; (4) data-retention + AI data-boundary policy written. Items 1–5 of the review's priority order must be locked before Phase 1 starts.
+**Phase 0/1 gates — locked before product code (master-plan revision 2026-08-05):** (1) browser-upload architecture decided (**25 MB direct browser cap**); (2) **state-placement architecture** locked — `SessionStore`/`DatasetStore` interfaces defined, shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5; (3) canonical API decisions record published to all implementation-facing docs with old paths marked superseded; (4) data-retention + AI data-boundary policy written. Items 1–6 of the 8-gate priority checklist (§4) must be locked before Phase 1 starts.
 
 ---
 
@@ -92,12 +92,25 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **Cut `feat/react-fastapi-migration` branch.** `main` = production/security fixes only; all migration work lands on the branch with the fix-forward rule. Feature freeze applies to broad Streamlit work (test: any new `st.session_state` key during the freeze needs a documented replacement — see `session-state-inventory.md`). Lift criteria in `branch-and-freeze-policy.md` §5.
 - [ ] **Inventory the 44 `st.session_state` keys** (done — `session-state-inventory.md`). Adopt it as the working checklist for Phases 2/4.
 - [ ] **Confirm the Streamlit baseline is green** before any changes (see Phase 1 verification commands).
-- [ ] **Lock the browser-upload architecture (decision, not code).** Cloud Run under HTTP/1 caps request size at **32 MiB**; end-to-end HTTP/2 has no stated request-size limit. Options: (a) **32 MB initial browser-upload cap** — recommended; simplest and reliable for the vertical slice, retain 100 MB as the *server-side/Drive* ingestion policy; (b) keep 100 MB direct FastAPI upload — requires tested end-to-end HTTP/2 (`h2c`) config, timeouts, and memory testing; (c) direct-to-Cloud-Storage signed uploads for 100 MB+ — later, only if real files justify it. (Archive §4.12; Cloud Run quotas.)
-- [ ] **Define `SessionStore`/`DatasetStore` interfaces (decision, not code).** In-memory for local dev; **prove a shared staging implementation (Redis/Valkey or Postgres) before Phase 5 (GA4 OAuth + Drive)** — Cloud Run routes requests across instances and session affinity is best-effort, not a consistency guarantee. Do not defer to Phase 6.
-- [ ] **Publish the canonical API decision record** (prefix `/api/v1`, `/healthz`, `{ dataset }`, HttpOnly cookie + `credentials: "include"`, snake_case at the boundary, `api.ts` camelCase, chat transport, upload policy) and add it to the top of every implementation-facing doc (F3, F4, plan) with old paths marked superseded.
-- [ ] **Write the data-retention + Gemini data-boundary policy** (`migration/data-retention-policy.md`) before any API code exists.
+- [x] **Lock the browser-upload architecture — DONE (2026-08-05): 25 MB direct browser cap.** Cloud Run under HTTP/1 caps request size at **32 MiB**; end-to-end HTTP/2 has no stated request-size limit — but HTTP/2 is **not** selected merely to preserve 100 MB browser uploads (it adds transport/deployment complexity without solving parsing memory, dataframe expansion, processing time, retention, or cleanup). Signed Cloud Storage upload is deferred until real file-size evidence requires it. (Archive §4.12–4.13; Cloud Run quotas.)
+- [x] **Lock the session/data architecture — DONE (2026-08-05): state placement, not one store.** `SessionStore`/`DatasetStore` interfaces with in-memory implementations for local dev; **shared ephemeral storage for session/OAuth state + object storage for raw uploads proven before Phase 5 (GA4 OAuth + Drive)** — Cloud Run routes requests across instances and session affinity is best-effort, not a consistency guarantee. The durable database choice (refresh tokens, audit) is postponed until real multi-user/audit requirements exist. (Archive §4.13.)
+- [x] **Publish the canonical API decision record** (prefix `/api/v1`, `/healthz`, `{ dataset }`, HttpOnly cookie + `credentials: "include"`, snake_case at the boundary, `api.ts` camelCase, chat transport, upload policy) and add it to the top of every implementation-facing doc (F3, F4, plan) with old paths marked superseded. **DONE (2026-08-05 revision pass).**
+- [x] **Write the data-retention + Gemini data-boundary policy** — **DONE (2026-08-05):** `migration/data-retention-policy.md` exists; the ⚠️-flagged defaults inside (retention window, session expiry, export-log retention) still need product confirmation.
 
 **Exit criteria (DoD):** `.env` rotation completed with evidence (checklist §Verification) · branch created · baseline test run recorded.
+
+**Phase 0/1 priority gates (8-item checklist — review refinement 2026-08-05, archive §4.13).** Gates are technical, not just done/not-done: each carries an owner and completion evidence. Items 1–6 must be locked before item 7 (the vertical slice) starts.
+
+| # | Gate | Owner | Completion evidence | Status |
+|---|---|---|---|---|
+| 1 | Rotate/remove tracked Lovable credentials | You | Provider-console rotation, `.env` removed from index, secret scan clean (`env-rotation-checklist.md` Phases A–E) | ⏳ Blocked (needs your consoles) |
+| 2 | Create migration branch + Streamlit freeze | You | `feat/react-fastapi-migration` exists; freeze policy recorded (`branch-and-freeze-policy.md`) | ⏳ Blocked (one command) |
+| 3 | Publish canonical API decision record | ✅ Done (2026-08-05) | `/api/v1`, `/healthz`, `{ dataset }`, cookie auth transport, chat format, upload limit — in F3/F4/plan top sections | ✅ Done |
+| 4 | Lock upload policy | ✅ Done (2026-08-05) | **25 MB** direct cap + **100 MB** Drive cap with safeguards + rejection messages defined (Phase 1) | ✅ Locked (25-vs-32 final confirmation optional) |
+| 5 | Define state-placement + store interfaces | Implementation agent | `SessionStore`/`DatasetStore` contracts; local in-memory implementation tested (Phase 1) | ⏳ Open (Phase 1 work) |
+| 6 | Write retention + AI-data-boundary policy | You | `data-retention-policy.md` exists; ⚠️ defaults (dataset TTL, clear-data behavior, Gemini filtering) confirmed | 🔵 Doc done; decisions pending your confirmation |
+| 7 | Build upload vertical slice | Implementation agent | Upload → preview → quality → clear + contract tests (Phase 1) | ⏳ Blocked by 1–2, 5–6 |
+| 8 | Explicitly defer GA4, Drive, chat, exports | You | Backlog/phase boundaries maintained (this plan's Phases 3/5 scope) | 🟢 Active (by plan) |
 
 ---
 
@@ -110,9 +123,9 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Locked decisions (do not re-litigate):**
 - **Canonical contract shapes (Part 4 §4.2):** `GET /healthz` (not `/health`) · `POST /api/ga4/connect` returns `{ authorization_url }` (snake_case at the boundary) · upload returns `{ dataset }` wrapper (plus `{ dataset, rows }` where F4 specifies) · `credentials: "include"` in the client · `setSourceFromApi` in the store · API versioned **`/api/v1`**.
 - **Chat wire format — decide at contract time and record in OpenAPI:** plain SSE (`text/event-stream`, `data: <chunk>\n\n`) vs AI SDK data-stream (`toDataStreamResponse()`/`toUIMessageStreamResponse()`). The captured repo pins **`ai@^7.0.48`** and its chat route uses `streamText(...).toTextStreamResponse()` (plain text) — F3's store reader consumes plain text, so **plain SSE is the default unless the team chooses `useChat`** (which requires the SDK format). (Plan Phase 1; archive §3.5, §3.10 item 1.)
-- **Ingestion size policy (two-tier, revised 2026-08-05):** **`MAX_BROWSER_UPLOAD_BYTES = 32 MB`** for browser uploads + **`MAX_INGEST_BYTES = 100 MB`** for server-side/Drive ingestion (matches `utils/drive_client.py`'s existing guard). Cloud Run under HTTP/1 caps requests at 32 MiB; end-to-end HTTP/2 or signed Cloud Storage is required before raising the browser cap. Replaces F4's 25 MB default. (Archive §4.11–4.12.)
+- **Upload policy (locked 2026-08-05, refined per review):** direct browser uploads are limited to **25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 MB` — margin below Cloud Run's 32 MiB HTTP/1 boundary); Drive/server-side imports may ingest up to **100 MB** (`MAX_INGEST_BYTES = 100 MB`, matching `utils/drive_client.py`'s guard) **subject to memory, MIME, row-count, and decompression safeguards** — a streaming download path, decompression/row-count limits, cleanup behavior, and sufficient Cloud Run memory (a 100 MB compressed XLSX can expand dramatically in memory). Signed Cloud Storage upload is deferred until real file-size evidence requires it; end-to-end HTTP/2 is not selected merely to preserve 100 MB browser uploads. (Archive §4.11–4.13.)
 - **Dependency floors:** `pandas>=2.3.3` (first cp314 wheels), `pydantic>=2.12`, `fastapi`, `uvicorn`, `python-multipart`, `google-genai` (see Phase 3). (Archive §3.10 item 6.)
-- **Session store (moved forward from Phase 6):** `SessionStore`/`DatasetStore` interfaces defined here — in-memory for dev, shared staging implementation proven before Phase 5. Sessions own the dataset reference, OAuth credentials, filter/metric/chat state; the browser holds only the opaque HttpOnly cookie.
+- **Session/data architecture (state placement, not a single store — locked 2026-08-05):** `SessionStore`/`DatasetStore` **interfaces** defined now with in-memory implementations for local dev; shared ephemeral storage for session/OAuth state and object storage for raw uploads come before Phase 5. State is placed **by type**: browser session ID → HttpOnly cookie; OAuth state/PKCE verifier → ephemeral store with short TTL (Redis/Valkey); active dataset metadata/filters/metrics → shared store; raw uploads → object storage (Cloud Storage); parsed dataframes → memory cache (eviction-tolerant); OAuth refresh tokens → encrypted durable store; chat usage/audit → Postgres later. No provider token or raw dataset is stored in the browser. (Archive §4.13.)
 - **Blocking work:** keep CPU-heavy routes synchronous or run blocking work in a controlled thread pool (never inline in `async def` hot paths — it stalls SSE/chat); hard-cap rows, columns, and **decompressed** size; reject password-protected spreadsheets, suspicious MIME mismatches, and compression bombs; stream or temp-store exports instead of buffering in memory.
 - **OAuth production-real from the start:** persist `state`, PKCE verifier, creation time, and intended post-auth return path in the shared session with a short expiry and one-time use; maintain separate redirect URIs for local/staging/production from an allowed-host config — never derive the redirect host loosely from request headers.
 - **Data retention (policy before API):** adopt `migration/data-retention-policy.md` — upload retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt field allowlist, identifier removal/aggregation before AI calls.
@@ -120,7 +133,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Tasks (F4 §1–§12 is the implementation packet; this is the task skeleton):**
 - [ ] Create `api/` per F4's target layout: `config.py` (env, CORS for `http://localhost:5173`), `dependencies.py` (session), `schemas.py`, `services/dataset_service.py`, `routes/health.py`, `routes/upload.py`, `main.py`.
 - [ ] Implement the **vertical slice**: `POST /api/upload` (multipart, 100 MB cap) → `GET /api/data/context` + `GET /api/data/preview` → `GET /api/data/quality`.
-- [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared staging implementation (Redis/Valkey or Postgres) proven before Phase 5** (see cross-cutting A).
+- [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5** (state placement — see cross-cutting A).
 - [ ] GA4 OAuth **adapters only** in Phase 1 (start/callback scaffolding per F4 §8) — full flow is Phase 5. PKCE (S256) is required even in the adapter (Plan Phase 5 amendment; archive §3.2).
 - [ ] MSW test setup in the frontend *if* the React shell exists yet — otherwise defer to Phase 4 (F4 §12).
 - [ ] Add `requirements/base.txt` entries + `run_api.py` or `make run-api` (uvicorn).
@@ -238,6 +251,20 @@ These run alongside the phases and are owned by specific source docs.
 ### A. State migration — `session-state-inventory.md`
 All 44 keys (6 groups) get a server-side replacement: dataset/analysis → `api/services/dataset_service.py` session object · GA4 credentials → server session (never React) · Drive Picker transient state → React dialog state + server import-in-progress flag · chat/AI counters → server-side usage ledger · theme preference → localStorage (safe — preference, not data) · test-only keys → dropped. **Gate rule:** during the freeze, any new `st.session_state` key requires a documented replacement (Phase 0).
 
+**State placement (locked 2026-08-05 — refined from review; archive §4.13):** state is placed **by type**, not in a single store:
+
+| State | Recommended home | Why |
+|---|---|---|
+| Browser session ID | Secure `HttpOnly` cookie | Opaque identifier only; no tokens or raw data |
+| OAuth state / PKCE verifier | Ephemeral store, short TTL (Redis/Valkey) | Security-sensitive, one-time-use state |
+| Active dataset metadata, filters, metrics | Shared store (Redis/Valkey or Postgres JSON) | Small structured data; needs shared access across instances |
+| Raw upload / large source file | Object storage (Cloud Storage) | Never place 32–100 MB datasets in cookies, Redis, or Postgres rows |
+| Parsed dataframe | Memory cache; recompute on eviction | Large and expensive; must tolerate eviction |
+| OAuth refresh tokens | Encrypted durable store | Must survive session expiry/restarts if persistent reconnect is required |
+| Chat usage/audit metadata | Postgres (later) | Durable reporting, quotas, debugging trail |
+
+Long-term shape: **Redis/Valkey for ephemeral session + OAuth state · Cloud Storage for uploaded files · Postgres only for durable user/account, audit, report, or usage records.**
+
 ### B. Contract discipline — `plans/ga4-measurement-contract.md` + archive §4.2/§4.11
 Canonical shapes adopted in Phase 1; typed client generated/validated from OpenAPI; snake_case at the API boundary, camelCase only via the client; `/api/v1` from day one (evidence connector evolves safely). Measurement-contract mapping recorded in archive §4.11.
 
@@ -311,13 +338,13 @@ insights-explorer/
 | # | Decision | Blocks | Current recommendation |
 |---|---|---|---|
 | 1 | Chat wire format (plain SSE vs AI SDK data-stream) | Phases 3–4 | Plain SSE (matches `ai@^7.0.48` + `toTextStreamResponse()` + F3 reader) unless `useChat` is chosen |
-| 2 | Shared staging session store (Redis/Valkey vs Postgres) | **Phase 1 interface + proof before Phase 5** | Interface + in-memory in Phase 1; provider open — Redis/Valkey (session-shaped, fast) vs Postgres (one store for everything) |
+| 2 | Durable store for refresh tokens / usage metadata (Postgres vs other) | Only if persistent reconnect or multi-user/audit needs appear | **Architecture locked: state placement** (cookie / ephemeral Redis-Valkey / shared store / Cloud Storage / memory cache / encrypted durable / Postgres-later); durable DB provider choice postponed |
 | 3 | Package manager (bun vs npm) | Phase 4 | CI-unconstrained; pick on repo consistency |
 | 4 | Hosting platform | Phase 6 | **Cloud Run** (GCP investment, existing `cloudbuild.yaml`) — Railway/Render equivalent |
 | 5 | Recharts 2.15.4 vs 3.x | Phase 4 | Try 2.15.4 first; `overrides` or 3.x on peer errors |
 | 6 | `frontend/` vs `api/` layout (siblings) | Phase 1 | Siblings (per plan Open Questions #5; F4 §1 target layout) |
 | 7 | GA4 dim/metric limits (9 dims / 10 metrics, 7 for funnel) | Phase 5 | Reported, not live-verified (limits page 404s) — re-verify at implementation |
-| 8 | Browser-upload architecture (32 MB cap vs end-to-end HTTP/2 vs signed Cloud Storage) | **Phase 0/1** | **32 MB initial browser cap** + 100 MB server-side/Drive policy; raise only if real files justify it |
+| 8 | Browser-upload cap final value (25 vs 32 MB) | Phase 1 (trivial flip) | **Locked: 25 MB** (margin below Cloud Run's 32 MiB HTTP/1 boundary) + 100 MB Drive cap with safeguards; HTTP/2 rejected for this purpose; signed Cloud Storage deferred |
 
 ---
 
@@ -349,9 +376,9 @@ insights-explorer/
 | Hosting split origins break session/OAuth/SSE | Medium | Single-origin Docker + Cloud Run (Phase 6; §3.1, §3.10–3.11) |
 | Two UIs alive = double maintenance | Medium | Feature freeze + fix-forward (Phase 0; branch policy) |
 | Gemini model drift (2.0-flash shut down) | Low | Model hygiene pass in Phase 3 (§3.10 item 7) |
-| Cloud Run 32 MiB request cap (HTTP/1) vs 100 MB ingestion | High | 32 MB browser cap; HTTP/2 or signed uploads only if files justify (Phase 0/1; §4.12) |
+| Cloud Run 32 MiB request cap (HTTP/1) vs 100 MB ingestion | High | 25 MB browser cap; HTTP/2 or signed uploads only if real file evidence justifies (Phase 0/1; §4.12–4.13) |
 | Sync/CPU-heavy work blocks the FastAPI event loop (SSE/chat stalls) | Medium | Sync routes or controlled thread pool; hard caps on rows/columns/decompressed size; streamed exports (Phase 1) |
-| Session affinity ≠ consistency across Cloud Run instances (data loss) | Medium | Shared staging session store proven before Phase 5 (Phase 1) |
+| Session affinity ≠ consistency across Cloud Run instances (data loss) | Medium | Shared ephemeral session/OAuth store + object storage for raw uploads proven before Phase 5 (Phase 1) |
 | Retention/privacy exposure (client analytics + health/equity context) | Medium | `data-retention-policy.md` + Gemini data-boundary rules before the API exists (Phase 1) |
 
 ---
@@ -375,4 +402,4 @@ insights-explorer/
 
 ---
 
-*This master plan was synthesized 2026-08-05 from the full `migration/` package and revised the same day from review feedback (session store + upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates). It is planning-only: no migration product code was written and no commands executed. Each phase begins only on explicit approval, and per the addenda system, any later corrections append as dated addenda rather than rewriting this document.*
+*This master plan was synthesized 2026-08-05 from the full `migration/` package and revised the same day from review feedback (first pass: session store + upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates; second pass: 25 MB upload cap, state-placement architecture, 8-gate priority checklist). It is planning-only: no migration product code was written and no commands executed. Each phase begins only on explicit approval, and per the addenda system, any later corrections append as dated addenda rather than rewriting this document.*
