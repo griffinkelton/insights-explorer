@@ -16,6 +16,7 @@
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting process | Before reporting a vulnerability |
 | [LICENSE](LICENSE) | MIT License | To understand usage rights |
 | [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | v0.1.0 release checklist with evidence and sign-off | Release verification |
+| [migration/README.md](migration/README.md) | React/FastAPI migration — index of all planning docs, research, and reference capture | Before starting migration work (planning-only, no code yet) |
 
 ---
 
@@ -61,6 +62,25 @@
 
 ---
 
+## 🚚 React/FastAPI Migration (`migration/`)
+
+> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Planning-only — no code written (2026-08-05).** Start at `migration/README.md`.
+
+| File | Purpose (why read this?) | What it covers | Status |
+|---|---|---|---|
+| [migration/README.md](migration/README.md) | Entry point — index of the nine migration docs and how they relate | Decision summary, nine-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
+| [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
+| [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
+| [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 — frontend wiring prompt (AI-agent prompt for `explorer-store.tsx`) | 13-step swap of mocks → real `fetch()`/SSE/GA4/Drive API calls, typed client, `.env` files | 🟡 Reference (2026-08-05) |
+| [migration/phase-1-api-react-callback-tests-implementation.md](migration/phase-1-api-react-callback-tests-implementation.md) | F4 — Phase 1 implementation packet (backend + OAuth callback + test strategy) | FastAPI vertical slice, GA4 OAuth start/callback adapters, React GA4 callback route, MSW-based test migration | 🟡 Reference (2026-08-05) |
+| [migration/glm-5-2-vs-perplexity-migration-comparison.md](migration/glm-5-2-vs-perplexity-migration-comparison.md) | Independent audit lens — how GLM-5.2 would approach the migration vs Perplexity's plan | Approach differences, strengths, combined recommendation; GLM facts verified (1M context, ~1/10th cost, MIT) | ✅ Verified (2026-08-05) |
+| [migration/whisperer-30-reference/](migration/whisperer-30-reference/WHISPERER-30-REFERENCE.md) | Frozen reference capture of the source UI repo (`insights-whisperer-30` @ `a71c3712`) — design prompt, store contract, chat prompt, mock shapes, stack manifest | See `WHISPERER-30-REFERENCE.md` inside for what was captured, why, and exclusions (incl. the tracked `.env`) | 🔵 Captured (2026-08-05) |
+| [migration/session-state-inventory.md](migration/session-state-inventory.md) | The `st.session_state` key inventory — written record Batch 3 recommended before code | All 44 keys: key → owner → lifecycle → FastAPI/React replacement | 🔵 Ingested (2026-08-05) |
+| [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern — deliverable sketch | Multi-stage Dockerfile, SPA fallback route, platform notes, verification checklist | 🟡 Reference (2026-08-05) |
+| [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist — Phase 0 security gate for whisperer-30 | Inspect → identify → rotate/revoke → remediate → prevent; verified facts | 🔵 Planning (2026-08-05) |
+| [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | Branch model, freeze rules, fix-forward, lift criteria | 🔵 Planning (2026-08-05) |
+
+---
 ## 🔗 How These Docs Connect
 
 ### Core Docs
@@ -133,6 +153,21 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 
 ---
 
+### Migration
+
+```
+migration/README.md ─── "Index: what each doc is + how they relate"
+        │
+        ▼
+insights-explorer-migration-ingest.md ─── "Compiled archive (source of truth)"
+        │
+        ├──► insights-explorer-migration-plan.md ── "THE 6-phase roadmap (Phases 1–6)"
+        ├──► freebuff-prompt-wire-react-store.md (F3) ── "Frontend store wiring prompt"
+        ├──► phase-1-api-react-callback-tests-implementation.md (F4) ── "Phase 1 backend packet"
+        └──► glm-5-2-vs-perplexity-migration-comparison.md ── "GLM vs Perplexity audit lens"
+```
+
+---
 ## 📊 Document Status
 
 | File | Purpose | Status | Last Updated |
@@ -178,7 +213,18 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 | [plans/00-sprints/✅ phase-0-drive-picker-spike-spec.md](plans/00-sprints/✅%20phase-0-drive-picker-spike-spec.md) | Phase 0 transport spike — GCP setup, branch workflow, acceptance gates, decision template | ✅ Complete — Option B accepted | 2026-07-31 |
 | [plans/00-sprints/✅ phase-0-debug-summary.md](plans/00-sprints/✅%20phase-0-debug-summary.md) | Phase 0 debugging summary — Option A rejection evidence, 4 bugs fixed, Option B implementation state | ✅ Complete — Option A rejected, Option B selected | 2026-07-31 |
 | [plans/🔵 ga4-insights-sketch.md](plans/🔵%20ga4-insights-sketch.md) | Trust-layer design sketch (v3, 662 lines) — aggregate-only reality check, 5-gate phasing, composable labels, measurement contract | 🔵 Sketch — deferred to post-v0.3.0 | 2026-08-02 |
+| [migration/README.md](migration/README.md) | Index of the React/FastAPI migration docs (planning) | 🔵 Planning | 2026-08-05 |
+| [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | Compiled migration archive — synthesis, verbatim sources, research, ledger | 🔵 Ingested | 2026-08-05 |
+| [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | 6-phase React/FastAPI migration roadmap (planning) | 🔵 Plan | 2026-08-05 |
+| [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 store-wiring prompt (reference) | 🟡 Reference | 2026-08-05 |
+| [migration/phase-1-api-react-callback-tests-implementation.md](migration/phase-1-api-react-callback-tests-implementation.md) | F4 Phase 1 implementation packet (reference) | 🟡 Reference | 2026-08-05 |
+| [migration/glm-5-2-vs-perplexity-migration-comparison.md](migration/glm-5-2-vs-perplexity-migration-comparison.md) | GLM-5.2 vs Perplexity plan comparison (GLM facts verified) | ✅ Verified | 2026-08-05 |
+| [migration/whisperer-30-reference/](migration/whisperer-30-reference/WHISPERER-30-REFERENCE.md) | Reference capture of the source UI repo (18 files, 2026-08-05) | 🔵 Captured | 2026-08-05 |
+| [migration/session-state-inventory.md](migration/session-state-inventory.md) | 44-key `st.session_state` inventory (key → owner → lifecycle → replacement) | 🔵 Ingested | 2026-08-05 |
+| [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern sketch | 🟡 Reference | 2026-08-05 |
+| [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist (Phase 0 security gate) | 🔵 Planning | 2026-08-05 |
+| [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | 🔵 Planning | 2026-08-05 |
 
 ---
 
-*This index was last updated 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
+*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy) — all planning/reference, no code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*

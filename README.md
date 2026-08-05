@@ -246,6 +246,7 @@ MIT — see [LICENSE](LICENSE).
 - [BUGLOG.md](BUGLOG.md) — Structured bug log (10 bugs)
 - [IDEAS.md](IDEAS.md) — Future enhancement ideas
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central docs index
+- [migration/README.md](migration/README.md) — React/FastAPI migration planning (docs, research, reference capture)
 - [plans/audit/✅ v0.1.0-hardening-spec.md](plans/audit/✅%20v0.1.0-hardening-spec.md) — v0.1.0 hardening implementation spec
 - [plans/audit/✅ v0.2.0-closeout.md](plans/audit/✅%20v0.2.0-closeout.md) — v0.2.0 closeout (all 5 phases complete)
 - [plans/audit/✅ v0.3.0-phase-1-closeout.md](plans/audit/✅%20v0.3.0-phase-1-closeout.md) — v0.3.0 Phase 1 closeout
