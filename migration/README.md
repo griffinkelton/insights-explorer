@@ -2,7 +2,7 @@
 
 Index for the migration decision material: moving the `insights-explorer` product from a Streamlit UI to a **React frontend (`insights-whisperer-30` components) + FastAPI backend** built on the existing Python `utils/` layer.
 
-> **Status (2026-08-05):** all nine documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no code written**, nothing committed to git.
+> **Status (2026-08-05):** all ten documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no code written**, nothing committed to git.
 
 ---
 
@@ -12,7 +12,7 @@ Index for the migration decision material: moving the `insights-explorer` produc
 
 ---
 
-## The nine documents
+## The ten documents
 
 | File | What it is | Contents | Status |
 |---|---|---|---|
@@ -25,6 +25,7 @@ Index for the migration decision material: moving the `insights-explorer` produc
 | **`dockerfile-pattern.md`** | **Phase 6 single-origin Docker pattern** — concrete deliverable sketch for the hosting amendment. | Multi-stage Dockerfile (Vite build → FastAPI runtime serving the SPA), SPA fallback route, platform notes, verification checklist | 🟡 Reference |
 | **`env-rotation-checklist.md`** | **The `.env` rotation checklist** — Phase 0 security gate before any whisperer-30 code copy-in. | Verified `.env` facts, inspect → identify → rotate/revoke → remediate → prevent, verification checklist | 🔵 Planning |
 | **`branch-and-freeze-policy.md`** | **Migration branch + feature-freeze policy** — Batch 3 process decision, written down. | Branch model (`main` vs `feat/react-fastapi-migration`), freeze rules, fix-forward rule, lift criteria, branch creation command | 🔵 Planning |
+| **`test-layer-inventory.md`** | **Which of the 742 tests transfer** — substantiates the "tests won't transfer one-to-one" claim. | 742 = 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths + Phase 6 checklist | 🔵 Ingested |
 
 ## Reference capture: whisperer-30 (`whisperer-30-reference/`)
 
@@ -74,6 +75,9 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 | **Research Fold-In Log (2026-08-05)** | plan | The 7 research corrections mapped into the phase sections (Phase 1/3/4/5/6 amendments) |
 | **Research Fold-In Cross-Check (2026-08-05)** | F3, F4, plan, reference | Verifies the 7 corrections against F3's 13 steps and F4's code: F3 gains `{ token, appId }` for the Picker; F4 gains **PKCE in `begin_oauth()`** + **typed-search callback** (`validateSearch` / `errorComponent`); MSW `onUnhandledRequest: "error"` live-confirmed; plan Phase 5 gains the `VALIDATE_SEARCH` detail; reference gains the explorer-store drift cross-check |
 | **Pre-Implementation Pack (2026-08-05)** | README, DOCIDX, archive | Two new docs — `.env` rotation checklist (Phase 0 security gate) and branch + feature-freeze policy (Batch 3 process decision) — plus archive §4.8 change log and index updates; first commit of the migration package to `main` |
+| **Round 2 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 2: GA4 quota/pagination numbers (10 concurrent/property, 250k rows/request max), Gemini SDK (`google-genai` + `thoughts_token_count`), AI SDK pin (`ai@^7.0.48` — corrects a research "v4" claim), bun-in-CI (`oven-sh/setup-bun@v2`) |
+| **Round 3 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 3: AI SDK v7 + `toTextStreamResponse` confirmed, Start/Lovable→Vite strip list, **Cloud Run path** (timeouts/session affinity/HTTP2), MSW streaming tests, Recharts×React 19, Python 3.14 floors (pandas≥2.3.3), Gemini model hygiene (2.0-flash shut down) |
+| **Internal Reconciliation (2026-08-05)** | archive, plan, F4, dockerfile, new doc | Single 100 MB ingestion size policy (Drive/upload mismatch closed); field-level measurement-contract mapping; 742-test layer inventory (new doc); **Vercel hosting evaluation — SPA yes, FastAPI no** |
 
 ## Suggested reading paths
 
@@ -91,4 +95,4 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 3. **Contracts:** adopt the Part 4 §4.2 canonical choices (`/healthz`, `authorization_url`, `{ dataset }` wrapper, `credentials: "include"`, `setSourceFromApi`, `/api/v1`).
 4. **Fold-in complete:** the 7 research corrections are already in the plan's phase sections (see Research Fold-In Log).
 
-*All nine files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*
+*All ten files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*

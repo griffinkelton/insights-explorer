@@ -78,7 +78,7 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
 ### Phase 1: API Contract & FastAPI Skeleton (Week 1)
 
 **Goal:** Define the JSON contract between React and Python, and stand up a minimal FastAPI app.
-**Research amendments (2026-08-05):** decide the **chat wire format at contract time** — before `POST /api/chat` is written, pick either plain SSE (`text/event-stream`, `data: <chunk>\n\n` framing) or the Vercel AI SDK data-stream (`toDataStreamResponse()` / `toUIMessageStreamResponse()`); the two are not interchangeable and `useChat` only parses the SDK format. Record the choice in the OpenAPI contract so Phases 3–4 implement against it consistently. *(Source: archive §3.5, §3.8 item 3.)*
+**Research amendments (2026-08-05):** decide the **chat wire format at contract time** — before `POST /api/chat` is written, pick either plain SSE (`text/event-stream`, `data: <chunk>\n\n` framing) or the Vercel AI SDK data-stream (`toDataStreamResponse()` / `toUIMessageStreamResponse()`); the two are not interchangeable and `useChat` only parses the SDK format. Record the choice in the OpenAPI contract so Phases 3–4 implement against it consistently. *(Source: archive §3.5, §3.8 item 3.)* Version pin: whisperer-30 ships `ai@^7.0.48` (captured `package.json`, §3.9 item 3) — validate the choice against the v7 API surface at contract time. **AI SDK v7 verified (round-3, §3.10 item 1):** v7 is the current docs line and the captured chat route uses `streamText(...).toTextStreamResponse()` (plain text — matches F3's reader). **Ingestion size policy (reconciliation, §4.11):** unify upload + Drive at **100 MB** (`MAX_INGEST_BYTES`, env-overridable) — matches `drive_client.py`'s existing guard; replace F4's 25 MB default at implementation; note platform body caps (Vercel functions ≈4.5 MB → not viable for the API).
 
 **Steps:**
 1. Create `api/` directory in `insights-explorer`.
@@ -130,7 +130,7 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
 ### Phase 3: Wire FastAPI to Real Utils (Week 3)
 
 **Goal:** Replace mock data in FastAPI with real calls to existing Python logic.
-**Research amendments (2026-08-05):** **funnel nuance** — the GA4 Data API includes `runFunnelReport`, so *template* funnels (steps defined by event/dimension filters) may be partially available even where the roadmap marks funnels blocked. When implementing `GET /api/analysis/funnel` via `funnels.py`, scope it to template funnels and re-verify the ROADMAP funnel rows (Gate 1.7 / Top-25) at implementation time. *(Source: archive §3.4, §3.8 item 4.)*
+**Research amendments (2026-08-05):** **funnel nuance** — the GA4 Data API includes `runFunnelReport`, so *template* funnels (steps defined by event/dimension filters) may be partially available even where the roadmap marks funnels blocked. When implementing `GET /api/analysis/funnel` via `funnels.py`, scope it to template funnels and re-verify the ROADMAP funnel rows (Gate 1.7 / Top-25) at implementation time. *(Source: archive §3.4, §3.8 item 4.)* **Gemini SDK (round-2, §3.9 item 4):** use the current `google-genai` Python SDK (not legacy `google-generativeai`) for `/api/chat` + `/api/analysis/summary`; stream via `client.models.generate_content_stream(...)`; record `thoughts_token_count` in the server-side usage ledger (the Streamlit app already tracks `total_thought_tokens`). Model hygiene (round-3, §3.10 item 7): `gemini-2.0-flash` is **shut down** and `gemini-1.5-flash` is deprecated — prune `utils/gemini_client.py`'s `AVAILABLE_MODELS` when wiring `/api/chat`; keep `gemini-2.5-flash` (1M context) as default; `total_thought_tokens` confirmed in live usage payloads; the Interactions API is now GA.
 
 **Steps:**
 1. Implement `POST /api/upload` using `data_loader.py`.
@@ -153,6 +153,9 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
 **Research amendments (2026-08-05):**
 - **Wire format:** when swapping `streamAi` → `fetch('/api/chat')`, consume exactly the format chosen in Phase 1 (plain SSE vs SDK data-stream) — do not mix. The store's plain-text `getReader()` + `TextDecoder` accumulation is correct only for plain SSE / `toTextStreamResponse()` output. *(§3.5.)*
 - **Routing:** use TanStack Router's `validateSearch` + `Route.useSearch()` for typed search params (e.g., the GA4 callback's `status`/`reason`) rather than raw `window.location.search`. *(§3.6, §3.8 item 6.)*
+- **Stack pin + CI (round-2, §3.9 items 3 & 5):** the captured `package.json` pins `ai@^7.0.48`, `react ^19.2.0`, `vite ^8.1.5`; bun-in-CI is supported (`oven-sh/setup-bun@v2` on GitHub Actions; install script on Cloud Build) — the npm-vs-bun decision is unconstrained by CI.
+- **Start/Lovable → plain Vite strip list (round-3, §3.10 item 2):** remove `@lovable.dev/vite-tanstack-config`, `@tanstack/react-start`, `nitro`, `src/server.ts`, `src/start.ts`, and `src/routes/api/*` (Start/Nitro server routes); replace the plugin with `@vitejs/plugin-react` + `@tanstack/router-plugin/vite`; file-based `createFileRoute` routing is identical without Start.
+- **Charts (round-3, §3.10 item 5):** `recharts ^2.15.4` does not declare React 19 peer deps — try a plain install first; on peer-dep errors/warnings use `overrides` or move to recharts 3.x.
 
 **Steps:**
 1. Copy `src/` from `insights-whisperer-30` into `insights-explorer/frontend/`.
@@ -181,6 +184,7 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
 4. **Callback route** — implement the React callback page with `validateSearch` / `useSearch` (typed search), not `window.location.search`. *(§3.6.)*
 5. **Supersession note:** the original step “React app stores session token in localStorage/cookie” is **superseded** by the Batch 3 server-owned session model (browser holds only the opaque `HttpOnly` cookie; tokens stay server-side) — see the Batch 3 Review Addendum, item 3.
 6. **Callback route validation details (live-verified, §3.6):** use a `validateSearch` schema for `status`/`reason` read via `Route.useSearch()`; on validation failure the router sets `error.routerCode === "VALIDATE_SEARCH"` and renders the route's `errorComponent` — that is the invalid-state mechanism for the callback page (verified against `@tanstack/react-router@1.170.20`).
+7. **GA4 numbers (live-verified, §3.9):** page with `limit`/`offset` — default limit 10,000, max 250,000 per request; the “10 concurrent” quota is **Core Concurrent Requests Per Property = 10 (Standard) / 50 (360)**; add token budgets (200k/day, 40k/hr per property) and the 120 thresholded-requests/hr cap to the throttling design; `runFunnelReport` consumes the separate **Funnel** quota.
 
 **Steps:**
 1. **GA4 OAuth:**
@@ -203,7 +207,7 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
 ### Phase 6: Cutover & Retire Streamlit (Week 6)
 
 **Goal:** Decommission Streamlit UI, retire Streamlit-specific tests, and move hosting.
-**Research amendments (2026-08-05):** **single-origin hosting** — bundle the built React SPA into the FastAPI container via a **multi-stage Dockerfile** on Railway/Render/Fly; avoid Render's default split Static Site + Web Service (split origins break the same-origin session-cookie / OAuth / CORS / SSE model). Also re-check the “Forecast & funnel ✅” parity row — template funnels may be partially available via `runFunnelReport` (see the Phase 3 amendment). *(§3.1, §3.4, §3.8 items 4–5.)*
+**Research amendments (2026-08-05):** **single-origin hosting** — bundle the built React SPA into the FastAPI container via a **multi-stage Dockerfile** on Railway/Render/Fly; avoid Render's default split Static Site + Web Service (split origins break the same-origin session-cookie / OAuth / CORS / SSE model). Also re-check the “Forecast & funnel ✅” parity row — template funnels may be partially available via `runFunnelReport` (see the Phase 3 amendment). *(§3.1, §3.4, §3.8 items 4–5.)* **GCP path (round-3, §3.10 item 3):** the repo already deploys via `cloudbuild.yaml`, so Cloud Run is the natural target — docker build → Artifact Registry → `gcloud run deploy`; bind `$PORT` (8080), raise the request timeout for SSE (default 300s, max 3600s) or heartbeat, treat session affinity as best-effort (design chat reconnect), enable HTTP/2 (`h2c`), and set the OAuth redirect to the explicit public HTTPS URL (Cloud Run proxies `X-Forwarded-Proto`). **Vercel evaluation (2026-08-05, §3.11):** the SPA alone would host fine on Vercel, but the FastAPI backend cannot — serverless function body cap ≈4.5 MB vs the 100 MB ingestion policy, duration limits vs long SSE streams, stateless functions vs server-owned sessions. Single-origin rules out a split; container hosting (Cloud Run/Railway/Render) stays the recommendation.
 
 **Steps:**
 1. **Feature parity check:**
@@ -409,3 +413,5 @@ The seven research corrections from `insights-explorer-migration-ingest.md` Part
 | 7 | GA4 pull: paginate + throttle (10 concurrent); `returnPropertyQuota: true` | Phase 5 |
 
 Sources and citations: archive Part 3 (§3.1–3.8). One inline supersession note was added (Phase 5's `localStorage` step vs the Batch 3 server-owned session model) — flagged in the phase amendment, not rewritten.
+
+**Round-2 research (2026-08-05, §3.9):** live-verified GA4 quota/pagination numbers (Phase 5 item 7), Gemini `google-genai` SDK + thought-token ledger (Phase 3), `ai@^7.0.48` pin (Phases 1/4), and bun-in-CI support (Phase 4) — folded as inline amendment notes; see archive §4.9 change log.

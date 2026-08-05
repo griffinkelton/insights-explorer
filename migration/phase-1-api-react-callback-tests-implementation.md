@@ -1033,3 +1033,31 @@ Cross-checks the 7 research corrections from the plan's Research Fold-In Log aga
 4. **Picker project number (correction 2).** Phase 5 forward — this packet's Phase 1 scope defers Drive (see "Do not do in Phase 1"). Recorded so the Phase 5 packet returns `{ token, appId }` from `POST /api/drive/picker-token` (see the F3 cross-check addendum item 1).
 5. **Single-origin hosting (correction 5).** §13's same-origin rule and Research Addendum item 5 already align; the concrete multi-stage Dockerfile pattern is in `migration/dockerfile-pattern.md`.
 6. **No Phase 1 code change for corrections 3, 4, 7.** Chat wire format (3), funnel nuance (4), and GA4 pull pagination/throttling (7) all live in later phases; the plan amendments (Phases 1/3/5) carry the decisions. Funnel note: scope template funnels only when `GET /api/analysis/funnel` is implemented.
+---
+
+## Round 2 Research Addendum (2026-08-05)
+
+> Source: archive §3.9 (live-verified round-2 research).
+
+1. **GA4 client names (for the §8 adapter boundary).** Python package `google-analytics-data` → `from google.analytics.data_v1beta import BetaAnalyticsDataClient`; core methods `run_report`, `batch_run_reports`, `run_funnel_report`. Use these when wiring `utils/ga4_client.py` (and the Phase-5 `POST /api/ga4/pull` adapter) instead of inventing new names.
+2. **GA4 pagination + quotas (live numbers for the Phase-5-forward pull).** `limit`/`offset` paging; default limit 10,000, max 250,000 rows/request; **Core Concurrent Requests Per Property = 10** (Standard) / 50 (360); token budgets 200k/day + 40k/hr per property; 120 thresholded-requests/hr cap; `returnPropertyQuota: true` for observability; `runFunnelReport` consumes a separate **Funnel** quota. *(§3.9 items 1–2, 6.)*
+3. **Gemini SDK.** Use `google-genai` — `client.models.generate_content_stream(...)` for `/api/chat` and summary; map `thoughts_token_count` into the server usage ledger. *(§3.9 item 4.)*
+4. **AI SDK pin.** The whisperer frontend pins `ai@^7.0.48` — the Phase 1 wire-format decision (plain SSE vs SDK data-stream) must be validated against the v7 API surface. *(§3.9 item 3.)*
+---
+
+## Round 3 Research Addendum (2026-08-05)
+
+> Source: archive §3.10 (live-verified round-3 research).
+
+1. **MSW streaming test pattern (§3.10 item 4).** Add a chat handler returning `HttpResponse` with a `ReadableStream` body and `Content-Type: text/event-stream` (+ `Cache-Control: no-cache`). Node/undici may buffer unless the client consumes via `getReader()`; **jsdom has no real `EventSource`** — test the store's fetch+getReader path, not `EventSource`.
+2. **Python 3.14 floors (§3.10 item 6).** `python:3.14-slim` is valid for the Phase 6 Dockerfile; **raise the repo's `pandas>=2.0.0` floor to `>=2.3.3`** (first cp314-wheel release) for reproducible builds; keep `pydantic>=2.12` (v1 is not 3.14-compatible); `google-analytics-data` (0.23.0) and `google-genai` support 3.14.
+3. **GA4 client naming confirmed.** `google-analytics-data` → `BetaAnalyticsDataClient`; methods `run_report`, `batch_run_reports`, `run_funnel_report`; pagination `limit`/`offset` (default 10k, max 250k); Core concurrent = 10/property (50 for 360). *(§3.10 + round-2.)*
+4. **`__Host-` cookie verified (§3.10 item 8).** FastAPI `Response.set_cookie` supports `__Host-` directly: `secure=True`, `path="/"`, and **omit `domain`** (required by the prefix spec).
+---
+
+## Reconciliation Addendum 2 (2026-08-05) — size policy + measurement-contract mapping
+
+> Source: archive §4.11 (internal reconciliation batch). Apply at Phase 1 implementation.
+
+1. **Single ingestion size policy.** Replace the standalone `max_upload_bytes = 25 MB` default with a shared **`MAX_INGEST_BYTES = 100 MB`** — matching `utils/drive_client.py:48` (`MAX_DRIVE_IMPORT_BYTES`) — env-overridable, applied to both `POST /api/upload` and the Phase-5 `POST /api/drive/download` (Drive downloads happen server-side, so their byte budget applies to parsed content, not the request body). Note platform caps when choosing hosts: Vercel functions ≈4.5 MB body (blocked — archive §3.11); Cloud Run configurable to ~128 MB. The current Streamlit upload path has no explicit guard — this constant becomes the canonical limit.
+2. **GA4 measurement-contract mapping.** F4's `DatasetContext` is a transport descriptor; `plans/ga4-measurement-contract.md` defines computed metrics (5 rows). Wire the mapping at Phase 5: `POST /api/ga4/pull` returns a `DatasetContext` whose `metrics` entries carry contract provenance (`{"contract_row": "daily_reach", "validation_status": "provisional"}`), and add a future `GET /api/ga4/metrics` (contract rows + status) per the contract's Next-steps item 4 (`ReportContract` objects). Rows 3–5 stay `unavailable` until event-level GA4 access exists (aggregate-only; funnel nuance per archive §3.4).

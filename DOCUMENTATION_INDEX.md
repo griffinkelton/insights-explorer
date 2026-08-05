@@ -68,7 +68,7 @@
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
-| [migration/README.md](migration/README.md) | Entry point — index of the nine migration docs and how they relate | Decision summary, nine-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
+| [migration/README.md](migration/README.md) | Entry point — index of the ten migration docs and how they relate | Decision summary, ten-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
 | [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
 | [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
 | [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 — frontend wiring prompt (AI-agent prompt for `explorer-store.tsx`) | 13-step swap of mocks → real `fetch()`/SSE/GA4/Drive API calls, typed client, `.env` files | 🟡 Reference (2026-08-05) |
@@ -79,6 +79,7 @@
 | [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern — deliverable sketch | Multi-stage Dockerfile, SPA fallback route, platform notes, verification checklist | 🟡 Reference (2026-08-05) |
 | [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist — Phase 0 security gate for whisperer-30 | Inspect → identify → rotate/revoke → remediate → prevent; verified facts | 🔵 Planning (2026-08-05) |
 | [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | Branch model, freeze rules, fix-forward, lift criteria | 🔵 Planning (2026-08-05) |
+| [migration/test-layer-inventory.md](migration/test-layer-inventory.md) | 742-test layer inventory: 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths | 🔵 Ingested (2026-08-05) |
 
 ---
 ## 🔗 How These Docs Connect
@@ -224,7 +225,8 @@ insights-explorer-migration-ingest.md ─── "Compiled archive (source of tru
 | [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern sketch | 🟡 Reference | 2026-08-05 |
 | [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist (Phase 0 security gate) | 🔵 Planning | 2026-08-05 |
 | [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | 🔵 Planning | 2026-08-05 |
+| [migration/test-layer-inventory.md](migration/test-layer-inventory.md) | 742-test layer inventory (452 utils / 290 UI / 40 E2E) | 🔵 Ingested | 2026-08-05 |
 
 ---
 
-*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy) — all planning/reference, no code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
+*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory) — all planning/reference, no code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*

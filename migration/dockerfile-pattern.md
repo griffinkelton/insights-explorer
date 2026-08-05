@@ -59,6 +59,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
+**CI support for the frontend build stage:** GitHub Actions uses `oven-sh/setup-bun@v2` (auto-detects the `packageManager` field in `package.json`); Cloud Build installs bun via the official install script. So the npm-vs-bun choice (plan Phase 4) is unconstrained by CI. *(archive §3.9 item 5.)*
+
+**Python 3.14 dependency floors (round-3, §3.10 item 6):** keep `pandas>=2.3.3` (first cp314-wheel release) and `pydantic>=2.12` (v1 is not 3.14-compatible) in `requirements`; `python:3.14-slim` itself is valid.
+
 ## 2. FastAPI side — serve the SPA at `/`
 
 ```python
@@ -97,7 +101,8 @@ Two origins ⇒ the browser must send `credentials: "include"` cross-origin, whi
 | Railway | Single service, Dockerfile at repo root | Set `VITE_API_BASE=/api`; attach the env vars from `.env.example` |
 | Render | Web Service → Docker | Ignore the "Static Site" preset; one service, one origin |
 | Fly.io | `fly deploy` with Dockerfile | Add `internal_port = 8000`; healthcheck already in image |
-| GCP (Cloud Build) | `cloudbuild.yaml` builds the same Dockerfile | Update `cloudbuild.yaml` alongside `.github/workflows/test.yml` (dual CI — Batch 3) |
+| GCP (Cloud Run) | docker build → Artifact Registry → `gcloud run deploy` (canonical shape: cloud.google.com/build/docs/deploying-builds/deploy-cloud-run) | Bind `$PORT` (8080); raise the request timeout for SSE (default 300s, max 3600s) or heartbeat; session affinity is best-effort — design chat reconnects; enable HTTP/2 (`h2c`); set the OAuth redirect to the explicit public HTTPS URL (Cloud Run proxies `X-Forwarded-Proto`). Round-3 verified (archive §3.10 item 3) |
+| Vercel | Frontend-only option — **rejected** | SPA hosts fine, but the API cannot run on serverless functions (≈4.5 MB body cap vs the 100 MB ingestion policy; function duration vs SSE; stateless sessions). Split origins would break the single-origin cookie/OAuth model (archive §3.11) |
 
 ## 5. Verification checklist (Phase 6 DoD)
 

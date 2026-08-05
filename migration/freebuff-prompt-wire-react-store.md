@@ -419,3 +419,21 @@ Cross-checks the 7 research corrections from the plan's Research Fold-In Log aga
 4. **Funnel availability is partial (correction 4).** Step 7's `fetchFunnel()` — at Phase 3/6 implementation, scope the funnel to **template funnels** (`runFunnelReport`); user/identifier-level funnel analysis remains blocked by aggregate-only GA4 access. Re-verify the ROADMAP funnel rows at that time.
 5. **Single-origin assumption is consistent (correction 5).** Step 13's `.env.production` `VITE_API_BASE=/api` already assumes same-origin serving — matches the multi-stage Dockerfile pattern in `migration/dockerfile-pattern.md` (Phase 6). No change needed; cite the pattern doc when implementing.
 6. **No store-side change for corrections 1 (PKCE) and 7 (GA4 throttling).** Both are FastAPI-side concerns (see the F4 cross-check addendum items 1 and 6); the store merely consumes the endpoints as written.
+---
+
+## Round 2 Research Addendum (2026-08-05)
+
+> Source: archive §3.9 (live-verified round-2 research). Applies on top of the Research Fold-In Cross-Check Addendum.
+
+1. **AI SDK version pin.** The captured `package.json` pins `"ai": "^7.0.48"` — not v4 as one research agent claimed. If the chat UI keeps the SDK's `useChat` hook, it parses the SDK v7 structured data-stream / UI-message protocol; the store's plain-text `getReader()`/`TextDecoder` reader in step 6 is correct **only** for the plain-text path (`toTextStreamResponse()`). Re-confirm the Phase 1 wire-format decision against v7 before wiring `streamAi`.
+2. **Gemini thought tokens.** `google-genai` exposes `usage_metadata.thoughts_token_count`. The Streamlit app already tracks `total_thought_tokens` — keep that counter **server-side** in the FastAPI usage ledger (Batch 3: instrumentation is server-side, never in React).
+3. **Stack pins for reference:** `react ^19.2.0`, `vite ^8.1.5`, `@tanstack/react-router ^1.170.18`, `@tanstack/router-plugin ^1.168.23` — the TanStack pins match the live-verified §3.6 versions (1.170.20 / 1.168.25).
+---
+
+## Round 3 Research Addendum (2026-08-05)
+
+> Source: archive §3.10 (live-verified round-3 research). Applies on top of the Round 2 addendum.
+
+1. **`toTextStreamResponse()` confirmed against the captured code.** The captured `src/routes/api/chat.ts` streams chat via `streamText(...).toTextStreamResponse()` — plain `text/plain` output. Step 6's plain-text reader is exactly right for the plain-text path; the `useChat` caveat (structured v7 protocol) still applies if the chat UI ever switches to `useChat`. (Archive §3.10 item 1.)
+2. **Nitro/Lovable server routes are removed in Phase 4 — the store calls FastAPI directly.** The captured chat route lives under `src/routes/api/` (a Start/Nitro server route). After the Phase 4 strip (archive §3.10 item 2), `streamAi` targets `${API_BASE}/chat` — already the plan — with no server-route fallback left behind.
+3. **MSW chat-stream tests.** Mock the stream with an MSW `HttpResponse` + `ReadableStream` body and `Content-Type: text/event-stream`; drive the store's `getReader()` path — jsdom ships no real `EventSource`. (Archive §3.10 item 4.)

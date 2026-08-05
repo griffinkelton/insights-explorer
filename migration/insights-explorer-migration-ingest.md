@@ -2910,6 +2910,8 @@ Keep `insights-whisperer-30` as a **living design reference until cutover**, rat
 - **Caveat:** the SDK's `useChat` hook expects the **structured data-stream** format (`toDataStreamResponse()` / `toUIMessageStreamResponse()`), not plain text/SSE. Pick one wire format for FastAPI (plain SSE vs SDK data-stream) and keep the client reader consistent; don't mix.
 - **Sources:** FastAPI docs (fastapi.tiangolo.com, `StreamingResponse`) · Vercel AI SDK (ai-sdk.dev). **[tool-knowledge — verify exact helper names at implementation]**
 
+> **Verification status update (2026-08-05):** this flag is now cleared by round-3 research (§3.10 item 1). The AI SDK docs live at `/v7/` (v7 is the current major), and the captured whisperer-30 `chat.ts` uses `streamText(...).toTextStreamResponse()` — plain text, exactly what F3's reader consumes. The `useChat` caveat stands (it parses the structured v7 protocol, not plain SSE).
+
 ### 3.6 Frontend testing & routing — MSW v2 + TanStack Router v1 (live-verified 2026-08-05)
 
 > **Verification status update (2026-08-05):** this section was originally flagged `[tool-knowledge — live docs fetch unavailable]`. It has since been re-verified against the live official sources (direct fetches of npm, mswjs.io, and tanstack.com/router on 2026-08-05). One factual correction surfaced: MSW's `onUnhandledRequest` **default is `"warn"`, not `"bypass"`** (see below). No other claim changed.
@@ -2959,6 +2961,65 @@ Keep `insights-whisperer-30` as a **living design reference until cutover**, rat
 5. **Single-origin hosting pattern:** bundle the Vite build into the FastAPI container on all three platforms; avoid Render's split Static Site + Web Service.
 6. **TanStack Router:** prefer `validateSearch` / `useSearch` over raw `window.location.search` in the callback route.
 7. **GA4 quotas** (10 concurrent requests, token budgets) → the pull service should paginate and throttle; enable `returnPropertyQuota: true` for observability.
+8. **GA4 pagination numbers (live).** Default `limit` 10,000 rows; max 250,000 per request — the Phase 5 pull design should page at the default and cap request limits accordingly. *(§3.9 item 1.)*
+9. **GA4 quotas refined (live).** “10 concurrent requests” = **Core Concurrent Requests Per Property: 10 (Standard) / 50 (360)**; add token budgets (200k/day, 40k/hr per property) and the 120 thresholded-requests/hour cap to the throttling design. *(§3.9 item 2.)*
+10. **AI SDK version pin.** Whisperer-30 pins `ai@^7.0.48` (not v4 as one research agent claimed) — validate the wire-format decision against v7. *(§3.9 item 3.)*
+11. **Gemini SDK.** Use `google-genai` (current) for FastAPI `/api/chat` + summary; map `thoughts_token_count` into the server usage ledger. *(§3.9 item 4.)*
+12. **bun in CI.** `oven-sh/setup-bun@v2` covers GitHub Actions; Cloud Build can install bun via the official install script — the npm-vs-bun decision is unconstrained by CI. *(§3.9 item 5.)*
+13. **AI SDK v7 + `toTextStreamResponse` verified.** v7 is the current docs line; the captured `chat.ts` streams with `streamText(...).toTextStreamResponse()` (plain text — matches F3's reader). *(§3.10 item 1.)*
+14. **Start/Lovable → plain Vite strip list.** Remove `@lovable.dev/vite-tanstack-config`, `@tanstack/react-start`, `nitro`, `src/server.ts`, `src/start.ts`, `src/routes/api/*`; file routing is identical without Start. *(§3.10 item 2.)*
+15. **Cloud Run is the GCP path.** `$PORT` 8080; request timeout default 300s/max 3600s (SSE); session affinity best-effort; HTTP/2 (`h2c`); proxy headers → explicit HTTPS OAuth redirect. *(§3.10 item 3.)*
+16. **MSW streaming tests.** `HttpResponse` + `ReadableStream` body; SSE headers; jsdom has no `EventSource` — test the `getReader()` path. *(§3.10 item 4.)*
+17. **Recharts 2.15.x lacks React 19 peer deps.** Use `overrides` or move to recharts 3.x at Phase 4 if install errors/warnings appear. *(§3.10 item 5.)*
+18. **Python 3.14 floors.** Raise `pandas` floor to `>=2.3.3` (cp314 wheels); `pydantic>=2.12`; `python:3.14-slim` valid. *(§3.10 item 6.)*
+19. **Gemini model hygiene.** `gemini-2.0-flash` is shut down — prune `AVAILABLE_MODELS`; 3.x line current; `total_thought_tokens` confirmed in usage payloads; Interactions API now GA. *(§3.10 item 7.)*
+
+---
+
+### 3.9 Round-2 research (live-verified 2026-08-05) — GA4 quotas & pagination, Gemini SDK, AI SDK version pin, bun in CI
+
+Second research pass. Sources fetched live on 2026-08-05: Google Analytics Data API **quotas** page and **`properties.runReport`** reference; GitHub **`oven-sh/setup-bun`**; plus a repo-level cross-check against the captured whisperer-30 `package.json`. One research claim was corrected by the cross-check (item 3), and one reported number was corrected by the live page (item 1).
+
+1. **GA4 pagination (live).** `RunReportRequest` pages with `limit` + `offset` (both int64). Default `limit` = **10,000 rows**; the API returns **at most 250,000 rows per request** no matter how many are requested (a docs-research agent said 100,000 — the live reference says 250,000); `limit` must be positive. `offset` = row count of the start row; first request uses 0, the second uses the first page's `limit`. *(developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport)*
+2. **GA4 quotas (live).** Three categories — **Core** (`runReport`, `runPivotReport`, `batchRunReports`, `batchRunPivotReports`, `runAccessReport`, `getMetadata`, `checkCompatibility`, `createAudienceExports`), **Realtime** (`runRealtimeReport`), **Funnel** (`runFunnelReport`) — each request consumes exactly one. Standard-property numbers: **Core Concurrent Requests Per Property = 10** (Analytics 360: 50); Core tokens 200,000/day and 40,000/hour per property (14,000/hour per project-per-property); server errors 10/hour per project-per-property; **120 potentially-thresholded requests/hour** (`userAgeBracket`, `userGender`, `brandingInterest`, `audienceId`, `audienceName`). `returnPropertyQuota: true` → response includes `PropertyQuota` with consumed/remaining balances. Daily quotas reset midnight PST; hourly within an hour. *(developers.google.com/analytics/devguides/reporting/data/v1/quotas)*
+3. **AI SDK version pin — cross-check correction.** A docs-research agent reported the `ai` package is at major "v4"; the **captured whisperer-30 `package.json` pins `"ai": "^7.0.48"`** (also `react ^19.2.0`, `vite ^8.1.5`, `@tanstack/react-router ^1.170.18`, `@tanstack/router-plugin ^1.168.23` — the TanStack pins consistent with the live-verified §3.6). The Phase 1 wire-format decision (§3.5) must be validated against the **v7** API surface.
+4. **Gemini SDK + usage metadata (docs research).** Current Python SDK: **`google-genai`** (`google-generativeai` is legacy — ai.google.dev/gemini-api/docs/migrate). Streaming: `client.models.generate_content_stream(...)`. Usage metadata fields: `prompt_token_count`, `candidates_token_count`, **`thoughts_token_count`**, `total_token_count` — the Streamlit app's `total_thought_tokens` session key maps directly onto `thoughts_token_count` for the server-side usage ledger. Current models: `gemini-2.5-flash` / `gemini-2.5-pro`. Rate limits are tier-based (free vs paid).
+5. **bun in CI (live).** GitHub Actions: **`oven-sh/setup-bun@v2`** is the canonical action — auto-detects the `packageManager` field in `package.json` (falls back to `engines.bun`, then latest), supports `bun-version-file`, private registries, and caching. Cloud Build: install bun in a build step via the official install script. **Conclusion: the npm-vs-bun decision is unconstrained by CI** — either pipeline can support either manager.
+6. **Funnel shape (docs research).** `RunFunnelReportRequest` uses `funnelVisualizationType` (`STANDARD_FUNNEL` / `OPEN_FUNNEL`) and `funnelStepRange`; works on standard GA4 properties; consumes the **Funnel** quota category (live-confirmed on the quotas page). *(funnel-reports guide; quotas page above.)*
+7. **Dimension/metric limits (reported — limits page 404 at fetch time).** Max **9 dimensions / 10 metrics** per standard report (≤7 dimensions for funnel reports), per the Data API limits guide. Consistent with the plan's "≤9 dimensions"; re-verify against the limits page at Phase 5 implementation.
+
+---
+
+### 3.10 Round-3 research (live-verified 2026-08-05) — AI SDK v7, Start→Vite strip list, Cloud Run, MSW streaming, Recharts×React 19, Python 3.14, Gemini models & thinking, FastAPI SPA/SSE/cookies
+
+Third research pass, closing the six gaps from the round-2 review. Live sources fetched 2026-08-05: ai.google.dev (models + thinking pages), ai-sdk.dev (v7 docs), captured whisperer-30 files (`vite.config.ts`, `package.json`, `src/routes/api/chat.ts`), plus docs-research agents for TanStack/Cloud Run/MSW/Recharts/Python/FastAPI.
+
+1. **AI SDK v7 confirmed (clears the §3.5 flag).** The current AI SDK docs live under **`/v7/`** (ai-sdk.dev) — **v7 is the current major**. The captured whisperer-30 `src/routes/api/chat.ts` uses `streamText` from `ai` + **`result.toTextStreamResponse()`** — plain `text/plain` output, exactly what F3's `getReader()`/`TextDecoder` reader consumes. `useChat` (v7) parses the structured data-stream / UI-message protocol, not plain SSE. *(§3.5 caveat stands; version and helper now verified.)*
+2. **TanStack Start → plain Vite — precise strip list.** whisperer-30 is Start-based **through the Lovable plugin**: `vite.config.ts` uses `@lovable.dev/vite-tanstack-config` (v2.8.5) with `tanstackStart: { server: { entry: "server" } }`; `package.json` has `@tanstack/react-start ^1.168.32`, `nitro 3.0.260603-beta`, `@tanstack/react-query ^5.101.1`. **Remove:** the Lovable vite plugin (replace with `@vitejs/plugin-react` + `@tanstack/router-plugin/vite` + tailwind + path alias), `@tanstack/react-start`, `nitro`, `src/server.ts`, `src/start.ts`, and **`src/routes/api/*` (Start/Nitro server routes — `chat.ts`, `research.ts`)**. **Keep:** `@tanstack/react-router` + `@tanstack/router-plugin` (file-based `createFileRoute` works identically without Start), `ai`, `recharts`, `lucide-react`, `sonner`, tailwind, shadcn/ui. Start-only features (server functions, server loaders, request/cookie context) aren't used by the explorer components.
+3. **Cloud Run is the natural GCP path (repo already deploys via `cloudbuild.yaml`).** Canonical shape: docker build → push to Artifact Registry → `gcloud run deploy` (docs.cloud.google.com/build/docs/deploying-builds/deploy-cloud-run). Cloud Run specifics that matter here: bind **`$PORT` (default 8080)**; **request timeout default 300s, max 3600s** — SSE chat streams that outlive 5 minutes need `--timeout` raised or a heartbeat; **session affinity is best-effort** (30-day routing cookie; breaks on scale-down/autoscale — chat/reconnect state must tolerate it); **HTTP/2 (`h2c`)** avoids HTTP/1.1 per-domain connection limits for streaming; **proxy headers** (`X-Forwarded-Proto`) mean the OAuth redirect URL must be the explicit public HTTPS URL (or trust proxy headers); `--min-instances` avoids cold starts on OAuth flows. Cloud Run does **no** SPA rewrite — the FastAPI catch-all (item 8) must serve `index.html`.
+4. **MSW streaming/SSE testing.** MSW v2 `HttpResponse` accepts a `ReadableStream` body — the documented way to mock streaming (mswjs.io/docs/api/http-response). For `text/event-stream` mocks set `Content-Type: text/event-stream` + `Cache-Control: no-cache`. Caveats: Node/undici may buffer unless the client consumes incrementally via `getReader()`; **jsdom ships no real `EventSource`** — chat-stream tests must drive the store's fetch+`getReader()` path (which F3's store uses), not `EventSource`.
+5. **Recharts ^2.15.4 × React 19.2.** Recharts 2.15.x peerDependencies are `^16.8 || ^17 || ^18` — React 19 not declared; a 19.2 install may need `overrides`, and 2.x may emit legacy-pattern warnings. **Recharts 3.x is the React-19-first line.** Plan: plain install first at Phase 4; on peer-dep errors/warnings use `overrides` or move to 3.x.
+6. **Python 3.14 stack (verified).** `python:3.14-slim` exists (Docker Hub) — the dockerfile-pattern base is valid. **pandas needs ≥2.3.3 for cp314 wheels** — the repo's `pandas>=2.0.0` floor must be raised to `>=2.3.3` for reproducible 3.14 builds (the venv already resolves newer pandas, which is why tests pass today). `openpyxl` is pure-Python (fine); `google-analytics-data` 0.23.0 declares Python 3.14 (repo floor `>=0.18.0` is loose but resolvable); `google-genai` supports 3.14; `fastapi`/`uvicorn`/`pydantic` (≥2.12) all support 3.14 — **pydantic v1 does not**.
+7. **Gemini models & thinking (live).** The **Gemini 3.x line is now current** (3.6-flash stable, 3.5-flash, 3.1-pro preview, 3-flash preview); **2.5-flash / 2.5-pro / 2.5-flash-lite remain stable**; **2.0-flash is shut down** — and the repo's `utils/gemini_client.py` `AVAILABLE_MODELS` still lists `gemini-2.0-flash` and `gemini-1.5-flash` (prune when building `/api/chat`). Repo default: `gemini-2.5-flash`, 1M-token context per `MODEL_CONTEXT_LIMITS`. Thinking: 2.5/3 models think by default; `thinking_level` (minimal/low/medium/high) controls effort; usage reports **`total_thought_tokens`** (confirmed in a live SSE usage payload: `total_tokens`, `total_input_tokens`, `total_output_tokens`, `total_thought_tokens`) — the exact counters the Streamlit app already tracks. The **Interactions API is now GA** (recommended: `client.interactions.create`, with `thinking_summaries`); the existing `generateContent` path still works. *(ai.google.dev/gemini-api/docs/models + /thinking)*
+8. **FastAPI SPA fallback + SSE + `__Host-` (verified).** Pattern confirmed: `app.mount("/assets", StaticFiles(...))` + catch-all `@app.get("/{full_path:path}")` returning `FileResponse(index.html)` (fastapi.tiangolo.com/tutorial/static-files) — matches the dockerfile-pattern sketch. `StreamingResponse` cancels the async generator on client disconnect (`asyncio.CancelledError` — use `try/finally`); add SSE heartbeats for long idle streams (starlette.io/responses). `__Host-` cookie: requires `Secure`, `Path=/`, and **no `Domain`** attribute — FastAPI `Response.set_cookie` supports it directly (`secure=True`, `path="/"`, omit `domain`). *(developer.mozilla.org Set-Cookie)*
+
+---
+
+### 3.11 Hosting evaluation — can this stack live on Vercel? (evaluated 2026-08-05)
+
+Product-owner question: *"could we host this on Vercel like my website?"* Answer: **the SPA, yes — the FastAPI backend, no.** Vercel is a strong fit for the React app alone, but the API cannot run on Vercel serverless functions given this workload's requirements.
+
+**What Vercel handles well:** the React SPA (static Vite output, CDN, preview deployments) — the user already hosts a site there.
+
+**Why the FastAPI backend fails on Vercel functions:**
+1. **Request-body limits.** Vercel serverless functions cap request/response bodies at roughly **4.5 MB** on the Hobby tier — the ingestion policy is **100 MB** (see §4.11, size-policy decision). Even a 25 MB CSV upload cannot reach a Vercel function. Hard blocker, not a tuning issue.
+2. **Function duration limits** (Hobby ~10–15 s, Pro 60 s; higher only on Enterprise). Long-lived SSE chat streams would be cut off, and streaming from Python functions on Vercel is unreliable.
+3. **Serverless statelessness.** The server-owned session model (F4 in-memory store) breaks on stateless functions — every request may hit a different instance; would require Vercel KV/Postgres plus a session-store rewrite.
+4. **No long-lived connections** (SSE) or WebSockets on serverless functions.
+
+**The single-origin catch:** serving the SPA on Vercel and the API on a container host would split origins — breaking the same-origin cookie/OAuth/SSE model (plan Phase 6). Same-domain rewrites (SPA + `api/*` in one Vercel project) still route `api/*` to functions and inherit every blocker above.
+
+**Recommendation (recorded):** keep the container path — **Cloud Run** (the repo already deploys via `cloudbuild.yaml`; §3.10 item 3), with Railway/Render as equivalents. Vercel remains a *frontend-only* option only if the architecture changes (not recommended). *Sources: vercel.com/docs (limits); gravity-index hosting comparison (2026-08-05).*
 
 ---
 
@@ -3083,5 +3144,44 @@ Records the three passes after the §4.6 ledger: the research fold-in, the §3.6
 | repo (git) | **First commit of the migration package** — `migration/`, `README.md`, `DOCUMENTATION_INDEX.md` land on `main` (docs only) |
 
 **Non-changes:** no application code; the branch `feat/react-fastapi-migration` is **documented, not created** — per this pass, the docs package commits to `main` and the branch is cut when Phase 1 work starts (`branch-and-freeze-policy.md` §4).
+
+### 4.9 Change log — round-2 research pass (added 2026-08-05)
+
+| File | Change |
+|---|---|
+| this archive | §3.9 round-2 research (live-verified) added; §3.8 delta list extended with items 8–12 |
+| `insights-explorer-migration-plan.md` | Research amendments extended: Phase 1 (`ai@^7.0.48` pin), Phase 3 (Gemini `google-genai` SDK + thought tokens), Phase 4 (bun-in-CI + captured stack pins), Phase 5 (GA4 live quota/pagination numbers, item 7) |
+| `freebuff-prompt-wire-react-store.md` | Round 2 Research Addendum appended (`ai@^7` + `useChat` protocol, Gemini thought tokens, stack pins) |
+| `phase-1-api-react-callback-tests-implementation.md` | Round 2 Research Addendum appended (GA4 client names, GA4 numbers for the Phase-5-forward pull, Gemini SDK, AI SDK pin) |
+| `dockerfile-pattern.md` | CI note added: `oven-sh/setup-bun@v2` for GitHub Actions |
+| `README.md` | Addenda table row for the round-2 pass |
+
+**Corrections this pass (both recorded in §3.9):** AI SDK version — research agent said "v4", actual pin is `ai@^7.0.48`; GA4 max rows/request — research agent said 100,000, live reference says 250,000.
+
+### 4.10 Change log — round-3 research pass (added 2026-08-05)
+
+| File | Change |
+|---|---|
+| this archive | §3.10 round-3 research (live-verified) added; §3.5 `[tool-knowledge]` flag cleared with a verification note; §3.8 delta list extended with items 13–19 |
+| `insights-explorer-migration-plan.md` | Amendments extended: Phase 1 (AI SDK v7 verified), Phase 3 (Gemini model hygiene — 2.0-flash shut down; thought-token counters confirmed), Phase 4 (Start/Lovable strip list, Recharts×React 19), Phase 6 (Cloud Run as the GCP path) |
+| `freebuff-prompt-wire-react-store.md` | Round 3 Research Addendum appended (`toTextStreamResponse` confirmed in captured chat.ts; Nitro server routes removed; MSW chat-stream tests) |
+| `phase-1-api-react-callback-tests-implementation.md` | Round 3 Research Addendum appended (MSW streaming pattern + jsdom `EventSource` caveat, Python 3.14 floors, GA4 client naming, `__Host-` cookie verification) |
+| `dockerfile-pattern.md` | GCP row replaced with the Cloud Run path; Python-3.14 dependency floors note added |
+| `README.md` | Addenda table row for the round-3 pass |
+
+**Corrections/new facts this pass:** `gemini-2.0-flash` is shut down (repo model list still offers it); pandas floor must be ≥2.3.3 on Python 3.14; recharts 2.15.x lacks React 19 peer deps; AI SDK v7 is the current docs line and the captured chat route uses `toTextStreamResponse()`.
+
+### 4.11 Change log — internal reconciliation batch (added 2026-08-05)
+
+Closes the three internal gaps identified after round-3 research, plus the Vercel hosting evaluation. No external research was required for the first three — all verified against the repo.
+
+| Item | Resolution | Where recorded |
+|---|---|---|
+| 1. **Size-policy mismatch** — Drive guards at 100 MB (`utils/drive_client.py:48`, `MAX_DRIVE_IMPORT_BYTES`); F4's upload defaults to 25 MB; the Streamlit upload path has **no** explicit guard | Single ingestion policy: **`MAX_INGEST_BYTES = 100 MB`** for both upload and Drive in the API (env-overridable). Note platform body caps: Vercel functions ≈4.5 MB (blocked — §3.11); Cloud Run configurable to ~128 MB; Drive downloads are server-side so unaffected by browser/request-body caps | F4 Reconciliation Addendum 2 · plan Phase 1 amendment · this ledger |
+| 2. **F4 schemas vs `plans/ga4-measurement-contract.md`** — declared canonical but never field-checked | Field-level check: **no conflict** — the contract defines *computed metrics* (5 rows: numerator/denominator/grain/event mapping/validation status); F4's `DatasetContext` is a *transport* descriptor. Documented the mapping: contract rows → `/api/ga4/pull` `DatasetContext.metrics` entries with `provenance` carrying `contract_row` + `validation_status`; future `ReportContract` objects per the contract's Next-steps item 4. Rows 3–5 stay `unavailable` — consistent with aggregate-only GA4 access + the funnel nuance (§3.4) | F4 Reconciliation Addendum 2 · this ledger |
+| 3. **No 742-test layer inventory** | New doc `migration/test-layer-inventory.md`: **742 = 452 utils-facing (61%, keep as-is) + 290 components-facing (39%, rewrite/retire)**; plus 32 Playwright smoke + 8 E2E stay | new doc · README · this ledger |
+| 4. **Vercel hosting question** | Evaluated: SPA yes, FastAPI no (≈4.5 MB body cap vs 100 MB policy; function duration vs SSE; stateless sessions). Container path (Cloud Run) stays the recommendation | archive §3.11 · plan Phase 6 · dockerfile-pattern §4 |
+
+**Non-changes:** no code touched. `requirements/base.txt` floors remain a Phase-1 implementation item (raise `pandas>=2.3.3` per §3.10 item 6; introduce the shared `MAX_INGEST_BYTES` constant per item 1).
 
 *— End of compiled archive —*
