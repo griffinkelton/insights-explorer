@@ -7,6 +7,25 @@
 
 ---
 
+## Canonical API Decisions (2026-08-05 — master-plan revision)
+
+Single source of truth for implementation-facing documents. Anything below that conflicts with earlier text in this document is **superseded** (old paths are marked, not left active):
+
+| Decision | Value |
+|---|---|
+| API prefix | `/api/v1` (all routes versioned) |
+| Health endpoint | `GET /healthz` |
+| Upload response | `{ dataset: ... }` (with `{ dataset, rows }` where specified) |
+| Auth/session transport | HttpOnly secure session cookie + `credentials: "include"` |
+| API naming | snake_case at the boundary |
+| React mapping | `api.ts` performs snake_case → camelCase normalization — never individual components |
+| Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
+| Upload policy | Browser cap **32 MB** (`MAX_BROWSER_UPLOAD_BYTES`); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`) |
+
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any 25 MB upload default. See `master-plan.md` §4–5 and archive §4.12.
+
+**Plan-specific supersession:** the draft endpoint table's bare `/api/...` paths are now `/api/v1/...`; Phase 1 upload cap is 32 MB for browser uploads and 100 MB for server-side/Drive; session storage is decided in Phase 1 (interface + in-memory; shared store proven before Phase 5), not deferred to Phase 6. Coordination: `master-plan.md` supersedes this document for *execution order*; this document remains the phase-shape source.
+
 ## Executive Summary
 
 Keep `insights-explorer` as the canonical repository. Do **not** switch base to `insights-whisperer-30`. Instead, extract a FastAPI service from the existing Python backend, and fold the React UI from `insights-whisperer-30` into the same repo as a new `frontend/` directory. Retire Streamlit incrementally.

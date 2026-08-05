@@ -1,5 +1,24 @@
 # Freebuff Prompt: Wire explorer-store.tsx to FastAPI Endpoints
 
+## Canonical API Decisions (2026-08-05 — master-plan revision)
+
+Single source of truth for implementation-facing documents. Anything below that conflicts with earlier text in this document is **superseded** (old paths are marked, not left active):
+
+| Decision | Value |
+|---|---|
+| API prefix | `/api/v1` (all routes versioned) |
+| Health endpoint | `GET /healthz` |
+| Upload response | `{ dataset: ... }` (with `{ dataset, rows }` where specified) |
+| Auth/session transport | HttpOnly secure session cookie + `credentials: "include"` |
+| API naming | snake_case at the boundary |
+| React mapping | `api.ts` performs snake_case → camelCase normalization — never individual components |
+| Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
+| Upload policy | Browser cap **32 MB** (`MAX_BROWSER_UPLOAD_BYTES`); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`) |
+
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any 25 MB upload default. See `master-plan.md` §4–5 and archive §4.12.
+
+**F3-specific supersession:** step 2's `API_BASE` default `http://localhost:8000/api` → `http://localhost:8000/api/v1`; step 13's `VITE_API_BASE=/api` → `/api/v1` (same-origin relative).
+
 ## Context for Freebuff
 
 This prompt is for use in Freebuff (or any agentic coding assistant with repo access). It assumes:

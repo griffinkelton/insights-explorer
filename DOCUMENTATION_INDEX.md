@@ -64,11 +64,11 @@
 
 ## 🚚 React/FastAPI Migration (`migration/`)
 
-> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Planning-only — no code written (2026-08-05).** Start at `migration/README.md`.
+> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Planning-only — no migration product code written (2026-08-05).** Start at `migration/README.md`.
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
-| [migration/README.md](migration/README.md) | Entry point — index of the eleven migration docs and how they relate | Decision summary, eleven-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
+| [migration/README.md](migration/README.md) | Entry point — index of the twelve migration docs and how they relate | Decision summary, twelve-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
 | [migration/master-plan.md](migration/master-plan.md) | **The execution coordinator — START IMPLEMENTATION HERE** | Phases 0–6 with inputs/tasks/exit criteria, 5 cross-cutting workstreams (state, contract, tests, security, CI/CD), target repo file layout, critical path, open decisions, risk register, doc→phase source map | 🔵 Plan (2026-08-05) |
 | [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
 | [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
@@ -81,6 +81,7 @@
 | [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist — Phase 0 security gate for whisperer-30 | Inspect → identify → rotate/revoke → remediate → prevent; verified facts | 🔵 Planning (2026-08-05) |
 | [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | Branch model, freeze rules, fix-forward, lift criteria | 🔵 Planning (2026-08-05) |
 | [migration/test-layer-inventory.md](migration/test-layer-inventory.md) | 742-test layer inventory: 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths | 🔵 Ingested (2026-08-05) |
+| [migration/data-retention-policy.md](migration/data-retention-policy.md) | Retention & AI data-boundary policy — written before the API exists | Upload retention, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation | 🔵 Planning (2026-08-05) |
 
 ---
 ## 🔗 How These Docs Connect
@@ -220,6 +221,7 @@ insights-explorer-migration-ingest.md ─── "Compiled archive (source of tru
 | [plans/🔵 ga4-insights-sketch.md](plans/🔵%20ga4-insights-sketch.md) | Trust-layer design sketch (v3, 662 lines) — aggregate-only reality check, 5-gate phasing, composable labels, measurement contract | 🔵 Sketch — deferred to post-v0.3.0 | 2026-08-02 |
 | [migration/README.md](migration/README.md) | Index of the React/FastAPI migration docs (planning) | 🔵 Planning | 2026-08-05 |
 | [migration/master-plan.md](migration/master-plan.md) | Master execution plan — phases 0–6, cross-cutting tracks, target file layout (planning) | 🔵 Plan | 2026-08-05 |
+| [migration/data-retention-policy.md](migration/data-retention-policy.md) | Data-retention & AI data-boundary policy (before the API exists) | 🔵 Planning | 2026-08-05 |
 | [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | Compiled migration archive — synthesis, verbatim sources, research, ledger | 🔵 Ingested | 2026-08-05 |
 | [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | 6-phase React/FastAPI migration roadmap (planning) | 🔵 Plan | 2026-08-05 |
 | [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 store-wiring prompt (reference) | 🟡 Reference | 2026-08-05 |
@@ -234,4 +236,4 @@ insights-explorer-migration-ingest.md ─── "Compiled archive (source of tru
 
 ---
 
-*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory) — all planning/reference, no code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
+*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory, data-retention policy, master-plan revision) — all planning/reference, no migration product code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*

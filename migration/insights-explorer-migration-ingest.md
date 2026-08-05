@@ -3184,4 +3184,20 @@ Closes the three internal gaps identified after round-3 research, plus the Verce
 
 **Non-changes:** no code touched. `requirements/base.txt` floors remain a Phase-1 implementation item (raise `pandas>=2.3.3` per §3.10 item 6; introduce the shared `MAX_INGEST_BYTES` constant per item 1).
 
+### 4.12 Master-plan revision (2026-08-05)
+
+Peer review of the migration package ("tighten before Phase 1") produced this revision pass — folded into `master-plan.md`, F3/F4/plan (canonical API decisions), and a new policy doc. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Session/dataset store moved forward | master-plan §4–5, §13; F4 supersession | `SessionStore`/`DatasetStore` interfaces in Phase 1 (in-memory for dev); shared staging store (Redis/Valkey or Postgres) proven **before Phase 5** — Cloud Run session affinity is best-effort, not a consistency guarantee |
+| Browser-upload architecture decision | master-plan §4–5, §13; F4 supersession | Cloud Run HTTP/1 caps requests at **32 MiB**; options (32 MB browser cap — recommended / tested end-to-end HTTP/2 / signed Cloud Storage); two-tier policy `MAX_BROWSER_UPLOAD_BYTES = 32 MB` + `MAX_INGEST_BYTES = 100 MB` |
+| Canonical API decisions record | F3, F4, plan (new top sections) | `/api/v1` · `/healthz` · `{ dataset }` · HttpOnly cookie + `credentials: "include"` · snake_case boundary · `api.ts` camelCase · chat transport · upload policy; old `/api` and 25 MB references marked superseded |
+| Blocking-work guidance | master-plan §5, §15 | CPU-heavy routes synchronous or in a controlled thread pool; hard caps on rows/columns/**decompressed** size; reject password-protected sheets, MIME mismatches, compression bombs; streamed/temp-store exports; job model later if needed |
+| Data retention + AI data boundary | new `data-retention-policy.md`; master-plan cross-cutting F | Policy before the API exists: retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation |
+| OAuth production-real | master-plan §5 | Persist `state`/PKCE verifier/creation time/return path with short expiry + one-time use; per-env redirect URIs from an allowed-host config |
+| Chat reconnect | master-plan §4/§8, §14 | Client retains message, partial output safe, retry without duplicate assistant messages; Cloud Run timeout is a ceiling, not a guarantee |
+| Three release gates | master-plan §14 | No-regression · Contract · User-flow |
+| Doc lifecycle + wording | README | Active vs reference vs archive classification; "nothing committed to git" corrected to "no migration product code written" |
+
 *— End of compiled archive —*

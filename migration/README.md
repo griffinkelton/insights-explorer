@@ -2,7 +2,7 @@
 
 Index for the migration decision material: moving the `insights-explorer` product from a Streamlit UI to a **React frontend (`insights-whisperer-30` components) + FastAPI backend** built on the existing Python `utils/` layer.
 
-> **Status (2026-08-05):** all eleven documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; **`master-plan.md` is the execution coordinator** (phases 0–6 + cross-cutting tracks + target file layout); final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no code written**, nothing committed to git.
+> **Status (2026-08-05):** all twelve documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; **`master-plan.md` is the execution coordinator** (phases 0–6 + cross-cutting tracks + target file layout); final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no migration product code written** (planning docs are committed on `main`; implementation has not started).
 
 ---
 
@@ -12,7 +12,7 @@ Index for the migration decision material: moving the `insights-explorer` produc
 
 ---
 
-## The eleven documents
+## The twelve documents
 
 | File | What it is | Contents | Status |
 |---|---|---|---|
@@ -27,6 +27,7 @@ Index for the migration decision material: moving the `insights-explorer` produc
 | **`env-rotation-checklist.md`** | **The `.env` rotation checklist** — Phase 0 security gate before any whisperer-30 code copy-in. | Verified `.env` facts, inspect → identify → rotate/revoke → remediate → prevent, verification checklist | 🔵 Planning |
 | **`branch-and-freeze-policy.md`** | **Migration branch + feature-freeze policy** — Batch 3 process decision, written down. | Branch model (`main` vs `feat/react-fastapi-migration`), freeze rules, fix-forward rule, lift criteria, branch creation command | 🔵 Planning |
 | **`test-layer-inventory.md`** | **Which of the 742 tests transfer** — substantiates the "tests won't transfer one-to-one" claim. | 742 = 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths + Phase 6 checklist | 🔵 Ingested |
+| **`data-retention-policy.md`** | **Retention & AI data-boundary rules** — written before the API exists (review feedback). | Upload retention, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation before AI calls | 🔵 Planning |
 
 ## Reference capture: whisperer-30 (`whisperer-30-reference/`)
 
@@ -92,7 +93,18 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 | **Round 2 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 2: GA4 quota/pagination numbers (10 concurrent/property, 250k rows/request max), Gemini SDK (`google-genai` + `thoughts_token_count`), AI SDK pin (`ai@^7.0.48` — corrects a research "v4" claim), bun-in-CI (`oven-sh/setup-bun@v2`) |
 | **Round 3 Research (2026-08-05)** | archive, plan, F3, F4, dockerfile | Live-verified round 3: AI SDK v7 + `toTextStreamResponse` confirmed, Start/Lovable→Vite strip list, **Cloud Run path** (timeouts/session affinity/HTTP2), MSW streaming tests, Recharts×React 19, Python 3.14 floors (pandas≥2.3.3), Gemini model hygiene (2.0-flash shut down) |
 | **Internal Reconciliation (2026-08-05)** | archive, plan, F4, dockerfile, new doc | Single 100 MB ingestion size policy (Drive/upload mismatch closed); field-level measurement-contract mapping; 742-test layer inventory (new doc); **Vercel hosting evaluation — SPA yes, FastAPI no** |
-| **Master Plan (2026-08-05)** | new doc: `master-plan.md` | The execution coordinator — phases 0–6 with per-phase inputs/tasks/exit criteria, 5 cross-cutting workstreams, target file layout, critical path, open decisions, risk register, doc→phase map; README + DOCIDX re-indexed to eleven docs |
+| **Master Plan (2026-08-05)** | new doc: `master-plan.md` | The execution coordinator — phases 0–6 with per-phase inputs/tasks/exit criteria, 6 cross-cutting workstreams, target file layout, critical path, open decisions, risk register, doc→phase map; README + DOCIDX re-indexed to eleven docs |
+| **Master Plan Revision (2026-08-05)** | master-plan, F3, F4, plan, new doc | Review feedback folded in: session store + upload architecture moved to Phase 0/1 (32 MB browser cap / 100 MB server-side), canonical API decisions record in every implementation doc (`/api/v1`, `/healthz`, `{ dataset }`, cookie sessions), blocking-work + OAuth production-real guidance, chat reconnect, three release gates, new `data-retention-policy.md`, doc lifecycle + wording fixes |
+
+## Document lifecycle (active vs reference vs archive)
+
+Classification from the master-plan review (2026-08-05) — how implementation should treat each doc:
+
+| Class | Documents | Treatment |
+|---|---|---|
+| **Active** | `master-plan.md` · `session-state-inventory.md` · `test-layer-inventory.md` · `env-rotation-checklist.md` · `dockerfile-pattern.md` · `data-retention-policy.md` (+ `plans/ga4-measurement-contract.md` outside `migration/`) | Consulted during implementation; maintained |
+| **Reference** | `freebuff-prompt-wire-react-store.md` (F3) · `phase-1-api-react-callback-tests-implementation.md` (F4) · `whisperer-30-reference/` | Read for implementation detail; prompts archive once their implementation PRs merge |
+| **Archive** | `glm-5-2-vs-perplexity-migration-comparison.md` · `insights-explorer-migration-ingest.md` · `insights-explorer-migration-plan.md` | Audit trail / source of truth — read-only (archive gains only change-log appendices); the plan is superseded by `master-plan.md` for execution order |
 
 ## Suggested reading paths
 
@@ -111,4 +123,4 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 3. **Contracts:** adopt the Part 4 §4.2 canonical choices (`/healthz`, `authorization_url`, `{ dataset }` wrapper, `credentials: "include"`, `setSourceFromApi`, `/api/v1`).
 4. **Fold-in complete:** the 7 research corrections are already in the plan's phase sections (see Research Fold-In Log).
 
-*All eleven files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*
+*All twelve files were moved here 2026-08-05 from the repo root and are indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) (section: React/FastAPI Migration).*
