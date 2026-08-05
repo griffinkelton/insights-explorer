@@ -1,9 +1,11 @@
 """Tests for components/drive_picker_component.py — wrapper contract.
 
 The wrapper owns schema validation (v0.3.0 spec §3.3): it returns only
-an allowlisted ``PickerSelection`` dict or ``None`` — never raw
-component values, Picker metadata, tokens, or error text. Request
-freshness (``requestId``) is checked by the sidebar, not the wrapper.
+allowlisted dicts — ``PickerSelection`` (``kind: "picked"``) or
+``CancelSelection`` (``kind: "cancel"``, Workstream C PR 3/C1) — or
+``None``. It never returns raw component values, Picker metadata,
+tokens, or error text. Request freshness (``requestId``) is checked by
+the sidebar, not the wrapper.
 """
 
 from unittest.mock import patch
@@ -13,10 +15,14 @@ from streamlit.components.lib.local_component_registry import LocalComponentRegi
 from streamlit.components.v1 import declare_component as st_declare_component
 from streamlit.errors import StreamlitAPIException
 
-from components.drive_picker_component import PickerSelection, drive_picker_transport
+from components.drive_picker_component import (
+    CancelSelection,
+    PickerSelection,
+    drive_picker_transport,
+)
 
 
-def _call_component(raw_value: object) -> PickerSelection | None:
+def _call_component(raw_value: object) -> PickerSelection | CancelSelection | None:
     """Invoke the wrapper with a stubbed frontend return value."""
     with patch(
         "components.drive_picker_component._component", return_value=raw_value
@@ -48,8 +54,8 @@ class TestWrapperReturnsOnlyAllowlistedShapes:
     def test_malformed_dict_is_ignored(self):
         assert _call_component({"kind": "picked"}) is None  # missing fileId
 
-    def test_wrong_kind_is_ignored(self):
-        assert _call_component({"kind": "cancel", "requestId": "req-1", "fileId": "f1"}) is None
+    def test_unknown_kind_is_ignored(self):
+        assert _call_component({"kind": "bogus", "requestId": "req-1", "fileId": "f1"}) is None
 
     def test_picked_without_file_id_is_ignored(self):
         assert _call_component({"kind": "picked", "requestId": "req-1"}) is None
@@ -59,6 +65,39 @@ class TestWrapperReturnsOnlyAllowlistedShapes:
 
     def test_non_string_file_id_is_ignored(self):
         assert _call_component({"kind": "picked", "requestId": "req-1", "fileId": 123}) is None
+
+
+class TestWrapperReturnsStrictCancelSelection:
+    """C1: the cancel shape is allowlisted — kind + requestId only (A+C §5.4)."""
+
+    def test_valid_cancel_returned_as_is(self):
+        result = _call_component({"kind": "cancel", "requestId": "req-1"})
+        assert result == {"kind": "cancel", "requestId": "req-1"}
+
+    def test_cancel_without_request_id_is_ignored(self):
+        assert _call_component({"kind": "cancel"}) is None
+
+    def test_cancel_with_empty_request_id_is_ignored(self):
+        assert _call_component({"kind": "cancel", "requestId": ""}) is None
+
+    def test_cancel_with_whitespace_request_id_is_ignored(self):
+        assert _call_component({"kind": "cancel", "requestId": "   "}) is None
+
+    def test_cancel_with_non_string_request_id_is_ignored(self):
+        assert _call_component({"kind": "cancel", "requestId": 123}) is None
+
+    def test_cancel_extra_metadata_is_stripped(self):
+        """Cancel carries only kind + requestId — never fileId/name/url."""
+        result = _call_component(
+            {
+                "kind": "cancel",
+                "requestId": "req-1",
+                "fileId": "FILE123",
+                "name": "secret-report.csv",
+                "url": "https://drive.google.com/...",
+            }
+        )
+        assert result == {"kind": "cancel", "requestId": "req-1"}
 
 
 class TestWrapperReturnsStrictPickerSelection:

@@ -7,9 +7,11 @@ arguments (oauth_token, dev_key, app_id, app_origin, request_id),
 and the frontend returns one validated selection via
 ``Streamlit.setComponentValue()``.
 
-The wrapper owns **schema validation**: it returns only an allowlisted
-``PickerSelection`` shape or ``None`` — never raw component values,
-Picker metadata, tokens, or error text. The sidebar owns request
+The wrapper owns **schema validation**: it returns only allowlisted
+shapes — ``PickerSelection`` (``kind: "picked"`` + ``requestId`` +
+``fileId``) or ``CancelSelection`` (``kind: "cancel"`` + ``requestId``,
+Workstream C PR 3/C1) — or ``None``. It never returns raw component
+values, Picker metadata, tokens, or error text. The sidebar owns request
 freshness (``requestId`` equality).
 
 Parent specs: plans/00-sprints/🔵 v0.3.0-drive-import-spec.md (§3.3),
@@ -32,7 +34,7 @@ _component = components.declare_component(
 
 
 class PickerSelection(TypedDict):
-    """The only payload the wrapper will return to the sidebar.
+    """A validated file-selection payload the wrapper may return.
 
     ``kind`` is fixed to ``"picked"``; ``requestId`` is the server-side
     current-request token; ``fileId`` is the opaque Drive file ID.
@@ -41,6 +43,18 @@ class PickerSelection(TypedDict):
     kind: Literal["picked"]
     requestId: str
     fileId: str
+
+
+class CancelSelection(TypedDict):
+    """A validated cancel payload the wrapper may return (Workstream C/C1).
+
+    Emitted by the component's Cancel button and on Picker-CANCEL. Carries
+    only ``kind`` + ``requestId`` — never filename, MIME, URL, token, or
+    raw callback data (A+C spec §5.4).
+    """
+
+    kind: Literal["cancel"]
+    requestId: str
 
 
 def drive_picker_transport(
@@ -52,14 +66,14 @@ def drive_picker_transport(
     request_id: str,
     theme: str = "dark",
     key: str,
-) -> PickerSelection | None:
-    """Render the declared component; return a validated selection or ``None``.
+) -> PickerSelection | CancelSelection | None:
+    """Render the declared component; return a validated payload or ``None``.
 
-    The wrapper validates the raw component result and returns only an
-    allowlisted ``PickerSelection`` shape or ``None`` — ``None`` for
-    ``None``, strings, lists, malformed dicts, wrong ``kind``, or
-    ``picked`` without a non-empty ``fileId``. The wrapper returns only
-    the minimum allowlisted selection payload to the sidebar. It never
+    The wrapper validates the raw component result and returns only
+    allowlisted shapes: a ``PickerSelection`` (``picked`` + non-empty
+    ``fileId``) or a ``CancelSelection`` (``cancel`` + non-empty
+    ``requestId``) — ``None`` for ``None``, strings, lists, malformed
+    dicts, unknown ``kind``, or missing/invalid required fields. It never
     returns Picker filenames, MIME types, URLs, raw callback objects,
     tokens, keys, or raw error text.
     """
@@ -73,6 +87,13 @@ def drive_picker_transport(
         key=key,
         default=None,
     )
+    if (
+        isinstance(value, dict)
+        and value.get("kind") == "cancel"
+        and isinstance(value.get("requestId"), str)
+        and value["requestId"].strip()
+    ):
+        return {"kind": "cancel", "requestId": value["requestId"]}
     if (
         isinstance(value, dict)
         and value.get("kind") == "picked"

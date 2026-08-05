@@ -159,6 +159,13 @@ def _section_header(label: str) -> None:
 
 def render_sidebar() -> None:
     """Render the full sidebar and return the uploaded file (if any)."""
+    # C2 (Workstream C PR 3): the success toast fires at the TOP of the
+    # run — before anything that could abort it (e.g. the OAuth redirect's
+    # st.stop()) — so a pending pick always gets its toast exactly once.
+    # ``st.toast`` is a one-shot effect the frontend clears when the next
+    # run's messages arrive, so it must fire on the run AFTER the pick
+    # paths reran (they only set ``drive_picker_just_imported``).
+    _maybe_show_drive_success_toast()
     with st.sidebar:
         _render_logo()
         st.divider()
@@ -498,9 +505,16 @@ def _drive_picker_dialog_body() -> None:
     """Body of the Drive Picker dialog.
 
     MUST never touch ``st.sidebar`` (spike Core 3). Renders the in-dialog
-    theme control (F3) above the Picker component + selection processing.
+    theme control (F3), the format/privacy copy (C3), then the Picker
+    component + selection processing.
     """
     _render_dialog_theme_control()
+    # C3 (Workstream C PR 3): format + privacy copy. Fixed no-secret copy —
+    # never filenames, Drive IDs, or raw API text.
+    st.caption(
+        "Select one CSV, XLSX, or Google Sheets file. "
+        "Only the selected file is accessed — the app does not browse your Drive."
+    )
     _render_and_process_picker()
 
 
@@ -529,6 +543,22 @@ def _maybe_show_drive_picker_dialog() -> None:
         on_dismiss=_on_dismiss,
     )
     dialog(_drive_picker_dialog_body)()
+
+
+def _maybe_show_drive_success_toast() -> None:
+    """C2: emit the success toast on the run *after* the one that reran.
+
+    ``st.toast`` messages are one-shot effects: the frontend clears them
+    when the next script run's messages arrive, so enqueuing a toast in
+    the same run as ``st.rerun()`` (which the Picker dialog needs to close)
+    wipes it before it paints. The pick-processing paths therefore set
+    ``drive_picker_just_imported`` and rerun; this helper — called from
+    ``render_sidebar`` on the following run, where no rerun follows —
+    actually displays it. Fixed no-secret copy; never filenames or IDs.
+    """
+    if st.session_state.get("drive_picker_just_imported"):
+        st.toast("✓ Data imported from Drive")
+        st.session_state.drive_picker_just_imported = False
 
 
 def _render_and_process_picker() -> None:
@@ -570,6 +600,10 @@ def _render_and_process_picker_test_mode() -> None:
     if seam == "picked":
         st.session_state.drive_picker_active = False
         st.session_state.drive_picker_importing = False
+        # C2 (Workstream C PR 3): mark success — the toast itself fires on
+        # the next run (one-shot effects are wiped by the rerun, see
+        # _maybe_show_drive_success_toast). Fixed no-secret copy.
+        st.session_state.drive_picker_just_imported = True
         st.rerun()
         return
 
@@ -588,8 +622,16 @@ def _render_and_process_picker_test_mode() -> None:
     if selection is not None:
         if selection["requestId"] != st.session_state.drive_picker_request_id:
             return
+        if selection["kind"] == "cancel":
+            # C1: explicit cancel from the component — close the dialog.
+            st.session_state.drive_picker_active = False
+            st.session_state.drive_picker_importing = False
+            st.rerun()
+            return
         st.session_state.drive_picker_active = False
         st.session_state.drive_picker_importing = False
+        # C2: mark success — the toast fires on the next run (see above).
+        st.session_state.drive_picker_just_imported = True
         st.rerun()
 
 
@@ -627,6 +669,12 @@ def _render_and_process_picker_production() -> None:
         return
     if selection["requestId"] != st.session_state.drive_picker_request_id:
         return
+    if selection["kind"] == "cancel":
+        # C1: explicit cancel from the component — close the dialog.
+        st.session_state.drive_picker_active = False
+        st.session_state.drive_picker_importing = False
+        st.rerun()
+        return
 
     from utils.drive_client import download_drive_file
 
@@ -639,6 +687,10 @@ def _render_and_process_picker_production() -> None:
     if not ok:
         # st.error already rendered inside the dialog; keep it open (D5).
         return
+    # C2 (Workstream C PR 3): mark success — the toast fires on the next
+    # run (one-shot effects are wiped by the rerun, see
+    # _maybe_show_drive_success_toast). No-secret copy; no filename.
+    st.session_state.drive_picker_just_imported = True
     st.session_state.drive_picker_active = False
     st.rerun()
 

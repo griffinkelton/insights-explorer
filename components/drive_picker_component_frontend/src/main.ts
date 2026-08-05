@@ -34,6 +34,7 @@ let eventSentForRequestId: string | null = null;
 // ── DOM ──────────────────────────────────────────────────────────────
 
 const button = document.querySelector<HTMLButtonElement>("#open-picker")!;
+const cancelBtn = document.querySelector<HTMLButtonElement>("#cancel-btn")!;
 const statusEl = document.querySelector<HTMLElement>("#status")!;
 
 function setStatus(message: string, kind: "info" | "success" | "error" = "info"): void {
@@ -51,6 +52,21 @@ function setButtonLabel(text: string): void {
 function emit(value: Record<string, unknown>): void {
   Streamlit.setComponentValue(value);
   Streamlit.setFrameHeight();
+}
+
+// ── Cancel (C1 — Workstream C PR 3) ──────────────────────────────────
+// Emits the explicit allowlisted cancel shape {kind:"cancel", requestId}
+// — no filename, MIME, URL, token, or raw callback data (boundary-safe,
+// A+C spec §5.4). Always available: it does not depend on the Picker
+// library being ready, so the user can abandon the flow even when the
+// Picker fails to load.
+
+function emitCancel(): void {
+  if (!currentArgs) return;
+  emit({ kind: "cancel", requestId: currentArgs.requestId });
+  button.disabled = false;
+  setButtonLabel("Open Google Drive Picker");
+  setStatus("Picker closed — no file selected.");
 }
 
 // ── Picker callback ──────────────────────────────────────────────────
@@ -80,8 +96,10 @@ function onPickerCallback(data: google.picker.ResponseObject): void {
   }
 
   if (data.action === google.picker.Action.CANCEL) {
-    setButtonLabel("Open Google Drive Picker");
-    setStatus("Picker closed — no file selected.");
+    // C1: emit the explicit cancel shape (not just a UI reset) so the
+    // dialog can close on cancel (A+C spec §5.4).
+    emitCancel();
+    return;
   }
 }
 
@@ -184,6 +202,7 @@ function onRender(event: Event): void {
 // ── Wire up ──────────────────────────────────────────────────────────
 
 button.addEventListener("click", openPicker);
+cancelBtn.addEventListener("click", emitCancel);
 Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
 Streamlit.setComponentReady();
 Streamlit.setFrameHeight();

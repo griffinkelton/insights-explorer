@@ -18,6 +18,10 @@ Import card (PR 2/D6 — entry-point parity with the sidebar button),
 the Workstream B light-mode surfaces (.privacy-card B2d, .hero-* A1,
 .challenge-card A2 follow the app toggle), and the onboarding tour
 iframe live theme sync (PR-L5/C1).
+Phase 3.2f (Workstream C P0 — PR 3): the component Cancel button (C1,
+closes the dialog via the allowlisted cancel shape), the success toast
+(C2, ?picker_seam=picked fires st.toast with the fixed no-secret copy),
+and the dialog format/privacy copy (C3).
 
 No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
@@ -410,7 +414,10 @@ class TestAppLevelThemeSync:
             # The sync script must have run by the time the sidebar renders.
             page.locator("html[data-theme]").wait_for(state="attached", timeout=SIDEBAR_WAIT)
             initial = page.locator("html").get_attribute("data-theme")
-            assert initial in ("dark", "light"), f"Unexpected initial data-theme {initial!r}"
+            assert initial in (
+                "dark",
+                "light",
+            ), f"Unexpected initial data-theme {initial!r}"
             toggle = page.locator('[data-testid="stSidebar"]').get_by_role(
                 "button", name=re.compile("Light Mode|Dark Mode")
             )
@@ -679,3 +686,89 @@ class TestTourLiveThemeSync:
             assert (
                 tour_html.get_attribute("data-theme") is None
             ), "Tour iframe should drop data-theme when returning to dark"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Phase 3.2f: Workstream C P0 (PR 3) — cancel, toast, dialog copy
+#   - C1: the component's in-iframe Cancel button emits {kind:"cancel"}
+#     and the dialog closes (no secrets/Drive access in test mode)
+#   - C2: the picked seam fires st.toast("✓ Data imported from Drive")
+#   - C3: the dialog body renders the fixed no-secret format/privacy copy
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class TestDriveImportWorkstreamC:
+    """PR 3 P0: component Cancel (C1), success toast (C2), dialog copy (C3)."""
+
+    def test_component_cancel_button_closes_dialog(self, streamlit_server_test_mode):
+        """C1: clicking the component's Cancel button closes the dialog.
+
+        The cancel value round-trips through the wrapper's allowlisted
+        CancelSelection shape and the sidebar closes the dialog — with no
+        real OAuth, secrets, or Drive access (test-mode seam "none").
+        """
+        with _page(streamlit_server_test_mode) as page:
+            _click_import(page)
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            cancel = dlg.frame_locator('iframe[title*="drive_picker_transport"]').locator(
+                "#cancel-btn"
+            )
+            cancel.wait_for(state="attached", timeout=10_000)
+            cancel.click()
+            # The cancel value round-trips through the wrapper; poll for
+            # close instead of a fixed sleep (robust on slow CI).
+            deadline = time.monotonic() + 10
+            while (
+                time.monotonic() < deadline and page.locator('[data-testid="stDialog"]').count() > 0
+            ):
+                page.wait_for_timeout(200)
+            assert (
+                page.locator('[data-testid="stDialog"]').count() == 0
+            ), "Dialog should close when the component Cancel button is clicked"
+            sidebar = page.locator('[data-testid="stSidebar"]')
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_enabled(), "Import button should be enabled after component cancel"
+
+    def test_picked_seam_fires_success_toast(self, streamlit_server_test_mode):
+        """C2: ?picker_seam=picked fires the fixed no-secret success toast."""
+        url = f"{streamlit_server_test_mode}?picker_seam=picked"
+        with _page(url) as page:
+            sidebar = page.locator('[data-testid="stSidebar"]')
+            btn = sidebar.get_by_role("button", name="Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            btn.click()
+            # st.toast auto-dismisses after ~4s — poll immediately rather
+            # than using _click_import's fixed 5s wait. Capture the text
+            # inside the loop so the assertion never re-queries the DOM
+            # after the transient toast has auto-dismissed (TOCTOU-safe).
+            captured = None
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                texts = page.locator('[data-testid="stToast"]').evaluate_all(
+                    "els => els.map(e => e.textContent)"
+                )
+                captured = next((t for t in texts if "Data imported from Drive" in (t or "")), None)
+                if captured:
+                    break
+                page.wait_for_timeout(200)
+            assert captured, "Expected the success toast after the picked seam"
+            assert (
+                "Data imported from Drive" in captured
+            ), "Toast must carry the fixed no-secret success copy"
+            # Success also closes the dialog.
+            page.wait_for_timeout(1000)
+            assert (
+                page.locator('[data-testid="stDialog"]').count() == 0
+            ), "Dialog should close after the picked seam"
+
+    def test_dialog_renders_format_copy(self, streamlit_server_test_mode):
+        """C3: the dialog shows the fixed no-secret format/privacy copy."""
+        with _page(streamlit_server_test_mode) as page:
+            _click_import(page)
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            copy = dlg.get_by_text("Select one CSV, XLSX, or Google Sheets file.")
+            copy.wait_for(state="visible", timeout=10_000)
+            assert copy.is_visible(), "C3 dialog format/privacy copy missing"

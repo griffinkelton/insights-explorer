@@ -786,3 +786,143 @@ class TestDrivePickerDialogState:
         assert seen == [True], "importing flag must be True during ingest"
         assert ss["drive_picker_importing"] is False
         assert ss["drive_picker_active"] is False, "Dialog closes after successful import"
+        # C2: success is marked; the toast itself fires on the next run.
+        assert ss["drive_picker_just_imported"] is True
+
+    # ── Workstream C PR 3 (C1 cancel / C2 toast / C3 dialog copy) ──────
+
+    def test_picked_seam_marks_success_for_toast(self, monkeypatch):
+        """C2: the picked seam marks success; the toast fires on the next run."""
+        import pytest
+        from components.sidebar import _render_and_process_picker_test_mode
+
+        class _Q:
+            def get(self, key, default=""):
+                return "picked"
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_importing=True,
+            drive_picker_request_id="r1",
+        )
+        monkeypatch.setattr("components.sidebar.st.query_params", _Q())
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.rerun", _rerun_abort)
+
+        with pytest.raises(SystemExit):
+            _render_and_process_picker_test_mode()
+
+        assert ss["drive_picker_just_imported"] is True
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_success_toast_emitted_on_next_run(self, monkeypatch):
+        """C2: the toast fires on the run AFTER the rerun (one-shot-effect fix)."""
+        from unittest.mock import MagicMock
+        from components.sidebar import _maybe_show_drive_success_toast
+
+        ss = _FakeSessionState(drive_picker_just_imported=True)
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        mock_toast = MagicMock()
+        monkeypatch.setattr("components.sidebar.st.toast", mock_toast)
+
+        _maybe_show_drive_success_toast()
+
+        mock_toast.assert_called_once_with("✓ Data imported from Drive")
+        assert ss["drive_picker_just_imported"] is False, "Flag must be consumed exactly once"
+
+    def test_no_toast_when_no_success_pending(self, monkeypatch):
+        """C2: no toast unless a pick succeeded on a prior run."""
+        from unittest.mock import MagicMock
+        from components.sidebar import _maybe_show_drive_success_toast
+
+        ss = _FakeSessionState()
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        mock_toast = MagicMock()
+        monkeypatch.setattr("components.sidebar.st.toast", mock_toast)
+
+        _maybe_show_drive_success_toast()
+
+        mock_toast.assert_not_called()
+
+    def test_component_cancel_selection_closes_dialog(self, monkeypatch):
+        """C1: an explicit cancel from the component closes the dialog (test mode)."""
+        import pytest
+        from components.sidebar import _render_and_process_picker_test_mode
+
+        class _Q:
+            def get(self, key, default=""):
+                return ""  # no seam → real component path
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_importing=True,
+            drive_picker_request_id="r1",
+        )
+        monkeypatch.setattr("components.sidebar.st.query_params", _Q())
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr(
+            "components.drive_picker_component.drive_picker_transport",
+            lambda **kwargs: {"kind": "cancel", "requestId": "r1"},
+        )
+        monkeypatch.setattr("components.sidebar.st.rerun", _rerun_abort)
+
+        with pytest.raises(SystemExit):
+            _render_and_process_picker_test_mode()
+
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_production_cancel_selection_closes_dialog(self, monkeypatch):
+        """C1: production cancel closes the dialog without ingesting anything."""
+        import pytest
+        from unittest.mock import MagicMock
+        from components.sidebar import _render_and_process_picker_production
+
+        ss = _FakeSessionState(
+            drive_picker_active=True,
+            drive_picker_request_id="r1",
+            ga4_creds={"access_token": "tok", "token": "tok"},
+        )
+        monkeypatch.setattr("components.sidebar.st.session_state", ss)
+        monkeypatch.setattr("components.sidebar.st.rerun", _rerun_abort)
+
+        class _Secrets:
+            def get(self, key, default=""):
+                return "x"
+
+        monkeypatch.setattr("components.sidebar.st.secrets", _Secrets())
+        monkeypatch.setattr(
+            "components.drive_picker_component.drive_picker_transport",
+            lambda **kwargs: {"kind": "cancel", "requestId": "r1"},
+        )
+        monkeypatch.setattr("components.sidebar.credentials_from_dict", lambda d: "creds")
+        ingest = MagicMock()
+        monkeypatch.setattr("components.sidebar._ingest_drive_file", ingest)
+
+        with pytest.raises(SystemExit):
+            _render_and_process_picker_production()
+
+        ingest.assert_not_called()
+        assert ss["drive_picker_active"] is False
+        assert ss["drive_picker_importing"] is False
+
+    def test_dialog_body_renders_format_copy(self, monkeypatch):
+        """C3: the dialog body renders the fixed no-secret format/privacy copy."""
+        from unittest.mock import MagicMock
+        from components.sidebar import _drive_picker_dialog_body
+
+        monkeypatch.setattr("components.sidebar._render_dialog_theme_control", lambda: None)
+        monkeypatch.setattr("components.sidebar._render_and_process_picker", lambda: None)
+        mock_caption = MagicMock()
+        monkeypatch.setattr("components.sidebar.st.caption", mock_caption)
+
+        _drive_picker_dialog_body()
+
+        assert mock_caption.call_count == 1
+        copy = mock_caption.call_args[0][0]
+        assert "Select one CSV, XLSX, or Google Sheets file." in copy
+        assert "does not browse your Drive" in copy
+        # No-secret boundary: never filenames, Drive IDs, or raw API text.
+        for banned in ("AIza", "ya29", "fileId", ".csv", ".xlsx"):
+            assert banned not in copy, f"C3 copy must not contain {banned!r}"
