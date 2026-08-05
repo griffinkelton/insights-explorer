@@ -8,7 +8,7 @@
 
 ## Interstitial (v0.3.0 → v0.4.0) — UI Polish Sprint
 
-**Date:** 2026-08-03 → 2026-08-05 | **Status:** ✅ Complete (Workstreams A + B) | **Tests:** 730 pytest + 20 Playwright smoke
+**Date:** 2026-08-03 → 2026-08-05 | **Status:** ✅ Complete (Workstreams A + B) | **Tests:** 730 pytest + 29 Playwright smoke (incl. Phase 3.2e + hero-entry fix `736a52d`)
 
 Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`), A+C spec (`2901feb`), Phase 0 spike + F3 in-dialog-theme decision (`2689766`), Workstream B light-mode spec (`13d824d`).
 

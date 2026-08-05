@@ -75,7 +75,7 @@ The theme toggle works and `LIGHT_THEME_CSS` has broad coverage (buttons, metric
 
 Order rationale: token foundation first (everything else consumes it), then shared sidebar, then the three broken surfaces, then verification-only items.
 
-**Status (2026-08-05):** All phases landed on `main` (PR-L1 `6d67346` → PR-L5 `6a00008`; PR-L6 docs). The app-level theme-sync root cause was also fixed (`6486645`): `st.html(..., unsafe_allow_javascript=True)` so `THEME_SYNC_JS` executes and `html[data-theme]` is set — without it, every light override (L3/L4) stayed inert via the toggle. 730 unit tests green; 20/20 Playwright smoke suite; dark-mode pixel-identity maintained throughout (L5 guard rail).
+**Status (2026-08-05):** All phases landed on `main` (PR-L1 `6d67346` → PR-L5 `6a00008`; PR-L6 docs). The app-level theme-sync root cause was also fixed (`6486645`): `st.html(..., unsafe_allow_javascript=True)` so `THEME_SYNC_JS` executes and `html[data-theme]` is set — without it, every light override (L3/L4) stayed inert via the toggle. 730 unit tests green; 29/29 Playwright smoke suite (incl. Phase 3.2e interstitial-surface tests, `736a52d`); dark-mode pixel-identity maintained throughout (L5 guard rail).
 
 ## 5. Testing & verification
 
