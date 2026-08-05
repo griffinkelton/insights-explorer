@@ -13,6 +13,11 @@ must set html[data-theme] in the top-level document so the
 [data-theme="light"] override block actually engages. Guards the
 st.html(unsafe_allow_javascript=True) fix in utils/styles.py (Streamlit
 strips <script> from st.html payloads by default).
+Phase 3.2e (interstitial polish surfaces): the empty-state hero Drive
+Import card (PR 2/D6 — entry-point parity with the sidebar button),
+the Workstream B light-mode surfaces (.privacy-card B2d, .hero-* A1,
+.challenge-card A2 follow the app toggle), and the onboarding tour
+iframe live theme sync (PR-L5/C1).
 
 No-secret boundary: these tests never interact with Google's Picker,
 never use real OAuth tokens or API keys, and never select real Drive
@@ -186,6 +191,33 @@ def _picker_iframes(page: Page) -> list:
         for f in page.locator("iframe").all()
         if f.get_attribute("title") and "drive_picker_transport" in (f.get_attribute("title") or "")
     ]
+
+
+def _toggle_theme(page: Page) -> None:
+    """Click the sidebar theme toggle and wait for html[data-theme] to flip."""
+    sidebar = page.locator('[data-testid="stSidebar"]')
+    toggle = sidebar.get_by_role("button", name=re.compile("Light Mode|Dark Mode"))
+    toggle.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+    current = page.locator("html").get_attribute("data-theme") or "dark"
+    toggle.click()
+    expected = "light" if current == "dark" else "dark"
+    expect(page.locator("html")).to_have_attribute("data-theme", expected, timeout=10_000)
+
+
+def _go_learn(page: Page) -> None:
+    """Navigate to the Learn page via the multipage nav link."""
+    link = page.locator('a[href*="/learn"]').first
+    link.wait_for(state="attached", timeout=SIDEBAR_WAIT)
+    link.click()
+    page.wait_for_timeout(3000)
+
+
+def _select_learn_section(page: Page, section: str) -> None:
+    """Select a section from the Learn page's side-nav radio."""
+    radio = page.locator('[data-testid="stRadio"]')
+    radio.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+    radio.locator("label").filter(has_text=section).first.click()
+    page.wait_for_timeout(2000)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -490,3 +522,160 @@ class TestDriveImportDialog:
             alert.wait_for(state="visible", timeout=10_000)
             assert alert.is_visible(), "Expected st.error inside the dialog after failed import"
             assert dlg.is_visible(), "Dialog should stay open on error (retry in place)"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Phase 3.2e: Interstitial polish surfaces
+#   - Hero Drive Import card entry point (PR 2, D6)
+#   - Workstream B light-mode surfaces (.privacy-card B2d, .hero-* A1,
+#     .challenge-card A2) follow the app toggle
+#   - Onboarding tour iframe live theme sync (PR-L5, C1)
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class TestHeroDriveImportEntry:
+    """Empty-state hero Drive Import card (interstitial PR 2, D6).
+
+    The hero card is a second entry point alongside the sidebar button and
+    must open the same Picker dialog.  The two buttons share a label, so
+    every assertion is scoped to the main area
+    ([data-testid="stMainBlockContainer"]).
+    """
+
+    def test_hero_drive_card_visible_in_test_mode(self, streamlit_server_test_mode):
+        """Main-area Import card + caption render when Drive import is available."""
+        with _page(streamlit_server_test_mode) as page:
+            main = page.locator('[data-testid="stMainBlockContainer"]')
+            btn = main.get_by_role("button", name="📂 Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            assert btn.is_visible(), "Hero Drive Import card should be visible in test mode"
+            assert (
+                main.get_by_text("Pick a CSV, XLSX, or Google Sheets file from your Drive").count()
+                == 1
+            ), "Hero Drive Import caption missing"
+
+    def test_hero_drive_card_hidden_without_auth(self, streamlit_server):
+        """No hero card without authentication (drive_import_ready() False)."""
+        with _page(streamlit_server) as page:
+            main = page.locator('[data-testid="stMainBlockContainer"]')
+            assert (
+                main.get_by_role("button", name="📂 Import from Google Drive").count() == 0
+            ), "Hero Import card should be hidden when not authenticated"
+
+    def test_hero_drive_card_opens_dialog(self, streamlit_server_test_mode):
+        """Clicking the hero card opens the Picker dialog with the iframe inside.
+
+        Regression for the PR 2 hero entry point: the hero renders after
+        the sidebar's dialog gate has already run this pass, so activation
+        must be followed by st.rerun() — without it the dialog never
+        appears from the hero.
+        """
+        with _page(streamlit_server_test_mode) as page:
+            main = page.locator('[data-testid="stMainBlockContainer"]')
+            btn = main.get_by_role("button", name="📂 Import from Google Drive")
+            btn.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            btn.click()
+            dlg = page.locator('[data-testid="stDialog"]')
+            dlg.wait_for(state="visible", timeout=15_000)
+            assert dlg.is_visible(), "Expected st.dialog to open from the hero card"
+            inside = dlg.locator('iframe[title*="drive_picker_transport"]')
+            inside.wait_for(state="attached", timeout=10_000)
+            assert inside.count() == 1, "Expected exactly one Picker iframe inside the dialog"
+
+
+class TestInterstitialLightModeSurfaces:
+    """Workstream B surfaces follow the app toggle (B2d, A1, A2).
+
+    Each surface is theme-aware: the computed background/border must flip
+    when html[data-theme] flips (the toggle is proven to drive that
+    attribute by TestAppLevelThemeSync).  Dark values are canonical (L5).
+    """
+
+    def test_privacy_card_flips_background_with_theme(self, streamlit_server_test_mode):
+        """Sidebar .privacy-card flips --bg-card between themes (B2d)."""
+        with _page(streamlit_server_test_mode) as page:
+            card = page.locator(".privacy-card")
+            card.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            dark_bg = card.evaluate("el => getComputedStyle(el).backgroundColor")
+            assert dark_bg == "rgb(26, 26, 38)", f"Unexpected dark privacy-card bg {dark_bg}"
+            _toggle_theme(page)  # → light
+            light_bg = card.evaluate("el => getComputedStyle(el).backgroundColor")
+            assert light_bg == "rgb(255, 255, 255)", f"Unexpected light privacy-card bg {light_bg}"
+            _toggle_theme(page)  # → dark
+            assert (
+                card.evaluate("el => getComputedStyle(el).backgroundColor") == dark_bg
+            ), "Privacy-card bg should round-trip back to the dark value"
+
+    def test_hero_cards_flip_background_with_theme(self, streamlit_server_test_mode):
+        """Empty-state .hero-card surfaces flip --bg-card between themes (A1)."""
+        with _page(streamlit_server_test_mode) as page:
+            card = page.locator(".hero-card").first
+            card.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            dark_bg = card.evaluate("el => getComputedStyle(el).backgroundColor")
+            assert dark_bg == "rgb(26, 26, 38)", f"Unexpected dark hero-card bg {dark_bg}"
+            _toggle_theme(page)  # → light
+            light_bg = card.evaluate("el => getComputedStyle(el).backgroundColor")
+            assert light_bg == "rgb(255, 255, 255)", f"Unexpected light hero-card bg {light_bg}"
+
+    def test_hero_title_color_flips_with_theme(self, streamlit_server_test_mode):
+        """.hero-title text color must not stay dark-on-white (A1)."""
+        with _page(streamlit_server_test_mode) as page:
+            title = page.locator(".hero-title")
+            title.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            dark_color = title.evaluate("el => getComputedStyle(el).color")
+            _toggle_theme(page)  # → light
+            light_color = title.evaluate("el => getComputedStyle(el).color")
+            assert dark_color != light_color, "hero-title color did not change with theme"
+
+    def test_challenge_card_border_dark(self, streamlit_server_test_mode):
+        """Learn-page .challenge-card keeps its canonical dark border (A2/L5)."""
+        with _page(streamlit_server_test_mode) as page:
+            _go_learn(page)
+            _select_learn_section(page, "Follow the data")
+            card = page.locator(".challenge-card").first
+            card.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            border = card.evaluate("el => getComputedStyle(el).borderTopColor")
+            assert (
+                border == "rgba(255, 255, 255, 0.06)"
+            ), f"Unexpected dark challenge border {border}"
+
+    def test_challenge_card_border_visible_in_light(self, streamlit_server_test_mode):
+        """A2: the challenge-card border must be visible on white (dark border)."""
+        with _page(streamlit_server_test_mode) as page:
+            _toggle_theme(page)  # → light (session persists across pages)
+            _go_learn(page)
+            _select_learn_section(page, "Follow the data")
+            card = page.locator(".challenge-card").first
+            card.wait_for(state="visible", timeout=SIDEBAR_WAIT)
+            border = card.evaluate("el => getComputedStyle(el).borderTopColor")
+            assert (
+                border == "rgba(0, 0, 0, 0.1)"
+            ), f"challenge-card border invisible in light: {border}"
+
+
+class TestTourLiveThemeSync:
+    """The onboarding tour iframe follows the app toggle live (PR-L5, C1)."""
+
+    def test_tour_iframe_follows_app_toggle(self, streamlit_server_test_mode):
+        """Tour html[data-theme] tracks the parent document's data-theme."""
+        with _page(streamlit_server_test_mode) as page:
+            tour_html = page.frame_locator('iframe[title="st.iframe"]').locator("html")
+            tour_html.wait_for(state="attached", timeout=SIDEBAR_WAIT)
+            # Dark (default): syncTheme() removes the attribute.
+            assert (
+                tour_html.get_attribute("data-theme") is None
+            ), "Tour iframe should have no data-theme in dark mode"
+            _toggle_theme(page)  # → light: MutationObserver must propagate
+            expect(tour_html).to_have_attribute("data-theme", "light", timeout=10_000)
+            _toggle_theme(page)  # → dark: attribute removed again
+            # The iframe's MutationObserver fires asynchronously after the
+            # parent flip, so poll instead of asserting once (get_attribute
+            # does not auto-retry).
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                if tour_html.get_attribute("data-theme") is None:
+                    break
+                page.wait_for_timeout(200)
+            assert (
+                tour_html.get_attribute("data-theme") is None
+            ), "Tour iframe should drop data-theme when returning to dark"

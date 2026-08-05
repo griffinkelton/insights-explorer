@@ -93,4 +93,11 @@ def _render_drive_import_card() -> None:
         key="hero_drive_import",
     ):
         activate_drive_picker()
+        # The hero renders AFTER the sidebar's dialog gate
+        # (_maybe_show_drive_picker_dialog) has already run this pass, so
+        # the fresh drive_picker_active flag alone would not open the
+        # dialog until some later interaction. Rerun immediately so the
+        # dialog appears right away (the sidebar button needs no rerun —
+        # its gate runs later in the same pass).
+        st.rerun()
     st.caption("Pick a CSV, XLSX, or Google Sheets file from your Drive")
