@@ -184,7 +184,7 @@ cd components/drive_picker_component_frontend && npm ci && npm run check && npm 
 > ⚠️ These items are **explicitly out of v0.3.0 release scope** and do not block it. They are queued for the interstitial phase between v0.3.0 and v0.4.0.
 
 - [ ] Picker sidebar width fix
-- [ ] Light mode design polish
+- [x] Light mode design polish — interstitial PR-L1–L5 + theme-sync fix (`6d67346`, `a0faea7`, `9e97d60`, `6486645`, `f639402`, `6a00008`), 2026-08-05, 730 unit tests + 20 Playwright smoke; light-mode spec §4 ✅ (griffinkelton)
 - [ ] Cross-browser manual matrix (Safari, Firefox, Windows)
 
 ---

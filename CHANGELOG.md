@@ -6,6 +6,29 @@
 
 ---
 
+## Interstitial (v0.3.0 → v0.4.0) — UI Polish Sprint
+
+**Date:** 2026-08-03 → 2026-08-05 | **Status:** ✅ Complete (Workstreams A + B) | **Tests:** 730 pytest + 20 Playwright smoke
+
+Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`), A+C spec (`2901feb`), Phase 0 spike + F3 in-dialog-theme decision (`2689766`), Workstream B light-mode spec (`13d824d`).
+
+### Workstream A — Drive Picker in a dialog
+
+- **PR 2** (`fc89956`): Picker moved out of the ~300px sidebar into a `width="large"` `st.dialog` — the #1 reported import-flow usability problem. Gating on `drive_picker_active` (pattern b) keeps the dialog open across full-app reruns, including a theme toggle; in-dialog theme control; empty-state hero card entry point alongside Upload / Connect GA4.
+- 5 Playwright dialog acceptance tests landed pre-PR-2 (`5cff813`, Phase 3.2c); strict-xfail markers removed when PR 2 shipped.
+
+### Workstream B — Light mode polish
+
+- **Root-cause fix** (`6486645`): `st.html()` strips inline `<script>` tags unless `unsafe_allow_javascript=True`, so `THEME_SYNC_JS` never ran at app level — `html[data-theme]` was never set and every `[data-theme="light"]` override stayed inert (the toggle only flipped the preemptive page background). Now enabled; `requirements/base.txt` floor → `streamlit>=1.52.0`.
+- **PR-L1** (`6d67346`): token consolidation + blanket-rule fix.
+- **PR-L2** (`a0faea7`): sidebar theme tokens, OAuth captions, `.privacy-card`.
+- **PR-L3** (`9e97d60`): hero empty-state `.hero-*` light overrides.
+- **PR-L4** (`f639402`): challenge-card borders + insight/grade accent palettes (light variants WCAG-AA-ish on white; dark values canonical).
+- **PR-L5** (`6a00008`): tour iframe follows the app toggle live (MutationObserver on parent `html[data-theme]`); fixed pre-existing `plotly_light` → `plotly_white` bug — light charts previously returned `None` silently.
+- Regression guards: `TestAppLevelThemeSync` (app toggle flips `html[data-theme]`), `TestChartThemeColors`, `TestTourThemeSync`.
+
+---
+
 ## v0.3.0 — Drive Import Release
 
 **Date:** 2026-08-03 | **Status:** ✅ Released | **Tests:** 694 (672 pytest + 14 Playwright smoke + 8 E2E leakage) | **Tag:** `v0.3.0` (`007f3c4`)
