@@ -100,7 +100,7 @@ Order rationale: token foundation first (everything else consumes it), then shar
 | Charts + tour (C1–C3) | Plotly light templates legible; tour switches with toggle; no changes needed or documented | PR-L5 |
 | Regression guard | Dark mode pixel-identical after all PRs; manual toggle checklist passes both directions | PR-L6 |
 
-**Overall gate (verified 2026-08-05 — ✅ PASS):** full pytest green — **730 passed** (unit suite, incl. updated `test_styles.py` at **68 passed**); Playwright smoke **20 passed** (14 existing + 5 A+C + 1 app-level theme-sync regression; strict-xfail markers removed when PR 2 landed); frontend `npm run check && npm run build` clean; credential guard exit 0; manual toggle pass (browser-verified dark→light→dark: `html[data-theme]`, `.privacy-card`, challenge borders, tour iframe all follow the toggle).
+**Overall gate (verified 2026-08-05 — ✅ PASS):** full pytest green — **730 passed** (unit suite, incl. updated `test_styles.py` at **68 passed**); Playwright smoke **29 passed** (20 prior incl. the 5 Phase 3.2c dialog tests and the app-level theme-sync regression + 9 Phase 3.2e interstitial-surface tests; strict-xfail markers removed when PR 2 landed); frontend `npm run check && npm run build` clean; credential guard exit 0; manual toggle pass (browser-verified dark→light→dark: `html[data-theme]`, `.privacy-card`, challenge borders, tour iframe all follow the toggle).
 
 ## 8. Risks & mitigations
 

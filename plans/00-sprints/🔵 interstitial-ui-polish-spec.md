@@ -1,6 +1,6 @@
 # 🔵 Interstitial UI/UX Polish — Implementation Spec
 
-> **Status:** 🔵 In design — **Phase 0 spike ✅ complete (2026-08-03, see Appendix A)**; Phase 1 not started
+> **Status:** 🟡 In implementation — **Phase 0 spike ✅ + PR 1 (docs) + PR 2 (Workstream A) landed on `main` (2026-08-03, see Appendix A + §8)**; Workstream C (PR 3 P0 / PR 4 P1) pending
 > **Date:** 2026-08-03 (refined with external review feedback + spike results)
 > **Based on:** [`plans/🔵 interstitial-ui-polish-design.md`](../🔵%20interstitial-ui-polish-design.md)
 > **Scope:** Workstream A (Drive Picker in `st.dialog`) + Workstream C (import-flow UX enhancements). Workstream B (light-mode redesign) is **deferred** to a future spec.
@@ -204,10 +204,10 @@ Per-workstream pass criteria — each row is an independent merge gate (maps to 
 | Failure preservation | Failed import leaves prior DataContext + derived state untouched (existing contract) | unit tests |
 
 ### Overall gate (after C work completes)
-- [ ] Full pytest suite green (672 + new unit tests) incl. `tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e`.
-- [ ] Playwright smoke **19** (14 existing + 5 new) — both invocation modes (with/without `DRIVE_PICKER_TEST_MODE=1`).
-- [ ] E2E leakage suite unaffected (L1–L5) — no new sensitive output.
-- [ ] Frontend `npm ci && npm run check && npm run build` clean; credential guard exit 0.
+- [x] Full pytest suite green — **730 passed** (2026-08-05) incl. `tests/ --ignore=tests/test_drive_import_smoke.py --ignore=tests/e2e`.
+- [x] Playwright smoke **29** (20 prior incl. the 5 Phase 3.2c dialog tests and the app-level theme-sync regression + 9 Phase 3.2e interstitial-surface tests; Phase 3.2e also carries the hero-entry `st.rerun()` regression) — both invocation modes (2026-08-05).
+- [x] E2E leakage suite unaffected (L1–L5) — no new sensitive output (2026-08-05, 8 passed).
+- [x] Frontend `npm ci && npm run check && npm run build` clean (2026-08-05); credential guard exit 0 (2026-08-05).
 - [ ] Manual Chrome/macOS pass: import CSV/XLSX/Sheets, cancel, second import, theme toggle during active flow, error paths E1–E6 display in-dialog.
 
 ---
