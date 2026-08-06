@@ -69,6 +69,16 @@ This contract defines the first five metrics the GA4 Insights Engine is allowed 
 - Validation status: unavailable — blocked on action taxonomy definition and event-level data
 - Known limitations: risk of conflating routine clicks with meaningful outcomes; requires explicit action taxonomy approval per ga4-insights-sketch.md
 
+## Metric-status consumption policy
+
+> Added 2026-08-06 (master-plan cross-cutting B / archive §4.18–4.20). Defines what each status **permits downstream systems to do** — dashboard display, deterministic insights, and Gemini/model context. This section is the canonical home; the master plan links here.
+
+- **`validated`** — may drive deterministic calculations and model context.
+- **`provisional`** — may be displayed and used **only for directional findings**; all UI and model outputs must carry an unvalidated/provisional label.
+- **`unavailable`** — may be shown as a blocked or planned capability, but may **not** generate a rate, calculation, claim, chart value, or numeric model evidence.
+
+**Implementation note (prototype hygiene):** the whisperer-30 prototype's `computableMetrics()` filters only `unavailable`, so it admits `provisional` rows into model-visible context — acceptable in a prototype, not in the product. Ports should use `modelVisibleMetrics()` / `nonUnavailableMetrics()` semantics (or drop the helper) so `provisional` rows are never treated as validated-quality.
+
 ## Next steps
 
 1. Confirm exact GA4 event names for questionnaire start/finish and candidate action-taxonomy events (rows 3–5).

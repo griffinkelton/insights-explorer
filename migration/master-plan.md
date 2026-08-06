@@ -124,7 +124,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Goal:** stand up `api/` (FastAPI) with the JSON contract between React and Python, using F4's vertical slice as the code-level reference.
 
 **Locked decisions (do not re-litigate):**
-- **Canonical contract shapes (Part 4 §4.2):** `GET /healthz` (not `/health`) · `POST /api/ga4/connect` returns `{ authorization_url }` (snake_case at the boundary) · upload returns `{ dataset }` wrapper (plus `{ dataset, rows }` where F4 specifies) · `credentials: "include"` in the client · `setSourceFromApi` in the store · API versioned **`/api/v1`**.
+- **Canonical contract shapes (Part 4 §4.2):** `GET /healthz` (not `/health`) · `POST /api/v1/ga4/connect` returns `{ authorization_url }` (snake_case at the boundary) · upload returns `{ dataset }` wrapper (plus `{ dataset, rows }` where F4 specifies) · `credentials: "include"` in the client · `setSourceFromApi` in the store · API versioned **`/api/v1`** (all routes below use the versioned prefix).
 - **Chat wire format — decide at contract time and record in OpenAPI:** plain SSE (`text/event-stream`, `data: <chunk>\n\n`) vs AI SDK data-stream (`toDataStreamResponse()`/`toUIMessageStreamResponse()`). The captured repo pins **`ai@^7.0.48`** and its chat route uses `streamText(...).toTextStreamResponse()` (plain text) — F3's store reader consumes plain text, so **plain SSE is the default unless the team chooses `useChat`** (which requires the SDK format). (Plan Phase 1; archive §3.5, §3.10 item 1.)
 - **Upload policy (locked 2026-08-05 — not optional):** direct browser uploads are limited to **25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024` — margin below Cloud Run's 32 MiB HTTP/1 boundary); Drive/server-side imports may ingest up to **100 MB** (`MAX_INGEST_BYTES = 100 * 1024 * 1024`, matching `utils/drive_client.py`'s guard) **subject to memory, MIME, row-count, and decompression safeguards** — a streaming download path, decompression/row-count limits, cleanup behavior, and sufficient Cloud Run memory (a 100 MB compressed XLSX can expand dramatically in memory). End-to-end HTTP/2 is not selected merely to preserve 100 MB browser uploads. **Revisit the browser cap only after production evidence shows legitimate users need uploads above 25 MB** (that is also the trigger for signed Cloud Storage, which is deferred until then). (Archive §4.11–4.14.)
 - **Dependency floors:** `pandas>=2.3.3` (first cp314 wheels), `pydantic>=2.12`, `fastapi`, `uvicorn`, `python-multipart`, `google-genai` (see Phase 3). (Archive §3.10 item 6.)
@@ -135,7 +135,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 **Tasks (F4 §1–§12 is the implementation packet; this is the task skeleton):**
 - [ ] Create `api/` per F4's target layout: `config.py` (env, CORS for `http://localhost:5173`), `dependencies.py` (session), `schemas.py`, `services/dataset_service.py`, `routes/health.py`, `routes/upload.py`, `main.py`.
-- [ ] Implement the **vertical slice**: `POST /api/upload` (multipart, 100 MB cap) → `GET /api/data/context` + `GET /api/data/preview` → `GET /api/data/quality`.
+- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, 100 MB cap) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality`.
 - [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5** (state placement — see cross-cutting A).
 - [ ] GA4 OAuth **adapters only** in Phase 1 (start/callback scaffolding per F4 §8) — full flow is Phase 5. PKCE (S256) is required even in the adapter (Plan Phase 5 amendment; archive §3.2).
 - [ ] MSW test setup in the frontend *if* the React shell exists yet — otherwise defer to Phase 4 (F4 §12).
@@ -171,10 +171,10 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Goal:** replace mock/skeleton responses with real `utils/` calls.
 
 **Tasks:**
-- [ ] `POST /api/upload` → `data_loader` · preview → `data_context` · quality → `quality` · charts → `charts` · summary → `gemini_client` + `prompt_templates` · forecast → `forecasting` · funnel → `funnels` · export → `report_exporter`.
+- [ ] `POST /api/v1/upload` → `data_loader` · preview → `data_context` · quality → `quality` · charts → `charts` · summary → `gemini_client` + `prompt_templates` · forecast → `forecasting` · funnel → `funnels` · export → `report_exporter`.
 - [ ] **Gemini:** use the current `google-genai` SDK (`client.models.generate_content_stream(...)`); record `thoughts_token_count` in the server-side usage ledger (the app already tracks `total_thought_tokens` — keep that observability). (Archive §3.9 item 4.)
 - [ ] **Model hygiene:** `gemini-2.0-flash` is shut down and `gemini-1.5-flash` deprecated — prune `utils/gemini_client.py`'s `AVAILABLE_MODELS`; keep `gemini-2.5-flash` (1M context) as default. (Archive §3.10 item 7.)
-- [ ] **Funnel nuance:** template funnels may be partially available via GA4's `runFunnelReport`; scope `GET /api/analysis/funnel` to template funnels and re-verify the ROADMAP funnel rows at implementation. (Archive §3.4, §3.8 item 4.)
+- [ ] **Funnel nuance:** template funnels may be partially available via GA4's `runFunnelReport`; scope `GET /api/v1/analysis/funnel` to template funnels and re-verify the ROADMAP funnel rows at implementation. (Archive §3.4, §3.8 item 4.)
 - [ ] Chat streaming per the Phase 1 wire-format decision; `StreamingResponse` with disconnect handling (Starlette cancels the async generator on client disconnect — `CancelledError`). (Archive §3.10 item 8.)
 - [ ] Contract tests for every endpoint (pytest + httpx). All endpoints versioned under `/api/v1`.
 
@@ -213,10 +213,10 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Goal:** the two hardest integrations, preserving the existing error taxonomy.
 
 **Tasks — GA4 OAuth:**
-- [ ] `POST /api/ga4/connect` → OAuth URL from `ga4_client.py`, with **PKCE** (S256 `code_verifier`/`code_challenge`; store verifier server-side). (Plan amendment 1; archive §3.2.)
-- [ ] `GET /api/ga4/callback` → validate `state`, exchange code server-side, store credentials server-side, redirect to React callback page with only `status=success` / safe error reason. **Provider tokens never reach React.** (F4 §8; archive §1.13.)
+- [ ] `POST /api/v1/ga4/connect` → OAuth URL from `ga4_client.py`, with **PKCE** (S256 `code_verifier`/`code_challenge`; store verifier server-side). (Plan amendment 1; archive §3.2.)
+- [ ] `GET /api/v1/ga4/callback` → validate `state`, exchange code server-side, store credentials server-side, redirect to React callback page with only `status=success` / safe error reason. **Provider tokens never reach React.** (F4 §8; archive §1.13.)
 - [ ] React callback route `/auth/ga4/callback` with `validateSearch` schema; on validation failure the router sets `error.routerCode === "VALIDATE_SEARCH"` and renders the route's `errorComponent` (verified against `@tanstack/react-router@1.170.20`). (Plan amendment 6; archive §3.6.)
-- [ ] `POST /api/ga4/pull` → paginate (`limit`/`offset`, 10k-row pages, ≤9 dimensions, max 250k rows/request) and throttle for the **10 concurrent requests/property (Standard; 50 for 360)** quota; enable `returnPropertyQuota: true` for observability; account for token budgets (200k/day + 40k/hr per property) and the 120 thresholded-requests/hr cap. (Plan amendment 7; archive §3.9, §3.10.)
+- [ ] `POST /api/v1/ga4/pull` → paginate (`limit`/`offset`, 10k-row pages, ≤9 dimensions, max 250k rows/request) and throttle for the **10 concurrent requests/property (Standard; 50 for 360)** quota; enable `returnPropertyQuota: true` for observability; account for token budgets (200k/day + 40k/hr per property) and the 120 thresholded-requests/hr cap. (Plan amendment 7; archive §3.9, §3.10.)
 - [ ] Align pulled metrics with `plans/ga4-measurement-contract.md` via `contract_row`/`validation_status` provenance; aggregate-only rows stay `unavailable`. (Archive §4.11.)
 
 **Tasks — Drive Picker (browse-UX decision 2026-08-06; archive §4.16; contract shape §4.17 / transcript §6.1):**
@@ -225,7 +225,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **⚠️ Import is the real integration seam:** the prototype's Import button only calls `loadData("drive · <name>")` (mock source name) — it does **not** download or ingest. The port must wire Import → `POST /api/v1/drive/download` → `data_loader` → dataset. (Archive §4.17; transcript §6.1.)
 - [ ] **`POST /api/v1/drive/download` — server-side trust boundary (2026-08-06; archive §4.18):** accept the Drive **`file_id`** only — never trust a client-provided filename, MIME type, or byte size. Server re-fetches file metadata from Drive, enforces `MAX_INGEST_BYTES = 100 MB` (from metadata where available) and the MIME/type allowlist **server-side**, and handles Google-native Sheets via an **export path** (not byte download). Post-download: decompression, row, column, and temp-file lifetime limits; **return the same typed errors as the local upload path**. The React sheet's MIME/name checks are UX guidance only, never the security authority. **Local cross-check (2026-08-06; archive §4.19): this boundary ALREADY EXISTS in `utils/drive_client.py`** (`download_drive_file`) — server-authoritative `files.get(fields="name,mimeType,size")`, `DRIVE_IMPORT_MIME_TYPES` allowlist, Sheets `export_media(mimeType="text/csv")` first-sheet-only, 3-layer size enforcement (metadata preflight → `_BoundedBytesIO` stream cap → final `len()` check), typed `DriveImportError` codes (`unsupported_type/too_large/empty_file/not_found/access_denied/download_failed`). **Phase 5 is a port of this function into `api/services/drive_service.py`, not new design.** Live-verified nuance: Google-native files have **no `size` metadata field** (hence the stream-cap layer); Google imposes a **10 MB export cap** on Sheets/docs exports — so Sheets can never exceed 10 MB regardless of the 100 MB policy; `alt=media` binary downloads have no practical limit (5 TB/file ceiling).
 - [ ] Port the chosen UI as a **native React component** (not an embedded Streamlit component).
-- [ ] `POST /api/drive/picker-token` → returns the OAuth token **and the project number** (`setAppId`) — **only if the Picker iframe (b) is chosen**; document Cloud Resource Manager API enablement; restrict the API key to HTTP referrers. (Plan amendment 2; archive §3.3.)
+- [ ] `POST /api/v1/drive/picker-token` → returns the OAuth token **and the project number** (`setAppId`) — **only if the Picker iframe (b) is chosen**; document Cloud Resource Manager API enablement; restrict the API key to HTTP referrers. (Plan amendment 2; archive §3.3.)
 - [ ] E2E: GA4 connect→pull and Drive browse/pick→download→preview flows in Playwright (includes server-side validation: forged filename/MIME rejected, >100 MB rejected, Sheets export path, typed errors match upload).
 
 **Exit criteria (DoD):** both flows work in React with the server-session model; errors (size, auth, bad type) surface with the established taxonomy; no token leakage (credential guard extends to FastAPI env vars).
@@ -286,7 +286,7 @@ Canonical shapes adopted in Phase 1; typed client generated/validated from OpenA
 | `provisional` | Yes, clearly labeled | **Directional only** (explicit decision — recommended) | Only with an unvalidated label/caveat |
 | `unavailable` | Show as unavailable | No computed claim/rate | Only as a blocked capability, never as measured evidence |
 
-Rename the prototype helper to `modelVisibleMetrics()` / `nonUnavailableMetrics()` (or drop it) — `computableMetrics()` invites misreading provisional rows as validated-quality.
+Rename the prototype helper to `modelVisibleMetrics()` / `nonUnavailableMetrics()` (or drop it) — `computableMetrics()` invites misreading provisional rows as validated-quality. **Canonical home:** the policy table above is mirrored as the **"Metric-status consumption policy"** section of `plans/ga4-measurement-contract.md` (the semantic source of truth); this plan links to it — see that section if the two ever drift.
 
 ### C. Test strategy — `test-layer-inventory.md`
 **742 = 452 utils-facing (61%, transfer as-is) + 290 Streamlit-layer (39%, rewrite/retire) + 40 Playwright E2E.** Per-file transfer paths in the inventory; four-layer matrix in archive §1.13 item 5. DoD per phase includes its test gate.
@@ -324,13 +324,16 @@ insights-explorer/
 │                                 # export, ga4, drive — all under /api/v1
 ├── frontend/                     # React app (Phase 4, from whisperer-30 capture)
 │   ├── src/
-│   │   ├── components/           # explorer/* + ui/* (shadcn)
+│   │   ├── components/           # explorer/* + ui/* (shadcn) — production components only
 │   │   ├── lib/
 │   │   │   ├── explorer-store.tsx   # context provider (F3 target)
 │   │   │   ├── api.ts               # typed client (snake→camel translation)
 │   │   │   └── api-types.ts         # OpenAPI-derived types
 │   │   ├── routes/               # file-based routing; /auth/ga4/callback (Phase 5)
-│   │   └── test/                 # MSW handlers, fixtures (mock-ga4/braintree → fixtures)
+│   │   ├── test/
+│   │   │   ├── fixtures/            # mock-ga4.ts, mock-braintree.ts, mock-evidence.ts — TEST-ONLY
+│   │   │   └── handlers/            # api.ts — MSW network handlers
+│   │   └── prototype/            # evidence-connector demo panels (optional, non-production)
 │   ├── package.json              # ai@^7.0.48, react ^19.2, recharts (see Recharts note)
 │   └── vite.config.ts            # @vitejs/plugin-react + @tanstack/router-plugin
 ├── utils/                        # framework-neutral (Phase 2) — unchanged surface
@@ -349,7 +352,13 @@ insights-explorer/
 └── …
 ```
 
-**Deliberate exclusions from the target tree:** the Lovable AI gateway, `mock-ga4.ts`/`mock-braintree.ts` (→ test fixtures), the whisperer's hardcoded BrainGuide prompt (→ `utils/prompt_templates.py`), Nitro/Start plumbing.
+**Deliberate exclusions from the target tree:** the Lovable AI gateway, `mock-ga4.ts`/`mock-braintree.ts`/`mock-evidence.ts` (→ `test/fixtures/` only), the whisperer's hardcoded BrainGuide prompt (→ `utils/prompt_templates.py`), Nitro/Start plumbing.
+
+**Prototype quarantine layout (2026-08-06; archive §4.18–4.20) — rules for `frontend/`:**
+1. **Production runtime must never import from `src/test/`** — fixtures and MSW handlers are test-only; enforce via an ESLint boundary or import-linter rule.
+2. **Production source registry must never register mock data sources** — the `evidence` mock source stays out of the runtime `sources` registry.
+3. **`src/prototype/`** holds the evidence-connector demo panels (EvidenceConnector / InsightCandidates / MeasurementContract) — explicitly non-production, excluded from normal production routes, or guarded behind a clear demo flag.
+4. **Any preview using mock evidence must visibly show "Demo / mock data"** — no realistic-looking linkage/equity numbers without the label.
 
 ---
 
@@ -365,7 +374,7 @@ insights-explorer/
 | 6 | `frontend/` vs `api/` layout (siblings) | Phase 1 | Siblings (per plan Open Questions #5; F4 §1 target layout) |
 | 7 | GA4 dim/metric limits (9 dims / 10 metrics, 7 for funnel) | Phase 5 | Reported, not live-verified (limits page 404s) — re-verify at implementation |
 | 8 | Revisit browser cap / signed Cloud Storage | Only after production evidence | **Locked: 25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`); revisit only if legitimate users need uploads above 25 MB; signed upload deferred until then |
-| 9 | Drive browse UX (slide-out vs Picker iframe) | **Phase 5 only — NOT a Phase 1 blocker** | **Recommended: Picker iframe initially** (tested component in the Python repo; lower maintenance; native Google selection) — choose the slide-out browser only if Drive is a core differentiator; both call the same `POST /api/v1/drive/download`, so the choice is swappable later without changing ingestion (archive §4.18) |
+| 9 | Drive browse UX (slide-out vs Picker iframe) | **Phase 5 only — NOT a Phase 1 blocker** | **Recommended: Picker iframe initially** (tested component in the Python repo; lower maintenance; native Google selection) — choose the slide-out browser only if Drive is a core differentiator; both call the same `POST /api/v1/drive/download`, so the choice is swappable later without changing ingestion (archive §4.18). **Paginated-OpenAPI deferral (2026-08-06; archive §4.20):** the formal `GET /api/v1/drive/list` OpenAPI/Pydantic schema is deferred until the slide-out browser is chosen in Phase 5 — the prose contract in §9 is the design artifact until then; no premature schema work in Phase 1 |
 
 ---
 

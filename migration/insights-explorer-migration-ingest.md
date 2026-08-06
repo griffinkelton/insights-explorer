@@ -3283,4 +3283,15 @@ User asked whether the Lovable fold-in left research gaps. Two were found and fi
 | **10 MB Google export cap** | master-plan Phase 5 + risk register | `files.export` caps native-doc exports at **10 MB** per file — Sheets imports can never approach the 100 MB policy; CSV/XLSX (`alt=media`, 5 TB/file ceiling) are the 100 MB-relevant paths |
 | **Trust boundary already implemented** | master-plan Phase 5 + risk register; inventory §6.3 | Local cross-check of `utils/drive_client.py`: `download_drive_file` already does everything §4.18's trust-boundary correction asked for — server-authoritative metadata (`files.get(fields="name,mimeType,size")`), `DRIVE_IMPORT_MIME_TYPES` allowlist, Sheets `export_media(text/csv)` first-sheet-only, 3-layer size enforcement (metadata preflight / `_BoundedBytesIO` stream cap / final `len()` check), typed `DriveImportError` codes (`unsupported_type/too_large/empty_file/not_found/access_denied/download_failed`). **Phase 5 ports this function into `api/services/drive_service.py` — it does not design it.** Risk row downgraded High → High (mitigated) |
 
+### 4.20 Review — route-path drift fix, policy sync, quarantine layout, OpenAPI deferral (2026-08-06)
+
+Review of the 4.18–4.19 refinements. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Versioned-route drift fixed | master-plan §5, §7, §9 | All bare `/api/...` route references in the master plan (the execution doc) corrected to `/api/v1/...`: `upload`, `data/context`, `data/preview`, `data/quality`, `analysis/funnel`, `ga4/connect`, `ga4/callback`, `ga4/pull`, `drive/picker-token`, `drive/download`, `drive/list`. F3/F4/plan already carry Canonical API Decisions supersession blocks; the archive preserves verbatim original content (reconciled via addenda) — both intentionally unchanged |
+| Metric-status policy synced to canonical contract | `plans/ga4-measurement-contract.md` new **"Metric-status consumption policy"** section | validated / provisional / unavailable → what each permits downstream (display, deterministic insights, Gemini); master-plan cross-cutting B links there as the semantic source of truth; prototype `computableMetrics()` hygiene note recorded |
+| Quarantine layout added | master-plan §12 (target layout + rules) | `frontend/src/test/fixtures/` (mock-ga4/braintree/evidence — test-only) · `test/handlers/` (MSW) · `prototype/` (demo panels, non-production); rules: runtime never imports from `test/`, prod source registry never registers mock sources, prototype panels excluded/flagged, "Demo / mock data" label required |
+| Paginated-OpenAPI deferral | master-plan open decision #9 | Formal `GET /api/v1/drive/list` OpenAPI/Pydantic schema deferred until the slide-out browser is chosen in Phase 5; §9's prose contract is the design artifact until then — no premature Phase 1 schema work |
+
 *— End of compiled archive —*
