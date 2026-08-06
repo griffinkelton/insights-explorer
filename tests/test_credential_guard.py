@@ -114,6 +114,74 @@ class TestHookRegistration:
         assert SCRIPT_PATH.exists()
 
 
+class TestEnvAllowlist:
+    """Phase 1 allowlist checks: parse_assignments / check_env_example / check_env_file."""
+
+    def _guard(self):
+        return _load_guard()
+
+    def test_parse_assignments_strips_inline_comment(self):
+        guard = self._guard()
+        parsed = guard.parse_assignments(
+            "API_SESSION_SECRET=replace-with-a-long-random-value   # python -c ...\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+        )
+        assert parsed["API_SESSION_SECRET"] == "replace-with-a-long-random-value"
+        assert parsed["FRONTEND_URL"] == "http://localhost:5173"
+
+    def test_check_env_example_presence_lists_missing_names(self):
+        guard = self._guard()
+        errors = guard.check_env_example(
+            "API_SESSION_SECRET=replace-with-a-long-random-value\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+        )
+        joined = "\n".join(errors)
+        assert "API_CORS_ORIGINS" in joined
+        assert "MAX_BROWSER_UPLOAD_BYTES" in joined
+        assert "MAX_INGEST_BYTES" in joined
+
+    def test_check_env_example_rejects_real_or_empty_secret(self):
+        guard = self._guard()
+        real = guard.check_env_example(
+            "API_SESSION_SECRET=not-a-placeholder\n"
+            "FRONTEND_URL=x\n"
+            "API_CORS_ORIGINS=x\n"
+            "MAX_BROWSER_UPLOAD_BYTES=x\n"
+            "MAX_INGEST_BYTES=x\n"
+        )
+        assert real  # placeholder error present
+        empty = guard.check_env_example(
+            "API_SESSION_SECRET=\n"
+            "FRONTEND_URL=x\n"
+            "API_CORS_ORIGINS=x\n"
+            "MAX_BROWSER_UPLOAD_BYTES=x\n"
+            "MAX_INGEST_BYTES=x\n"
+        )
+        assert empty  # empty value is treated as a real value
+
+    def test_check_env_file_config_defaults_fail_in_real_env_file(self):
+        guard = self._guard()
+        errors = guard.check_env_file(
+            "FRONTEND_URL=http://localhost:5173\n" "MAX_BROWSER_UPLOAD_BYTES=26214400\n"
+        )
+        assert any("FRONTEND_URL" in e for e in errors)
+
+    def test_check_env_file_secret_placeholder_passes(self):
+        guard = self._guard()
+        errors = guard.check_env_file("API_SESSION_SECRET=replace-with-x\n")
+        assert errors == []
+
+    def test_is_env_like_excludes_env_example(self):
+        guard = self._guard()
+        assert not guard._is_env_like(Path(".env.example"))
+        assert guard._is_env_like(Path(".env"))
+        assert guard._is_env_like(Path(".env.local"))
+        assert guard._is_env_like(Path("prod.env"))
+        assert guard._is_env_like(Path("cloudbuild.yaml"))
+        assert guard._is_env_like(Path(".github/workflows/test.yml"))
+        assert not guard._is_env_like(Path("migration/specs/phase-1-upload-slice.md"))
+
+
 class TestMainBehavior:
     """End-to-end main() behavior on real files."""
 
@@ -137,3 +205,61 @@ class TestMainBehavior:
         binary = tmp_path / "blob.png"
         binary.write_bytes(FAKE_KEY.encode())
         assert guard.main(["check_credentials.py", str(binary)]) == 0
+
+    def test_main_env_example_presence_fails_when_name_missing(self, tmp_path):
+        guard = self._guard()
+        env_example = tmp_path / ".env.example"
+        env_example.write_text(
+            "API_SESSION_SECRET=replace-with-a-long-random-value\n"
+            "API_CORS_ORIGINS=http://localhost:5173\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+            "MAX_BROWSER_UPLOAD_BYTES=26214400\n",
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(env_example)]) == 1
+
+    def test_main_env_example_secret_real_value_fails(self, tmp_path):
+        guard = self._guard()
+        env_example = tmp_path / ".env.example"
+        env_example.write_text(
+            "API_SESSION_SECRET=some-real-looking-secret-value\n"
+            "API_CORS_ORIGINS=http://localhost:5173\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+            "MAX_BROWSER_UPLOAD_BYTES=26214400\n"
+            "MAX_INGEST_BYTES=104857600\n",
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(env_example)]) == 1
+
+    def test_main_committed_config_value_in_env_file_fails(self, tmp_path):
+        guard = self._guard()
+        env_file = tmp_path / "cloudbuild.yaml"
+        env_file.write_text(
+            "FRONTEND_URL=https://production.example.com\n",
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(env_file)]) == 1
+
+    def test_main_env_example_with_safe_config_defaults_passes(self, tmp_path):
+        guard = self._guard()
+        env_example = tmp_path / ".env.example"
+        env_example.write_text(
+            "API_SESSION_SECRET=replace-with-a-long-random-value\n"
+            "API_CORS_ORIGINS=http://localhost:5173\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+            "MAX_BROWSER_UPLOAD_BYTES=26214400\n"
+            "MAX_INGEST_BYTES=104857600\n",
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(env_example)]) == 0
+
+    def test_main_docs_prose_is_not_value_scanned(self, tmp_path):
+        guard = self._guard()
+        prose = tmp_path / "spec.md"
+        prose.write_text(
+            "MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024 (locked)\n"
+            "API_SESSION_SECRET = replace-with-...\n",
+            encoding="utf-8",
+        )
+        # Not an env-like file: no value scan; no credential-shaped match.
+        assert guard.main(["check_credentials.py", str(prose)]) == 0
