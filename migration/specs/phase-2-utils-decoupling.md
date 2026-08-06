@@ -1,9 +1,11 @@
 # Phase 2 — Decouple `utils/` from Streamlit (executable)
 
 > 🔵 **DRAFT — expanded from stub 2026-08-06** after Phase 1 closed (commit `eaa6ac5`).
-> Marked decisions (⚠️ **DECISION**) are pending product-owner confirmation; the rest is
-> executable as written. This file becomes **ACTIVE** when the product-owner Q&A is
-> incorporated and `specs/README.md`'s status table is flipped.
+> **Product-owner Q&A answered 2026-08-06** — all four open decisions confirmed (see
+> [Confirmed decisions](#confirmed-decisions-2026-08-06-product-owner)). Owner chose
+> **planning-only for now**: this spec is ready to execute but implementation is **not
+> yet authorized**. It becomes **ACTIVE** when the owner greenlights Phase 2 and
+> `specs/README.md`'s status table is flipped.
 
 ## Purpose
 
@@ -261,10 +263,9 @@ def forecast_metric(df: pd.DataFrame, ...) -> ForecastResult:
     ...  # body unchanged
 ```
 
-⚠️ **DECISION (P0):** the alternative is to leave `forecast_metric` completely
-undecorated and add server-side caching in Phase 3 when `/api/analysis/forecast` is
-built. Recommendation: **keep the fingerprint memo** (it is cheap, bounded, and the
-`cache_key`/`fingerprint_frame` convention already exists in `data_context.py`). Confirm.
+**Confirmed (P0, 2026-08-06):** keep the fingerprint memo — it is cheap, bounded, and
+the `cache_key`/`fingerprint_frame` convention already exists in `data_context.py`.
+(Rejected alternative: plain function + Phase 3 server cache.)
 
 **Acceptance:** `grep -n streamlit utils/forecasting.py` → empty;
 `pytest tests/test_forecasting.py -q` green (31 tests); a new
@@ -367,10 +368,10 @@ Update Streamlit call sites (`components/chat.py`, `components/summary.py`,
 `components/data_preview.py`) to pass `usage_sink=_streamlit_usage_sink` where they
 call `generate_response`/`generate_response_stream`. Net behavior identical.
 
-⚠️ **DECISION (P1):** alternative is to keep `_track_usage` returning the dict and let
-*every* caller decide accumulation (no sink threading). Recommendation: **sink
-threading** — it keeps the accounting decision at the call site and matches the
-server-owns-observability direction (session-state-inventory §4). Confirm.
+**Confirmed (P1, 2026-08-06):** sink threading — keeps the accounting decision at the
+call site and matches the server-owns-observability direction
+(session-state-inventory §4). (Rejected alternative: callers accumulate the returned
+dict.)
 
 **Acceptance:** `grep -n streamlit utils/gemini_client.py` → empty;
 `pytest tests/test_gemini_client.py -q` green (14 tests); chat usage-accounting tests
@@ -434,15 +435,18 @@ class UploadError(Exception):
         self.detail = detail
 
 
-def parse_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
-    """Adapter over utils/data_loader.load_file() — single parser, one taxonomy."""
+def parse_uploaded_file(filename: str, content: bytes) -> tuple[pd.DataFrame, str | None]:
+    """Adapter over utils/data_loader.load_file() — single parser, one taxonomy.
+
+    Returns (df, warning) where warning is the non-fatal row-truncation notice
+    (or None). The route surfaces warning via DatasetContext.warnings (confirmed
+    P2). Errors raise UploadError with the Phase 1 status-code mapping.
+    """
     df, error, warning = load_file(_NamedBytesIO(content, filename))
     if error is not None:
         status = _error_status(error, filename)
         raise UploadError(status, error)
-    if warning is not None:
-        logger.info("load_file warning: %s", warning)  # surfaced via context in Phase 2b/4
-    return df
+    return df, warning
 
 
 def _error_status(error: str, filename: str) -> int:
@@ -456,6 +460,32 @@ def _error_status(error: str, filename: str) -> int:
     return 422  # "We couldn't read this file…"
 ```
 
+Schema change (**confirmed P2**): add a warnings field to `api/schemas.py`'s
+`DatasetContext` so truncation notices travel end-to-end now, not in Phase 2b/4:
+
+```python
+class DatasetContext(BaseModel):
+    source: str
+    filename: str
+    row_count: int
+    date_range: DateRange | None = None
+    columns: list[Column] = []
+    provenance: dict[str, Any] = {}
+    warnings: list[str] = []  # non-fatal notices (e.g. row truncation)
+```
+
+`make_context` gains a `warnings` parameter (default `[]`) and the route passes the
+adapter's warning through:
+
+```python
+# api/routes/upload.py (change)
+df, warning = parse_uploaded_file(filename, content)
+context = make_context(
+    df, source="upload", filename=filename,
+    warnings=[warning] if warning else [],
+)
+```
+
 Route changes in `api/routes/upload.py`: catch `UploadError` and raise the matching
 `HTTPException` (413/415/400/422) with `detail=UploadError.detail` — the **same**
 bodies the Phase 1 contract tests already assert. The 25 MB bounded-chunk read stays
@@ -465,7 +495,9 @@ browser path but stays for Drive (Phase 5).
 **Acceptance:** `pytest tests/api/test_upload.py -q` green **unchanged** (the six
 status-code tests 400/409/410/413/415/422 assert identical behavior through the new
 adapter); `tests/test_data_loader.py` (20) green; `grep -rn parse_uploaded_file api/`
-shows the single definition.
+shows the single definition. **New contract test:** a >50k-row CSV upload returns a
+non-413 response whose `GET /api/v1/data/context` includes the truncation warning in
+`warnings` (confirmed P2).
 
 ### 8. Verify remaining clean modules + quality adapter
 
@@ -513,13 +545,19 @@ pre-commit hooks (ruff, black, guard, detect-private-key) green on all touched f
 |---|---|---|---|
 | Phase 2 — decoupled `utils/` | Zero `st.` imports outside quarantined trio · `STREAMLIT-ONLY` banners present · boundary guard green in CI · 452 utils tests green · Phase 1 contract tests green on `load_file()` adapter | Implementation agent | Record evidence in the PR + `CHANGELOG.md`; flip `specs/README.md` Phase 2 row to DONE and Phase 3 stub to ACTIVE after its Gemini research gate (archive §3.12) |
 
-## Open decisions (for product owner)
+## Confirmed decisions (2026-08-06 product owner)
 
-| # | Question | Recommendation | Blocking? |
+| # | Decision | Chosen | Notes |
 |---|---|---|---|
-| P0 | `forecast_metric` caching: fingerprint memo (new `utils/caching.py`) vs plain function + Phase 3 server cache | Keep the bounded fingerprint memo — convention already exists (`DataContext.cache_key`, `fingerprint_frame`) | No — either is safe; memo preferred |
-| P1 | Gemini usage accounting: thread `usage_sink` through `generate_response(_stream)` vs leave callers to accumulate returned dict | Sink threading — keeps accounting at the call site, server-owned observability direction | No |
-| P2 | Where the `load_file` warning (row-truncation) surfaces: server log only (Phase 2) vs `DatasetContext` warning field now | Server log now; expose via API in Phase 2b/4 when context is wired | No |
+| P0 | `forecast_metric` caching | **Fingerprint memo** (`utils/caching.py`) | Bounded LRU keyed on `fingerprint_frame`; opt-in per function; `cache_clear` exposed for tests |
+| P1 | Gemini usage accounting | **`usage_sink` param threading** | Streamlit call sites pass a session-state writer; API passes a server ledger in Phase 3 |
+| P2 | `load_file` truncation warning | **`DatasetContext.warnings` field now** | End-to-end surfacing in the upload → context flow; new contract test required |
+| Q4 | Quarantined trio (`styles`/`error_boundary`/`session`) | **Banners in place** | STREAMLIT-ONLY docstring + import-boundary guard; no physical move until Phase 6 |
+
+**Authorization status (2026-08-06):** planning-only. Owner confirmed the four
+spec decisions but has **not** authorized Phase 2 implementation yet. Flip this spec to
+ACTIVE (and begin Tasks 1–10 on `feat/react-fastapi-migration`) only when the owner
+greenlights execution.
 
 ## Parked/absorbed content
 
