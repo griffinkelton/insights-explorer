@@ -16,36 +16,40 @@ This capture is **reference-only** (per the doc-role split) — it is the frozen
 
 ### Port/adapt (production UI — Phase 4 copy + FastAPI wiring)
 
-| File | Purpose |
-|---|---|
-| `src/components/explorer/AiSummary.tsx` | AI summary card |
-| `src/components/explorer/ChartCard.tsx` | Chart card wrapper |
-| `src/components/explorer/ChartsRow.tsx` | Charts row layout |
-| `src/components/explorer/Chat.tsx` | Chat panel (SSE reader → `/api/v1/chat`) |
-| `src/components/explorer/DataPreview.tsx` | Data preview table |
-| `src/components/explorer/DriveImportSheet.tsx` | Drive slide-out browse (Import must be wired to real `/api/v1/drive/download`) |
-| `src/components/explorer/EmptyHero.tsx` | Empty state |
-| `src/components/explorer/EquityPanel.tsx` | Equity insights panel |
-| `src/components/explorer/ExportMenu.tsx` | Export menu (→ `/api/v1/export`) |
-| `src/components/explorer/Markdown.tsx` | Markdown renderer |
-| `src/components/explorer/OnboardingTour.tsx` | Onboarding tour |
-| `src/components/explorer/ResearchPanel.tsx` | Research/sources panel |
-| `src/components/explorer/Scorecard.tsx` | Metrics scorecard |
-| `src/components/explorer/Sidebar.tsx` | Sidebar (Drive entry + nav) |
-| `src/components/explorer/TopBar.tsx` | Top bar |
-| `src/components/explorer/UploadZone.tsx` | Upload dropzone (→ `/api/v1/upload`) |
-| `src/lib/explorer-store.tsx` | Context provider — **F3 wiring target** |
-| `src/lib/utils.ts` | cn() helper |
-| `src/router.tsx` | TanStack Router config |
-| `src/styles.css` | Global styles |
-| `src/routes/index.tsx` | Main route |
-| `src/routes/learn.tsx` | Learn page |
-| `src/routes/__root.tsx` | Root layout |
-| `src/hooks/use-mobile.tsx` | Responsive hook |
-| `package.json` | Dependency pins (ai@^7.0.48, react ^19.2, etc.) |
-| `vite.config.ts` | Vite config (→ `@vitejs/plugin-react` + router plugin) |
-| `tsconfig.json` | TS config |
-| `components.json` | shadcn config |
+**Refined 2026-08-06:** two columns added (`runtime_dependency`, `initial_slice`) so "Port/adapt" never reads as "copy as-is." A **UI-shell port** means the shell is copied but its data source / commands are replaced by FastAPI endpoints — mock imports never survive into runtime.
+
+| File | Purpose | runtime_dependency | initial_slice |
+|---|---|---|---|
+| `src/components/explorer/AiSummary.tsx` | AI summary card | none | yes |
+| `src/components/explorer/ChartCard.tsx` | Chart card wrapper | none | yes |
+| `src/components/explorer/ChartsRow.tsx` | Charts row layout — **UI shell**; chart data must come from `/api/v1/data/charts`, never `mock-ga4` | mock (`mock-ga4`) | yes (as UI shell) |
+| `src/components/explorer/Chat.tsx` | Chat panel — **UI shell**; SSE reader → `/api/v1/chat`; replace mock suggested questions + mock-oriented commands (server commands only) | mock | yes (as UI shell) |
+| `src/components/explorer/DataPreview.tsx` | Data preview table — **UI shell**; rows/columns from the `/api/v1/data/preview` dataset, never `mock-ga4` | mock (`mock-ga4`) | yes (as UI shell) |
+| `src/components/explorer/DriveImportSheet.tsx` | Drive slide-out browse — **Phase 5 UI candidate only, NOT a first-slice port**; Import must be wired to real `POST /api/v1/drive/download` (prototype only fakes `loadData`) | Lovable/Nitro (`/api/drive-files`, fake import) | **no — Phase 5** |
+| `src/components/explorer/EmptyHero.tsx` | Empty state — **UI shell**; replace mock `loadData("GA4 · …")` actions with real upload/GA4 API flows | mock | yes (as UI shell) |
+| `src/components/explorer/EquityPanel.tsx` | Equity insights — **prototype/reference unless a real equity API exists** (`mock-braintree` data); not a first-slice port | mock (`mock-braintree`) | **no — prototype/reference** |
+| `src/components/explorer/ExportMenu.tsx` | Export menu (→ `/api/v1/export`) | none | yes |
+| `src/components/explorer/Markdown.tsx` | Markdown renderer | none | yes |
+| `src/components/explorer/OnboardingTour.tsx` | Onboarding tour | none | yes |
+| `src/components/explorer/ResearchPanel.tsx` | Research/sources panel — **reference only / deferred evidence workstream** (Lovable `/api/research` + gateway + mock evidence) | Lovable/Nitro + mock evidence | **no — deferred** |
+| `src/components/explorer/Scorecard.tsx` | Metrics scorecard | none | yes |
+| `src/components/explorer/Sidebar.tsx` | Sidebar (Drive entry + nav) | none | yes |
+| `src/components/explorer/TopBar.tsx` | Top bar | none | yes |
+| `src/components/explorer/UploadZone.tsx` | Upload dropzone (→ `/api/v1/upload`) | none | yes |
+| `src/lib/explorer-store.tsx` | Context provider — **F3 wiring target** (see `STORE-DRIFT-MATRIX.md`) | mock (`defaultSource`) | yes (as UI shell) |
+| `src/lib/utils.ts` | cn() helper | none | yes |
+| `src/router.tsx` | TanStack Router config | none | yes |
+| `src/styles.css` | Global styles | none | yes |
+| `src/routes/index.tsx` | Main route | none | yes |
+| `src/routes/learn.tsx` | Learn page | none | yes |
+| `src/routes/__root.tsx` | Root layout | none | yes |
+| `src/hooks/use-mobile.tsx` | Responsive hook | none | yes |
+| `package.json` | Dependency pins (ai@^7.0.48, react ^19.2, etc.) | none | yes |
+| `vite.config.ts` | Vite config (→ `@vitejs/plugin-react` + router plugin) | none | yes |
+| `tsconfig.json` | TS config | none | yes |
+| `components.json` | shadcn config | none | yes |
+
+**Column legend:** `runtime_dependency` = what the captured file currently imports/relies on (`none` · `mock` · `Lovable/Nitro` · `Python/FastAPI`). `initial_slice` = whether the file is mounted in the first upload→preview→quality→clear production slice (`yes` / `no`). A `no` row still gets ported — but later, in its owning phase, and only after its dependency is replaced.
 
 ### Reference only (version-pin / semantic reference)
 
@@ -76,6 +80,8 @@ This capture is **reference-only** (per the doc-role split) — it is the frozen
 All Nitro/Lovable server routes (`api/chat.ts`, `api/drive-files.ts`, `api/research.ts`), `ai-gateway.server.ts`, `drive-browse.server.ts`, `sources.server.ts` — replaced by FastAPI `/api/v1/*` routes backed by `utils/`.
 
 **Panels kept out of the first production slice (gate 8):** `EvidenceConnectorPanel.tsx`, `InsightCandidates.tsx`, `MeasurementContractPanel.tsx` (captured as prototypes; may live under `frontend/src/prototype/` with a "Demo / mock data" label if previewed).
+
+**Refined 2026-08-06 (review round):** `ChartsRow`, `DataPreview`, `Chat`, `EmptyHero` are **UI-shell ports** — the shell is copied, but their data sources and commands come from FastAPI endpoints, never the mock modules. `EquityPanel` (mock-braintree data) is **prototype/reference unless a real equity API exists**; `ResearchPanel` (Lovable `/api/research` + gateway + mock evidence) is **reference only / deferred evidence workstream**; `DriveImportSheet` (Lovable `/api/drive-files` + fake import action) is a **Phase 5 UI candidate only**, not a first-slice port. The `runtime_dependency` / `initial_slice` columns above encode this per file — treat `initial_slice: no` as "port later, in its owning phase."
 
 ---
 

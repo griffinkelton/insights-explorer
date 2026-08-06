@@ -279,12 +279,7 @@ interface ExplorerValue {
 
 The existing chat route in the TanStack server proxies to Lovable's AI gateway. Since we are now using FastAPI for chat, either:
 
-Option A (recommended): Delete src/routes/api/chat.ts entirely and let explorer-store.tsx call FastAPI directly (the streamAi function above already does this).
-
-Option B: Keep it as a thin proxy if you need same-origin requests:
-  POST /api/chat → proxy to http://localhost:8000/api/v1/chat
-
-If you keep the proxy, update it to forward to FastAPI instead of the Lovable gateway.
+**Locked decision (2026-08-06): delete `src/routes/api/chat.ts` entirely — no proxy.** The target deployment is same-origin (FastAPI serves the built React SPA), so the store calls FastAPI directly: `POST /api/v1/chat` with `credentials: "include"` (the `streamAi()` function above already does this — only its URL and credentials need updating). A separate dev-server proxy is acceptable only if a split-origin dev setup is deliberately chosen; it must never become a second routing model in production.
 
 ### 11. Clean up mock files
 

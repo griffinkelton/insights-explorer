@@ -194,16 +194,16 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 8. Phase 4 — Port React UI into `frontend/` (Week 4)
 
-**Inputs:** `freebuff-prompt-wire-react-store.md` (F3 — 13 steps) · plan Phase 4 + amendments · archive §3.6 (validateSearch), §3.9 items 3/5 (pins, bun), §3.10 items 2/5 (strip list, Recharts) · `whisperer-30-reference/` (captured source, incl. the explorer-store drift cross-check in `WHISPERER-30-REFERENCE.md`).
+**Inputs:** `freebuff-prompt-wire-react-store.md` (F3 — 13 steps) · plan Phase 4 + amendments · archive §3.6 (validateSearch), §3.9 items 3/5 (pins, bun), §3.10 items 2/5 (strip list, Recharts) · `whisperer-30-reference/` (captured source; **the store-wiring instruction set is `whisperer-30-reference/STORE-DRIFT-MATRIX.md`** — captured store vs F3, supersedes the earlier drift cross-check).
 
 **Goal:** copy the whisperer-30 components in, strip the Start/Lovable/Nitro plumbing, and swap mock store calls for real API calls.
 
 **Tasks:**
 - [ ] Copy `src/` → `frontend/` (from the frozen capture, not a live clone, until the frontend build is reproducible).
 - [ ] **Strip list (round-3 verified):** remove `@lovable.dev/vite-tanstack-config`, `@tanstack/react-start`, `nitro`, `src/server.ts`, `src/start.ts`, `src/routes/api/*` (Start/Nitro server routes); replace the plugin with `@vitejs/plugin-react` + `@tanstack/router-plugin/vite`; file-based `createFileRoute` routing is identical without Start. (Archive §3.10 item 2.)
-- [ ] **Package manager decision (open):** bun (whisperer-30's) vs npm (Drive Picker's + repo convention). Both are CI-supported (`oven-sh/setup-bun@v2` on Actions; install script on Cloud Build) — unconstrained by CI, so pick on repo consistency. (Archive §3.9 item 5; §3.10 item 6.)
+- [x] **Package manager: LOCKED — npm (2026-08-06).** Rationale: the Drive Picker frontend already uses npm (`package-lock.json`); GitHub Actions, Cloud Build, and hosting tools support npm by default; the captured `bun.lock` was deliberately excluded, so npm gives a clean reproducible start rather than reviving the Lovable toolchain. Bun may still be used locally, but the repo standard is one lockfile + one CI path. **Record:** `frontend/package-lock.json` · CI install `npm ci` · local scripts `npm run dev / build / test`. (Archive §3.9 item 5; §3.10 item 6; review round 2026-08-06.)
 - [ ] **Recharts × React 19:** `recharts@^2.15.4` doesn't declare React 19 peer deps — try plain install first; on peer errors use `overrides` or move to recharts 3.x. (Archive §3.10 item 5.)
-- [ ] **F3 store wiring (13 steps):** remove mock imports → API base (relative `/api`) → real `loadData()` upload → GA4 flow → Drive flow → `streamAi` → SSE chat per Phase 1 format → quality/charts/forecast/funnel fetchers → export → `ExplorerValue` interface (**union**, it omits `addFilter`/`sendMessage`/`clearChat` — drift cross-check) → delete mock files → `api-types.ts` → `.env` files. (F3 §1–13; reference drift section.)
+- [ ] **F3 store wiring (13 steps):** remove mock imports → API base (relative `/api`) → real `loadData()` upload → GA4 flow → Drive flow → `streamAi` → SSE chat per Phase 1 format → quality/charts/forecast/funnel fetchers → export → `ExplorerValue` interface (**union** — F3's §9 omits `addFilter`/`addMetric`/`sendMessage`/`clearChat`) → delete mock files → `api-types.ts` → `.env` files. (F3 §1–13; **follow `STORE-DRIFT-MATRIX.md` row-by-row** — it pins the union, the filter/metric server-sync semantics, the command-router move to `utils/commands.py`, and the `api-types.ts` type extraction.)
 - [ ] **Chat route:** remove the Lovable AI gateway path; AI routing stays under Python/FastAPI control (Batch 3; `utils/prompt_templates.py` is the system prompt source — never the whisperer's hardcoded BrainGuide prompt).
 - [ ] **Routing:** TanStack Router `validateSearch` + `Route.useSearch()` for typed search params (GA4 callback `status`/`reason`), never raw `window.location.search`. (Archive §3.6.)
 - [ ] MSW test setup: `setupServer` from `msw/node`, `onUnhandledRequest: "error"`; mocks (`mock-ga4.ts`, `mock-braintree.ts`) become **test fixtures only**; streaming chat tests use `HttpResponse` + `ReadableStream` body with SSE headers (jsdom has no `EventSource` — test the `getReader()` path). (F4 §12; archive §3.10 item 4.)
@@ -212,7 +212,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **Prototype quarantine rule (2026-08-06; archive §4.18):** mock-evidence + deterministic-engine prototype code live under **test/fixture or prototype-only paths**, never runtime production sources; the three panels are **not mounted in the first production slice**; any design preview keeps them behind an obvious **"Demo / mock data"** label; mock sources are **never registered in the production source registry**.
 - [ ] `frontend/README.md` + gitignore for `node_modules`, `dist`.
 
-**Exit criteria (DoD):** `npm run dev` (or `bun dev`) + `uvicorn` produce a usable app at `localhost:5173`; no references to `mock-ga4.ts`/`mock-braintree.ts` in runtime code; store talks to FastAPI with `credentials: "include"`.
+**Exit criteria (DoD):** `npm run dev` + `uvicorn` produce a usable app at `localhost:5173`; no references to `mock-ga4.ts`/`mock-braintree.ts` in runtime code (fixture-only); no component carrying a `mock` or `Lovable/Nitro` runtime dependency is mounted in the first slice (per `MANIFEST.md` `initial_slice` column); store talks to FastAPI with `credentials: "include"`.
 
 ---
 
@@ -236,7 +236,24 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **`POST /api/v1/drive/download` — server-side trust boundary (2026-08-06; archive §4.18):** accept the Drive **`file_id`** only — never trust a client-provided filename, MIME type, or byte size. Server re-fetches file metadata from Drive, enforces `MAX_INGEST_BYTES = 100 MB` (from metadata where available) and the MIME/type allowlist **server-side**, and handles Google-native Sheets via an **export path** (not byte download). Post-download: decompression, row, column, and temp-file lifetime limits; **return the same typed errors as the local upload path**. The React sheet's MIME/name checks are UX guidance only, never the security authority. **Local cross-check (2026-08-06; archive §4.19): this boundary ALREADY EXISTS in `utils/drive_client.py`** (`download_drive_file`) — server-authoritative `files.get(fields="name,mimeType,size")`, `DRIVE_IMPORT_MIME_TYPES` allowlist, Sheets `export_media(mimeType="text/csv")` first-sheet-only, 3-layer size enforcement (metadata preflight → `_BoundedBytesIO` stream cap → final `len()` check), typed `DriveImportError` codes (`unsupported_type/too_large/empty_file/not_found/access_denied/download_failed`). **Phase 5 is a port of this function into `api/services/drive_service.py`, not new design.** Live-verified nuance: Google-native files have **no `size` metadata field** (hence the stream-cap layer); Google imposes a **10 MB export cap** on Sheets/docs exports — so Sheets can never exceed 10 MB regardless of the 100 MB policy; `alt=media` binary downloads have no practical limit (5 TB/file ceiling).
 - [ ] Port the chosen UI as a **native React component** (not an embedded Streamlit component).
 - [ ] `POST /api/v1/drive/picker-token` → returns the OAuth token **and the project number** (`setAppId`) — **only if the Picker iframe (b) is chosen**; document Cloud Resource Manager API enablement; restrict the API key to HTTP referrers. (Plan amendment 2; archive §3.3.)
-- [ ] E2E: GA4 connect→pull and Drive browse/pick→download→preview flows in Playwright (includes server-side validation: forged filename/MIME rejected, >100 MB rejected, Sheets export path, typed errors match upload).
+- [ ] **E2E acceptance matrix (2026-08-06) — Playwright, written in Phase 5:**
+
+| # | Case | Expected |
+|---|---|---|
+| 1 | User cancels Google OAuth | Callback receives `status=cancelled`; safe cancelled state renders; no partial session state |
+| 2 | Drive not configured | Sheet state `not_configured` with setup hint; no crash |
+| 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.readonly` |
+| 4 | Unsupported file selected | Typed `unsupported_type` error matching the upload taxonomy |
+| 5 | Client sends forged filename/MIME/size metadata | Backend re-fetches Drive metadata and rejects on mismatch |
+| 6 | Backend authority on metadata | `file_id` is the only client input; server `files.get` decides |
+| 7 | Binary CSV/XLSX import | Downloads server-side, parses, creates the active dataset |
+| 8 | Google-native Sheet | Export path (`text/csv`), respects the 10 MB export cap |
+| 9 | Size limit enforcement | 100 MB ingestion policy enforced server-side |
+| 10 | Download → preview/quality | Parsed dataset becomes active; preview + quality state render |
+| 11 | Clear Data | Removes active dataset + derived state (previews, analysis cache, chat context, temp exports) |
+| 12 | Token containment | Browser never receives the Drive access token (assert via network logs + credential guard) |
+
+GA4 E2E: connect → pull → preview success path plus the OAuth error/cancel path (row 1). This matrix turns the "Import only fakes `loadData`" discovery into a permanent regression barrier.
 
 **Exit criteria (DoD):** both flows work in React with the server-session model; errors (size, auth, bad type) surface with the established taxonomy; no token leakage (credential guard extends to FastAPI env vars).
 
@@ -305,7 +322,7 @@ Rename the prototype helper to `modelVisibleMetrics()` / `nonUnavailableMetrics(
 `.env` rotation (Phase 0) · credential guard patterns extended to FastAPI env vars · `.env.example` updated with all new API env vars (session secret, CORS origins) · `__Host-` cookie prefix (needs `Secure` + `Path=/` + no `Domain`) · never log keys or echo tokens in responses.
 
 ### E. CI/CD & deployment — `cloudbuild.yaml` + `.github/workflows/test.yml` + `dockerfile-pattern.md`
-Both pipelines updated in Phase 6 · frontend build gate (npm/bun ci → typecheck → build) added alongside pytest · container deployment to Cloud Run · smoke script reworked for the new stack.
+Both pipelines updated in Phase 6 · frontend build gate (**`npm ci` → typecheck → build** — package manager locked to npm 2026-08-06) added alongside pytest · container deployment to Cloud Run · smoke script reworked for the new stack.
 
 ### F. Data retention & AI data boundary — `data-retention-policy.md`
 Written **before the API exists** (Phase 0/1): upload retention window, whether raw dataframes persist or are session-only, session expiry, exactly what "Clear Data" deletes, what export logging retains, which fields are allowed in Gemini prompts, and which identifiers must be removed/aggregated before an AI call. "Server-owned" is better than browser-owned, but it is not automatically privacy-safe.
@@ -374,7 +391,7 @@ insights-explorer/
 - **Capture point:** `8b4b7b9` ("Added evidence and GA4 panels" — includes all 17 new commits; supersedes the stale `a71c371` capture).
 - **Scope:** `src/components/explorer/` (19) · `src/components/ui/` (46, shadcn — version-pin reference) · `src/routes/` (index/learn/__root port; `api/*` Nitro routes do-not-port) · `src/lib/` (store/utils port; mocks+engine fixture-only; `measurement-contract.ts` reference) · `src/router.tsx`, `src/styles.css` · `package.json`, `vite.config.ts`, `tsconfig.json` · `src/routeTree.gen.ts` (reference only — regenerated).
 - **Exclusions:** `.env` (tracked in source repo — rotation is gate 1) · lockfiles unless dependency reproduction needs them · Lovable gateway config/credentials · generated route trees (captured only as reference).
-- **Deliverable:** `migration/whisperer-30-reference/UI-CAPTURE-<SHA>/` with a **manifest** listing every file: source SHA · purpose · port classification (`Port/adapt` · `Reference only` · `Fixture only` · `Do not port`).
+- **Deliverable:** `migration/whisperer-30-reference/UI-CAPTURE-<SHA>/` with a **manifest** listing every file: source SHA · purpose · port classification (`Port/adapt` · `Reference only` · `Fixture only` · `Do not port`) · **`runtime_dependency`** (`none` / `mock` / `Lovable/Nitro` / `Python/FastAPI`) · **`initial_slice`** (`yes` / `no`). **Port/adapt means "UI shell" for mock-connected components** — the shell is copied but its data source/commands are replaced by FastAPI endpoints (refined 2026-08-06; see `UI-CAPTURE-8b4b7b9/MANIFEST.md`).
 - **Every captured file passes the credential guard** before commit.
 
 ---
@@ -385,7 +402,7 @@ insights-explorer/
 |---|---|---|---|
 | 1 | Chat wire format (plain SSE vs AI SDK data-stream) | Phases 3–4 | Plain SSE (matches `ai@^7.0.48` + `toTextStreamResponse()` + F3 reader) unless `useChat` is chosen |
 | 2 | Durable store for refresh tokens / usage metadata (Postgres vs other) | Only if persistent reconnect or multi-user/audit needs appear | **Architecture locked: state placement** (cookie / ephemeral Redis-Valkey / shared store / Cloud Storage / memory cache / encrypted durable / Postgres-later); durable DB provider choice postponed — further deferred by the **local-first posture** (shared stores are beta-time work) |
-| 3 | Package manager (bun vs npm) | Phase 4 | CI-unconstrained; pick on repo consistency |
+| 3 | ~~Package manager (bun vs npm)~~ **LOCKED: npm** | ~~Phase 4~~ — | Locked 2026-08-06 — npm (Drive Picker convention + mature CI/hosting support + clean reproducible start from the deliberately excluded `bun.lock`); Bun optional locally only |
 | 4 | Hosting platform | Phase 6 | **Cloud Run** (GCP investment, existing `cloudbuild.yaml`) — Railway/Render equivalent |
 | 5 | Recharts 2.15.4 vs 3.x | Phase 4 | Try 2.15.4 first; `overrides` or 3.x on peer errors |
 | 6 | `frontend/` vs `api/` layout (siblings) | Phase 1 | Siblings (per plan Open Questions #5; F4 §1 target layout) |
@@ -457,6 +474,7 @@ insights-explorer/
 | `whisperer-30-reference/LOVABLE-UPDATES-080525.md` | Phases 4–5 (Drive-import UI port), evidence-connector workstream, contract reconciliation (`measurement-contract.ts` — verified faithful) |
 | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` | Phase 5 (drive-list contract shape, Import seam), contract transcription cross-check — **reference evidence only, not default agent context** (doc-role split, archive §4.18) |
 | `whisperer-30-reference/UI-CAPTURE-8b4b7b9/` | Phase 4 (frozen port source + classification manifest) — reference only, not default agent context |
+| `whisperer-30-reference/STORE-DRIFT-MATRIX.md` | Phase 4 (store-wiring instruction set — captured store vs F3) — reference only, not default agent context |
 
 ---
 

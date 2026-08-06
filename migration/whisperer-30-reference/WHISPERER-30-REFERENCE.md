@@ -62,6 +62,8 @@ The migration docs (`migration/insights-explorer-migration-plan.md`, the F3 stor
 
 Line-by-line read of the captured store against F3 (`freebuff-prompt-wire-react-store.md`) at their capture dates, to catch seams where the wiring prompt's assumptions don't match the actual file before Phase 4 executes it.
 
+> **Superseded in depth by [`STORE-DRIFT-MATRIX.md`](STORE-DRIFT-MATRIX.md) (2026-08-06)** — the full matrix (captured store behavior × F3 assumption × canonical migration decision × required change, including filter/metric server-sync, chat timestamps, command routing, `useTheme`, and `streamingId`/reconnect). This table is retained as the compact step-level summary; the matrix is the Phase 4 instruction set.
+
 | F3 step | Captured store reality | Drift / action |
 |---|---|---|
 | 1. Remove mock imports | ✅ Matches — `import { defaultSource, type ChatMessage, type DataSource } from "./mock-ga4"` at the top; types must be extracted (note: the captured `ChatMessage` carries a `timestamp` field F3's sketch omits) | None — as expected |
