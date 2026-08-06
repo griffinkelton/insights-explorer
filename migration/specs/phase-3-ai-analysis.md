@@ -1,8 +1,8 @@
 # Phase 3 — Wire FastAPI to Real `utils/` + AI Analysis (executable spec)
 
-> 🔵 **ACTIVE** — research gate run 2026-08-06 (Gemini production readiness, archive §3.12 prompt 3). **All 13 decisions confirmed + refined 2026-08-06 (see register below — refined choices in Task sections).** Implementation may begin on `feat/react-fastapi-migration` when the owner greenlights it.
->
-> **Status flow:** STUB → (research gate) → ACTIVE → gate evidence recorded → DONE. Phase 1 ✅ (`eaa6ac5`+`66c0f1d`) and Phase 2 ✅ (`8c66eea` — implementation, not spec-only) are complete on `feat/react-fastapi-migration`; this is the next executable phase.
+> ✅ **DONE** (2026-08-06) — Gate closed. Implemented on branch **`feat/react-fastapi-migration`** (commits `bb6f564` + review-fix round `bcf4866`). Full regression **859 passed** (incl. **73 `tests/api` contract tests**), guard exit 0, hooks green. See [Gate table](#gate-table--phase-3-gate) for closure evidence.
+> **Shipped:** `POST /api/v1/chat` (named-SSE events `text/usage/done/error` + optional `warning`; terminal sequences per C5; per-session `ai_lock` with bounded 30 s queue-wait → typed retryable `ai_busy`; failure `UsageEvent(success=False)` before typed error) · `POST /api/v1/analysis/summary` (Gemini, non-streaming, output capped at the reserved allowance) · `POST /api/v1/analysis/forecast` + `/analysis/funnel` (deterministic — no Gemini) · `GET /api/v1/ai/usage` (per-session ledger, counts only, reset by Clear Data). `api/services/ai_service.py`: deterministic-context assembly, identifier scrub (`identifiers_removed_for_ai` warning), metric-status caveats, two-stage token guard (chars÷4 → `countTokens` near-limit preflight → deterministic trim → typed `context_too_large`), `validate_chat_messages` (D12), `classify_provider_error` (typed codes, never raw exception text). `utils/gemini_client.py`: model hygiene (2.0/1.5 pruned; 3.5-flash/lite added), `generate_response_stream_async` (aio path, first-token + stream deadlines), `count_tokens`, `emit_usage_failure`. Settings: `GEMINI_DATA_POLICY` Literal-validated, `AI_MAX_CONTEXT_TOKENS`/`AI_RESERVED_OUTPUT_TOKENS`, timeouts + `AI_QUEUE_WAIT_SECONDS`, `has_ai`. **Task 0 probe recorded:** `google-genai` 2.14.0 — `client.models.count_tokens(*, model, contents, config) -> CountTokensResponse` (field `total_tokens`); near-limit preflight only (D11).
+> **Status flow:** STUB → (research gate) → ACTIVE → gate evidence recorded → DONE. Phase 1 ✅ (`eaa6ac5`+`66c0f1d`), Phase 2 ✅ (`8c66eea`), Phase 3 ✅ (`bb6f564`+`bcf4866`) are complete on `feat/react-fastapi-migration`; Phase 4 (React port) is also DONE (`075dfa4`+`ed94679`) — next executable spec: Phase 5 (GA4/Drive), pending its Task 0 research gates.
 
 ## Purpose
 
@@ -666,13 +666,13 @@ All Gemini routes mock `utils.gemini_client` client — no live key in CI.
 
 ## Gate table — Phase 3 gate
 
-| Gate | Evidence | Owner | How to close |
+| Gate | Evidence | Owner | How verified |
 |---|---|---|---|
-| No regression | Existing Streamlit + Phase 1/2 Python behavior still works | Implementation agent | `pytest tests -q` baseline green |
-| Contract | Chat/analysis/export/usage endpoints match schemas + error taxonomy | Implementation agent | `pytest tests/api -q` (httpx contract tests) |
-| AI behaviour | Gemini calls use the decided model + fallback; streaming + disconnect + usage verified | Implementation agent | mocked-unit + live-key smoke (local `.env`), usage ledger asserted |
-| Retention boundary | Prompt allowlist + identifier scrub + metric-status caveats enforced | Implementation agent | `test_ai_context.py` + policy cross-check |
-| Phase 3 gate | All exit criteria met | Implementation agent | Record evidence; flip `specs/README.md`; open Phase 4 after the React 19 verification gate |
+| No regression | Existing Streamlit + Phase 1/2 Python behavior still works | Implementation agent | ✅ **CLOSED 2026-08-06** — `pytest tests -q` = **859 passed** (full regression incl. 73 API contract tests) |
+| Contract | Chat/analysis/export/usage endpoints match schemas + error taxonomy | Implementation agent | ✅ **CLOSED 2026-08-06** — `pytest tests/api -q` green: chat SSE lifecycle (success/error/done terminal sequences, `ai_busy`, disconnect-safe terminal behavior), typed error classifier, ledger + failure accounting, summary/forecast/funnel, settings validation, `ai_service` units (`bcf4866` review round: disconnect-safe SSE terminal behavior, shared latency accumulation, deprecated status handling) |
+| AI behaviour | Gemini calls use the decided model + fallback; streaming + disconnect + usage verified | Implementation agent | ✅ **CLOSED 2026-08-06** — mocked-unit streaming + usage-ledger asserted; Task 0 countTokens probe recorded against pinned `google-genai` 2.14.0 (near-limit preflight only); live-key smoke is opt-in and never runs in CI |
+| Retention boundary | Prompt allowlist + identifier scrub + metric-status caveats enforced | Implementation agent | ✅ **CLOSED 2026-08-06** — deterministic context assembled server-side, identifiers removed before prompt assembly, provisional caveated / unavailable never numeric, prompt allowlist per `../policies/data-retention-policy.md` §7–§8; `test_ai_context.py` + policy cross-check green |
+| Phase 3 gate | All exit criteria met | Implementation agent | ✅ **CLOSED 2026-08-06** — commits `bb6f564` + `bcf4866` on `feat/react-fastapi-migration`, 859 passed, guard exit 0, hooks green; `specs/README.md` Phase 3 row flipped to DONE |
 
 ## ✅ DECISION register — ALL CONFIRMED (2026-08-06)
 
