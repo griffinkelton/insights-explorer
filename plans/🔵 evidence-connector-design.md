@@ -895,3 +895,58 @@ SPA extractor must fail loudly (not silently return empty) if DOM structure chan
 ---
 
 *This design captures findings from Evidence documentation research, live manifest inspection at `dashboard.dev2.mybrainguide.org`, architectural review, and planning decisions made July 2026. See IDEAS.md #26 for the summary. Target: v0.4.0, after v0.3.0 analysis-quality release.*
+
+---
+
+## Deferred — Technical-Docs RAG Reference (added 2026-08-06)
+
+> **Not in scope for the evidence connector's first slice.** This section parks reference guidance for a **future technical-document RAG workstream** (migration docs, contracts, policies, specs). Do not implement RAG, embeddings, rerankers, or summary chains in the migration (explicitly a Phase 3 non-goal — see `migration/specs/phase-3-ai-analysis.md` Task 0) or in the connector's first slice. Re-open only as an explicit workstream.
+>
+> **Boundary rule for this connector:** when retrieval is eventually built for the evidence connector, it must retrieve **approved, aggregate, provenance-bearing evidence artifacts** — never person-level rows, and never raw client data.
+
+### Chunk hierarchy + chunking rules
+
+```text
+Repository → document → heading section → subsection → code block / table / API example / paragraph group
+```
+
+A chunk must preserve enough context to answer: *"What is this rule, endpoint, function, or decision — and under what conditions does it apply?"*
+
+| Content type | Chunking rule |
+|---|---|
+| Markdown prose | Split by heading hierarchy first |
+| API endpoints | Keep description, parameters, request, response, error codes, example together |
+| Tables | Keep the whole table plus its heading/caption |
+| Code blocks | Keep each function/class/module block intact |
+| Policy docs | Keep rule, exception, rationale, enforcement together |
+| Changelogs/archive | Chunk by dated entry; classify as historical |
+| Large sections | Child chunks for retrieval; retain parent section for expansion |
+
+**Chunk size:** target 400–900 tokens, max ~1,500, **no arbitrary overlap** (heading-aware chunks retain semantic continuity; overlap duplicates policy text). Use **parent expansion** instead: retrieve the child chunk, include the parent section context.
+
+### Metadata to retain
+
+```json
+{"document_id": "phase-1-upload-slice", "path": "migration/specs/phase-1-upload-slice.md",
+ "source_commit": "eaa6ac5", "heading_path": ["Phase 1", "10. Clear Data endpoint"],
+ "document_role": "active_spec", "trust_level": "canonical", "content_type": "api_contract",
+ "phase": 1, "superseded": false, "chunk_index": 4, "parent_chunk_id": "phase1-clear-data"}
+```
+
+Code chunks add: `file_path`, `symbol`, `language`, `line_start`, `line_end`, `runtime_dependency`.
+
+**Trust hierarchy is metadata-filtered, not reranker-decided:** canonical master-plan/active specs/policies/GA4 contract > reference (Lovable capture, store-drift matrix) > archive (transcript, previous plans, review ledgers — retrieved only on explicit history queries). A highly similar archive chunk must never beat a canonical active spec.
+
+### Hybrid retrieval pipeline (future)
+
+```text
+Query → classify intent → metadata filter → lexical (BM25) + vector search → rank fusion (RRF) → rerank → parent expansion → cited answer
+```
+
+- **Lexical matters for exact identifiers** (`/api/v1/data/clear`, `DatasetWarning`, `MAX_BROWSER_UPLOAD_BYTES`, `UsageEvent`); semantic matters for conceptual queries. Baseline: top-20 BM25 + top-20 vector → RRF (`Σ 1/(k+rank)`) → top-10 → rerank to top 3–5.
+- **Rerankers answer "does this chunk directly answer the exact question?"** — they never override the trust hierarchy.
+- **Version every chunk** by commit/document revision; `superseded` flags prevent stale docs being treated as active authority.
+
+### Evaluation before shipping (golden set)
+
+Build 30–50 representative questions (architecture, API, security, historical, code). For each record: question, `expected_sources`, `must_not_use` (e.g. the sanitized Freebuff transcript), and `answer_requirements`. Measure four dimensions: **retrieval quality** (Recall@k, Precision@k, nDCG, canonical-source selection rate) · **answer quality** (correctness, completeness, citation accuracy, unsupported-claim rate) · **operational quality** (latency, tokens, cost/answer) · **governance quality** (canonical beats archive, active beats superseded F3/F4, refuses unsupported answers). Evaluation discipline matters more than early agentic-RAG features.
