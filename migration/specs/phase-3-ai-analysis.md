@@ -90,7 +90,7 @@ These are **implementation-time checks**, not blocking research gaps. The Phase 
 **Task 0 — SDK `countTokens` acceptance probe (promoted from verification note 1 — run before Task 7 wires the preflight):**
 
 1. Install the pinned `google-genai` from `requirements/base.txt` (currently 2.14.0).
-2. Run a minimal `count_tokens` call with a synthetic prompt (local `.env` key or a synthetic key in test mode).
+2. Run a minimal `count_tokens` call with a synthetic prompt — a real call requires a valid key, so use the **local `.env` key** or a **mocked/synthetic client** in test mode (a fake key will not reach the real API).
 3. Record: the **actual method name + request shape** (`client.models.count_tokens(...)` vs an alternative), the **result field** (expected `.total_tokens`), and the **failure class** when unavailable.
 4. If unavailable/failing: **standard requests still work** via deterministic local trim (chars÷4); **near-limit requests fail safely** with `context_too_large` (typed, non-retryable) or a typed retryable provider error — never an untyped crash.
 
@@ -229,7 +229,9 @@ streaming and releases it in `finally`. This **serializes** AI requests per
 session: a second concurrent request queues behind the first, and ledger
 mutation is single-writer (deterministic counts, no lost updates). Contract
 test: two concurrent chat requests against one session produce deterministic
-ledger totals (C6).
+ledger totals (C6). Second requests **queue** behind the in-flight stream
+(serialization, not rejection); if a busy policy is preferred later, a typed
+`429 ai_busy` is the documented alternative.
 
 `clear_dataset_state` (Phase 1, `dataset_service.py`) must reset the ledger. **Acceptance:** contract test uploads → chat → asserts ledger counts; Clear Data resets them; no raw content ever stored.
 
@@ -333,7 +335,8 @@ async def chat(
                 yield "event: text\n"
                 yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
         except (ValueError, RuntimeError) as exc:
-            # corrected C2: Task 7 classifier — NEVER raw exception text in SSE.
+            # corrected C2: classify_provider_error / TypedAiError live in
+            # api/services/ai_service.py (Task 7) — NEVER raw exception text in SSE.
             err = classify_provider_error(exc)      # -> TypedAiError(code, message, retryable, ...)
             yield "event: error\n"
             yield f"data: {json.dumps(err.public_payload())}\n\n"
