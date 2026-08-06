@@ -16,7 +16,7 @@
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting process | Before reporting a vulnerability |
 | [LICENSE](LICENSE) | MIT License | To understand usage rights |
 | [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | v0.1.0 release checklist with evidence and sign-off | Release verification |
-| [migration/README.md](migration/README.md) | React/FastAPI migration — index of all planning docs, research, and reference capture | Before starting migration work (planning-only, no code yet) |
+| [migration/README.md](migration/README.md) | React/FastAPI migration — index of all planning docs, research, and reference capture | Before starting migration work (Phases 1–2 implemented; Phase 3 execution-ready) |
 
 ---
 
@@ -68,7 +68,7 @@
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
-| [migration/README.md](migration/README.md) | Entry point — index of the migration docs (bucket-organized: policies/ · specs/ · archive/) and how they relate | Decision summary, bucket-organized doc tables, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-06) |
+| [migration/README.md](migration/README.md) | Entry point — index of the migration docs (bucket-organized: policies/ · specs/ · archive/) and how they relate | Decision summary, bucket-organized doc tables, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Phases 1–2 done (2026-08-06) |
 | [migration/master-plan.md](migration/master-plan.md) | **The execution coordinator — START IMPLEMENTATION HERE** | Phases 0–6 with inputs/tasks/exit criteria, 5 cross-cutting workstreams (state, contract, tests, security, CI/CD), target repo file layout, critical path, open decisions, risk register, doc→phase source map | 🔵 Plan — gates 1/2/6 closed (2026-08-06) |
 | [migration/archive/insights-explorer-migration-ingest.md](migration/archive/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
 | [migration/archive/insights-explorer-migration-plan.md](migration/archive/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |

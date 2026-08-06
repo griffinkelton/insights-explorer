@@ -69,8 +69,8 @@ Values are **never committed**; `.env.example` holds placeholders/safe defaults 
 | `GEMINI_API_KEY` | (none — placeholder in `.env.example`) | Provider key; the app boots without it (AI endpoints degrade to 503) |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Env-configurable model; selector allowlist {`gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`} (shut-down 2.0 / deprecated 1.5 pruned) |
 | `GEMINI_DATA_POLICY` | `local_free` | Runtime tier policy (§7.1) |
-| `AI_MAX_INPUT_TOKENS` | `24000` | Heuristic prompt-input budget (chars÷4 estimate) |
-| `AI_RESERVED_OUTPUT_TOKENS` | `4096` | Output allowance reserved inside the input budget |
+| `AI_MAX_CONTEXT_TOKENS` | `24000` | Total context budget = input allowance + reserved output (corrected 2026-08-06: effective input allowance = 24,000 − 4,096) |
+| `AI_RESERVED_OUTPUT_TOKENS` | `4096` | Reserved output; provider `max_output_tokens` is set to this value (corrected 2026-08-06) |
 | `AI_MAX_CONTEXT_CHARS` | `96000` | Deterministic-trim ceiling (≈ chars÷4 = 24k tokens) |
 | `AI_FIRST_TOKEN_TIMEOUT_SECONDS` | `30` | First-token deadline (typed `timeout` event on expiry) |
 | `AI_GENERATE_TIMEOUT_SECONDS` | `60` | Non-streaming per-request timeout |

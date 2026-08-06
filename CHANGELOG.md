@@ -6,6 +6,23 @@
 
 ---
 
+## React/FastAPI migration — Phase 3 review-corrections round (C2–C6) + status reconciliation
+
+**Date:** 2026-08-06 | **Status:** spec corrections applied — Phase 3 still execution-ready, awaiting authorization | **Branch:** docs on `main`; code on `feat/react-fastapi-migration`
+
+- **Status reconciliation:** `migration/README.md` no longer says "planning-only, no product code" — Phase 1 ✅ (`eaa6ac5`/`66c0f1d`) and Phase 2 ✅ (`8c66eea`, implementation not spec-only) recorded with evidence; spec-suite rows updated (Phase 1/2 DONE, Phase 3 execution-ready). The review's "Phase 2 not implemented" finding was a main-branch search artifact.
+- **C2 — SSE safety:** route sketch no longer emits `str(e)`; `classify_provider_error()` returns typed code/message pairs only.
+- **C3 — policy validation:** `GEMINI_DATA_POLICY` becomes a `Literal[...]` — invalid values fail at startup, never silent fall-through.
+- **C4 — budget semantics:** `AI_MAX_INPUT_TOKENS` renamed **`AI_MAX_CONTEXT_TOKENS`** (total context budget; effective input = 24,000 − 4,096); provider `max_output_tokens` explicitly set to `AI_RESERVED_OUTPUT_TOKENS`. Rename cascaded through the guard allowlist, `.env.example`, guard tests, retention policy §7.2, and the Phase 3 spec (`fc65461` on the migration branch).
+- **C5 — terminal SSE:** explicit sequences (`text*→usage→done` / `error→done` / `text+→error→done`); `error` terminal for assistant content.
+- **C6 — ledger concurrency:** per-session `asyncio.Lock` (`AppSession.ai_lock`) serializes AI requests — deterministic ledger under concurrent requests.
+- **Task 0 probe:** `countTokens` SDK-shape verification promoted from a note to a numbered acceptance probe.
+- **Privacy:** identifier list explicitly "NOT a complete PII detector"; `ssn`/`dob`/`birth` added; business-entity patterns deliberately excluded; `client_paid` requires a data-classification review.
+- **Phase 2:** dynamic imports (`importlib`/`__import__`) now prohibited + tested in `tests/test_utils_import_boundary.py`.
+- **New section:** Phase-integration checklist (8 items) before any Phase 3 PR merges.
+
+---
+
 ## React/FastAPI migration — Phase 3 (AI/analysis) execution-ready
 
 **Date:** 2026-08-06 | **Status:** 🔵 Spec ACTIVE + execution-ready (awaiting owner authorization; security-infra guard allowlist + tests landed `f3ccde0`) | **Branch:** docs on `main`; implementation lands on `feat/react-fastapi-migration`
@@ -16,7 +33,7 @@ Spec: `migration/specs/phase-3-ai-analysis.md`. Commits: expansion `bbd15e7` · 
 
 ### What is specified (12 tasks, embedded code)
 
-- **Env + settings:** names-only guard additions (`GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_DATA_POLICY`, `AI_MAX_INPUT_TOKENS`, `AI_RESERVED_OUTPUT_TOKENS`, `AI_MAX_CONTEXT_CHARS`, three timeouts) · `Settings` fields + `has_ai` property.
+- **Env + settings:** names-only guard additions (`GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_DATA_POLICY`, `AI_MAX_CONTEXT_TOKENS`, `AI_RESERVED_OUTPUT_TOKENS`, `AI_MAX_CONTEXT_CHARS`, three timeouts) · `Settings` fields + `has_ai` property.
 - **Runtime tier policy:** `GEMINI_DATA_POLICY` = `local_free` (startup warning; never client data) · `client_paid` (hosted beta requirement) · `disabled` (503 `feature_disabled`) — **never inferred from key format**.
 - **Usage ledger:** `UsageLedger` field on `AppSession` (request/success/failure + token counts by model and request type); counts only in Phase 3 (no cap); reset by Clear Data.
 - **Model hygiene:** prune shut-down `gemini-2.0-flash` + deprecated `gemini-1.5-flash`; `GEMINI_MODEL` env-configurable, `gemini-2.5-flash` fallback; selector {2.5-flash, 3.5-flash, 3.5-flash-lite}.

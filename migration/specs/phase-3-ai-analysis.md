@@ -2,7 +2,7 @@
 
 > 🔵 **ACTIVE** — research gate run 2026-08-06 (Gemini production readiness, archive §3.12 prompt 3). **All 13 decisions confirmed + refined 2026-08-06 (see register below — refined choices in Task sections).** Implementation may begin on `feat/react-fastapi-migration` when the owner greenlights it.
 >
-> **Status flow:** STUB → (research gate) → ACTIVE → gate evidence recorded → DONE. Phase 1 ✅ and Phase 2 ✅ are complete; this is the next executable phase.
+> **Status flow:** STUB → (research gate) → ACTIVE → gate evidence recorded → DONE. Phase 1 ✅ (`eaa6ac5`+`66c0f1d`) and Phase 2 ✅ (`8c66eea` — implementation, not spec-only) are complete on `feat/react-fastapi-migration`; this is the next executable phase.
 
 ## Purpose
 
@@ -75,7 +75,7 @@ These are **implementation-time checks**, not blocking research gaps. The Phase 
 
 ### 0. Preconditions and non-goals
 
-**Preconditions:** Phases 1 ✅ + 2 ✅ on `feat/react-fastapi-migration`; `GEMINI_API_KEY` present in the untracked local `.env` (placeholder only in `.env.example`); `require_dataset` dependency exists; guard allowlist includes the five Phase 1 names.
+**Preconditions:** Phases 1 ✅ + 2 ✅ on `feat/react-fastapi-migration` — **Phase 2 implementation is commit `8c66eea`** (`utils/caching.py` + `memoize_fingerprint` · `tests/test_caching.py` · `tests/test_utils_import_boundary.py` · `UsageEvent`/`usage_sink` wired into chat/summary/forecast call sites; 794 tests, guard exit 0); `GEMINI_API_KEY` present in the untracked local `.env` (placeholder only in `.env.example`); `require_dataset` dependency exists; guard allowlist includes the five Phase 1 names + the AI names below (Task 1).
 
 **Non-goals (keep out of this phase):**
 - ❌ GA4 OAuth / Drive ingestion (Phase 5).
@@ -86,6 +86,13 @@ These are **implementation-time checks**, not blocking research gaps. The Phase 
 - ❌ **RAG / retrieval-augmented generation and automatic conversation-summarization chains.** Phase 3 context = deterministic dataset context + structured quality/provenance/caveat rules + bounded sliding chat history + latest user question. RAG over approved aggregate evidence artifacts is a **future evidence-connector workstream**, never Phase 3 (and never retrieves person-level rows).
 - ❌ **Shipping a tokenizer to the browser.** Token accounting is server-side only (`ai_service` + provider `countTokens`); the React shell never validates history tokens locally (Phase 4 note).
 - ❌ **Logging prompt text / sample rows / user messages / model output** merely to debug token counts — estimates are tuned from the ledger's safe diagnostic dimensions only (Task 3).
+
+**Task 0 — SDK `countTokens` acceptance probe (promoted from verification note 1 — run before Task 7 wires the preflight):**
+
+1. Install the pinned `google-genai` from `requirements/base.txt` (currently 2.14.0).
+2. Run a minimal `count_tokens` call with a synthetic prompt (local `.env` key or a synthetic key in test mode).
+3. Record: the **actual method name + request shape** (`client.models.count_tokens(...)` vs an alternative), the **result field** (expected `.total_tokens`), and the **failure class** when unavailable.
+4. If unavailable/failing: **standard requests still work** via deterministic local trim (chars÷4); **near-limit requests fail safely** with `context_too_large` (typed, non-retryable) or a typed retryable provider error — never an untyped crash.
 
 ---
 
@@ -98,8 +105,8 @@ Extend `.env.example` (FastAPI section) and `scripts/check_credentials.py` **nam
 GEMINI_API_KEY=your_api_key_here          # placeholder only — real keys live in untracked .env / deployment secrets
 GEMINI_MODEL=gemini-2.5-flash             # confirmed D1: env-configurable, 2.5-flash fallback; allowlist {2.5-flash, 3.5-flash, 3.5-flash-lite}
 GEMINI_DATA_POLICY=local_free             # confirmed D7: local_free | client_paid | disabled — NEVER inferred from key format
-AI_MAX_INPUT_TOKENS=24000                 # confirmed D11: heuristic prompt-input budget (chars/4 estimate)
-AI_RESERVED_OUTPUT_TOKENS=4096            # confirmed D11: output allowance reserved inside the budget
+AI_MAX_CONTEXT_TOKENS=24000               # corrected C4: total context budget = input allowance + reserved output (24k); effective input allowance = 24k − 4,096
+AI_RESERVED_OUTPUT_TOKENS=4096            # corrected C4: reserved output; provider max_output_tokens is set to this value
 AI_MAX_CONTEXT_CHARS=96000                # confirmed D11: deterministic-trim ceiling (≈ chars/4 = 24k tokens)
 AI_FIRST_TOKEN_TIMEOUT_SECONDS=30         # confirmed D10: first-token deadline
 AI_GENERATE_TIMEOUT_SECONDS=60            # confirmed D10: non-streaming per-request timeout
@@ -116,13 +123,15 @@ Guard rules stay: **names only, no values in committed files, placeholders permi
 
 ```python
 class Settings(BaseSettings):
+    # corrected C3: `from typing import Literal` — an invalid GEMINI_DATA_POLICY
+    # value is a Pydantic validation error at startup, never silent fall-through.
     # ... existing Phase 1 fields ...
 
     gemini_api_key: str | None = None          # GEMINI_API_KEY — optional at startup (AI degrades)
     gemini_model: str = "gemini-2.5-flash"     # GEMINI_MODEL — confirmed D1: env-configurable, 2.5 fallback
-    gemini_data_policy: str = "local_free"     # GEMINI_DATA_POLICY — confirmed D7: local_free | client_paid | disabled
-    ai_max_input_tokens: int = 24_000          # AI_MAX_INPUT_TOKENS — heuristic prompt-input budget (D11)
-    ai_reserved_output_tokens: int = 4_096     # AI_RESERVED_OUTPUT_TOKENS — output allowance (D11)
+    gemini_data_policy: Literal["local_free", "client_paid", "disabled"] = "local_free"  # GEMINI_DATA_POLICY — corrected C3: Literal-validated at startup
+    ai_max_context_tokens: int = 24_000        # AI_MAX_CONTEXT_TOKENS — corrected C4: total context budget (input allowance + reserved output)
+    ai_reserved_output_tokens: int = 4_096     # AI_RESERVED_OUTPUT_TOKENS — reserved output; provider max_output_tokens set to this value (C4)
     ai_max_context_chars: int = 96_000         # AI_MAX_CONTEXT_CHARS — deterministic-trim ceiling (D11)
     ai_first_token_timeout_seconds: int = 30   # AI_FIRST_TOKEN_TIMEOUT_SECONDS (D10)
     ai_generate_timeout_seconds: int = 60      # AI_GENERATE_TIMEOUT_SECONDS (D10)
@@ -145,7 +154,7 @@ def has_ai(self) -> bool:
 | `client_paid` | Hosted beta + real client analytics | Requires documented billing/project verification + paid-tier/privacy review before deployment |
 | `disabled` | Nothing | AI endpoints return a clear feature-disabled response (`503` `{"detail": "AI features are disabled."}`) |
 
-**Acceptance:** app boots with and without `GEMINI_API_KEY`; settings test asserts `has_ai` flips; each `gemini_data_policy` mode produces its documented behavior; a `local_free` startup warning is logged (or, per D7 refinement, surfaced in the UI during coexistence).
+**Acceptance:** app boots with and without `GEMINI_API_KEY`; settings test asserts `has_ai` flips; each `gemini_data_policy` mode produces its documented behavior; **an invalid `GEMINI_DATA_POLICY` value fails at startup** (Pydantic validation — corrected C3); a `local_free` startup warning is logged (or, per D7 refinement, surfaced in the UI during coexistence).
 
 ---
 
@@ -211,7 +220,16 @@ def ledger_sink(ledger: UsageLedger) -> UsageSink:
 
 The three safe diagnostic dimensions (`estimated_prompt_tokens`, `context_trimmed`, `identifiers_removed`) are **not** provider-reported — `ai_service` records them at prompt-assembly time (before/after trimming, and whether the identifier scrub dropped columns).
 
-Thread-safety: `UsageLedger` mutation happens inside the request lifecycle (one request = one writer) — document the invariant; add an `RLock` only if a future phase shares the ledger across streams.
+**Concurrency (corrected C6 — one in-flight AI request per session):** a single
+"one request = one writer" lifecycle does NOT protect two browser tabs or a
+double-clicked request from mutating the same `AppSession.usage_ledger`
+concurrently. Every AI route acquires a per-session lock —
+`AppSession.ai_lock: asyncio.Lock = field(default_factory=asyncio.Lock)` — before
+streaming and releases it in `finally`. This **serializes** AI requests per
+session: a second concurrent request queues behind the first, and ledger
+mutation is single-writer (deterministic counts, no lost updates). Contract
+test: two concurrent chat requests against one session produce deterministic
+ledger totals (C6).
 
 `clear_dataset_state` (Phase 1, `dataset_service.py`) must reset the ledger. **Acceptance:** contract test uploads → chat → asserts ledger counts; Clear Data resets them; no raw content ever stored.
 
@@ -314,23 +332,37 @@ async def chat(
             ):
                 yield "event: text\n"
                 yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
-        except ValueError as e:
+        except (ValueError, RuntimeError) as exc:
+            # corrected C2: Task 7 classifier — NEVER raw exception text in SSE.
+            err = classify_provider_error(exc)      # -> TypedAiError(code, message, retryable, ...)
             yield "event: error\n"
-            yield f"data: {json.dumps({'type': 'error', 'code': 'provider_unavailable', 'message': str(e)})}\n\n"
-        except RuntimeError as e:
-            yield "event: error\n"
-            yield f"data: {json.dumps({'type': 'error', 'code': 'provider_unavailable', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps(err.public_payload())}\n\n"
         finally:
+            # `done` closes the transport; `error` is terminal for assistant content.
             yield "event: done\n"
             yield "data: {\"type\": \"done\"}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
 
+**Terminal SSE behavior (corrected C5 — unambiguous sequences):**
+
+```text
+Successful stream:    text* → optional usage → done
+Failed pre-text:      error → done
+Failed after text:    text+ → error → done
+Client rule: `error` is terminal for assistant content — the frontend must NOT
+             append or auto-retry after an `error` event; `done` closes the transport.
+```
+
+The server emits `done` in `finally` so the transport always closes exactly once
+(after either a successful stream or an error). Frontend tests (Phase 4) must
+assert no assistant retry/duplicate append after `error`.
+
 **Refined D12 — bounded chat history (two layers) with a token-budgeted sliding window:**
 
 1. **Request validation (422):** max **20 messages** per request · max **4,000 chars** per message · max **24,000 total message chars** · roles `user`/`assistant` only · non-empty content. Reject malformed/excessive payloads with a typed `422` `{"detail": "Chat history exceeds the 20-message or 24,000-character request limit."}`. A fixed count alone can still overflow when one message contains a large pasted dataset — hence layer 2.
-2. **Prompt budget (`ai_service` — token-budgeted sliding window):** even valid history is trimmed to fit `AI_MAX_INPUT_TOKENS`.
+2. **Prompt budget (`ai_service` — token-budgeted sliding window):** even valid history is trimmed to fit `AI_MAX_CONTEXT_TOKENS − AI_RESERVED_OUTPUT_TOKENS` (the effective input allowance).
 
 **Preserve order** (highest → lowest priority, never silently dropped):
 1. System/safety instructions.
@@ -410,6 +442,7 @@ def build_deterministic_context(
 IDENTIFIER_PATTERNS = (
     "email", "e-mail", "user_id", "userid", "name", "first_name", "last_name",
     "phone", "mobile", "address", "zip", "ip", "device_id", "session_id", "uid",
+    "ssn", "dob", "birth",          # added 2026-08-06 — unambiguous PII
 )
 
 def scrub_identifiers(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -427,6 +460,14 @@ def scrub_identifiers(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
 ```
 
 Extend `DatasetWarning.code` to include `identifiers_removed_for_ai` and add an optional `removed_columns: list[str] = []` field. Keep the warning in `DatasetContext`, display it in Streamlit during coexistence, and surface it in React (Phase 4). Stats-only prompts are **not** the Phase 3 mode — they remain a documented future high-sensitivity/client-data option.
+
+**Heuristic, NOT a complete PII detector (corrected 2026-08-06):**
+
+- The pattern list is best-effort **name-pattern matching** — a column that fails a pattern test is **not automatically safe**, and an unknown column is **not automatically removed**.
+- **High-sensitivity data mode remains out of scope for Phase 3.**
+- Hosted/client deployments require a **documented data-classification review before `client_paid` is enabled**.
+- `ssn`, `dob`, `birth` are default patterns (added above). Business-entity columns (`customer`, `account`, `member`, `employee`, `student`) are **deliberately NOT default patterns** to avoid over-removing legitimate metric dimensions — a future high-sensitivity config may enable them.
+- A generic `id` pattern is **forbidden** for the same over-removal reason.
 
 **Metric-status caveats** — enforce the canonical policy at the boundary:
 
@@ -449,7 +490,7 @@ Caveats are appended to the prompt (provisional → directional label; unavailab
 Pipeline (every request): validate chat payload limits → build deterministic context → **estimate input tokens locally (chars ÷ 4)** → reserve output → trim deterministically if over → **optionally exact `countTokens` at ≥80% of budget** → send → record provider usage metadata.
 
 1. Estimate tokens locally via **chars ÷ 4** — never a `countTokens` API call before every request (`countTokens` is free but separately rate-limited, and adds round-trip latency + its own failure mode — it does not consume generation quota; verification note 2). There is no universally accurate "tiktoken for Gemini" — Gemini uses its own tokenizer; local estimates are model-approximate. (Verify the exact `countTokens` method shape in the installed SDK at implementation time — verification note 1.)
-2. Effective rule: `estimated_input_tokens <= AI_MAX_INPUT_TOKENS - AI_RESERVED_OUTPUT_TOKENS` (i.e. 24,000 − 4,096).
+2. Effective rule: `estimated_input_tokens <= AI_MAX_CONTEXT_TOKENS - AI_RESERVED_OUTPUT_TOKENS` (i.e. 24,000 − 4,096 = **19,904 input allowance**). **Corrected C4:** the provider's `max_output_tokens` is set explicitly to `AI_RESERVED_OUTPUT_TOKENS` so the reserved allowance is honored during generation — the total never exceeds `AI_MAX_CONTEXT_TOKENS`.
 3. **Deterministic trim order:** (1) drop raw/sample rows first → (2) reduce sample-row count → (3) keep quality warnings, metric-status caveats, filters, provenance → (4) keep aggregate summaries → (5) **reject only if the deterministic minimum context still exceeds the guard**.
 4. **Exact `countTokens` only in the near-limit band** (≈80–100% of budget), never on ordinary requests:
    ```python
@@ -569,19 +610,30 @@ Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; 
 
 | Test | Asserts |
 |---|---|
-| `test_chat.py` | 409 no dataset · 503 no key / `feature_disabled` under `disabled` policy · mocked stream yields ≥2 partial chunks · named events (`event: text/usage/done/error`) · bounded-history 422 (20 msgs / 24k chars) · conditional 429 retry (retryable honors `Retry-After`; `quota_exhausted` never retried; no mid-stream retry) · timeout events |
+| `test_chat.py` | 409 no dataset · 503 no key / `feature_disabled` under `disabled` policy · mocked stream yields ≥2 partial chunks · named events (`event: text/usage/done/error`) · bounded-history 422 (20 msgs / 24k chars) · conditional 429 retry (retryable honors `Retry-After`; `quota_exhausted` never retried; no mid-stream retry) · timeout events · **terminal sequence (error→done; nothing after error — C5)** · **concurrent requests serialize on `ai_lock` — deterministic ledger (C6)** |
 | `test_analysis_summary.py` | summary + usage returned · 409/503 · mocked `_get_client` · timeout config honored |
 | `test_analysis_forecast.py` | insufficient-data vs valid forecast · auto-detect date col |
 | `test_analysis_funnel.py` | per-step aggregation · min_length=2 validation |
 | `test_usage.py` | ledger counts grow (success/failure/tokens + tool_tokens by model + request type) · diagnostic dimensions update (estimated_prompt_tokens, context_trimmed, identifiers_removed) · latency aggregates present after a mocked stream (TTFT/TTLT) · Clear Data resets · no cap enforced (D13) |
 | `test_ai_context.py` | identifier scrub drops PII columns + `identifiers_removed_for_ai` warning with `removed_columns` · metric caveats for provisional/unavailable · heuristic guard + trim order (raw rows dropped first, caveats kept) · sliding-window history (newest user kept, oldest assistant dropped first) · 3-branch budget flow (stream-now < 80% · exact countTokens in 80–100% band · trim/reject over) |
-| `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default + override · timeout defaults · `GEMINI_DATA_POLICY` modes (`local_free` warn, `client_paid`, `disabled` 503) |
+| `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default + override · timeout defaults · `GEMINI_DATA_POLICY` modes (`local_free` warn, `client_paid`, `disabled` 503) · **invalid policy value → startup validation error (C3)** |
 
 All Gemini routes mock `utils.gemini_client` client — no live key in CI.
 
 **PR boundary (single PR):** `api/config.py` · `.env.example` guard additions · `utils/gemini_client.py` model hygiene + async stream path · `api/services/ai_service.py` · `api/routes/chat.py` + `analysis.py` + `usage.py` · `api/schemas.py` additions · `api/stores/session_store.py` (UsageLedger field) · `tests/api/*` · `tests/test_gemini_client.py` updates. **No GA4, Drive, React, evidence, export.**
 
 **Validation:** `pytest tests -q` (full regression, expect ~794 + new) · `pytest tests/api -q` · `git ls-files -z | xargs -0 python3 scripts/check_credentials.py` (exit 0) · `pre-commit run --all-files` · manual smoke: upload fixture → chat SSE curl with live key (local `.env` only).
+
+## Phase-integration checklist (corrected 2026-08-06 — before any Phase 3 PR merges)
+
+- [ ] Phase 2 closure evidence linked in `specs/README.md` + master plan (implementation `8c66eea`, 794 tests, guard exit 0).
+- [ ] API error taxonomy shared by chat, summary, forecast, and funnel endpoints.
+- [ ] No SSE payload contains raw exception text (C2) — `classify_provider_error` only.
+- [ ] `disabled` policy tested **before** Gemini client construction (D7).
+- [ ] Clear Data resets dataset state, chat state, AI warnings, and `UsageLedger` (D5).
+- [ ] Two concurrent requests for the same session have deterministic ledger behavior (C6).
+- [ ] SDK `countTokens` probe recorded against the pinned dependency version (Task 0).
+- [ ] Live local-key smoke is opt-in and cannot run in CI.
 
 ## Exit criteria (DoD)
 

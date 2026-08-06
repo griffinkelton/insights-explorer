@@ -231,6 +231,16 @@ def test_quarantine_banners_present() -> None:
 decoupling edit (it fails on `data_loader`/`forecasting`/`prompt_templates` initially —
 that is the red state that defines the phase).
 
+**Dynamic-import bypasses are prohibited (added 2026-08-06):** static AST scanning
+cannot catch `importlib.import_module("utils.styles")` or `__import__("utils.session")`.
+Policy: `api/**` and shared `utils/**` modules may **not use dynamic imports at all**
+(`importlib` / `__import__` forms), except through an explicit, reviewed allowlist — none
+currently exists. `tests/test_utils_import_boundary.py` scans `_api_and_shared_paths()`
+for the `importlib`/`__import__` call and import forms and fails on any occurrence
+(implemented on the migration branch with `test_no_dynamic_imports_in_api_or_shared` +
+`test_dynamic_import_forms_flagged`). `pd.eval()` / `df.eval()` are **not** dynamic imports
+and are deliberately not flagged.
+
 ### 2. Decouple `utils/data_loader.py`
 
 - Remove `import streamlit as st` (L9).

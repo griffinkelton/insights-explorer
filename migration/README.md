@@ -2,7 +2,7 @@
 
 Index for the migration decision material: moving the `insights-explorer` product from a Streamlit UI to a **React frontend (`insights-whisperer-30` components) + FastAPI backend** built on the existing Python `utils/` layer.
 
-> **Status (2026-08-06):** all twelve documents ingested and cross-checked; research live-verified; corrections folded into the plan; **`master-plan.md` is the execution coordinator**. **Entry gates closed:** Gate 1 (credentials remediated — `.env` untracked, scans clean), Gate 2 (`feat/react-fastapi-migration` created + Streamlit feature freeze **active**), Gate 6 (retention/AI-boundary defaults approved). **The Phase 1 vertical slice (upload → preview → quality → clear) is unblocked.** Still **planning-only — no migration product code written**; implementation begins on `feat/react-fastapi-migration`. Indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). **Folder organized 2026-08-06** into functional buckets — `policies/` · `specs/` · `archive/` (+ the `whisperer-30-reference/` capture); `master-plan.md` and this README stay at the root.
+> **Status (2026-08-06):** all twelve documents ingested and cross-checked; research live-verified; corrections folded into the plan; **`master-plan.md` is the execution coordinator**. **Entry gates closed:** Gate 1 (credentials remediated — `.env` untracked, scans clean), Gate 2 (`feat/react-fastapi-migration` created + Streamlit feature freeze **active**), Gate 6 (retention/AI-boundary defaults approved). **Phase 1 ✅ (vertical slice — `eaa6ac5`/`66c0f1d`) and Phase 2 ✅ (utils decoupling — `8c66eea`; 794 tests, guard exit 0) are implemented on `feat/react-fastapi-migration`.** Phase 3 (AI/analysis) is spec **execution-ready**, awaiting owner authorization. Status reconciled 2026-08-06 — supersedes the earlier "planning-only, no migration product code written" line (that line was accurate only through Phase 0). Indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md). **Folder organized 2026-08-06** into functional buckets — `policies/` · `specs/` · `archive/` (+ the `whisperer-30-reference/` capture); `master-plan.md` and this README stay at the root.
 
 ---
 
@@ -40,9 +40,9 @@ The **executable implementation specs** — one per phase, created 2026-08-06. `
 | File | What it is | Status |
 |---|---|---|
 | **`specs/README.md`** | **Tactical execution index + authority map** — active spec, phase gates, cross-cutting tracks, supersession rules | 🔵 Index |
-| **`specs/phase-1-upload-slice.md`** | **ACTIVE — the executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | 🔵 **ACTIVE** |
-| **`specs/phase-2-utils-decoupling.md`** | Phase 2 outline (decouple `utils/` from Streamlit) | ⚪ STUB |
-| **`specs/phase-3-ai-analysis.md`** | Phase 3 outline (Gemini/chat SSE + analysis; research gate before expansion) | ⚪ STUB |
+| **`specs/phase-1-upload-slice.md`** | **DONE — executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | ✅ DONE (`eaa6ac5`/`66c0f1d`) |
+| **`specs/phase-2-utils-decoupling.md`** | **DONE — utils decoupling** (import-boundary guard + dynamic-import prohibition, fingerprint memo, `UsageEvent` usage_sink, `DatasetWarning`, `load_file` adapter) | ✅ DONE (`8c66eea`, 794 tests) |
+| **`specs/phase-3-ai-analysis.md`** | **EXECUTION-READY — AI/analysis spec** (Gemini/chat SSE + analysis; 13 decisions confirmed/refined, 2026-08-06 corrections applied) | 🔵 Execution-ready — awaiting authorization |
 | **`specs/phase-4-react-port.md`** | Phase 4 outline (React port — absorbs F3; React 19 research gate) | ⚪ STUB |
 | **`specs/phase-5-ga4-drive.md`** | Phase 5 outline (GA4 OAuth + Drive — absorbs F4 GA4 sections; GA4/Drive research gates) | ⚪ STUB |
 | **`specs/phase-6-cutover-hosting.md`** | Phase 6 outline (cutover + Cloud Run + §17 deferred gates; Cloud Run research gate) | ⚪ STUB |
