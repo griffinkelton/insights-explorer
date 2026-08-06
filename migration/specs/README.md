@@ -16,7 +16,7 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 
 ## Why a suite, not a monolith
 
-A single "master implementation spec" would go stale: later phases depend on fresh external research (React 19 before Phase 4, GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–3 (done); Phase 4 is the next ACTIVE/execution-ready target.
+A single "master implementation spec" would go stale: later phases depend on fresh external research (GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–3 (done); Phase 4 (React port) is expanded to ACTIVE — execution-ready pending its Task 0 version-pin + Recharts probes.
 
 ## Phase/spec status table
 
@@ -25,7 +25,7 @@ A single "master implementation spec" would go stale: later phases depend on fre
 | Phase 1 — upload slice (`phase-1-upload-slice.md`) | ✅ **DONE** | Gate 7 closed 2026-08-06 — 782 passed, guard exit 0, commits `eaa6ac5` + `66c0f1d` |
 | Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | ✅ **DONE** | Closed 2026-08-06 — `8c66eea` on `feat/react-fastapi-migration`, 794 passed, guard exit 0, hooks green |
 | Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | ✅ **DONE** | Closed 2026-08-06 — `bb6f564` on `feat/react-fastapi-migration`, 859 passed (incl. 73 API contract tests), guard exit 0, hooks green. Task 0 countTokens probe verified `google-genai` 2.14.0 `client.models.count_tokens` |
-| Phase 4 — React port (`phase-4-react-port.md`) | ⚪ STUB | React/Recharts verification gate |
+| Phase 4 — React port (`phase-4-react-port.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: Task 0–9 (scaffold, manifest port, api client, drift-matrix store wiring, named-SSE chat reader, MSW tests, a11y/perf, CI gate, Playwright); pending Task 0 version-pin + Recharts×React 19 probe |
 | Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | ⚪ STUB | GA4 + selected Drive UX research |
 | Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | ⚪ STUB | Cloud Run readiness gate |
 
