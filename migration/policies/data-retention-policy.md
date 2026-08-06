@@ -48,6 +48,34 @@ The app handles client analytics data and potentially sensitive public-health/eq
 - Only fields present in the current `DataContext` (per `../../plans/ga4-measurement-contract.md`) may be sent to Gemini, constructed via `utils/prompt_templates.py` — never the whisperer-30 hardcoded BrainGuide prompt.
 - Never included: provider tokens, session identifiers, secrets, filenames containing PII, or any field outside the allowlist.
 
+### 7.1 Runtime tier policy — `GEMINI_DATA_POLICY` (added 2026-08-06, Phase 3 refinement round)
+
+The Gemini tier is an **explicit runtime policy** — it is **never inferred from the API key format** (a key's format does not reliably prove free/paid tier, billing linkage, or whether submitted content is subject to improvement/review terms). Free-tier prompts/responses **may be logged and human-reviewed** — acceptable for local synthetic/public/personally-controlled test data only, **never** client analytics data.
+
+| Mode | Allowed | Behavior |
+|---|---|---|
+| `local_free` | Local development + synthetic / public / personally-controlled test data only | Startup/log warning: free-tier prompts may be logged and reviewed by humans; no hosted deployment; no client analytics data |
+| `client_paid` | Hosted beta + real client analytics data | Requires documented billing/project verification + paid-tier/privacy review before deployment |
+| `disabled` | Nothing | AI endpoints return `503` `{"detail": "AI features are disabled."}` (typed `feature_disabled` error) |
+
+Implementation authority: `../specs/phase-3-ai-analysis.md` Task 2 (settings) + Task 6 (route behavior); enforced in `api/config.py` (`gemini_data_policy`) and the AI routes.
+
+### 7.2 AI environment variables (Phase 3 — names-only guard-allowlisted)
+
+Values are **never committed**; `.env.example` holds placeholders/safe defaults only (per master-plan §11-D). Names below are allowlist-validated by `scripts/check_credentials.py` (names only — a real secret value in a committed file always fails).
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `GEMINI_API_KEY` | (none — placeholder in `.env.example`) | Provider key; the app boots without it (AI endpoints degrade to 503) |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Env-configurable model; selector allowlist {`gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`} (shut-down 2.0 / deprecated 1.5 pruned) |
+| `GEMINI_DATA_POLICY` | `local_free` | Runtime tier policy (§7.1) |
+| `AI_MAX_INPUT_TOKENS` | `24000` | Heuristic prompt-input budget (chars÷4 estimate) |
+| `AI_RESERVED_OUTPUT_TOKENS` | `4096` | Output allowance reserved inside the input budget |
+| `AI_MAX_CONTEXT_CHARS` | `96000` | Deterministic-trim ceiling (≈ chars÷4 = 24k tokens) |
+| `AI_FIRST_TOKEN_TIMEOUT_SECONDS` | `30` | First-token deadline (typed `timeout` event on expiry) |
+| `AI_GENERATE_TIMEOUT_SECONDS` | `60` | Non-streaming per-request timeout |
+| `AI_STREAM_TIMEOUT_SECONDS` | `120` | Whole-stream deadline |
+
 ## 8. Identifier removal / aggregation
 
 - Identifiers (email, names, device IDs, user-level rows) are **removed or aggregated** before any AI call — consistent with the app's aggregate-only GA4 reality.
@@ -55,8 +83,9 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 9. Enforcement
 
-- Enforced at the service layer: `dataset_service` (ingestion + retention), `chat_service` (prompt construction), `export` (logging).
-- The **contract gate** (master-plan §14) includes tests asserting no disallowed fields appear in chat/export payloads.
+- Enforced at the service layer: `dataset_service` (ingestion + retention), `ai_service` (deterministic-context assembly, identifier scrub, prompt-budget trim, `GEMINI_DATA_POLICY` mode), `export` (logging).
+- The **contract gate** (master-plan §14) includes tests asserting no disallowed fields appear in chat/export payloads, and that the runtime tier mode (`local_free` / `client_paid` / `disabled`) behaves as documented.
+- AI env vars are names-only guard-allowlisted (§7.2) — real secret values in committed files always fail the credential guard.
 
 ## 10. Review cadence
 
@@ -77,3 +106,5 @@ This policy was **drafted, not decided** (third-review refinement 2026-08-05) un
 ---
 
 *Drafted 2026-08-05 as part of the master-plan revision pass (peer review: "specify data retention now"). All five §11 defaults **approved by product owner 2026-08-06** (seventh review round — reviewer-endorsed defaults; the flagged 24 h upload-retention judgment call was confirmed). Binding for Phase 1. Amendments require a dated addendum.*
+
+*2026-08-06 addendum (Phase 3 refinement round): §7 extended with the **`GEMINI_DATA_POLICY` runtime tier policy** (§7.1 — explicit policy, never inferred from key format) and the **AI environment-variable allowlist** (§7.2). Implementation authority: `../specs/phase-3-ai-analysis.md` (Tasks 1–2, 5–7). The five §11 gate-6 decisions are unchanged.*
