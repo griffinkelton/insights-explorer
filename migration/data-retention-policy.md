@@ -60,6 +60,18 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 - Revisit at Phase 5 (GA4 OAuth — new credential surfaces) and Phase 6 (cutover — hosting/provider decisions), and whenever a persistence feature is proposed.
 
+## 11. Decision points requiring approval (gate 6)
+
+This policy is **drafted, not decided** (third-review refinement 2026-08-05). Approve or amend these five points **before client data reaches the API** — approval closes gate 6 in `master-plan.md` Phase 0:
+
+| # | Decision | Draft proposal | Status |
+|---|---|---|---|
+| 1 | Raw upload retention duration | Session-scoped only; `RETENTION_HOURS` default 24 h | ⚠️ Awaiting approval |
+| 2 | Session idle timeout + absolute expiry | ~2 h idle / ~12 h absolute | ⚠️ Awaiting approval |
+| 3 | What "Clear Data" deletes immediately | Dataset, preview rows, quality/analysis cache, chat context, export temp files (not OAuth credentials or theme) | ⚠️ Awaiting approval |
+| 4 | Whether export/report metadata is logged | Format, row count, timestamp, session id only — never row content; 30-day retention | ⚠️ Awaiting approval |
+| 5 | What Gemini receives | Fields from the current `DataContext` allowlist only; identifiers removed/aggregated before AI calls | ⚠️ Awaiting approval |
+
 ---
 
 *Drafted 2026-08-05 as part of the master-plan revision pass (peer review: "specify data retention now"). Proposed defaults are flagged ⚠️ for product confirmation before Phase 1 code.*

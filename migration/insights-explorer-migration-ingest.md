@@ -3211,4 +3211,15 @@ Second review pass (ChatGPT) refined two locked decisions and added an 8-gate pr
 | 8-gate priority checklist | master-plan Phase 0 | Gate → owner → completion evidence → status; items 1–6 must precede the vertical slice (item 7); item 8 keeps GA4/Drive/chat/exports deferred |
 | Wording fixes | master-plan §5 | "Drive stays at 100 MB because server-to-server" completed with streaming-download + decompression/row-count/cleanup/memory safeguards; "choose one store now" replaced with an architecture (state-placement) choice |
 
+### 4.14 Third review refinement — gate 5a/5b split, locked cap, staging precision (2026-08-05)
+
+Third review pass tightened the priority gates and removed decision ambiguity. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Gate 5 split | master-plan Phase 0 checklist | **5a: lock state contracts** (before Phase 1 — done) vs **5b: implement/test local stores** (Phase 1 work — part of the vertical slice); slice now blocked only by 1, 2, 3, 4, 5a, 6 |
+| Upload-cap ambiguity removed | master-plan §4–5, §13; F4 supersession | 25 MB is a **locked decision, not optional**: `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`, `MAX_INGEST_BYTES = 100 * 1024 * 1024`; revisit only after production evidence shows legit uploads > 25 MB |
+| Staging requirement precision | master-plan §3–5, risk register; F4/plan supersessions | Shared OAuth/session store proven **before Phase 5**; object storage proven **only if signed-upload architecture is chosen**; in-memory local stores are sufficient for the Phase 1 vertical slice if they follow the final interfaces |
+| Gate-6 evidence | master-plan checklist; `data-retention-policy.md` §11 | The five retention/clear-data/Gemini decision points enumerated as an approval checklist — gate 6 closes on approval |
+
 *— End of compiled archive —*
