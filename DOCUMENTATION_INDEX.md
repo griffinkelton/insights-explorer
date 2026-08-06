@@ -64,7 +64,7 @@
 
 ## 🚚 React/FastAPI Migration (`migration/`)
 
-> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Phase 1 (upload slice) ✅ and Phase 2 (utils decoupling) ✅ complete on `feat/react-fastapi-migration` (794 tests, guard exit 0). Entry gates closed: credentials remediated · branch + Streamlit freeze active · retention/AI-boundary policy approved. Phase 3 (AI/analysis) spec expansion is active, pending the Gemini research gate.** Start at `migration/README.md`.
+> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Phase 1 (upload slice) ✅ and Phase 2 (utils decoupling) ✅ complete on `feat/react-fastapi-migration` (794 tests, guard exit 0). Phase 3 (AI/analysis) spec is EXECUTION-READY — Gemini research gate run, all 13 decisions confirmed + refined (incl. `GEMINI_DATA_POLICY` runtime tiers), verification notes recorded (`bc585e0`), and the AI env-var guard allowlist + tests landed (`f3ccde0`). Entry gates closed: credentials remediated · branch + Streamlit freeze active · retention/AI-boundary policy approved. Awaiting owner authorization to implement Phase 3.** Start at `migration/README.md`.
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
@@ -75,7 +75,7 @@
 | [migration/specs/README.md](migration/specs/README.md) | **Tactical execution index + authority map** for the per-phase spec suite — active spec, phase gates, cross-cutting tracks, supersession rules | Suite index (2026-08-06) |
 | [migration/specs/phase-1-upload-slice.md](migration/specs/phase-1-upload-slice.md) | **DONE — executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | ✅ Done (2026-08-06) — 782 tests, guard exit 0, live smoke verified |
 | [migration/specs/phase-2-utils-decoupling.md](migration/specs/phase-2-utils-decoupling.md) | **DONE — utils decoupling** (import-boundary guard, fingerprint memo, `UsageEvent` usage_sink, `DatasetWarning` contract, `load_file` adapter, quarantine banners) | ✅ Done (2026-08-06) — `8c66eea` on `feat/react-fastapi-migration`, 794 tests, guard exit 0 |
-| [migration/specs/phase-3-ai-analysis.md](migration/specs/phase-3-ai-analysis.md) | **ACTIVE — AI/analysis spec expansion** (Gemini/chat SSE + analysis; research gate running) | 🔵 Active (2026-08-06) |
+| [migration/specs/phase-3-ai-analysis.md](migration/specs/phase-3-ai-analysis.md) | **EXECUTION-READY — AI/analysis spec** (Gemini/chat SSE + analysis; research gate run, 13 decisions confirmed/refined, verification notes) | 🔵 Execution-ready (2026-08-06) — awaiting owner authorization |
 | [migration/specs/phase-4-react-port.md](migration/specs/phase-4-react-port.md) | Phase 4 outline — React port, absorbs F3 (React 19 research gate) | ⚪ Stub |
 | [migration/specs/phase-5-ga4-drive.md](migration/specs/phase-5-ga4-drive.md) | Phase 5 outline — GA4 OAuth + Drive, absorbs F4 GA4 sections (GA4/Drive research gates) | ⚪ Stub |
 | [migration/specs/phase-6-cutover-hosting.md](migration/specs/phase-6-cutover-hosting.md) | Phase 6 outline — cutover + Cloud Run + §17 deferred gates (research gate) | ⚪ Stub |
@@ -176,7 +176,7 @@ migration/README.md ─── "Index: what each doc is + how they relate"
 master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + file layout)"
         │
         ├──► policies/ ── "Gates & controls" (env-rotation · branch-freeze · data-retention · session-state · test-layer · dockerfile)
-        ├──► specs/ ── "Implementation packets" (F3 store prompt · F4 Phase 1 packet)
+        ├──► specs/ ── "Executable per-phase suite" (phase-1 ✅ · phase-2 ✅ · phase-3 execution-ready · F3/F4 superseded)
         ├──► archive/ ── "Source of truth" (ingest · 6-phase roadmap · GLM comparison · sanitized transcript · commit evidence)
         └──► whisperer-30-reference/ ── "Captured UI source + manifest"
 ```
@@ -193,8 +193,8 @@ master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + 
 | [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) | 21-item execution blueprint — the master implementation guide | ✅ Current | 2026-07-29 |
 | IDEAS.md | Creative ideas beyond the roadmap: 30 bonus enhancements + 10 moonshots; #1–#25 creative, #26–#30 tracked (#29 Credential rotation ✅ complete 2026-08-01) | ✅ Current | 2026-08-01 |
 | BUGLOG.md | Structured bug history with root causes, fixes, and detection patterns (10 bugs) | ✅ Current | 2026-07-29 |
-| DOCUMENTATION_INDEX.md | This file — central index connecting all project documentation | ✅ Current | 2026-07-29 |
-| CHANGELOG.md | Unified change history with commit hashes and related doc links | ✅ Current | 2026-08-01 |
+| DOCUMENTATION_INDEX.md | This file — central index connecting all project documentation | ✅ Current | 2026-08-06 |
+| CHANGELOG.md | Unified change history with commit hashes and related doc links | ✅ Current | 2026-08-06 |
 | plans/p1-p2/✅ APP_ICON.md | How to create a custom SVG favicon + PWA manifest (completed) | ✅ Completed | 2026-07-29 |
 | plans/p1-p2/✅ BONUS_DATA_QUALITY_SCORECARD.md | How to add an A-F data quality grading card (completed) | ✅ Completed | 2026-07-29 |
 | plans/00-meta/✅ UNIFIED_PLAN.md | Master index of all 11 plans with execution order and progress | ✅ Current | 2026-07-29 |
@@ -216,7 +216,7 @@ master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + 
 | plans/maintenance/✅ 2026-07-29-drive-export-model-selector-session.md | Session summary: Drive write-back, model selector, export formats, multimodal support | ✅ Done | 2026-07-29 |
 | [plans/00-sprints/✅ v0.2.0-plan.md](plans/00-sprints/✅%20v0.2.0-plan.md) | Post-hardening roadmap: 7 deferred items (d1–d7), 5 phases, ~10-16 days | ✅ Complete | 2026-07-30 |
 | [plans/00-sprints/✅ v0.2.0-implementation-spec.md](plans/00-sprints/✅%20v0.2.0-implementation-spec.md) | Detailed implementation spec: frozen DataContext, 8-section Learn page, focus-visible, Gemini telemetry | ✅ Complete | 2026-07-30 |
-| plans/🔵 evidence-connector-design.md | Evidence Dashboard Source Connector: architecture, security model, connector contract, 5-phase delivery plan | 🔵 Design | 2026-07-30 |
+| plans/🔵 evidence-connector-design.md | Evidence Dashboard Source Connector: architecture, security model, connector contract, 5-phase delivery plan; **deferred Technical-Docs RAG reference (Parts 1–2, secondary evidence)** | 🔵 Design — RAG reference deferred | 2026-08-06 |
 | plans/audit/✅ v0.1.0-closeout.md | v0.1.0 close-out: what was delivered, deferred items, audit baseline, release evidence | ✅ Final | 2026-07-30 |
 | plans/audit/✅ v0.1.0-hardening-spec.md | Hardening implementation spec — PR 0–4 acceptance criteria, security gates | ✅ Done | 2026-07-30 |
 | plans/audit/✅ v0.1.0-hardening-plan.md | GPT-5.6 full codebase audit + v0.1.0 hardening plan | ✅ Done | 2026-07-30 |
@@ -233,7 +233,9 @@ master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + 
 | [migration/archive/insights-explorer-migration-ingest.md](migration/archive/insights-explorer-migration-ingest.md) | Compiled migration archive — synthesis, verbatim sources, research, ledger | 🔵 Ingested | 2026-08-05 |
 | [migration/archive/insights-explorer-migration-plan.md](migration/archive/insights-explorer-migration-plan.md) | 6-phase React/FastAPI migration roadmap (planning) | 🔵 Plan | 2026-08-05 |
 | [migration/specs/README.md](migration/specs/README.md) | Tactical execution index + authority map (spec suite) | 🔵 Index | 2026-08-06 |
-| [migration/specs/phase-1-upload-slice.md](migration/specs/phase-1-upload-slice.md) | Executable Phase 1 vertical slice (active) | 🔵 Active | 2026-08-06 |
+| [migration/specs/phase-1-upload-slice.md](migration/specs/phase-1-upload-slice.md) | Executable Phase 1 vertical slice (guard allowlist → upload/context/preview/quality/clear → contract tests) | ✅ Done | 2026-08-06 |
+| [migration/specs/phase-2-utils-decoupling.md](migration/specs/phase-2-utils-decoupling.md) | Utils-decoupling spec (import boundary, fingerprint memo, usage_sink, DatasetWarning) | ✅ Done | 2026-08-06 |
+| [migration/specs/phase-3-ai-analysis.md](migration/specs/phase-3-ai-analysis.md) | AI/analysis spec — execution-ready (13 decisions confirmed/refined, verification notes) | 🔵 Execution-ready | 2026-08-06 |
 | [migration/specs/freebuff-prompt-wire-react-store.md](migration/specs/freebuff-prompt-wire-react-store.md) | F3 store-wiring prompt (superseded — reference evidence) | 🟡 Superseded | 2026-08-06 |
 | [migration/specs/phase-1-api-react-callback-tests-implementation.md](migration/specs/phase-1-api-react-callback-tests-implementation.md) | F4 Phase 1 implementation packet (superseded — reference evidence) | 🟡 Superseded | 2026-08-06 |
 | [migration/archive/glm-5-2-vs-perplexity-migration-comparison.md](migration/archive/glm-5-2-vs-perplexity-migration-comparison.md) | GLM-5.2 vs Perplexity plan comparison (GLM facts verified) | ✅ Verified | 2026-08-05 |
@@ -250,4 +252,4 @@ master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + 
 
 ---
 
-*This index was last updated 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory, data-retention policy, master-plan revision) — all planning/reference, no migration product code written. Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
+*This index was last updated 2026-08-06 — migration docs: Phase 1 + Phase 2 implemented on `feat/react-fastapi-migration` (794 tests, guard exit 0); Phase 3 spec execution-ready (Gemini research gate, 13 decisions confirmed/refined, verification notes `bc585e0`); AI env-var guard allowlist + tests landed (`f3ccde0`); `GEMINI_DATA_POLICY` canonicalized into `data-retention-policy.md` §7.1–7.2; evidence-connector design gained a deferred Technical-Docs RAG reference (secondary evidence). Prior update 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory, data-retention policy, master-plan revision). Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*

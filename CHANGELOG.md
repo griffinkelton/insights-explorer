@@ -8,9 +8,11 @@
 
 ## React/FastAPI migration — Phase 3 (AI/analysis) execution-ready
 
-**Date:** 2026-08-06 | **Status:** 🔵 Spec ACTIVE + execution-ready (no product code yet — awaiting owner authorization) | **Branch:** docs on `main`; implementation lands on `feat/react-fastapi-migration`
+**Date:** 2026-08-06 | **Status:** 🔵 Spec ACTIVE + execution-ready (awaiting owner authorization; security-infra guard allowlist + tests landed `f3ccde0`) | **Branch:** docs on `main`; implementation lands on `feat/react-fastapi-migration`
 
-Spec: `migration/specs/phase-3-ai-analysis.md`. Commits: expansion `bbd15e7` · decisions `75630d4` · refinement `e4bd063` · policy sync `b6f56c5`. Research gate (Gemini production readiness) run; **all 13 decisions confirmed and refined**; `GEMINI_DATA_POLICY` + AI env vars canonicalized into `migration/policies/data-retention-policy.md` §7.1–7.2.
+Spec: `migration/specs/phase-3-ai-analysis.md`. Commits: expansion `bbd15e7` · decisions `75630d4` · refinement `e4bd063` · policy sync `b6f56c5` · verification notes `bc585e0`. Research gate (Gemini production readiness) run; **all 13 decisions confirmed and refined**; `GEMINI_DATA_POLICY` + AI env vars canonicalized into `migration/policies/data-retention-policy.md` §7.1–7.2.
+
+**Security-infra (pre-implementation, `f3ccde0` on `feat/react-fastapi-migration`):** the env-var guard allowlist now covers the AI vars — `GEMINI_API_KEY` secret-bearing (placeholder-only, like `API_SESSION_SECRET`), `GEMINI_MODEL` / `GEMINI_DATA_POLICY` + six `AI_*` vars safe-config (concrete defaults OK in `.env.example`, never in committed real env files); `.env.example` gained the Phase 3 section; 12 new guard tests (full-example passes, real key fails, YAML secrets-expression passes).
 
 ### What is specified (12 tasks, embedded code)
 
