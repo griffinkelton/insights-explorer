@@ -168,7 +168,7 @@ The immediate priority is a **data dictionary and linkage map**: each event, que
 # GA4 Insights Engine — Design Sketch
 
 > **Status:** 🔵 Sketch — not in any active sprint. Post-v0.3.0 candidate.
-> **Cross-refs:** [`🔵 evidence-connector-design.md`](%F0%9F%94%B5%20evidence-connector-design.md) — demographic data bridge (opt-in survey only).
+> **Cross-refs:** [`🔵 evidence-connector-design.md`](plans/%F0%9F%94%B5%20evidence-connector-design.md) — demographic data bridge (opt-in survey only).
 
 ---
 

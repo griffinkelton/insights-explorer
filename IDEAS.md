@@ -310,8 +310,8 @@ This is not a full-fledged simulation platform — it's a Streamlit-powered sand
 
 ## 📖 Related Docs
 
-- [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) — 37-item enhancement roadmap
-- [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
+- [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) — 37-item enhancement roadmap
+- [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) — 21-item execution blueprint
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Design decisions, data flow, security model
 - [ORIGINAL_SPEC.md](ORIGINAL_SPEC.md) — The initial project prompt + compliance checklist
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — Central index of all project docs

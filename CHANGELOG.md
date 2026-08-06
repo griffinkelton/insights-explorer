@@ -822,7 +822,7 @@ Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`),
 | Change | Type | Related Docs |
 |---|---|---|
 | ✅ APP_ICON.md, ✅ BONUS_DATA_QUALITY_SCORECARD.md, DOCUMENTATION_INDEX.md created | Docs | [plans/](plans/) |
-| Cross-references and IMPLEMENTATION_PLAN fixes | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) |
+| Cross-references and IMPLEMENTATION_PLAN fixes | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) |
 
 ---
 
@@ -842,7 +842,7 @@ Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`),
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 4 Phase 5 detailed plans (theme toggle, streaming, component refactor, AI/data) | Docs | [plans/p3-p4/ and plans/p5-p6/](plans/p3-p4/ and plans/p5-p6/) |
+| 4 Phase 5 detailed plans (theme toggle, streaming, component refactor, AI/data) | Docs | [plans/p3-p4/](plans/p3-p4/) and [plans/p5-p6/](plans/p5-p6/) |
 | IDEAS.md with 25 bonus enhancements + 10 moonshot ideas | Docs | [IDEAS.md](IDEAS.md) |
 
 ---
@@ -853,7 +853,7 @@ Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`),
 
 | Change | Type | Related Docs |
 |---|---|---|
-| 21-item plan with file-level precision, risk assessments, sprint plan | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/IMPLEMENTATION_PLAN.md) |
+| 21-item plan with file-level precision, risk assessments, sprint plan | Docs | [IMPLEMENTATION_PLAN.md](plans/00-meta/✅%20IMPLEMENTATION_PLAN.md) |
 
 ---
 
@@ -863,7 +863,7 @@ Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`),
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Complete v2 rewrite with progress summary and related docs | Docs | [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) |
+| Complete v2 rewrite with progress summary and related docs | Docs | [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) |
 
 ---
 
@@ -1077,7 +1077,7 @@ Design + scaffolding: `plans/🔵 interstitial-ui-polish-design.md` (`bc38983`),
 
 | Change | Type | Related Docs |
 |---|---|---|
-| Initial ENHANCEMENTS.md — 25 ideas across 5 categories | Docs | [ENHANCEMENTS.md](plans/00-meta/ENHANCEMENTS.md) |
+| Initial ENHANCEMENTS.md — 25 ideas across 5 categories | Docs | [ENHANCEMENTS.md](plans/00-meta/✅%20ENHANCEMENTS.md) |
 
 ---
 

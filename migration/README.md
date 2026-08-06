@@ -2,7 +2,7 @@
 
 Index for the migration decision material: moving the `insights-explorer` product from a Streamlit UI to a **React frontend (`insights-whisperer-30` components) + FastAPI backend** built on the existing Python `utils/` layer.
 
-> **Status (2026-08-05):** all twelve documents ingested and cross-checked; research live-verified (incl. MSW/TanStack against live docs); corrections folded into the plan; **`master-plan.md` is the execution coordinator** (phases 0–6 + cross-cutting tracks + target file layout); final-pass QA complete (links verified, indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)). Still **planning-only — no migration product code written** (planning docs are committed on `main`; implementation has not started).
+> **Status (2026-08-06):** all twelve documents ingested and cross-checked; research live-verified; corrections folded into the plan; **`master-plan.md` is the execution coordinator**. **Entry gates closed:** Gate 1 (credentials remediated — `.env` untracked, scans clean), Gate 2 (`feat/react-fastapi-migration` created + Streamlit feature freeze **active**), Gate 6 (retention/AI-boundary defaults approved). **The Phase 1 vertical slice (upload → preview → quality → clear) is unblocked.** Still **planning-only — no migration product code written**; implementation begins on `feat/react-fastapi-migration`. Indexed in [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md).
 
 ---
 
@@ -135,8 +135,8 @@ Classification from the master-plan review (2026-08-05) — how implementation s
 
 ## Action items before implementation starts
 
-1. **Security:** the whisperer-30 repo tracks a real `.env` (62 B, commit `9059739`, no `.env.example`, no gitignore rule) — inspect history, **rotate/revoke** any credentials, remove from index, add `.env.example` before copying the repo in. Run `migration/env-rotation-checklist.md`.
-2. **Process:** create `feat/react-fastapi-migration`; freeze broad Streamlit feature work. Policy: `migration/branch-and-freeze-policy.md`.
+1. ~~**Security:**~~ **DONE (Gate 1, 2026-08-06)** — credentials rotated/revoked (user-confirmed ~2026-08-03); whisperer-30 tracked `.env` untracked (`2341c9c`, branch `fix/remove-tracked-env`); `.gitignore` rules + `.env.example` added; history-wide scans clean in both repos. Closure record: `migration/env-rotation-checklist.md` (§ Gate 1 closure record).
+2. ~~**Process:**~~ **DONE (Gate 2, 2026-08-06)** — `feat/react-fastapi-migration` created + pushed; **Streamlit feature freeze ACTIVE**. Policy: `migration/branch-and-freeze-policy.md` §4.
 3. **Contracts:** adopt the Part 4 §4.2 canonical choices (`/healthz`, `authorization_url`, `{ dataset }` wrapper, `credentials: "include"`, `setSourceFromApi`, `/api/v1`).
 4. **Fold-in complete:** the 7 research corrections are already in the plan's phase sections (see Research Fold-In Log).
 5. **Frontend package manager:** **LOCKED — npm** (2026-08-06) — lockfile `frontend/package-lock.json`, CI install `npm ci`, local scripts `npm run dev/build/test`. (Master-plan Phase 4 + open decision #3.)
