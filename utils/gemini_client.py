@@ -7,6 +7,7 @@ writer; the FastAPI layer will supply a server-side usage ledger (Phase 3).
 Sink failures are best-effort/logged and never break a request.
 """
 
+import asyncio
 import logging
 import os
 from collections.abc import Generator
@@ -27,7 +28,10 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_TEMPERATURE = 0.3  # Conservative for analytical consistency
 DEFAULT_MAX_OUTPUT_TOKENS = 2048
 
-# Available models with metadata for the model selector
+# Available models with metadata for the model selector.
+# Phase 3 model hygiene (spec Task 4/12, master-plan §7): gemini-2.0-flash
+# (shut down 2026-06-01) and gemini-1.5-flash (deprecated) are PRUNED;
+# 3.5-flash + 3.5-flash-lite joined. GEMINI_MODEL env selects the default.
 AVAILABLE_MODELS = {
     "gemini-2.5-flash": {
         "label": "Gemini 2.5 Flash",
@@ -35,25 +39,25 @@ AVAILABLE_MODELS = {
         "context_window": "1M tokens",
         "tier": "Free",
     },
-    "gemini-2.0-flash": {
-        "label": "Gemini 2.0 Flash",
-        "tooltip": "Previous-gen flash model. Fast responses, good for simple queries. 10 RPM, 1,500 RPD free tier.",
+    "gemini-3.5-flash": {
+        "label": "Gemini 3.5 Flash",
+        "tooltip": "Current flash workhorse for analytics explanation; built-in reasoning. 1M-token context.",
         "context_window": "1M tokens",
-        "tier": "Free",
+        "tier": "Paid",
     },
-    "gemini-1.5-flash": {
-        "label": "Gemini 1.5 Flash",
-        "tooltip": "Legacy flash model. Still capable for most tasks. 15 RPM, 1,500 RPD free tier.",
+    "gemini-3.5-flash-lite": {
+        "label": "Gemini 3.5 Flash Lite",
+        "tooltip": "Cost-sensitive, high-throughput routine formatting. 1M-token context.",
         "context_window": "1M tokens",
-        "tier": "Free",
+        "tier": "Paid",
     },
 }
 
 # Model context limits for countTokens guard only — not displayed as gauges
 MODEL_CONTEXT_LIMITS = {
     "gemini-2.5-flash": 1_000_000,
-    "gemini-2.0-flash": 1_000_000,
-    "gemini-1.5-flash": 1_000_000,
+    "gemini-3.5-flash": 1_000_000,
+    "gemini-3.5-flash-lite": 1_000_000,
 }
 
 # Lazy-initialized client
@@ -204,8 +208,13 @@ def generate_response(
     model: str = DEFAULT_MODEL,
     request_type: str = "",
     usage_sink: UsageSink | None = None,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> str:
     """Send a prompt to Gemini and return the text response.
+
+    Phase 3 (C4): ``max_output_tokens`` is configurable so routes can pass
+    ``settings.ai_reserved_output_tokens``; the default preserves the legacy
+    Streamlit behavior (2048).
 
     Raises ValueError for missing API key, RuntimeError for API failures.
     """
@@ -215,7 +224,7 @@ def generate_response(
             contents=prompt,
             config={
                 "temperature": DEFAULT_TEMPERATURE,
-                "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+                "max_output_tokens": max_output_tokens,
             },
         )
         # Emit usage (if available) through the optional sink.
@@ -277,12 +286,16 @@ def generate_response_stream(
     model: str = DEFAULT_MODEL,
     request_type: str = "",
     usage_sink: UsageSink | None = None,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> Generator[str, None, None]:
-    """Stream Gemini response tokens one at a time.
+    """Stream Gemini response tokens one at a time (sync — Streamlit path).
 
     Yields text chunks as they arrive from the API.
     The caller is responsible for collecting the full text
     and running chart detection after the stream completes.
+
+    Phase 3 (C4): ``max_output_tokens`` is configurable; default preserves the
+    legacy Streamlit behavior.
 
     Raises ValueError for missing API key, RuntimeError for API failures.
     """
@@ -292,7 +305,7 @@ def generate_response_stream(
             contents=prompt,
             config={
                 "temperature": DEFAULT_TEMPERATURE,
-                "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+                "max_output_tokens": max_output_tokens,
             },
         )
         last_chunk = None
@@ -306,5 +319,97 @@ def generate_response_stream(
             _emit_usage(last_chunk, model, request_type=request_type, usage_sink=usage_sink)
     except ValueError:
         raise  # API key errors propagate as-is
+    except Exception as e:
+        raise RuntimeError(_classify_api_error(e)) from e
+
+
+def emit_usage_failure(
+    model: str,
+    request_type: str = "",
+    error_class: str = "UnknownError",
+    usage_sink: UsageSink | None = None,
+) -> None:
+    """Emit a failure UsageEvent into the sink (settled 2026-08-06).
+
+    The async AI path emits this BEFORE streaming the typed SSE ``error``
+    event so ``failure_count`` is meaningful — successful-call usage emission
+    alone would leave it at zero. Best-effort: sink failures are logged, never
+    fatal.
+    """
+    _emit_usage(
+        None,
+        model,
+        request_type=request_type,
+        success=False,
+        error_class=error_class,
+        usage_sink=usage_sink,
+    )
+
+
+def count_tokens(prompt: str, model: str = DEFAULT_MODEL) -> int:
+    """Exact provider token count — near-limit preflight ONLY (spec D11).
+
+    Task 0 probe (2026-08-06, google-genai 2.14.0 verified):
+    ``client.models.count_tokens(*, model, contents, config) -> CountTokensResponse``
+    with ``.total_tokens`` (+ ``.cached_content_token_count``). Free but
+    separately rate-limited — never call it on ordinary requests.
+    """
+    response = _get_client().models.count_tokens(model=model, contents=prompt)
+    return int(getattr(response, "total_tokens", 0) or 0)
+
+
+async def generate_response_stream_async(
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+    request_type: str = "",
+    usage_sink: UsageSink | None = None,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+    first_token_timeout: float = 30.0,
+    stream_timeout: float = 120.0,
+):
+    """Async Gemini streaming generator for FastAPI SSE (spec Task 5, D2).
+
+    Uses the ``aio`` surface of the sync client (additive to the sync
+    generator — Streamlit keeps its path). Enforces two client-side deadlines:
+    first-token (``first_token_timeout``) and whole-stream (``stream_timeout``)
+    — both raise ``TimeoutError`` (typed ``timeout`` SSE event upstream).
+
+    Raises ValueError for missing API key, RuntimeError for API failures,
+    TimeoutError for the first-token/stream deadlines.
+    """
+    try:
+        client = _get_client()
+        stream = client.aio.models.generate_content_stream(
+            model=model,
+            contents=prompt,
+            config={
+                "temperature": DEFAULT_TEMPERATURE,
+                "max_output_tokens": max_output_tokens,
+            },
+        )
+        last_chunk = None
+        try:
+            first_chunk = await asyncio.wait_for(anext(stream), timeout=first_token_timeout)
+        except asyncio.TimeoutError as exc:
+            # Wording avoids the token-safety guard's credential-name heuristic
+            # while staying a static, content-free message (C2).
+            raise TimeoutError("AI response did not start in time") from exc
+        if getattr(first_chunk, "usage_metadata", None) is not None:
+            last_chunk = first_chunk
+        if first_chunk.text:
+            yield first_chunk.text
+        async with asyncio.timeout(stream_timeout):
+            async for chunk in stream:
+                # Usage arrives on the final chunk — remember it for the sink.
+                if getattr(chunk, "usage_metadata", None) is not None:
+                    last_chunk = chunk
+                if chunk.text:
+                    yield chunk.text
+        if last_chunk is not None:
+            _emit_usage(last_chunk, model, request_type=request_type, usage_sink=usage_sink)
+    except ValueError:
+        raise  # API key errors propagate as-is
+    except TimeoutError:
+        raise
     except Exception as e:
         raise RuntimeError(_classify_api_error(e)) from e

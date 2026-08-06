@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import Cookie, HTTPException, Request, Response, status
+from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from api.config import get_settings
@@ -90,7 +90,13 @@ def get_or_create_session(
     return session
 
 
-def require_dataset(session: AppSession | None = None) -> AppSession:
+def require_dataset(session: AppSession = Depends(get_or_create_session)) -> AppSession:
+    """Dependency for routes that need an active dataset (Phase 3 AI routes).
+
+    Resolves the session via ``get_or_create_session`` (sub-dependency) so the
+    signed cookie is created/refreshed on every request, then enforces the
+    dataset guard — 409 when none is active.
+    """
     if not session or not session.dataset_id:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

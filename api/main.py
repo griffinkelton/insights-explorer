@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.config import get_settings
-from api.routes import health, upload
+from api.routes import analysis, chat, health, upload, usage
 
 settings = get_settings()
 app = FastAPI(title="Insights Explorer API", version="0.4.0")
@@ -34,3 +34,6 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(upload.router)
+app.include_router(chat.router)  # Phase 3 — SSE streaming chat
+app.include_router(analysis.router)  # Phase 3 — summary/forecast/funnel
+app.include_router(usage.router)  # Phase 3 — per-session AI usage ledger

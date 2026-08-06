@@ -27,12 +27,17 @@ class Column(BaseModel):
 
 
 class DatasetWarning(BaseModel):
-    """Structured non-fatal data warning (confirmed + refined P2, 2026-08-06)."""
+    """Structured non-fatal data warning (confirmed + refined P2, 2026-08-06).
 
-    code: Literal["rows_truncated"]
+    Phase 3 (D4): ``identifiers_removed_for_ai`` carries the scrubbed column
+    names so the user sees exactly what was withheld before AI analysis.
+    """
+
+    code: Literal["rows_truncated", "identifiers_removed_for_ai"]
     message: str
     original_row_count: int | None = None
     loaded_row_count: int = 0
+    removed_columns: list[str] = Field(default_factory=list)
 
 
 class DatasetContext(BaseModel):
@@ -71,3 +76,84 @@ class QualityReport(BaseModel):
 
 class APIError(BaseModel):
     detail: str
+
+
+# ── Phase 3 — AI / analysis (spec phase-3-ai-analysis.md) ──────────────────
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)  # D12: 4k chars/message
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=20)  # D12: 20 msgs
+    mode: Literal["chat", "summary"] = "chat"
+
+
+class SummaryRequest(BaseModel):
+    mode: Literal["summary"] = "summary"
+
+
+class UsageSummary(BaseModel):
+    input_tokens: int
+    output_tokens: int
+    thoughts_token_count: int
+    total_token_count: int
+
+
+class SummaryResponse(BaseModel):
+    summary: str
+    model: str
+    usage: UsageSummary
+
+
+class ForecastRequest(BaseModel):
+    date_col: str | None = None  # auto-detect via find_date_column when omitted
+    metric_col: str
+    periods: int = Field(default=30, ge=1, le=365)
+
+
+class ForecastPoint(BaseModel):
+    date: str
+    value: float | None = None
+    lower: float | None = None
+    upper: float | None = None
+
+
+class ForecastResponse(BaseModel):
+    metric_col: str
+    periods: int
+    summary: str  # build_forecast_summary(result)
+    forecast_points: list[ForecastPoint] = Field(default_factory=list)
+    insufficient_data: bool = False
+
+
+class FunnelRequest(BaseModel):
+    page_col: str | None = None  # auto-detect when omitted
+    metric_col: str
+    steps: list[str] = Field(min_length=2)
+
+
+class FunnelResponse(BaseModel):
+    steps: list[str]
+    values: list[float]
+
+
+class UsageResponse(BaseModel):
+    request_count: int
+    success_count: int
+    failure_count: int
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    thought_tokens: int
+    cached_tokens: int
+    tool_tokens: int
+    estimated_prompt_tokens: int
+    context_trimmed: int
+    identifiers_removed: int
+    avg_ttft_ms: int | None  # mean time-to-first-token (observability only)
+    avg_ttlt_ms: int | None  # mean time-to-last-token (observability only)
+    by_request_type: dict[str, int]
+    by_model: dict[str, int]

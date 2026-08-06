@@ -17,6 +17,11 @@ os.environ["ENVIRONMENT"] = "test"
 # Built at runtime — never a contiguous placeholder prefix; the runtime
 # validator bypasses in test mode anyway, and a real value keeps signing sane.
 os.environ["API_SESSION_SECRET"] = "test-" + ("a" * 40)
+# Explicitly blank: the dev .env may carry a real GEMINI_API_KEY, but the
+# "AI unavailable" 503 contract tests need the keyless default. Env vars take
+# precedence over the .env file in pydantic-settings, so this forces
+# Settings.has_ai == False for the whole API suite.
+os.environ["GEMINI_API_KEY"] = ""
 
 
 @pytest.fixture(autouse=True)

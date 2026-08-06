@@ -19,7 +19,7 @@ from utils.data_loader import load_file
 
 from api.schemas import Column, DatasetContext, DatasetWarning, DateRange
 from api.stores.dataset_store import datasets
-from api.stores.session_store import AppSession
+from api.stores.session_store import AppSession, UsageLedger
 
 
 def infer_column_type(series: pd.Series) -> str:
@@ -135,7 +135,8 @@ def clear_dataset_state(session: AppSession) -> None:
     session.metadata.pop("quality_cache", None)  # quality/analysis cache
     session.metadata.pop("summary", None)  # Phase 3: summary context
     session.metadata.pop("chat_history", None)  # Phase 3: chat context
-    session.metadata.pop("usage_counters", None)  # Phase 3: per-session usage
+    session.metadata.pop("usage_counters", None)  # Phase 3: legacy usage counters
+    session.usage_ledger = UsageLedger()  # Phase 3: AI ledger is dataset-derived state (D5)
     session.metadata.pop("export_temp_refs", None)  # Phase 4+: export temp files
     # Transient OAuth-flow artifacts do not survive Clear Data:
     session.oauth_state = None
