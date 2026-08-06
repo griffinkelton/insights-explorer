@@ -950,3 +950,56 @@ Query → classify intent → metadata filter → lexical (BM25) + vector search
 ### Evaluation before shipping (golden set)
 
 Build 30–50 representative questions (architecture, API, security, historical, code). For each record: question, `expected_sources`, `must_not_use` (e.g. the sanitized Freebuff transcript), and `answer_requirements`. Measure four dimensions: **retrieval quality** (Recall@k, Precision@k, nDCG, canonical-source selection rate) · **answer quality** (correctness, completeness, citation accuracy, unsupported-claim rate) · **operational quality** (latency, tokens, cost/answer) · **governance quality** (canonical beats archive, active beats superseded F3/F4, refuses unsupported answers). Evaluation discipline matters more than early agentic-RAG features.
+
+---
+
+## Deferred — Technical-Docs RAG Reference, Part 2 (added 2026-08-06)
+
+> Same scope boundary as Part 1: **deferred workstream only** — do not implement RAG/embeddings/rerankers/summary chains in the migration (Phase 3 non-goal) or the connector's first slice. This part adds evaluation, versioning, index-selection, and long-context-vs-RAG decision guidance.
+
+### Long context vs hybrid RAG — decision rule
+
+No single approach consistently wins. Compare both against the **same** documentation questions, source-authority rules, latency targets, and cost budget:
+
+| Dimension | Long-context baseline | Hybrid-RAG baseline |
+|---|---|---|
+| Input | Full active document set, fixed canonical order | Top retrieved, cited sections only |
+| Best fit | Small coherent corpus; cross-document reasoning | Large/revision-heavy corpus; exact API/code lookup |
+| Primary failure | Important text lost/diluted in a huge prompt | Correct section not retrieved or ranked too low |
+| Cost/latency | Grows with prompt size | Adds retrieval/rerank time, bounds prompt size |
+| Source attribution | Must be added explicitly | Natural fit if chunks retain paths/headings/commit IDs |
+
+**Decision rule:** if canonical-source accuracy and cross-document synthesis hold with <50–100K tokens → prefer long context first. If corpus growth, versioning, latency, or source precision becomes a problem → introduce hybrid RAG. If neither reliably wins → **route by request type** (long context for "summarize the active plan"; hybrid retrieval for "what is `MAX_BROWSER_UPLOAD_BYTES` and where is it enforced?"). Run at least four variants: A long-context · B vector-only · C BM25+vector hybrid · D hybrid + rerank + parent expansion — holding model, corpus, prompt, citation rules, and output caps constant.
+
+### RAGAS-style retrieval evaluation
+
+Evaluate **retrieval separately from generation** — a fluent answer can conceal missed evidence. Label the passages that should be found, not just the desired answer:
+
+```python
+eval_row = {
+    "user_input": "What does POST /api/v1/data/clear remove?",
+    "reference_contexts": ["...the Clear Data policy text..."],
+    "retrieved_contexts": ["...top fused result...", "...second result..."],
+    "reference_answer": "It clears dataset-derived state but retains the OAuth connection.",
+}
+```
+
+Key metrics: **Context Precision** (do relevant chunks rank above irrelevant — did fusion/rerank help?) · **Context Recall** (do retrieved chunks contain the needed evidence — did filters/chunking/k hide sources?) · **Context Entity Recall** (APIs, symbols, metric names, config fields) · **Faithfulness** (claims grounded in retrieved context) · **Answer correctness/relevance**. Assess Precision and Recall **together** — a reranker that raises precision while dropping essential evidence makes the system worse. Compare variants A–F (BM25-only / vector-only / hybrid+RRF / +metadata filters / +reranker / +parent expansion) on one fixed test set with a scorecard: Context Recall ≥ target, canonical-source recall 100% for policy/implementation questions, Faithfulness ≥ target, unsupported-claim rate 0 for canonical questions, p95 retrieval latency under target.
+
+### Index versioning — derived, replaceable artifact
+
+Treat the vector index as a **derived build artifact**, not a source of truth. Keep raw documents + a document registry as the system of record. Version every layer: `document_revision_id` (git SHA) · `content_hash` · `chunker_version` · `embedding_model_version` · `index_version` (`techdocs-v2026-08-06-03`) · `corpus_version` · `version_status` (`active`/`superseded`/`archived`/`deleted`).
+
+Safe update flow: detect source changes (commit/ETag/hash) → reprocess only changed docs → soft-delete retired chunks (never immediately hard-delete) → build a candidate index generation → validate (chunk count, no duplicate active chunks, metadata completeness, embedding success) → run the golden retrieval suite → **atomically swap the `active-techdocs` alias** → retain prior generations for rollback/reproducibility → expire old generations under a documented retention policy.
+
+Cache safely: key every cache by `hash(normalized_query, active_corpus_version, filter_policy_version, retrieval_config_version)` — when the alias changes, old caches stop matching. Cache embeddings longer, fused chunk IDs medium, final answers short/never. Never serve a cached answer tagged with an older corpus version as current.
+
+### Vector vs graph database
+
+Start with a **vector DB + BM25 + metadata filtering + reranking** (Phase 1). Add a lightweight documentation graph **only if multi-hop relationship questions appear regularly** (dependency tracing, ownership, "what breaks if this API changes?"). Vector retrieval finds the starting evidence; a bounded graph traversal then surfaces the explicit dependency path (e.g. endpoint → service → tests → dependent UI flow) for cited answers. Graphs cost more to ingest/extract and stale relationship models create false confidence — the vector-first default is correct until justified.
+
+### Filtered vector performance
+
+Filtered ANN has a three-way trade-off: **filter selectivity ↔ recall ↔ latency**. Highly selective filters can starve ANN navigation; post-filtering is simpler but can return too few eligible results. Tactics: use native filter-aware ANN prefiltering · index common metadata fields flat (enums/booleans/short arrays — not deep nested JSON) · partition by hard boundaries sparingly · tune ANN search effort with a **recall-vs-p95-latency curve on the real benchmark** (never vendor defaults) · retrieve modest candidate sets (measure Recall@k before shrinking k) · cache by corpus/index version · co-locate services.
+
+Index type by corpus scale: **FLAT/exact** for small corpora where exact search meets p95 · **HNSW (filter-aware)** for the general technical-doc corpus · IVF/disk-oriented ANN only for very large partition-friendly corpora. Benchmark filter classes separately (no filter / active-only / single product-version / tenant+product+active / rare type / historical) and choose ANN settings on **p95 latency + canonical-source Recall@k**, not average latency.
