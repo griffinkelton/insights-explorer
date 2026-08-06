@@ -40,7 +40,12 @@
 
 ## 1. Environment guard and root `.env.example` *(first security task)*
 
-**Rule (master-plan §11-D, 2026-08-06):** validate env var **names only** — `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. Validate names, expected presence in `.env.example`, and that **no committed values** exist. Never add values or permissive wildcard patterns to the allowlist.
+**Rule (master-plan §11-D, 2026-08-06):** validate env var **names only** — `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. Validate names and expected presence in `.env.example`. The value policy is split in two (see §1.2):
+
+- **Secret var** (`API_SESSION_SECRET`): a non-placeholder value **fails anywhere**, including `.env.example`. Real values belong in deployment secrets, never in the repo.
+- **Safe config vars** (the other four): concrete **non-secret defaults are permitted in `.env.example`** (`FRONTEND_URL=http://localhost:5173`, byte limits, dev origin). Non-placeholder values fail only in **committed real env files** (`.env`, `.env.*`, `docker-compose*`, `cloudbuild.yaml`, workflows) — environment-specific production values must never be committed.
+
+Never add values or permissive wildcard patterns to the allowlist.
 
 ### 1.1 `.env.example` — add a FastAPI section (root file — single-repo sibling layout)
 
@@ -55,7 +60,7 @@ MAX_BROWSER_UPLOAD_BYTES=26214400                      # 25 MB = 25 * 1024 * 102
 MAX_INGEST_BYTES=104857600                             # 100 MB = 100 * 1024 * 1024 (Drive/server-side only)
 ```
 
-Placeholder convention: empty, `<angle-bracket>`, `your_xxx_here`, `replace-with-...`, or `...` — anything else is treated as a committed value.
+Placeholder convention (applies to `API_SESSION_SECRET` only): empty, `<angle-bracket>`, `your_xxx_here`, `replace-with-...`, or `...` — anything else is a real value and fails. The four config vars above intentionally carry concrete safe defaults (dev origin + byte limits); they are rejected only when they appear in **committed real env files** — never inside `.env.example`.
 
 ### 1.2 `scripts/check_credentials.py` — two-part guard
 
@@ -65,7 +70,7 @@ Placeholder convention: empty, `<angle-bracket>`, `your_xxx_here`, `replace-with
 .env · .env.* · *.env · docker-compose*.yml · docker-compose*.yaml · cloudbuild.yaml · .github/workflows/*.yml
 ```
 
-Fail if any allowlisted name carries a non-placeholder `NAME=value` there (message: "use deployment secrets instead"). `API_SESSION_SECRET` is additionally checked inside `.env.example` itself (must be a placeholder). **Never** scan all prose for generic `NAME=value` — the migration docs intentionally contain safe constants (e.g. `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`); an all-text scanner creates noisy false positives and trains people to ignore guard failures.
+Fail when a **secret** var carries a non-placeholder `NAME=value` there, or a **config** var carries a non-placeholder value in a committed real env file (message: "use deployment secrets instead"). `.env.example` may keep concrete safe config defaults; only `API_SESSION_SECRET` must be a placeholder there. **Never** scan all prose for generic `NAME=value` — the migration docs intentionally contain safe constants (e.g. `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`); an all-text scanner creates noisy false positives and trains people to ignore guard failures.
 
 **Part 2 — whole-repo secret-pattern scanner (existing).** Keep the AIza / AQ / ya29 shape patterns scanning the entire repository unchanged.
 
@@ -75,7 +80,8 @@ ALLOWLISTED_ENV_VARS = frozenset({
     "API_SESSION_SECRET", "API_CORS_ORIGINS", "FRONTEND_URL",
     "MAX_BROWSER_UPLOAD_BYTES", "MAX_INGEST_BYTES",
 })
-SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET"})  # never committed, not even in .env.example
+SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET"})          # non-placeholder fails ANYWHERE, incl. .env.example
+SAFE_CONFIG_ENV_VARS = frozenset(ALLOWLISTED_ENV_VARS - SECRET_ENV_VARS)  # concrete defaults OK in .env.example only
 ENV_EXAMPLE_PATH = Path(".env.example")
 ENV_ASSIGNMENT = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$")
 PLACEHOLDER_VALUE = re.compile(r"^(<[^>]*>|your_[a-z0-9_]+_here|replace-with-.*|\.\.\.)$")
@@ -83,7 +89,7 @@ ENV_FILE_PARTS = {".env", ".env.*", "*.env", "docker-compose.yml",
                   "docker-compose.yaml", "cloudbuild.yaml", ".github/workflows"}
 ```
 
-Checks in `main()`: (1) **presence** — every allowlisted name appears as `NAME=` in `.env.example` (always runs); (2) **secret value** — `API_SESSION_SECRET=<non-placeholder>` anywhere, including `.env.example`, fails; (3) **config value** — allowlisted names with non-placeholder values in the env-file set above fail. Update the pre-commit hook name and the CI step name to mention the allowlist (hook id `check-credentials` and the `git ls-files` CI step stay — the checks ride along).
+Checks in `main()`: (1) **presence** — every allowlisted name appears as `NAME=` in `.env.example` (always runs); (2) **secret value** — `API_SESSION_SECRET=<non-placeholder>` **anywhere**, including `.env.example`, fails; (3) **config value** — a `SAFE_CONFIG_ENV_VARS` name with a non-placeholder value in the env-file set above fails, **except inside `.env.example` itself**, where concrete safe defaults are permitted (`.env.example` config values are checked for *presence*, not placeholder-ness). Update the pre-commit hook name and the CI step name to mention the allowlist (hook id `check-credentials` and the `git ls-files` CI step stay — the checks ride along).
 
 ### 1.3 Tests — extend `tests/test_credential_guard.py`
 
@@ -91,6 +97,8 @@ Build any `NAME=value` strings at runtime via concatenation so the guard never f
 
 - [ ] Presence passes when all five names are documented; fails and lists a name when one is removed.
 - [ ] `API_SESSION_SECRET=replace-with-a-long-random-value` passes; a real value fails.
+- [ ] `.env.example` **safe config defaults** pass: `FRONTEND_URL=http://localhost:5173`, `MAX_BROWSER_UPLOAD_BYTES=26214400`, `MAX_INGEST_BYTES=104857600` inside `.env.example` are allowed.
+- [ ] The same config defaults in a **committed real env file** (`docker-compose.yml`, `cloudbuild.yaml`, workflow) fail the value scan.
 - [ ] An env-file with `API_SESSION_SECRET=<real>` fails the value scan.
 - [ ] `cloudbuild.yaml` / `.github/workflows/*.yml` with a committed value fail.
 - [ ] Docs prose `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024` **does not** fail.
@@ -240,12 +248,19 @@ Interfaces first, dev impls second (state placement, master-plan §5). `api/stor
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Protocol
+
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 @dataclass
 class AppSession:
     dataset_id: str | None = None
+    created_at: datetime = field(default_factory=utcnow)        # absolute-expiry anchor
+    last_accessed_at: datetime = field(default_factory=utcnow)  # idle-expiry anchor
     ga4_credentials: dict | None = None
     oauth_state: str | None = None
     code_verifier: str | None = None          # PKCE — used Phase 5
@@ -253,10 +268,19 @@ class AppSession:
 
 
 class SessionStore(Protocol):
+    """Stores stay dumb — expiry is enforced by api/dependencies.py (§7),
+    which deletes the expired session and its dataset."""
     def create(self) -> tuple[str, AppSession]: ...
     def get(self, session_id: str) -> AppSession | None: ...
     def delete(self, session_id: str) -> None: ...
 ```
+
+Session lifetime policy (approved — master-plan §5 + `../policies/data-retention-policy.md`):
+
+- **Idle expiry:** 2 hours since `last_accessed_at` (every successful request refreshes it).
+- **Absolute expiry:** 12 hours since `created_at`.
+- **Effective lifetime:** whichever happens first — `min(2 h idle, 12 h absolute)`.
+- **On expiry:** the session **and its dataset** are deleted; a new empty session is created only when the next action requires one. Old dataset state is never silently preserved.
 
 `api/stores/dataset_store.py`:
 
@@ -344,34 +368,82 @@ class InMemoryDatasetStore:
 datasets = InMemoryDatasetStore()
 ```
 
-`api/dependencies.py` — cookie → session (12 h absolute expiry per the approved session policy; `__Host-` in production):
+`api/dependencies.py` — cookie → session. The cookie value is **signed with `itsdangerous`** (so `API_SESSION_SECRET` is required and used — never dead config), and expiry is **enforced server-side** (`min(2 h idle, 12 h absolute)`, §6 policy; `__Host-` in production):
 
 ```python
 from __future__ import annotations
 
-from fastapi import Cookie, HTTPException, Response, status
+from datetime import datetime, timezone
 
+from fastapi import Cookie, HTTPException, Response, status
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
+from api.config import get_settings
+from api.stores.dataset_store import datasets
 from api.stores.session_store import AppSession, sessions
 
 SESSION_COOKIE = "insights_session"
+SESSION_IDLE_SECONDS = 2 * 60 * 60        # 2 h idle (approved session policy)
+SESSION_ABSOLUTE_SECONDS = 12 * 60 * 60   # 12 h absolute (approved session policy)
+SESSION_SALT = "insights-session"
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+_serializer = URLSafeTimedSerializer(get_settings().api_session_secret, salt=SESSION_SALT)
+
+
+def _sign_session_id(session_id: str) -> str:
+    """Sign the session id so clients cannot forge or tamper with it."""
+    return _serializer.dumps(session_id)
+
+
+def _verify_session_id(cookie_value: str) -> str | None:
+    """Return the session id, or None if the cookie is tampered/expired."""
+    try:
+        return _serializer.loads(cookie_value, max_age=SESSION_ABSOLUTE_SECONDS)
+    except (BadSignature, SignatureExpired):
+        return None
+
+
+def _is_expired(session: AppSession) -> bool:
+    now = _utcnow()
+    idle_expired = (now - session.last_accessed_at).total_seconds() > SESSION_IDLE_SECONDS
+    absolute_expired = (now - session.created_at).total_seconds() > SESSION_ABSOLUTE_SECONDS
+    return idle_expired or absolute_expired
+
+
+def _discard_session(session_id: str, session: AppSession) -> None:
+    """Delete an expired session and its dataset — never preserve old state."""
+    if session.dataset_id:
+        datasets.remove(session.dataset_id)
+    sessions.delete(session_id)
 
 
 def get_or_create_session(
     response: Response,
     insights_session: str | None = Cookie(default=None),
 ) -> AppSession:
-    session = sessions.get(insights_session) if insights_session else None
+    session_id = _verify_session_id(insights_session) if insights_session else None
+    session = sessions.get(session_id) if session_id else None
+
     if session:
-        return session
+        if _is_expired(session):
+            _discard_session(session_id, session)
+        else:
+            session.last_accessed_at = _utcnow()   # refresh idle anchor
+            return session
 
     session_id, session = sessions.create()
     response.set_cookie(
         key=SESSION_COOKIE,
-        value=session_id,
+        value=_sign_session_id(session_id),
         httponly=True,
         secure=False,          # True behind HTTPS; Phase 6 adds the __Host- prefix
         samesite="lax",
-        max_age=60 * 60 * 12,  # 12 h absolute (approved session policy)
+        max_age=SESSION_ABSOLUTE_SECONDS,
         path="/",
     )
     return session
@@ -447,7 +519,29 @@ def parse_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
         if suffix in {".xlsx", ".xls"}:
             return pd.read_excel(tmp.name)
     raise ValueError("Supported formats are CSV, XLSX, and XLS.")
+
+
+def clear_dataset_state(session: AppSession) -> None:
+    """Policy-real Clear Data (retention-policy §5) — an explicit method, never
+    an implied metadata.clear(). Establishes the cleanup namespace now so later
+    phases don't invent inconsistent cleanup behavior. Preserves only the GA4
+    OAuth connection and the theme preference."""
+    # Active dataset + derived artifacts.
+    if session.dataset_id:
+        datasets.remove(session.dataset_id)
+        session.dataset_id = None
+    session.metadata.pop("filters", None)          # Phase 2+: filter state
+    session.metadata.pop("metrics", None)          # Phase 2+: metric state
+    session.metadata.pop("preview_cache", None)    # preview rows cache
+    session.metadata.pop("quality_cache", None)    # quality/analysis cache
+    session.metadata.pop("summary", None)          # Phase 3: summary context
+    session.metadata.pop("chat_history", None)     # Phase 3: chat context
+    session.metadata.pop("usage_counters", None)   # Phase 3: per-session usage
+    session.metadata.pop("export_temp_refs", None) # Phase 4+: export temp files
+    # ga4_credentials / oauth_state / theme stay put on purpose.
 ```
+
+(`clear_dataset_state` needs `datasets` from `api.stores.dataset_store` and `AppSession` from `api.stores.session_store` at the top of the module.)
 
 `api/routes/upload.py` (upload endpoint; the data endpoints live in §9–§10):
 
@@ -459,7 +553,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from api.config import get_settings
 from api.dependencies import AppSession, get_or_create_session
 from api.schemas import UploadResponse
-from api.services.dataset_service import datasets, make_context, parse_uploaded_file
+from api.services.dataset_service import clear_dataset_state, make_context, parse_uploaded_file
+from api.stores.dataset_store import datasets  # canonical store location (api/stores)
 
 router = APIRouter(prefix="/api/v1", tags=["data"])
 
@@ -478,12 +573,23 @@ async def upload_file(
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(status_code=415, detail="Upload a CSV, XLSX, or XLS file.")
 
-    content = await file.read()
-    if len(content) > settings.max_browser_upload_bytes:          # 25 MB locked cap
-        raise HTTPException(
-            status_code=413,
-            detail="Uploaded file exceeds the 25 MB browser limit. Use a Drive import or a smaller file.",
-        )
+    # Bounded read: stream in 1 MB chunks and reject as soon as the total
+    # exceeds the cap — never buffer the whole file before the size check.
+    # Content-Length may be preflighted, but it is client-supplied and is
+    # never trusted as the only size control.
+    CHUNK_SIZE = 1024 * 1024
+    total = 0
+    chunks: list[bytes] = []
+    while chunk := await file.read(CHUNK_SIZE):
+        total += len(chunk)
+        if total > settings.max_browser_upload_bytes:             # 25 MB locked cap
+            raise HTTPException(
+                status_code=413,
+                detail="Uploaded file exceeds the 25 MB browser limit. Use a Drive import or a smaller file.",
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
     if not content:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
@@ -500,6 +606,8 @@ async def upload_file(
     session.dataset_id = stored.id
     return UploadResponse(dataset=stored.context)
 ```
+
+(`datasets` — the `InMemoryDatasetStore` instance — lives **only** in `api/stores/dataset_store.py` and is imported from there by routes. `dataset_service` also imports it from the same canonical location for `clear_dataset_state`; nothing re-exports or re-instantiates a second store.)
 
 ---
 
@@ -588,7 +696,7 @@ def build_quality_report(df: pd.DataFrame, missing_cols: list[str] | None = None
 
 ## 10. Clear Data endpoint
 
-`api/routes/upload.py` (append) — server-side Clear Data, retention-policy §5 semantics: deletes the dataset + preview rows + quality/analysis cache + chat context + export temp files. Does **not** clear OAuth connection or theme preference:
+`api/routes/upload.py` (append) — server-side Clear Data, retention-policy §5 semantics, delegated to the explicit `clear_dataset_state()` method (§8). Preserves only the OAuth connection and theme preference:
 
 ```python
 @router.post("/data/clear", status_code=status.HTTP_200_OK)
@@ -597,9 +705,7 @@ def clear_data(
     session: AppSession = Depends(get_or_create_session),
 ) -> dict[str, str]:
     """Server-side Clear Data per policies/data-retention-policy.md §5."""
-    if session.dataset_id:
-        datasets.remove(session.dataset_id)
-        session.dataset_id = None
+    clear_dataset_state(session)
     return {"status": "cleared"}
 ```
 
@@ -692,6 +798,9 @@ Use `httpx` + FastAPI's `TestClient`/`ASGITransport`:
 - [ ] `quality` returns the A–F report with all fields.
 - [ ] **Clear Data lifecycle:** upload → context → quality → clear → context → 409; dataset removed from the store.
 - [ ] Session cookie set (`insights_session`, httponly) and correlates across requests.
+- [ ] **Cookie is signed:** a tampered cookie value (flipped character) is treated as no session → a fresh cookie is issued, never a 500.
+- [ ] **Idle expiry:** backdate `session.last_accessed_at` > 2 h → next request issues a fresh session and the old dataset is removed (no stale-state path).
+- [ ] **Absolute expiry:** backdate `session.created_at` > 12 h → same fresh-session behavior.
 - [ ] Guard tests from §1 pass (`tests/test_credential_guard.py`).
 
 Test file note: no full-length credential-shaped strings in test sources (runtime concatenation convention).
@@ -726,7 +835,8 @@ curl -b cookies.txt http://localhost:8000/api/v1/data/context
 curl -b cookies.txt http://localhost:8000/api/v1/data/preview
 curl -b cookies.txt http://localhost:8000/api/v1/data/quality
 curl -b cookies.txt -X POST http://localhost:8000/api/v1/data/clear
-pytest tests/ tests/api/ -q                    # full regression + contract tests
+pytest tests -q                                # full regression (tests/api/ lives inside tests/)
+pytest tests/api -q                            # contract-only check when iterating
 ```
 
 ### Exit criteria (DoD for this phase)
@@ -755,4 +865,4 @@ pytest tests/ tests/api/ -q                    # full regression + contract test
 - `../policies/env-rotation-checklist.md` Phase E (allowlist task checkbox)
 - archive §4.2 (canonical shapes) · §3.5 (wire format) · §3.9–3.10 (pins) · §4.11–4.14 (size policy, state placement)
 
-*Spec created 2026-08-06 (product-owner interview + reviewer answer-set); 14-step task order per reviewer recommendation. Planning-only — no migration product code written yet.*
+*Spec created 2026-08-06 (product-owner interview + reviewer answer-set). Task sequence: Preconditions + 14 implementation/acceptance tasks. Planning-only — no migration product code written yet.*
