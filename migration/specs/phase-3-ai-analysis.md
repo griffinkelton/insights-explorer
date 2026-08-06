@@ -111,6 +111,7 @@ AI_MAX_CONTEXT_CHARS=96000                # confirmed D11: deterministic-trim ce
 AI_FIRST_TOKEN_TIMEOUT_SECONDS=30         # confirmed D10: first-token deadline
 AI_GENERATE_TIMEOUT_SECONDS=60            # confirmed D10: non-streaming per-request timeout
 AI_STREAM_TIMEOUT_SECONDS=120             # confirmed D10: whole-stream deadline
+AI_QUEUE_WAIT_SECONDS=30                  # settled C6: bounded ai_lock queue-wait ceiling (Option A)
 ```
 
 Guard rules stay: **names only, no values in committed files, placeholders permitted in `.env.example`, real secrets always fail.** No `GEMINI_*` value may be committed even as a "safe default" if it is credential-shaped.
@@ -136,6 +137,7 @@ class Settings(BaseSettings):
     ai_first_token_timeout_seconds: int = 30   # AI_FIRST_TOKEN_TIMEOUT_SECONDS (D10)
     ai_generate_timeout_seconds: int = 60      # AI_GENERATE_TIMEOUT_SECONDS (D10)
     ai_stream_timeout_seconds: int = 120       # AI_STREAM_TIMEOUT_SECONDS (D10)
+    ai_queue_wait_seconds: int = 30            # AI_QUEUE_WAIT_SECONDS — bounded ai_lock queue-wait ceiling (C6, settled 2026-08-06)
 ```
 
 No startup validation on the key (the app must boot without AI). Add a `has_ai` property:
@@ -229,9 +231,21 @@ streaming and releases it in `finally`. This **serializes** AI requests per
 session: a second concurrent request queues behind the first, and ledger
 mutation is single-writer (deterministic counts, no lost updates). Contract
 test: two concurrent chat requests against one session produce deterministic
-ledger totals (C6). Second requests **queue** behind the in-flight stream
-(serialization, not rejection); if a busy policy is preferred later, a typed
-`429 ai_busy` is the documented alternative.
+ledger totals (C6).
+
+**Queue-wait policy (settled 2026-08-06 — Option A, bounded queue):**
+- A second AI request **queues** behind the in-flight stream while the client stays connected.
+- **Cancellation while waiting releases cleanly** (`asyncio.CancelledError`) — no ledger mutation, no partial stream.
+- The queue wait is **bounded by `AI_QUEUE_WAIT_SECONDS` (default 30)**; on expiry the queued request returns a typed `retryable: true` `ai_busy` SSE error — never an unbounded wait.
+- Option B (immediate `429 ai_busy` + UI disabling duplicate Send/Generate controls) remains the documented alternative if a busy policy is preferred later.
+- Contract test: a second request while a mocked stream is in flight either proceeds after the stream completes or times out with `ai_busy` past the ceiling; cancelling a queued request leaves the ledger untouched.
+
+**Failure accounting (settled 2026-08-06):** the async AI path must emit a
+`UsageEvent(success=False)` through the sink **before** streaming the typed
+`error` SSE event — emitting usage only on successful calls leaves
+`failure_count` meaningless. All `classify_provider_error` outcomes and the
+typed `timeout` / `context_too_large` / `feature_disabled` errors count as
+failures.
 
 `clear_dataset_state` (Phase 1, `dataset_service.py`) must reset the ledger. **Acceptance:** contract test uploads → chat → asserts ledger counts; Clear Data resets them; no raw content ever stored.
 
@@ -613,11 +627,11 @@ Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; 
 
 | Test | Asserts |
 |---|---|
-| `test_chat.py` | 409 no dataset · 503 no key / `feature_disabled` under `disabled` policy · mocked stream yields ≥2 partial chunks · named events (`event: text/usage/done/error`) · bounded-history 422 (20 msgs / 24k chars) · conditional 429 retry (retryable honors `Retry-After`; `quota_exhausted` never retried; no mid-stream retry) · timeout events · **terminal sequence (error→done; nothing after error — C5)** · **concurrent requests serialize on `ai_lock` — deterministic ledger (C6)** |
+| `test_chat.py` | 409 no dataset · 503 no key / `feature_disabled` under `disabled` policy · mocked stream yields ≥2 partial chunks · named events (`event: text/usage/done/error`) · bounded-history 422 (20 msgs / 24k chars) · conditional 429 retry (retryable honors `Retry-After`; `quota_exhausted` never retried; no mid-stream retry) · timeout events · **terminal sequence (error→done; nothing after error — C5)** · **concurrent requests serialize on `ai_lock` — deterministic ledger (C6)** · **queue-wait: second request proceeds after the stream or times out `ai_busy` past `AI_QUEUE_WAIT_SECONDS`; queued-cancel leaves ledger untouched** |
 | `test_analysis_summary.py` | summary + usage returned · 409/503 · mocked `_get_client` · timeout config honored |
 | `test_analysis_forecast.py` | insufficient-data vs valid forecast · auto-detect date col |
 | `test_analysis_funnel.py` | per-step aggregation · min_length=2 validation |
-| `test_usage.py` | ledger counts grow (success/failure/tokens + tool_tokens by model + request type) · diagnostic dimensions update (estimated_prompt_tokens, context_trimmed, identifiers_removed) · latency aggregates present after a mocked stream (TTFT/TTLT) · Clear Data resets · no cap enforced (D13) |
+| `test_usage.py` | ledger counts grow (success/failure/tokens + tool_tokens by model + request type) · diagnostic dimensions update (estimated_prompt_tokens, context_trimmed, identifiers_removed) · latency aggregates present after a mocked stream (TTFT/TTLT) · Clear Data resets · no cap enforced (D13) · **provider failure emits a failure `UsageEvent` before the error event → `failure_count` increments** |
 | `test_ai_context.py` | identifier scrub drops PII columns + `identifiers_removed_for_ai` warning with `removed_columns` · metric caveats for provisional/unavailable · heuristic guard + trim order (raw rows dropped first, caveats kept) · sliding-window history (newest user kept, oldest assistant dropped first) · 3-branch budget flow (stream-now < 80% · exact countTokens in 80–100% band · trim/reject over) |
 | `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default + override · timeout defaults · `GEMINI_DATA_POLICY` modes (`local_free` warn, `client_paid`, `disabled` 503) · **invalid policy value → startup validation error (C3)** |
 
