@@ -6,8 +6,10 @@ Catches real Google API keys (``AIza...``), Google AI Studio API keys
 reach git history — a regression guard for the IDEAS #29 credential-
 rotation incident.
 
-Phase 1 addition (master-plan §11-D, spec phase-1-upload-slice.md §1):
-the FastAPI env-var **allowlist** (names only). Three checks:
+Phase 1 + Phase 3 addition (master-plan §11-D; specs phase-1-upload-slice.md
+§1 and phase-3-ai-analysis.md settings block; canonical env table in
+policies/data-retention-policy.md §7.2): the env-var **allowlist** (names
+only). Three checks:
 
   1. **Presence** — every allowlisted name appears as ``NAME=`` in
      ``.env.example``.
@@ -28,6 +30,13 @@ config with ``yaml.safe_load()`` and walks the tree for allowlisted keys.
 Approved values: placeholders, GitHub ``${{ secrets.NAME }}`` references,
 and Cloud secret-manager references (``projects/.../secrets/...``). Literal
 secret or config values in committed deployment config fail.
+
+Phase 3 addition (2026-08-06): the AI/Gemini env vars joined the allowlist —
+``GEMINI_API_KEY`` (secret-bearing, placeholder-only like
+``API_SESSION_SECRET``), plus ``GEMINI_MODEL``, ``GEMINI_DATA_POLICY`` and
+the six AI_* token/timeout vars (safe config: concrete defaults allowed in
+``.env.example``, never in committed real env files). Tier mode is explicit
+via ``GEMINI_DATA_POLICY`` — never inferred from the key value.
 
 Deliberate non-matches (kept safe by minimum-length requirements):
   - ``ya29.abc123``  — test fixture in tests/test_ga4_client.py (payload too short)
@@ -69,18 +78,29 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 SKIP_PARTS = {".git", "node_modules", "venv", "build", "docs/_build"}
 SKIP_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".pyc", ".lock"}
 
-# ── Phase 1: FastAPI env-var allowlist (names only — master-plan §11-D) ──
+# ── Env-var allowlist (names only — master-plan §11-D; data-retention-policy §7.2) ──
 ALLOWLISTED_ENV_VARS = frozenset(
     {
+        # Phase 1 — FastAPI backend
         "API_SESSION_SECRET",
         "API_CORS_ORIGINS",
         "FRONTEND_URL",
         "MAX_BROWSER_UPLOAD_BYTES",
         "MAX_INGEST_BYTES",
+        # Phase 3 — AI / Gemini runtime (spec phase-3-ai-analysis.md settings)
+        "GEMINI_API_KEY",
+        "GEMINI_MODEL",
+        "GEMINI_DATA_POLICY",
+        "AI_MAX_INPUT_TOKENS",
+        "AI_RESERVED_OUTPUT_TOKENS",
+        "AI_MAX_CONTEXT_CHARS",
+        "AI_FIRST_TOKEN_TIMEOUT_SECONDS",
+        "AI_GENERATE_TIMEOUT_SECONDS",
+        "AI_STREAM_TIMEOUT_SECONDS",
     }
 )
 # Non-placeholder fails ANYWHERE, including .env.example.
-SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET"})
+SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET", "GEMINI_API_KEY"})
 # Concrete safe defaults OK inside .env.example; fail in committed real env files.
 SAFE_CONFIG_ENV_VARS = frozenset(ALLOWLISTED_ENV_VARS - SECRET_ENV_VARS)
 
@@ -160,13 +180,14 @@ def check_env_example(text: str) -> list[str]:
     for name in sorted(ALLOWLISTED_ENV_VARS):
         if name not in assignments:
             errors.append(f"missing {name} in {ENV_EXAMPLE_NAME}")
-    if "API_SESSION_SECRET" in assignments:
-        secret = assignments["API_SESSION_SECRET"]
-        if not PLACEHOLDER_VALUE.match(secret):
-            errors.append(
-                "API_SESSION_SECRET in .env.example must be a placeholder "
-                "(empty or real values are rejected)"
-            )
+    for name in sorted(SECRET_ENV_VARS):
+        if name in assignments:
+            value = assignments[name]
+            if not PLACEHOLDER_VALUE.match(value):
+                errors.append(
+                    f"{name} in {ENV_EXAMPLE_NAME} must be a placeholder "
+                    "(empty or real values are rejected)"
+                )
     return errors
 
 

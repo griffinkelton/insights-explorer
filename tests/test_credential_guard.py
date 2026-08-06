@@ -171,6 +171,72 @@ class TestEnvAllowlist:
         errors = guard.check_env_file("API_SESSION_SECRET=replace-with-x\n")
         assert errors == []
 
+    def test_check_env_example_full_with_ai_vars_passes(self):
+        guard = self._guard()
+        errors = guard.check_env_example(
+            "API_SESSION_SECRET=replace-with-a-long-random-value\n"
+            "API_CORS_ORIGINS=http://localhost:5173\n"
+            "FRONTEND_URL=http://localhost:5173\n"
+            "MAX_BROWSER_UPLOAD_BYTES=26214400\n"
+            "MAX_INGEST_BYTES=104857600\n"
+            "GEMINI_API_KEY=your_api_key_here\n"
+            "GEMINI_MODEL=gemini-2.5-flash\n"
+            "GEMINI_DATA_POLICY=local_free\n"
+            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_RESERVED_OUTPUT_TOKENS=4096\n"
+            "AI_MAX_CONTEXT_CHARS=96000\n"
+            "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
+            "AI_GENERATE_TIMEOUT_SECONDS=60\n"
+            "AI_STREAM_TIMEOUT_SECONDS=120\n"
+        )
+        assert errors == []
+
+    def test_check_env_example_rejects_real_gemini_api_key(self):
+        guard = self._guard()
+        errors = guard.check_env_example(
+            "API_SESSION_SECRET=replace-with-a-long-random-value\n"
+            "API_CORS_ORIGINS=x\n"
+            "FRONTEND_URL=x\n"
+            "MAX_BROWSER_UPLOAD_BYTES=x\n"
+            "MAX_INGEST_BYTES=x\n"
+            "GEMINI_API_KEY=not-a-placeholder-key\n"
+            "GEMINI_MODEL=gemini-2.5-flash\n"
+            "GEMINI_DATA_POLICY=local_free\n"
+            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_RESERVED_OUTPUT_TOKENS=4096\n"
+            "AI_MAX_CONTEXT_CHARS=96000\n"
+            "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
+            "AI_GENERATE_TIMEOUT_SECONDS=60\n"
+            "AI_STREAM_TIMEOUT_SECONDS=120\n"
+        )
+        assert any("GEMINI_API_KEY" in e for e in errors)
+
+    def test_check_env_file_gemini_api_key_real_fails(self):
+        guard = self._guard()
+        errors = guard.check_env_file("GEMINI_API_KEY=not-a-placeholder-key\n")
+        assert any("GEMINI_API_KEY" in e for e in errors)
+
+    def test_check_env_file_gemini_api_key_placeholder_passes(self):
+        guard = self._guard()
+        errors = guard.check_env_file("GEMINI_API_KEY=your_api_key_here\n")
+        assert errors == []
+
+    def test_check_env_file_ai_config_value_fails_in_real_env(self):
+        guard = self._guard()
+        errors = guard.check_env_file(
+            "GEMINI_MODEL=gemini-2.5-flash\n"
+            "GEMINI_DATA_POLICY=local_free\n"
+            "AI_MAX_INPUT_TOKENS=24000\n"
+        )
+        assert any("GEMINI_MODEL" in e for e in errors)
+        assert any("GEMINI_DATA_POLICY" in e for e in errors)
+        assert any("AI_MAX_INPUT_TOKENS" in e for e in errors)
+
+    def test_repo_env_example_passes_check_env_example(self):
+        guard = self._guard()
+        text = (PROJECT_ROOT / ".env.example").read_text(encoding="utf-8")
+        assert guard.check_env_example(text) == []
+
     def test_is_env_like_excludes_env_example(self):
         guard = self._guard()
         assert not guard._is_env_like(Path(".env.example"))
@@ -238,6 +304,28 @@ class TestYamlEnvAllowlist:
             "env:\n" "  API_SESSION_SECRET: replace-with-a-long-random-value\n"
         )
         assert errors == []
+
+    def test_yaml_gemini_api_key_literal_fails(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "steps:\n" "  - name: test\n" "    env:\n" "      GEMINI_API_KEY: some-real-key-value\n"
+        )
+        assert any("GEMINI_API_KEY" in e for e in errors)
+
+    def test_yaml_gemini_api_key_secrets_expression_passes(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "steps:\n"
+            "  - name: test\n"
+            "    env:\n"
+            '      GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"\n'
+        )
+        assert errors == []
+
+    def test_yaml_gemini_model_literal_fails_in_deployment_config(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file("env:\n  GEMINI_MODEL: gemini-3.5-flash\n")
+        assert any("GEMINI_MODEL" in e for e in errors)
 
     def test_yaml_concrete_config_value_fails_in_deployment_config(self):
         # Per policy, a committed deployment YAML may not carry a concrete
@@ -340,7 +428,16 @@ class TestMainBehavior:
             "API_CORS_ORIGINS=http://localhost:5173\n"
             "FRONTEND_URL=http://localhost:5173\n"
             "MAX_BROWSER_UPLOAD_BYTES=26214400\n"
-            "MAX_INGEST_BYTES=104857600\n",
+            "MAX_INGEST_BYTES=104857600\n"
+            "GEMINI_API_KEY=your_api_key_here\n"
+            "GEMINI_MODEL=gemini-2.5-flash\n"
+            "GEMINI_DATA_POLICY=local_free\n"
+            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_RESERVED_OUTPUT_TOKENS=4096\n"
+            "AI_MAX_CONTEXT_CHARS=96000\n"
+            "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
+            "AI_GENERATE_TIMEOUT_SECONDS=60\n"
+            "AI_STREAM_TIMEOUT_SECONDS=120\n",
             encoding="utf-8",
         )
         assert guard.main(["check_credentials.py", str(env_example)]) == 0
