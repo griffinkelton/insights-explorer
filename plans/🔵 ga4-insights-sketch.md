@@ -13,6 +13,8 @@
 
 ## What this is
 
+> **Cross-reference (2026-08-06):** this sketch is the **deferred GA4 insights-engine workstream** — not part of the React/FastAPI migration's first slice. The prototype's `insights/engine.ts` + `InsightCandidates.tsx` are mock-driven prototypes of this design (quarantined; see `migration/master-plan.md` gate 8). The metric-status consumption policy for `validated` / `provisional` / `unavailable` rows lives in `plans/ga4-measurement-contract.md` (canonical); consult it before any engine calculation below is implemented.
+
 When a user authenticates GA4 in the app, the engine pre-computes validated,
 deterministic metrics and surfaces them as **structured insight candidates** with
 evidence, uncertainty labels, and provenance. Gemini's job is to prioritize,

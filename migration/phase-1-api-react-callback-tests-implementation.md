@@ -515,7 +515,7 @@ from api.dependencies import AppSession, get_or_create_session
 from api.schemas import GA4ConnectResponse
 from api.services.ga4_service import begin_oauth, exchange_code
 
-router = APIRouter(prefix="/api/ga4", tags=["GA4"])
+router = APIRouter(prefix="/api/v1/ga4", tags=["GA4"])
 
 
 @router.post("/connect", response_model=GA4ConnectResponse)

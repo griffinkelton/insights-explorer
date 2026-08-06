@@ -3294,4 +3294,17 @@ Review of the 4.18–4.19 refinements. **Nothing executed.**
 | Quarantine layout added | master-plan §12 (target layout + rules) | `frontend/src/test/fixtures/` (mock-ga4/braintree/evidence — test-only) · `test/handlers/` (MSW) · `prototype/` (demo panels, non-production); rules: runtime never imports from `test/`, prod source registry never registers mock sources, prototype panels excluded/flagged, "Demo / mock data" label required |
 | Paginated-OpenAPI deferral | master-plan open decision #9 | Formal `GET /api/v1/drive/list` OpenAPI/Pydantic schema deferred until the slide-out browser is chosen in Phase 5; §9's prose contract is the design artifact until then — no premature Phase 1 schema work |
 
+### 4.21 Feedback integration — UI capture, route drift, three-way doc status (2026-08-06)
+
+Review round covering capture mechanics, conversation-export handling, and route-drift cleanup. Executed (docs/capture only — no migration product code). **Capture is a reference artifact, not implementation.**
+
+| Change | Where | What |
+|---|---|---|
+| **UI source capture + manifest** | new `whisperer-30-reference/UI-CAPTURE-8b4b7b9/` (94 files, ~568 KB) + `MANIFEST.md` | Frozen at `8b4b7b9` (all 17 new commits; supersedes stale `a71c371`). Exclusions: `.env` (rotation = gate 1), lockfiles, gateway creds, generated route trees (reference only). Per-file port classification: **Port/adapt** (19 explorer components + store/utils/router/styles/routes/config) · **Reference only** (46 shadcn, `measurement-contract.ts` verified-faithful, Nitro routes, routeTree) · **Fixture only** (mock-ga4/braintree/evidence, insights/engine) · **Do not port** (all `src/routes/api/*`, ai-gateway, drive-browse, sources.server). Credential guard verified clean on the captured tree |
+| Capture spec recorded | master-plan §12 | SHA-freeze method, scope, exclusions, manifest schema, guard requirement — the plan now tells a future agent exactly how to (re)capture |
+| Three-way doc status | master-plan §1 | `ga4-measurement-contract.md` = **in-migration canonical** · `ga4-insights-sketch.md` = **deferred workstream** (prototypes quarantined) · `evidence-connector-design.md` = **deferred workstream** (panels quarantined; migration only accommodates via `/api/v1`) |
+| Route-drift cleanup | F3 (6 fixes), F4 (1 fix), allowlist | Active instruction text versioned: F3 `streamAi` → `/api/v1/chat`, proxy target → `/api/v1/chat`, `POST /api/v1/upload`, `GET /api/v1/data/preview`, `POST /api/v1/ga4/connect`, `POST /api/v1/drive/picker-token`; F4 router prefix → `/api/v1/ga4`. **Allowlisted (kept):** prototype source captures (Nitro `/api/drive-files`, `/api/chat`), archive transcripts, canonical supersession blocks |
+| Metric policy cross-ref | `plans/ga4-insights-sketch.md` | Header note: sketch is the deferred insights-engine workstream; metric-status policy lives in the canonical contract — consult before implementing any engine calculation |
+| Conversation-export header | `migration/archive/freebuff-conversation-080525.sanitized.md` | Banner upgraded per review: **INTERNAL REFERENCE — SANITIZED TRANSCRIPT — DO NOT SEND TO EXTERNAL MODELS / NOT IN DEFAULT AGENT CONTEXT**; source + sanitization dates + latest SHA (`2d04442`); **re-sanitize before every commit; credential guard runs in CI, not only pre-commit**; archive-only status explicit |
+
 *— End of compiled archive —*

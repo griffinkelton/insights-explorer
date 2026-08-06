@@ -40,7 +40,7 @@ I need you to wire the React store (frontend/src/lib/explorer-store.tsx) to the 
 The file exports:
 - Types: LoadState ("idle" | "loading" | "error" | "ready"), SummaryState ("idle" | "streaming" | "ready" | "error"), Filter, Metric
 - Interface: ExplorerValue with fields: loadState, source, error, filters, metrics, summary, summaryState, chat, streamingId, loadData, failLoad, clearData
-- A streamAi() helper that calls /api/chat with POST and reads the SSE stream
+- A streamAi() helper that calls `/api/v1/chat` with POST and reads the SSE stream
 - A React context provider (ExplorerProvider) that holds all state
 - A useExplorer() hook for consuming components
 
@@ -162,7 +162,7 @@ async function downloadFromDrive(fileId: string): Promise<void> {
 
 ### 6. Replace the streamAi() helper
 
-The existing streamAi() already calls /api/chat. Update it to point to FastAPI instead of the Lovable/TanStack server route:
+The existing streamAi() already calls `/api/chat` in the prototype. Update it to point to FastAPI (`/api/v1/chat`) instead of the Lovable/TanStack server route:
 
 async function streamAi(
   body: { messages?: Message[]; mode?: "chat" | "summary" },
@@ -185,7 +185,7 @@ async function streamAi(
   }
 }
 
-Note: The FastAPI /api/chat endpoint must return a Server-Sent Events (SSE) stream. The streamText response format from the Vercel AI SDK uses plain text streaming, so FastAPI should return StreamingResponse with media_type="text/event-stream" or "text/plain" depending on the format. Check the FastAPI implementation and adjust the reader accordingly.
+Note: The FastAPI `/api/v1/chat` endpoint must return a Server-Sent Events (SSE) stream. The streamText response format from the Vercel AI SDK uses plain text streaming, so FastAPI should return StreamingResponse with media_type="text/event-stream" or "text/plain" depending on the format. Check the FastAPI implementation and adjust the reader accordingly.
 
 ### 7. Add data quality, charts, forecast, funnel fetchers
 
@@ -282,7 +282,7 @@ The existing chat route in the TanStack server proxies to Lovable's AI gateway. 
 Option A (recommended): Delete src/routes/api/chat.ts entirely and let explorer-store.tsx call FastAPI directly (the streamAi function above already does this).
 
 Option B: Keep it as a thin proxy if you need same-origin requests:
-  POST /api/chat → proxy to http://localhost:8000/api/chat
+  POST /api/chat → proxy to http://localhost:8000/api/v1/chat
 
 If you keep the proxy, update it to forward to FastAPI instead of the Lovable gateway.
 
@@ -407,9 +407,9 @@ Also: the OAuth flow sketched in section 4 is superseded by the Phase 1 packet's
 
 The prompt's snippets predate the Phase 1 implementation packet's contract. Apply these adjustments when executing the prompt (full ledger: `insights-explorer-migration-ingest.md` Part 4). The original prompt above is preserved unchanged.
 
-1. **Upload response is wrapped.** `POST /api/upload` returns `{ dataset: DataContext }` — read `const { dataset } = await res.json(); setSource(dataset);` (not the bare object).
-2. **Preview response is wrapped.** `GET /api/data/preview` returns `{ dataset, rows }` — the `loadData()` fallback branch must use `preview.dataset`.
-3. **OAuth URL field is snake_case.** `POST /api/ga4/connect` returns `{ authorization_url }`, not `authUrl`.
+1. **Upload response is wrapped.** `POST /api/v1/upload` returns `{ dataset: DataContext }` — read `const { dataset } = await res.json(); setSource(dataset);` (not the bare object).
+2. **Preview response is wrapped.** `GET /api/v1/data/preview` returns `{ dataset, rows }` — the `loadData()` fallback branch must use `preview.dataset`.
+3. **OAuth URL field is snake_case.** `POST /api/v1/ga4/connect` returns `{ authorization_url }`, not `authUrl`.
 4. **Send cookies.** Add `credentials: "include"` to **every** fetch in the store (and `api.ts`) — F4 requires it or the session cookie is never sent.
 5. **Casing rule.** The API is snake_case (`row_count`, `date_range`, `authorization_url`). Keep F4's `api-types.ts` snake_case types as the wire types; normalize to the store's camelCase shape **once**, in the required `setSourceFromApi` setter — do not scatter conversions across components.
 6. **`ExplorerValue` must add `setSourceFromApi`** (the non-UI setter F4 §11 requires); it was missing from the interface update in section 9.
@@ -432,7 +432,7 @@ The prompt's snippets predate the Phase 1 implementation packet's contract. Appl
 
 Cross-checks the 7 research corrections from the plan's Research Fold-In Log against **this prompt's 13 steps** (source: `insights-explorer-migration-ingest.md` Part 3 §3.8). Additive — the prompt above is unchanged; apply these adjustments when executing it.
 
-1. **Picker token returns token **and** project number (correction 2).** Step 5's `connectDrive()` reads `const { token } = await res.json()`. Update it to also read the project number and hand it to the Picker component: `const { token, appId } = await res.json()` → component calls `setAppId(appId)` (Phase 5's `POST /api/drive/picker-token` will return both — plan Phase 5 amendment 2).
+1. **Picker token returns token **and** project number (correction 2).** Step 5's `connectDrive()` reads `const { token } = await res.json()`. Update it to also read the project number and hand it to the Picker component: `const { token, appId } = await res.json()` → component calls `setAppId(appId)` (Phase 5's `POST /api/v1/drive/picker-token` will return both — plan Phase 5 amendment 2).
 2. **Wire format confirmed (correction 3).** Already covered by this prompt's Research Addendum: the plain-text `getReader()`/`TextDecoder` accumulation in step 6 is correct only for plain text/`toTextStreamResponse()` or plain SSE with `data: `-stripping. Re-confirm the Phase 1 decision recorded in the OpenAPI contract and keep the reader matching — do not mix formats.
 3. **Callback route uses typed search params (correction 6).** Step 4's `handleGA4Callback()` reading `?code=` is already superseded (Reconciliation Addendum item 7). When the `/auth/ga4/callback` **route component** is implemented (not the store), read `status`/`reason` via TanStack Router `validateSearch`/`useSearch` — never `new URLSearchParams(window.location.search)` (F4 §11 cross-check item 2; plan Phase 5 amendment 4).
 4. **Funnel availability is partial (correction 4).** Step 7's `fetchFunnel()` — at Phase 3/6 implementation, scope the funnel to **template funnels** (`runFunnelReport`); user/identifier-level funnel analysis remains blocked by aggregate-only GA4 access. Re-verify the ROADMAP funnel rows at that time.

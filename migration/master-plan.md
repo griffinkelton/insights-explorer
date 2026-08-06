@@ -30,6 +30,16 @@ The master plan adds what none of the source docs have: **execution order, inter
 
 ---
 
+**Planned workstreams vs migration scope (2026-08-06; archive §4.21) — three-way document status:**
+
+| Document | Status | Meaning for the migration |
+|---|---|---|
+| `plans/ga4-measurement-contract.md` | ✅ **In-migration — canonical** | Semantic source of truth (cross-cutting B); Phase 3 funnel + Phase 5 GA4 alignment build against it; metric-status policy lives here |
+| `plans/🔵 ga4-insights-sketch.md` | 🔵 **Deferred workstream** | Design doc for the GA4 insights engine (future); the prototype's `insights/engine.ts` + `InsightCandidates` are mock prototypes of it — quarantined, not ported in the first slice (gate 8) |
+| `plans/🔵 evidence-connector-design.md` | 🔵 **Deferred workstream** | 44 KB design for the evidence connector (future); the three Lovable panels are mock prototypes of it — quarantined, out of the first slice (gate 8); the migration only accommodates it via `/api/v1` + quarantine layout |
+
+---
+
 ## 2. Guiding principles (locked decisions from the archive)
 
 1. **`insights-explorer` is the system of record.** whisperer-30's React components are adopted wholesale as the new frontend; its mocks/gateway/prompts never become production logic. (Archive §1.1; plan "Decision".)
@@ -360,6 +370,13 @@ insights-explorer/
 3. **`src/prototype/`** holds the evidence-connector demo panels (EvidenceConnector / InsightCandidates / MeasurementContract) — explicitly non-production, excluded from normal production routes, or guarded behind a clear demo flag.
 4. **Any preview using mock evidence must visibly show "Demo / mock data"** — no realistic-looking linkage/equity numbers without the label.
 
+**UI source capture spec (2026-08-06; archive §4.21) — do before Phase 4:** capture the complete current `insights-whisperer-30` UI source at a **frozen commit SHA** so future Lovable changes cannot shift the port reference mid-work.
+- **Capture point:** `8b4b7b9` ("Added evidence and GA4 panels" — includes all 17 new commits; supersedes the stale `a71c371` capture).
+- **Scope:** `src/components/explorer/` (19) · `src/components/ui/` (46, shadcn — version-pin reference) · `src/routes/` (index/learn/__root port; `api/*` Nitro routes do-not-port) · `src/lib/` (store/utils port; mocks+engine fixture-only; `measurement-contract.ts` reference) · `src/router.tsx`, `src/styles.css` · `package.json`, `vite.config.ts`, `tsconfig.json` · `src/routeTree.gen.ts` (reference only — regenerated).
+- **Exclusions:** `.env` (tracked in source repo — rotation is gate 1) · lockfiles unless dependency reproduction needs them · Lovable gateway config/credentials · generated route trees (captured only as reference).
+- **Deliverable:** `migration/whisperer-30-reference/UI-CAPTURE-<SHA>/` with a **manifest** listing every file: source SHA · purpose · port classification (`Port/adapt` · `Reference only` · `Fixture only` · `Do not port`).
+- **Every captured file passes the credential guard** before commit.
+
 ---
 
 ## 13. Open decisions (each blocks a specific phase gate)
@@ -439,6 +456,7 @@ insights-explorer/
 | `whisperer-30-reference/` | Phases 0 (rotation evidence), 4 (source capture), 5 (picker port) |
 | `whisperer-30-reference/LOVABLE-UPDATES-080525.md` | Phases 4–5 (Drive-import UI port), evidence-connector workstream, contract reconciliation (`measurement-contract.ts` — verified faithful) |
 | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` | Phase 5 (drive-list contract shape, Import seam), contract transcription cross-check — **reference evidence only, not default agent context** (doc-role split, archive §4.18) |
+| `whisperer-30-reference/UI-CAPTURE-8b4b7b9/` | Phase 4 (frozen port source + classification manifest) — reference only, not default agent context |
 
 ---
 
