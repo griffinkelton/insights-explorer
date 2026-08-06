@@ -3476,4 +3476,15 @@ The queued housekeeping merge from §4.29 is complete.
 | Gate-1 impact | None — gate 1 already closed; this was the documented non-blocking housekeeping follow-up. History scrub via `git-filter-repo` remains optional (rotation already neutralized exposure) |
 | Local note | The remediation scratch-clone's working-tree `.env` copy was removed by the fast-forward (tracked→untracked transition) — immaterial: the real dev `.env` lives on the user's machine and was never touched |
 
+### 4.32 Spec suite created — `migration/specs/` becomes the tactical execution layer (2026-08-06)
+
+Product-owner interview produced a **suite-over-monolith** decision for the executable layer (avoiding a master tactical file that would go stale against the research-gated phases). No product code was written — planning/spec documents only.
+
+| Change | Where | What |
+|---|---|---|
+| Spec suite | `migration/specs/` | **README.md** — tactical execution index + authority map (active spec banner, phase/spec status table, gate flow, Phase 0 recorded execution, cross-cutting tracks A–F, supersession rules, source map). **phase-1-upload-slice.md** — 🔵 ACTIVE, fully executable: Task 0 guard allowlist (the first security task: five env-var names in `scripts/check_credentials.py` presence + env-file value scans, root `.env.example` section, tests, CI) then Tasks 1–10 (bootstrap/healthz, config, stores, upload 25 MB, context, preview, quality, clear, contract tests, runbook) + exit criteria + gate table. **phase-2..6** — outline stubs, each with its research gate from archive §3.12 (Gemini before 3, React 19 before 4, GA4/Drive before 5, Cloud Run before 6; none for 2) |
+| F3/F4 supersession | F3, F4, README, DOCIDX | Both banner-marked **SUPERSEDED FOR EXECUTION** (stay in `specs/` as reference evidence; archive only after their owning phase's PR merges). F4's slice code embedded + task-ordered in phase-1; F4's GA4 sections → phase-5; F4's React client + F3's store wiring → phase-4 (via STORE-DRIFT-MATRIX). README + DOCIDX index rows updated (suite rows added, F3/F4 statuses flipped) |
+| Phase 1 boundary | phase-1-upload-slice.md | Narrow first-PR slice only (guard → upload → context → preview → quality → clear → contract tests); GA4/Drive/Gemini/React/evidence kept out per master-plan §5 authorization; quality + clear endpoints spec'd (adapt `utils.data_loader.assess_data_quality`; Clear Data per retention §5) — F4 lacked both |
+| Status | — | Planning-only; suite is uncommitted until the user's review. Next: product-owner review → commit to `main` (docs), then begin Task 0 (guard allowlist) on `feat/react-fastapi-migration` |
+
 *— End of compiled archive —*

@@ -33,12 +33,26 @@ Index for the migration decision material: moving the `insights-explorer` produc
 | **`policies/test-layer-inventory.md`** | **Which of the 742 tests transfer** — substantiates the "tests won't transfer one-to-one" claim. | 742 = 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths + Phase 6 checklist | 🔵 Ingested |
 | **`policies/dockerfile-pattern.md`** | **Phase 6 single-origin Docker pattern** — concrete deliverable sketch for the hosting amendment. | Multi-stage Dockerfile (Vite build → FastAPI runtime serving the SPA), SPA fallback route, platform notes, verification checklist | 🟡 Reference |
 
-### Implementation packets (`specs/`)
+### Spec suite (`specs/` — the tactical execution layer)
 
-| File | What it is | Contents | Status |
-|---|---|---|---|
-| **`specs/phase-1-api-react-callback-tests-implementation.md`** | **F4 — the Phase 1 implementation packet** (backend + OAuth callback + test strategy). | FastAPI vertical slice (config, session, schemas, upload/preview routes), GA4 OAuth start/callback adapters, React GA4 callback route, MSW-based test migration | 🟡 Reference |
-| **`specs/freebuff-prompt-wire-react-store.md`** | **F3 — the frontend wiring prompt** (for an AI coding agent). | 13-step change list for `explorer-store.tsx`: remove mocks, real `fetch()` calls, GA4/Drive integration, SSE chat, typed client, `.env` files | 🟡 Reference |
+The **executable implementation specs** — one per phase, created 2026-08-06. `specs/README.md` is the authority map (active spec, gates, supersession). See [specs/README.md](specs/README.md).
+
+| File | What it is | Status |
+|---|---|---|
+| **`specs/README.md`** | **Tactical execution index + authority map** — active spec, phase gates, cross-cutting tracks, supersession rules | 🔵 Index |
+| **`specs/phase-1-upload-slice.md`** | **ACTIVE — the executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | 🔵 **ACTIVE** |
+| **`specs/phase-2-utils-decoupling.md`** | Phase 2 outline (decouple `utils/` from Streamlit) | ⚪ STUB |
+| **`specs/phase-3-ai-analysis.md`** | Phase 3 outline (Gemini/chat SSE + analysis; research gate before expansion) | ⚪ STUB |
+| **`specs/phase-4-react-port.md`** | Phase 4 outline (React port — absorbs F3; React 19 research gate) | ⚪ STUB |
+| **`specs/phase-5-ga4-drive.md`** | Phase 5 outline (GA4 OAuth + Drive — absorbs F4 GA4 sections; GA4/Drive research gates) | ⚪ STUB |
+| **`specs/phase-6-cutover-hosting.md`** | Phase 6 outline (cutover + Cloud Run + §17 deferred gates; Cloud Run research gate) | ⚪ STUB |
+
+### Superseded implementation packets (`specs/` — banner-marked 2026-08-06)
+
+| File | What it is | Status |
+|---|---|---|
+| **`specs/phase-1-api-react-callback-tests-implementation.md`** | **F4 — the Phase 1 implementation packet** (backend + OAuth callback + test strategy). Superseded for execution — its vertical-slice code is embedded in `specs/phase-1-upload-slice.md`; GA4 sections park in `specs/phase-5-ga4-drive.md`. | 🟡 **SUPERSEDED** (reference evidence) |
+| **`specs/freebuff-prompt-wire-react-store.md`** | **F3 — the frontend wiring prompt** (for an AI coding agent). Superseded for execution — feeds `specs/phase-4-react-port.md` via `whisperer-30-reference/STORE-DRIFT-MATRIX.md`. | 🟡 **SUPERSEDED** (reference evidence) |
 
 ### Archive (`archive/`)
 
@@ -69,11 +83,11 @@ Frozen, dated snapshot of the source UI repo (`griffinkelton/insights-whisperer-
                     ┌───────────────────────┼───────────────────────┐
                     ▼                       ▼                       ▼
         ┌────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐
-        │ archive/           │   │ specs/freebuff-      │   │ specs/phase-1-api-react-  │
-        │ migration-plan.md  │   │ prompt-wire-react-   │   │ callback-tests-...md      │
-        │ THE 6-phase roadmap│   │ store.md             │   │ (F4: Phase 1 backend)     │
-        │ (Phases 1–6)       │   │ (F3: frontend wiring)│   └──────────────────────────┘
-        └────────────────────┘   └──────────────────────┘
+        │ archive/           │   │ specs/ suite         │   │ specs/phase-1-upload-     │
+        │ migration-plan.md  │   │ (tactical index +    │   │ slice.md                  │
+        │ THE 6-phase roadmap│   │ phase-1..6 specs)    │   │ (ACTIVE executable)       │
+        │ (Phases 1–6)       │   └──────────────────────┘   └──────────────────────────┘
+        └────────────────────┘
                           ┌───────────────────────────────────────────────────┐
                           │ archive/glm-5-2-vs-perplexity-migration-comparison│
                           │ (independent audit lens — GLM facts verified)     │
@@ -96,7 +110,7 @@ Frozen, dated snapshot of the source UI repo (`griffinkelton/insights-whisperer-
 - **The archive is the source of truth.** Everything else derives from it; when docs disagree, the archive's **Part 4 ledger** records which choice is canonical.
 - **The plan is the executable view.** It consumes the archive's research (Part 3) and reconciliation (Part 4) and folds them into its phase sections.
 - **`master-plan.md` is the execution coordinator.** It sequences the phases (0–6), adds cross-cutting workstreams and the target file layout, and points each phase at its input docs — implement from it, consult the source docs for detail.
-- **F3 and F4 are the two halves of implementation** — F4 builds the backend (Phase 1), F3 wires the frontend store (Phase 4). They share the same API contract, so the plan's contract section + Part 4 reconciliation keep them aligned.
+- **The spec suite is the implementation authority.** `specs/` (tactical index + phase-1..6 files) supersedes F3/F4 for execution — F4's backend slice is embedded in `phase-1-upload-slice.md`, F3's store wiring feeds `phase-4-react-port.md` via `whisperer-30-reference/STORE-DRIFT-MATRIX.md`. F3/F4 remain banner-marked reference evidence until their owning phase's PR merges.
 - **The comparison doc is an audit artifact** — it informed the decision but drives no phases.
 - **Two support docs feed the plan directly:** `policies/session-state-inventory.md` (state-migration checklist for Phases 2/4) and `policies/dockerfile-pattern.md` (hosting pattern for Phase 6).
 
@@ -137,6 +151,7 @@ Every doc's original content is **preserved**; corrections/decisions are appende
 | **Gates 1 & 2 Closed (2026-08-06)** | env-rotation-checklist, branch-and-freeze-policy, master-plan, archive | **Gate 1 DONE** — both exposed `AIzaSy…` keys classified as product-owner-owned (insights-explorer GCP), rotated/revoked + old keys invalid (user-confirmed ~2026-08-03); whisperer-30 tracked `.env` **untracked** (`2341c9c` on `fix/remove-tracked-env`, pushed) with `.gitignore` rules + `.env.example`; **history-wide secret scans clean in both repos** + guard exit 0; closure recorded without secret values; **Gate 2 DONE** — `feat/react-fastapi-migration` created + pushed from `main` @ `3769575`; **Streamlit feature freeze ACTIVE** (production/security fixes, CI/deploy fixes, docs only); **gate 7 (vertical slice) now unblocked**; archive §4.28 |
 | **Phase 1 Authorized — Branch Sync + PR Scope (2026-08-06)** | master-plan, env-rotation-checklist, archive | **Reviewer unblock folded in** — `feat/react-fastapi-migration` fast-forwarded to `d1f6f6c` (branch current for Phase 1); **first-PR scope recorded** (FastAPI bootstrap · `/healthz` · config + safe env handling · SessionStore/DatasetStore interfaces + in-memory impls · upload 25 MB · context · preview · quality · **clear** · contract tests) with the keep-out list; **added the previously-omitted `POST /api/v1/data/clear`** to §5 tasks + exit criteria; **guard allowlist rule** (names-only validation: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES` — no wildcards, no value trust); whisperer-30 `fix/remove-tracked-env` → `main` merge queued (non-blocking); archive §4.29 |
 | **Lovable .env Merge Completed (2026-08-06)** | env-rotation-checklist, archive | whisperer-30 **PR #1** (`fix/remove-tracked-env` → `main`) **merged** as `a4d72e8` — `.env` untracked + ignored (`.env` / `.env.*` / `!.env.example`), `.env.example` placeholder committed, all 17 Lovable-wave files intact; branch deleted; the non-blocking housekeeping follow-up is now done (history scrub remains optional); archive §4.31 |
+| **Spec Suite Created (2026-08-06)** | specs/ (new suite), README, DOCIDX, F3, F4, archive | **`migration/specs/` becomes the tactical execution layer** (product-owner interview: suite-over-monolith): `README.md` authority map + `phase-1-upload-slice.md` (**ACTIVE** — full executable slice, guard-allowlist task #1) + phase-2..6 outline stubs (each with research gates from archive §3.12); **F3 + F4 banner-marked SUPERSEDED FOR EXECUTION** (stay in `specs/` as reference until their owning phase's PR merges); README + DOCIDX index rows updated; archive §4.32 |
 | **migration/ Reorg (2026-08-06)** | README, DOCIDX, master-plan, F3, F4, policies, specs, archive, reference | `migration/` organized into functional buckets: **`policies/`** (env-rotation, branch-freeze, data-retention, session-state, test-layer, dockerfile) · **`specs/`** (F3 + F4) · **`archive/`** (ingest, 6-phase roadmap, GLM comparison, `lovable-commits.json`, sanitized transcript); `master-plan.md` + `README.md` stay at the root; **all cross-references rewritten** (location-aware script + hand fixes — verbatim transcript and captured Lovable docs untouched), link-checked 359/359; README index restructured by bucket; DOCIDX diagram + rows updated; master-plan source-map + reading paths updated; archive §4.30 |
 
 ## Document lifecycle (active vs reference vs archive)
@@ -146,7 +161,8 @@ Classification from the master-plan review (2026-08-05) — how implementation s
 | Class | Documents | Treatment |
 |---|---|---|
 | **Active** | `master-plan.md` · `policies/session-state-inventory.md` · `policies/test-layer-inventory.md` · `policies/env-rotation-checklist.md` · `policies/dockerfile-pattern.md` · `policies/data-retention-policy.md` (+ `plans/ga4-measurement-contract.md` outside `migration/`) | Consulted during implementation; maintained |
-| **Reference** | `specs/freebuff-prompt-wire-react-store.md` (F3) · `specs/phase-1-api-react-callback-tests-implementation.md` (F4) · `whisperer-30-reference/` | Read for implementation detail; prompts archive once their implementation PRs merge |
+| **Reference** | `specs/` suite (tactical execution index + phase specs — **the implementation authority**) · `whisperer-30-reference/` | Read for implementation detail |
+| **Superseded (reference evidence)** | `specs/freebuff-prompt-wire-react-store.md` (F3) · `specs/phase-1-api-react-callback-tests-implementation.md` (F4) — banner-marked 2026-08-06; archive once their owning phase's PR merges | Historical implementation input; never execute from them |
 | **Archive** | `archive/glm-5-2-vs-perplexity-migration-comparison.md` · `archive/insights-explorer-migration-ingest.md` · `archive/insights-explorer-migration-plan.md` · `archive/lovable-commits.json` · `archive/freebuff-conversation-080525.sanitized.md` | Audit trail / source of truth — read-only (archive gains only change-log appendices); the plan is superseded by `master-plan.md` for execution order |
 
 *The folder layout mirrors these classes: `policies/` = Active, `specs/` = Reference, `archive/` = Archive (2026-08-06).*

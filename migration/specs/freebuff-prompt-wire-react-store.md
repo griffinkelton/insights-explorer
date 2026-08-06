@@ -1,5 +1,14 @@
 # Freebuff Prompt: Wire explorer-store.tsx to FastAPI Endpoints
 
+> **SUPERSEDED FOR EXECUTION** (2026-08-06)
+>
+> This document is retained as reference evidence and historical implementation
+> input. The current tactical authority is:
+>
+> - Phase 4: `migration/specs/phase-4-react-port.md`
+>
+> The strategic authority remains `migration/master-plan.md`.
+
 ## Canonical API Decisions (2026-08-05 — master-plan revision)
 
 Single source of truth for implementation-facing documents. Anything below that conflicts with earlier text in this document is **superseded** (old paths are marked, not left active):

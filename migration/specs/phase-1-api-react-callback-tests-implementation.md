@@ -3,6 +3,16 @@
 
 **Status:** Prepared implementation blueprint — no repository files have been changed.
 
+> **SUPERSEDED FOR EXECUTION** (2026-08-06)
+>
+> This document is retained as reference evidence and historical implementation
+> input. The current tactical authority is:
+>
+> - Phase 1: `migration/specs/phase-1-upload-slice.md`
+> - Phase 5 (GA4 OAuth + callback): `migration/specs/phase-5-ga4-drive.md`
+>
+> The strategic authority remains `migration/master-plan.md`.
+
 This packet implements the first vertical slice only: **upload a CSV/XLSX → create a server session → receive a serialized data context → render it in React**. It also includes the GA4 OAuth callback route and the testing approach needed when `mock-ga4.ts`/`mock-braintree.ts` are removed.
 
 > Important: keep all actual GA4, Drive, Gemini, and data-processing logic in Python. The FastAPI layer is an adapter around existing `utils/`; React is never allowed to receive provider credentials or access tokens.
