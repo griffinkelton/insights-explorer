@@ -1,6 +1,6 @@
 # Data Retention & AI Data-Boundary Policy
 
-**Status:** 🔵 Planning — written **before the API exists** (master-plan revision 2026-08-05). **Gate 6: APPROVED 2026-08-06** — all five §11 decisions confirmed by the product owner (reviewer-endorsed defaults, incl. 24 h upload retention). Binds Phase 1 implementation and must be revisited at Phase 5 (GA4) and Phase 6 (cutover) as new data surfaces arrive.
+**Status:** 🔵 Planning — written **before the API exists** (master-plan revision 2026-08-05). **Gate 6: APPROVED 2026-08-06** — all five §11 decisions confirmed by the product owner (reviewer-endorsed defaults; `RETENTION_HOURS` 24 h is an **upper bound** — effective Phase 1 retention is ≤ 12 h, see §2). Binds Phase 1 implementation and must be revisited at Phase 5 (GA4) and Phase 6 (cutover) as new data surfaces arrive.
 
 ---
 
@@ -18,7 +18,9 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 2. Uploaded data retention
 
-- **Approved (2026-08-06):** uploaded files live **only for the lifetime of the server session** — no persistence layer for raw uploads. Env-overridable `RETENTION_HOURS` (approved default **24 h** — auto-removed within 24 hours; reviewer default confirmed by product owner 2026-08-06) for any future persisted dataset store. *Lengthen only with a user-visible retention notice and a reliable Clear Data control.*
+- **Approved (2026-08-06):** uploaded files live **only for the lifetime of the server session** — no persistence layer for raw uploads.
+- **Phase 1 retention (effective):** raw uploads are session-scoped and are deleted on **Clear Data, idle timeout, absolute session expiry, or process restart**. The effective retention is the **earlier of session expiry and `RETENTION_HOURS`** — with the approved 2 h idle / 12 h absolute session policy, in-memory uploads persist for **no more than 12 hours** in Phase 1.
+- `RETENTION_HOURS` (default **24 h**) is an **upper bound for a future persisted dataset store**, not a guarantee of 24-hour availability in Phase 1. *Lengthen only with authenticated persistent workspaces, a user-visible retention notice, and a reliable Clear Data control (reviewer guidance 2026-08-06).*
 - Uploaded bytes are released when the session expires or "Clear Data" runs.
 
 ## 3. Raw dataframe persistence
@@ -66,7 +68,7 @@ This policy was **drafted, not decided** (third-review refinement 2026-08-05) un
 
 | # | Decision | Approved value (2026-08-06) | Status |
 |---|---|---|---|
-| 1 | Raw upload retention duration | Session-scoped only; `RETENTION_HOURS` default **24 h** — auto-removed within 24 hours | ✅ Approved 2026-08-06 |
+| 1 | Raw upload retention duration | Session-scoped only; deleted on Clear Data / idle timeout / absolute session expiry / process restart — **effective Phase 1 retention ≤ 12 h** (earlier of session expiry and `RETENTION_HOURS`); `RETENTION_HOURS` **24 h** is an upper bound for a future persisted store, not a 24 h availability guarantee | ✅ Approved 2026-08-06 |
 | 2 | Session idle timeout + absolute expiry | **2 h idle / 12 h absolute** | ✅ Approved 2026-08-06 |
 | 3 | What "Clear Data" deletes immediately | Dataset, preview rows, quality/analysis cache, chat context, export temp files (not OAuth credentials or theme) | ✅ Approved 2026-08-06 |
 | 4 | Whether export/report metadata is logged | Format, row count, timestamp, session id only — never row content; 30-day retention | ✅ Approved 2026-08-06 |

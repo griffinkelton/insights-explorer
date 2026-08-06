@@ -121,8 +121,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 | 4 | Lock upload policy — 25 MB direct / 100 MB server-side with safeguards | ✅ Done | `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`; `MAX_INGEST_BYTES = 100 * 1024 * 1024`; revisit only after production evidence shows legit uploads > 25 MB |
 | 5a | Lock state contracts and placement policy | ✅ Done | Interface responsibilities, state-placement rules, TTL assumptions, failure behavior — locked in §5 + cross-cutting A |
 | 5b | Implement/test local `SessionStore`/`DatasetStore` | Implementation agent | **Phase 1 task** — `InMemorySessionStore`/`InMemoryDatasetStore`; part of the vertical slice |
-| 6 | Confirm retention, clear-data, and Gemini boundary defaults | You | **APPROVED (2026-08-06)** — product owner approved all five points in `data-retention-policy.md` §11: **24 h session-scoped upload retention** (auto-removed within 24 h) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence |
-| 7 | Build upload → preview → quality → clear vertical slice | Implementation agent | ⏳ **Blocked by 1, 2, and 6; includes 5b** |
+| 6 | Confirm retention, clear-data, and Gemini boundary defaults | You | **APPROVED (2026-08-06)** — product owner approved all five points in `data-retention-policy.md` §11: **`RETENTION_HOURS` 24 h** (upper bound for a future persisted store — **effective Phase 1 retention ≤ 12 h**, earlier of session expiry and `RETENTION_HOURS`) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence |
+| 7 | Build upload → preview → quality → clear vertical slice | Implementation agent | ⏳ **Blocked by 1 and 2; includes 5b** — Gate 6 approved 2026-08-06 |
 | 8 | Explicitly defer GA4, Drive, chat, and export | You | 🟢 Active (by plan) |
 
 ---
@@ -333,7 +333,7 @@ Invoke external research **only when an external platform decision is imminent**
 
 | Priority | Research area | Invoke before | Why |
 |---|---|---|---|
-| High | GA4 report compatibility + funnel feasibility (`runReport`/`runFunnelReport`/`getMetadata`/`checkCompatibility`, dim/metric combos, thresholding, `returnPropertyQuota`) | Phase 5 | Exact current API support for the app's intended requests, not generic quotas — risk item 7 stays open until then (9 dims / 10 metrics, 7 for funnel; limits page 404s) |
+| High | GA4 report compatibility + funnel feasibility (`runReport`/`runFunnelReport`/`getMetadata`/`checkCompatibility`, dim/metric combos, thresholding, `returnPropertyQuota`) | Phase 5 | Exact current API support for the app's intended requests, not generic quotas — risk item 7 stays open until then (9 dims / 10 metrics, 7 for funnel; limits page 404s). Output includes a **post-OAuth compatibility-probe checklist** — property-specific facts (available events, custom dims, thresholding) can't be proven from docs alone (archive §3.12) |
 | High | Gemini production models — availability, deprecations, pricing, rate limits, `google-genai` streaming + cancel/disconnect | Phase 3 | Model lifecycle changes quickly; §3.10 facts must be re-verified at implementation time |
 | Medium | Drive shared-drive behavior (`supportsAllDrives`, `includeItemsFromAllDrives`, `corpora`) | Phase 5, **only if slide-out browse chosen** (decision #9) | The remaining practical external gap for `files.list`; §4.19 verified pagination but not shared drives |
 | Medium | Google Picker setup/security (project number, referrer restriction, scopes, token flow) | Phase 5, **only if Picker iframe chosen** (decision #9) | Current launch requirements |
@@ -490,6 +490,32 @@ insights-explorer/
 | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` | Phase 5 (drive-list contract shape, Import seam), contract transcription cross-check — **reference evidence only, not default agent context** (doc-role split, archive §4.18) |
 | `whisperer-30-reference/UI-CAPTURE-8b4b7b9/` | Phase 4 (frozen port source + classification manifest) — reference only, not default agent context |
 | `whisperer-30-reference/STORE-DRIFT-MATRIX.md` | Phase 4 (store-wiring instruction set — captured store vs F3) — reference only, not default agent context |
+
+---
+
+## 17. Operational readiness — deferred gates (added 2026-08-06)
+
+Applies **only before a private hosted beta or public demo — not Phase 1**. The Phase 1 slice stays local-first and single-user. Prevents the dangerous assumption that the first Cloud Run deployment is suitable for public traffic or multi-client data.
+
+**Product modes (explicit decision deferred):**
+
+| Mode | Intended user | Data allowed | Required controls |
+|---|---|---|---|
+| Local/private development | You | Test or authorized client data | Local encryption, `.env` hygiene, no public exposure |
+| Private hosted beta | You / approved client users | Authorized client data | Auth, shared session store, audit/log policy, retention controls |
+| Public demo | Portfolio visitors | Dummy or user-provided non-sensitive data only | No client data, legal copy, rate limits, abuse controls, deletion notice |
+
+**Deferred gates (checkboxes):**
+
+- [ ] **Product-mode decision:** local / private beta / public demo — explicitly chosen before any hosted deployment.
+- [ ] **Auth/workspace isolation** defined before multi-user access — the hosted beta stays **single-user or explicitly invited-user only** until authentication, workspace isolation, and tenant authorization are implemented. Define workspace/dataset ownership; who can access, clear, export, or reconnect a data source; whether GA4/Drive OAuth credentials are user-, workspace-, or client-scoped; and how revoked access, client offboarding, and account deletion work.
+- [ ] **Logging, backup, and error-reporting data-scrubbing policy** implemented — structured logs never contain raw rows, OAuth tokens, API keys, file contents, or Gemini prompt bodies; error reporting scrubs dataset names/identifiers; temp files and cached analysis outputs follow their source dataset's deletion policy; production backups have an explicit retention period and deletion process.
+- [ ] **AI quota, rate-limit, and kill-switch controls** implemented — per-session request/token budget; max prompt/context size; rate limit by session or authenticated user; a kill switch that disables AI features while preserving upload/preview; and clear UI language that AI summaries are analytical assistance, not authoritative findings or causal conclusions (consistent with "deterministic computation first, model explains/prioritizes only").
+- [ ] **Rollback path and accessibility/performance release checks** verified — Streamlit stays available privately while React/FastAPI stabilizes; feature flag or separate beta URL initially; rollback criteria (failed OAuth, failed upload/preview path, data-isolation bug, persistent AI errors, unrecoverable session loss) route users to Streamlit or disable only the affected FastAPI feature, never emergency code changes in production; accessibility baseline (keyboard-operable upload/Clear Data/filters/chat/dialog/sheet/export, focus returns on dialog/sheet close, non-color-only loading/empty/error/success/permission states, screen-reader labels for icon-only buttons, responsive at mobile/tablet/desktop, no regression of useful Streamlit flows); performance budgets (initial bundle <500 KB gzipped · interactive dashboard <2 s · preview <1 s · first streamed AI token <2 s).
+
+**Security posture preference (recorded):** prefer **Workload Identity Federation** or managed runtime identities over long-lived service-account keys · managed secret storage for production values · least-privilege scopes documented separately for GA4, Drive, Gemini, and deployment · treat the tracked-`.env` incident as a learning artifact (rotate, remove, scan, don't reproduce the pattern).
+
+**Explicitly out of scope for now (do not add):** SOC 2/compliance program · multi-tenant billing · enterprise RBAC · long-term data-warehouse schema · production Drive slide-out browse API · evidence-connector implementation · public-demo legal copy beyond a short future backlog item.
 
 ---
 

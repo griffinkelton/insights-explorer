@@ -3050,7 +3050,7 @@ Research-discipline policy adopted from the sixth review round. **Invoke the web
 
 **Prompt 1 — GA4 feasibility (before Phase 5):**
 
-> Research the official GA4 Data API documentation for the Insights Explorer migration. Determine the exact current compatibility, limits, and request requirements for: `runReport`, `runFunnelReport`, `getMetadata`, and `checkCompatibility`; page-path × device-category engagement reporting; questionnaire-start, questionnaire-completion, and post-questionnaire-action measurement; required event/session/user identifiers for cohort/funnel logic; dimension/metric combinations that are incompatible or potentially thresholded; pagination, quota, retry, and `returnPropertyQuota` behavior. Return: official-source citations, implementation constraints, a proposed FastAPI request shape, and a test matrix. Do not recommend inventing metrics that the canonical GA4 measurement contract marks unavailable.
+> Research the official GA4 Data API documentation for the Insights Explorer migration. Determine the exact current compatibility, limits, and request requirements for: `runReport`, `runFunnelReport`, `getMetadata`, and `checkCompatibility`; page-path × device-category engagement reporting; questionnaire-start, questionnaire-completion, and post-questionnaire-action measurement; required event/session/user identifiers for cohort/funnel logic; dimension/metric combinations that are incompatible or potentially thresholded; pagination, quota, retry, and `returnPropertyQuota` behavior. Return: official-source citations, implementation constraints, a proposed FastAPI request shape, and a test matrix. Do not recommend inventing metrics that the canonical GA4 measurement contract marks unavailable. Separate official-documentation findings from property-specific facts that require a post-OAuth compatibility probe; do not represent documentation-only research as proof that a target GA4 property supports the proposed report.
 
 **Prompt 2 — Drive slide-out browse (only if chosen, Phase 5):**
 
@@ -3065,6 +3065,20 @@ Research-discipline policy adopted from the sixth review round. **Invoke the web
 > Research current official Cloud Run documentation for a single-origin React SPA + FastAPI deployment with SSE. Validate: container static-file serving and SPA fallback patterns; SSE timeout, reconnect, disconnect, and concurrency behavior; cookie security behind Cloud Run proxy headers; request size and HTTP/1 versus end-to-end HTTP/2 implications; memory/concurrency recommendations for Pandas/XLSX ingestion; health/readiness endpoints and rollout strategy. Return a production checklist and a Cloud Build / Cloud Run configuration review.
 
 **Timing map:** Phase 0/1 — **no additional external research required** · before Phase 3 — Gemini (Prompt 3) · before Phase 4 — React 19/Recharts version re-check only · before Phase 5 — GA4 (Prompt 1) + the Drive UX-dependent prompt (Prompt 2 or Picker research) · before Phase 6 — Cloud Run (Prompt 4). Gate rule: dispatch a research agent only when the corresponding phase is imminent, so the plan stays current without generating archival material implementation can't use.
+
+**Research queue (one compact queue — no more policy docs):**
+
+| Phase | Research task | Exit artifact |
+|---|---|---|
+| Phase 3 | Gemini model/SDK/quota/deprecation verification | Current model ID, fallback, SDK method, rate-limit/retry policy |
+| Phase 4 | React 19 + Recharts compatibility check | Locked package versions and any override/upgrade decision |
+| Phase 5 | GA4 feasibility research | Official constraints plus compatibility-probe checklist |
+| Phase 5 | Drive shared-drive / Picker research | Only for the selected UX path |
+| Phase 6 | Cloud Run SSE/cookie/deployment research | Deploy checklist and smoke-test requirements |
+
+**Do not dispatch GA4 research ahead of Phase 5.** GA4 facts split into two categories: (1) **documentation facts** — quotas, compatibility checks, request constraints, funnel/report capabilities — answerable from official docs; (2) **property-specific facts** — actual available event names, custom dimensions, GA4 configuration, thresholding, and whether the chosen metric combinations work for the target property — which require a **later authenticated GA4 compatibility/probe run after OAuth exists**. Quotas and report behavior are property-scoped and token-based, so generic research cannot fully prove a specific client report will work. **The first research-agent dispatch is Gemini production readiness before Phase 3, not GA4 feasibility now.**
+
+**Boundary rule:** an external-research agent must never alter canonical internal contract decisions without an explicit reconciliation step (recorded as a Part 4 addendum).
 
 ---
 
@@ -3405,5 +3419,16 @@ Seventh review round. The reviewer confirmed the migration package is **executio
 | Gate 6 approval | data-retention-policy.md | All five §11 decisions marked **✅ Approved 2026-08-06** (product owner): **24 h** session-scoped upload retention (auto-removed within 24 h; lengthen only with a user-visible retention notice) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence (synced to the metric-state policy). ⚠️ flags cleared; §2/§4 confirm markers removed |
 | Master plan | master-plan §4 gate table | Gate 6 row: **Open — product decision** → **APPROVED (2026-08-06)** with the approved values recorded; §4 task line updated to note defaults approved, gate closed. The vertical slice is now blocked only by **Gates 1 (credential rotation)** and **2 (branch + freeze)** — both manual product-owner actions |
 | Reviewer verdict | — | "At this point, more migration planning would have diminishing returns. Close Gates 1, 2, and 6, then let the first implementation PR validate the architecture." Recorded for the record — remaining work is manual git/provider-console work, not documentation |
+
+### 4.27 Review — retention wording correction, gate 7 status, operational-readiness deferred gates (2026-08-06)
+
+Eighth review round (planning only — no migration product code). Sources: four pasted feedback items — (1) research-policy verdict endorsing §3.12 with a GA4 probe distinction, (2) Gate 6 retention confirmation (24 h + recommended approval text), (3) review of `79015f9` with two plan-state corrections, (4) an operational/product-readiness layer for hosted beta.
+
+| Change | Where | What |
+|---|---|---|
+| GA4 probe distinction | archive §3.12 Prompt 1 + master-plan §11-G | Added the reviewer's sentence: separate official-documentation findings from property-specific facts requiring a post-OAuth compatibility probe; documentation-only research is never proof a target property supports a report. Research queue recorded with exit artifacts (Gemini → model ID/fallback/SDK/rate-limit · React 19+Recharts → locked versions · GA4 → constraints + probe checklist · Drive/Picker → only selected UX · Cloud Run → deploy checklist). Boundary rule added: external research never alters canonical internal contract decisions without an explicit reconciliation step. First dispatch is **Gemini before Phase 3**, not GA4 now |
+| Retention wording corrected | data-retention-policy.md §2 + §11 row 1, master-plan gate 6 row | **Effective Phase 1 retention is ≤ 12 h**, not 24 h: raw uploads are deleted on Clear Data, idle timeout, absolute session expiry, or process restart; effective retention = earlier of session expiry and `RETENTION_HOURS`; `RETENTION_HOURS` 24 h is an upper bound for a future persisted store, not a 24 h availability guarantee. Prevents assuming a user can return 18–24 h later and still access a dataset. 24 h remains the right decision without authenticated persistent workspaces |
+| Gate 7 status corrected | master-plan §4 gate table | **Blocked by 1, 2, and 6 → blocked by 1 and 2; includes 5b** (Gate 6 approved 2026-08-06). Gate 7 is the actual implementation authorization — status matters |
+| Operational readiness | master-plan §17 (new) | Single deferred-gates section: product-modes table (local/private beta/public demo) + five deferred checkboxes (product-mode decision · auth/workspace isolation · logging/backup/error-reporting scrubbing · AI quota/rate-limit/kill-switch · rollback + accessibility/performance release checks) + recorded security-posture preference (Workload Identity Federation, managed secrets, least-privilege scopes) + explicit out-of-scope list (SOC 2, billing, RBAC, warehouse schema, slide-out API, evidence connector). Applies only before hosted beta, not Phase 1 — deliberately not a new spec package |
 
 *— End of compiled archive —*
