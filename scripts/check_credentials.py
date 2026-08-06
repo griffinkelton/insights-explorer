@@ -20,6 +20,15 @@ the FastAPI env-var **allowlist** (names only). Three checks:
      defaults (dev origin, byte limits) — it is checked for presence,
      not placeholder-ness.
 
+Phase 1 review correction (2026-08-06): YAML env syntax. GitHub Actions
+(``.github/workflows/*.yml``) and Cloud Build (``cloudbuild.yaml``) commonly
+write env settings as ``NAME: value`` (colon syntax), which a dotenv-only
+parser cannot see. ``check_yaml_env_file()`` parses tracked YAML deployment
+config with ``yaml.safe_load()`` and walks the tree for allowlisted keys.
+Approved values: placeholders, GitHub ``${{ secrets.NAME }}`` references,
+and Cloud secret-manager references (``projects/.../secrets/...``). Literal
+secret or config values in committed deployment config fail.
+
 Deliberate non-matches (kept safe by minimum-length requirements):
   - ``ya29.abc123``  — test fixture in tests/test_ga4_client.py (payload too short)
   - ``AIza...``      — doc placeholder in phase-0 spike spec (dots, too short)
@@ -34,6 +43,9 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from typing import Any
+
+import yaml  # PyYAML — pinned in requirements/dev.txt; pulled by pandas in prod envs
 
 # Real Google API keys: "AIza" + 35 base64url chars (39 total).
 # The doc placeholder "AIza..." never matches (dots, too short).
@@ -78,6 +90,15 @@ PLACEHOLDER_VALUE = re.compile(r"^(<[^>]*>|your_[a-z0-9_]+_here|replace-with-.*|
 ENV_FILE_NAMES = {".env", "docker-compose.yml", "docker-compose.yaml", "cloudbuild.yaml"}
 WORKFLOW_DIR = ".github/workflows"
 
+# Approved non-literal YAML values for allowlisted keys (review fix 2026-08-06):
+# GitHub Actions ``${{ secrets.NAME }}`` and Cloud secret-manager refs.
+YAML_SECRET_REFERENCE = re.compile(r"^\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}$")
+CLOUD_SECRET_REFERENCE = re.compile(r"^projects/[^/]+/secrets/[^/]+/versions/[^/]+$")
+
+# YAML suffixes that get the tree-walking value check (in addition to the
+# dotenv parser, which simply finds nothing in colon-syntax files).
+YAML_SUFFIXES = {".yml", ".yaml"}
+
 
 def scan_text(text: str) -> list[tuple[int, str, str]]:
     """Return [(line_no, pattern_name, redacted_match)] for a text blob."""
@@ -112,7 +133,10 @@ def parse_assignments(text: str) -> dict[str, str]:
 
 
 def _is_env_like(path: Path) -> bool:
-    """Real env/config files the value scan applies to (excludes .env.example)."""
+    """Real env/config files the value scan applies to (excludes .env.example).
+
+    Uses ``Path`` components (works for relative and absolute paths alike —
+    review fix 2026-08-06)."""
     name = path.name
     if name == ENV_EXAMPLE_NAME:
         return False
@@ -120,7 +144,11 @@ def _is_env_like(path: Path) -> bool:
         return True
     if name in ENV_FILE_NAMES:
         return True
-    if len(path.parts) >= 2 and path.parts[:2] == (".github", "workflows"):
+    parts = path.parts
+    if any(
+        parts[i] == ".github" and i + 1 < len(parts) and parts[i + 1] == "workflows"
+        for i in range(len(parts))
+    ):
         return True
     return False
 
@@ -160,6 +188,67 @@ def check_env_file(text: str) -> list[str]:
     return errors
 
 
+def _yaml_scalar(value: Any) -> str:
+    """Normalize a YAML scalar (str/int/bool/None) to a string for value checks."""
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _yaml_value_allowed(value: str) -> bool:
+    """Placeholders and approved secret references pass; literal values fail."""
+    stripped = value.strip()
+    if PLACEHOLDER_VALUE.match(stripped):
+        return True
+    if YAML_SECRET_REFERENCE.match(stripped):
+        return True
+    if CLOUD_SECRET_REFERENCE.match(stripped):
+        return True
+    return False
+
+
+def _walk_allowlisted(node: Any, errors: list[str], where: str) -> None:
+    """Recursively walk YAML mappings/lists for allowlisted keys."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            key_name = str(key)
+            if key_name in ALLOWLISTED_ENV_VARS:
+                val = _yaml_scalar(value)
+                if not _yaml_value_allowed(val):
+                    if key_name in SECRET_ENV_VARS:
+                        errors.append(
+                            f"{where}: {key_name} carries a real value — use "
+                            f"${{{{ secrets.{key_name} }}}} or a secret-manager reference"
+                        )
+                    else:
+                        errors.append(
+                            f"{where}: {key_name} carries a committed value — use a "
+                            "placeholder or an approved secret reference"
+                        )
+            _walk_allowlisted(value, errors, where)
+    elif isinstance(node, list):
+        for item in node:
+            _walk_allowlisted(item, errors, where)
+
+
+def check_yaml_env_file(text: str, where: str = "yaml") -> list[str]:
+    """YAML-aware env-value check for deployment config (review fix 2026-08-06).
+
+    Parses with ``yaml.safe_load()`` and walks the tree for allowlisted keys.
+    Unparseable YAML is skipped here — ``scan_text`` still covers credential
+    shapes in the raw text, and a malformed workflow is a CI failure anyway.
+    """
+    errors: list[str] = []
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return errors
+    if data is None:
+        return errors
+    _walk_allowlisted(data, errors, where)
+    return errors
+
+
 def main(argv: list[str]) -> int:
     files = [Path(a) for a in argv[1:]]
     failures = 0
@@ -183,6 +272,11 @@ def main(argv: list[str]) -> int:
             for err in check_env_file(text):
                 print(f"{path}: {err}")
                 failures += 1
+            # YAML deployment config also gets the tree-walking check (review fix).
+            if path.suffix.lower() in YAML_SUFFIXES:
+                for err in check_yaml_env_file(text, where=str(path)):
+                    print(f"{path}: {err}")
+                    failures += 1
     if failures:
         print(
             "\nCredential-shaped strings or committed env values found. "

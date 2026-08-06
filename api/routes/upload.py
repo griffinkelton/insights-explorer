@@ -36,9 +36,11 @@ async def upload_file(
         raise HTTPException(status_code=415, detail="Upload a CSV, XLSX, or XLS file.")
 
     # Bounded read: stream in 1 MB chunks and reject as soon as the total
-    # exceeds the cap — never buffer the whole file before the size check.
-    # Content-Length may be preflighted, but it is client-supplied and is
-    # never trusted as the only size control.
+    # exceeds the cap. This enforces the application-level content limit during
+    # route processing; note that FastAPI/Starlette multipart parsing may spool
+    # the request before the route reads UploadFile, so this is not a
+    # transport-level cap. Content-Length may be preflighted, but it is
+    # client-supplied and is never trusted as the only size control.
     CHUNK_SIZE = 1024 * 1024
     total = 0
     chunks: list[bytes] = []

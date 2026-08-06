@@ -63,5 +63,18 @@ class InMemorySessionStore:
         with self._lock:
             self._sessions.pop(session_id, None)
 
+    # ── Public test-only helpers (review fix 2026-08-06) — contract tests must
+    # not reach into ``_sessions`` private dicts; stable surface for a future
+    # shared-store swap. ────────────────────────────────────────────────────
+    def clear_for_test(self) -> None:
+        """Empty the store. Test-only; not part of the runtime contract."""
+        with self._lock:
+            self._sessions.clear()
+
+    def count_for_test(self) -> int:
+        """Number of live sessions. Test-only; not part of the runtime contract."""
+        with self._lock:
+            return len(self._sessions)
+
 
 sessions = InMemorySessionStore()

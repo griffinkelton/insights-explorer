@@ -182,6 +182,98 @@ class TestEnvAllowlist:
         assert not guard._is_env_like(Path("migration/specs/phase-1-upload-slice.md"))
 
 
+class TestYamlEnvAllowlist:
+    """YAML-aware env-value scan for deployment config (review fix A, 2026-08-06).
+
+    GitHub Actions / Cloud Build write ``NAME: value`` (colon syntax) which the
+    dotenv parser cannot see; check_yaml_env_file() parses YAML and walks the
+    tree for allowlisted keys.
+    """
+
+    def _guard(self):
+        return _load_guard()
+
+    def test_yaml_literal_secret_value_fails(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "steps:\n"
+            "  - name: test\n"
+            "    env:\n"
+            "      API_SESSION_SECRET: some-real-secret-value\n"
+        )
+        assert any("API_SESSION_SECRET" in e for e in errors)
+
+    def test_yaml_literal_config_value_fails(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "steps:\n"
+            "  - name: test\n"
+            "    env:\n"
+            "      FRONTEND_URL: https://production.example.com\n"
+        )
+        assert any("FRONTEND_URL" in e for e in errors)
+
+    def test_yaml_github_actions_secret_expression_passes(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "steps:\n"
+            "  - name: test\n"
+            "    env:\n"
+            '      API_SESSION_SECRET: "${{ secrets.API_SESSION_SECRET }}"\n'
+        )
+        assert errors == []
+
+    def test_yaml_cloud_secret_manager_reference_passes(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "availableSecrets:\n"
+            "  secretManager:\n"
+            "    - versionName: projects/my-proj/secrets/API_SESSION_SECRET/versions/latest\n"
+        )
+        assert errors == []
+
+    def test_yaml_placeholder_passes(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "env:\n" "  API_SESSION_SECRET: replace-with-a-long-random-value\n"
+        )
+        assert errors == []
+
+    def test_yaml_concrete_config_value_fails_in_deployment_config(self):
+        # Per policy, a committed deployment YAML may not carry a concrete
+        # config value either (only .env.example may). Review fix A matrix.
+        guard = self._guard()
+        errors = guard.check_yaml_env_file("env:\n" "  FRONTEND_URL: http://localhost:5173\n")
+        assert any("FRONTEND_URL" in e for e in errors)
+
+    def test_yaml_nested_workflow_literal_fails_via_main(self, tmp_path):
+        guard = self._guard()
+        workflow = tmp_path / ".github" / "workflows" / "deploy.yml"
+        workflow.parent.mkdir(parents=True)
+        workflow.write_text(
+            "jobs:\n" "  deploy:\n" "    env:\n" "      API_SESSION_SECRET: leaked-value\n",
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(workflow)]) == 1
+
+    def test_yaml_secret_expression_passes_via_main(self, tmp_path):
+        guard = self._guard()
+        workflow = tmp_path / "cloudbuild.yaml"
+        workflow.write_text(
+            "steps:\n"
+            "  - name: test\n"
+            "    env:\n"
+            '      API_SESSION_SECRET: "${{ secrets.API_SESSION_SECRET }}"\n',
+            encoding="utf-8",
+        )
+        assert guard.main(["check_credentials.py", str(workflow)]) == 0
+
+    def test_yaml_unparseable_skipped_not_crash(self):
+        guard = self._guard()
+        errors = guard.check_yaml_env_file("not: [valid: yaml: [")
+        assert errors == []
+
+
 class TestMainBehavior:
     """End-to-end main() behavior on real files."""
 

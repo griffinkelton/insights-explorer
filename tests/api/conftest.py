@@ -26,6 +26,8 @@ def _reset_stores():
     from api.stores.dataset_store import datasets
     from api.stores.session_store import sessions
 
-    sessions._sessions.clear()  # type: ignore[attr-defined]
-    datasets._items.clear()  # type: ignore[attr-defined]
+    # Public test-only helpers (review fix D, 2026-08-06) — no private-dict
+    # access, so the fixture survives a future shared-store swap.
+    sessions.clear_for_test()
+    datasets.clear_for_test()
     yield
