@@ -29,6 +29,11 @@ A single "master implementation spec" would go stale: later phases depend on fre
 | Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | ⚪ STUB | GA4 + selected Drive UX research |
 | Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | ⚪ STUB | Cloud Run readiness gate |
 
+> **Branch-state note (2026-08-06):** Phase 1 + Phase 2 implementations are complete
+> on `feat/react-fastapi-migration`; `main` carries the reconciled planning/documentation
+> record until the migration branch is merged. **Review implementations on the migration
+> branch — `main` holds docs only.**
+
 **Status flow:** `STUB` → (research gate run) → expanded to `ACTIVE` → gate evidence recorded → `DONE`. Flip the banner at the top of this file and the Status column when a phase becomes active.
 
 ## How to use this suite

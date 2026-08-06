@@ -6,6 +6,17 @@
 
 ---
 
+## React/FastAPI migration — Phase 3 go-verified + queue-wait policy settled
+
+**Date:** 2026-08-06 | **Status:** reviewer verified Phase 2 implementation on the migration branch and issued **GO** for Phase 3; spec updated with the remaining operational decisions | **Branch:** docs on `main`; code on `feat/react-fastapi-migration`
+
+- **Permanent branch-state note** added to `specs/README.md` status table: implementations live on `feat/react-fastapi-migration`; `main` holds the docs record until migration merge (prevents false-negative branch reviews).
+- **C6 queue-wait policy settled — Option A:** second AI requests queue behind the in-flight stream with a **bounded `AI_QUEUE_WAIT_SECONDS=30` ceiling**; cancellation while waiting releases cleanly; timeout returns a typed `retryable` `ai_busy` SSE error. Option B (`429 ai_busy` + UI disable) documented as the alternative.
+- **Failure accounting:** the async AI path must emit a `UsageEvent(success=False)` through the sink **before** the typed `error` SSE event — otherwise `failure_count` is meaningless; `test_usage.py` asserts it.
+- `AI_QUEUE_WAIT_SECONDS` joined the guard allowlist, `.env.example`, retention-policy §7.2, and the Phase 3 settings block.
+
+---
+
 ## React/FastAPI migration — Phase 3 review-corrections round (C2–C6) + status reconciliation
 
 **Date:** 2026-08-06 | **Status:** spec corrections applied — Phase 3 still execution-ready, awaiting authorization | **Branch:** docs on `main`; code on `feat/react-fastapi-migration`

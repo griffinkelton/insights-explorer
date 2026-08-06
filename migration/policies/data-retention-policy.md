@@ -75,6 +75,7 @@ Values are **never committed**; `.env.example` holds placeholders/safe defaults 
 | `AI_FIRST_TOKEN_TIMEOUT_SECONDS` | `30` | First-token deadline (typed `timeout` event on expiry) |
 | `AI_GENERATE_TIMEOUT_SECONDS` | `60` | Non-streaming per-request timeout |
 | `AI_STREAM_TIMEOUT_SECONDS` | `120` | Whole-stream deadline |
+| `AI_QUEUE_WAIT_SECONDS` | `30` | Bounded `ai_lock` queue-wait ceiling — Option A (settled 2026-08-06) |
 
 ## 8. Identifier removal / aggregation
 
