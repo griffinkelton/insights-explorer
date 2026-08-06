@@ -540,9 +540,10 @@ def ga4_callback(
     callback = f"{settings.frontend_url.rstrip('/')}/auth/ga4/callback"
 
     if error:
-        return RedirectResponse(f"{callback}?status=error&reason=provider_denied")
+        # User cancelled at Google — canonical status (2026-08-06)
+        return RedirectResponse(f"{callback}?status=cancelled")
     if not code or not state or not secrets.compare_digest(state, session.oauth_state or ""):
-        return RedirectResponse(f"{callback}?status=error&reason=invalid_oauth_state")
+        return RedirectResponse(f"{callback}?status=error&reason=invalid_state")
 
     try:
         session.ga4_credentials = exchange_code(code)
@@ -553,7 +554,7 @@ def ga4_callback(
         return RedirectResponse(f"{callback}?status=error&reason=token_exchange_failed")
 ```
 
-**Correction before implementation:** The OAuth `redirect_uri` must point to the **FastAPI callback** (`https://api.example.com/api/ga4/callback`), not React. Google redirects to FastAPI; FastAPI validates `state`, exchanges the code, sets server session state, and then redirects the browser to React at `/auth/ga4/callback?status=success`. Replace the placeholder callback URL in `begin_oauth()` accordingly.
+**Correction before implementation:** The OAuth `redirect_uri` must point to the **FastAPI callback** (`https://api.example.com/api/v1/ga4/callback`), not React. Google redirects to FastAPI; FastAPI validates `state`, exchanges the code, sets server session state, and then redirects the browser to React at `/auth/ga4/callback?status=success`. Replace the placeholder callback URL in `begin_oauth()` accordingly.
 
 ---
 
@@ -714,11 +715,15 @@ export const Route = createFileRoute("/auth/ga4/callback")({
 
 type CallbackState = "loading" | "success" | "error";
 
+// Canonical callback statuses (2026-08-06): status=success · status=cancelled (no reason) ·
+// status=error&reason=<safe_code> (invalid_state | token_exchange_failed | ...).
+// "provider_denied" / "invalid_oauth_state" are superseded spellings.
+
 function readableReason(reason: string | undefined): string {
   switch (reason) {
-    case "provider_denied":
+    case "cancelled":
       return "Google authorization was cancelled. No data was connected.";
-    case "invalid_oauth_state":
+    case "invalid_state":
       return "The authorization session expired or could not be verified. Please try again.";
     case "token_exchange_failed":
       return "Google authorization completed, but Insights Explorer could not establish a GA4 session.";
@@ -969,7 +974,7 @@ it("surfaces upload errors instead of silently retaining mock data", async () =>
 Test three cases by setting the route search string and mocking `GET /data/preview`:
 
 1. `?status=success`: calls preview, writes dataset to store, navigates home.
-2. `?status=error&reason=provider_denied`: shows cancellation explanation and return button.
+2. `?status=cancelled`: shows cancellation explanation and return button.
 3. `?status=success` + preview failure: shows API error and does not navigate.
 
 ### Delete/update tests that do this
@@ -1011,7 +1016,7 @@ Source-backed notes — full citations in `insights-explorer-migration-ingest.md
 
 1. **PKCE.** RFC 9700 / OAuth 2.1 recommend PKCE for all client types, including confidential web apps. Add an S256 `code_verifier` / `code_challenge` to `begin_oauth()` and exchange it in `exchange_code()`. Keep the existing `state` + `compare_digest` validation (correct per Google's guidance).
 2. **redirect_uri.** Google requires an exact string match against the configured URI — keep `callback_url` construction consistent between `config.py` (`FRONTEND_URL`) and the OAuth adapter.
-3. **Drive Picker (Phase 5 forward).** `POST /api/drive/picker-token` should return the token **and** the project number (`setAppId`); the project number may require enabling the Cloud Resource Manager API. The developer API key should be HTTP-referrer restricted.
+3. **Drive Picker (Phase 5 forward).** `POST /api/v1/drive/picker-token` should return the token **and** the project number (`setAppId`); the project number may require enabling the Cloud Resource Manager API. The developer API key should be HTTP-referrer restricted.
 4. **GA4 funnel nuance.** The Data API has `runFunnelReport` (Funnel quota category) — template funnels may be implementable without event-level export; user-level analyses remain blocked. Revisit the roadmap's funnel rows at implementation time.
 5. **Session cookie.** `secure=False` is flagged for production — set `secure=True` behind HTTPS; consider a `__Host-` cookie prefix on the production origin.
 6. **SSE wire format.** Decide plain SSE (`text/event-stream`, `data: ...\n\n`) vs the Vercel AI SDK data-stream up front, and make the React reader (F3 §6) match.
@@ -1023,9 +1028,9 @@ Cross-checked against the plan doc, the store prompt, and the repo (full ledger:
 
 1. **`GET /healthz` is canonical.** The plan doc and draft GitHub issue say `GET /health` — apply `/healthz` when creating issues and the smoke script.
 2. **Response shapes are canonical:** `UploadResponse { dataset }`, `DataPreviewResponse { dataset, rows }`, `GA4ConnectResponse { authorization_url }`. The plan's bare/camelCase forms and the store prompt's `authUrl` reads are superseded.
-3. **`GET /api/data/context`** is an addition beyond the plan's endpoint table — keep it; it's the clean session-restore endpoint for the store.
+3. **`GET /api/v1/data/context`** is an addition beyond the plan's endpoint table — keep it; it's the clean session-restore endpoint for the store.
 4. **Casing rule stands:** snake_case at the API boundary, camelCase in store state, normalized once in `setSourceFromApi`. Pydantic aliases only if the store insists on camelCase at the wire.
-5. **OAuth design stands:** Google → FastAPI callback → React with `status`/`reason` only. The `begin_oauth()` placeholder callback URL still points at React (`frontend_url` + `/auth/ga4/callback`); the inline "Correction before implementation" note already overrides it — make the FastAPI callback URL (`/api/ga4/callback`) the value used in code.
+5. **OAuth design stands:** Google → FastAPI callback → React with `status`/`reason` only. The `begin_oauth()` placeholder callback URL still points at React (`frontend_url` + `/auth/ga4/callback`); the inline "Correction before implementation" note already overrides it — make the FastAPI callback URL (`/api/v1/ga4/callback`) the value used in code.
 6. **Repo facts confirmed:** 8,461 LOC, 742 unit + 32 smoke tests, 7/16 utils Streamlit coupling, `ga4-measurement-contract.md` exists.
 7. **Deferred work confirmed out of scope** per §13 ("Do not do in Phase 1"): Drive, Gemini streaming, forecasting, funnels, exports.
 ---
@@ -1049,18 +1054,18 @@ Cross-checks the 7 research corrections from the plan's Research Fold-In Log aga
 1. **PKCE is missing from the §8 code sketch (correction 1).** The Research Addendum item 1 states the requirement, but `begin_oauth()` builds params without `code_challenge`. Update the sketch: generate an S256 `code_verifier`/`code_challenge` before building params, add `"code_challenge": challenge, "code_challenge_method": "S256"`, store `code_verifier` on the session (`AppSession.code_verifier: str | None`, §4), and send it in `exchange_code()`. Keep the existing `state` + `secrets.compare_digest` validation.
 2. **Callback route should use typed search params (correction 6).** §11's `callback.tsx` reads `new URLSearchParams(window.location.search)`. Replace with TanStack Router typed search params: a `validateSearch` schema for `status`/`reason`, read via `Route.useSearch()`. On validation failure the router sets `error.routerCode === "VALIDATE_SEARCH"` and renders the route's `errorComponent` — use that as the invalid-state path instead of manual string parsing. Live-verified: `@tanstack/react-router@1.170.20` (archive §3.6).
 3. **MSW setup is live-verified — keep as-is (no change).** §12's `setup.ts` already sets `onUnhandledRequest: "error"` explicitly. That is correct and now source-backed: `msw@2.15.0`'s default is `"warn"` — not `"bypass"` as an earlier research pass claimed — so the explicit `"error"` is a deliberate choice. Do not remove it.
-4. **Picker project number (correction 2).** Phase 5 forward — this packet's Phase 1 scope defers Drive (see "Do not do in Phase 1"). Recorded so the Phase 5 packet returns `{ token, appId }` from `POST /api/drive/picker-token` (see the F3 cross-check addendum item 1).
+4. **Picker project number (correction 2).** Phase 5 forward — this packet's Phase 1 scope defers Drive (see "Do not do in Phase 1"). Recorded so the Phase 5 packet returns `{ token, appId }` from `POST /api/v1/drive/picker-token` (see the F3 cross-check addendum item 1).
 5. **Single-origin hosting (correction 5).** §13's same-origin rule and Research Addendum item 5 already align; the concrete multi-stage Dockerfile pattern is in `migration/dockerfile-pattern.md`.
-6. **No Phase 1 code change for corrections 3, 4, 7.** Chat wire format (3), funnel nuance (4), and GA4 pull pagination/throttling (7) all live in later phases; the plan amendments (Phases 1/3/5) carry the decisions. Funnel note: scope template funnels only when `GET /api/analysis/funnel` is implemented.
+6. **No Phase 1 code change for corrections 3, 4, 7.** Chat wire format (3), funnel nuance (4), and GA4 pull pagination/throttling (7) all live in later phases; the plan amendments (Phases 1/3/5) carry the decisions. Funnel note: scope template funnels only when `GET /api/v1/analysis/funnel` is implemented.
 ---
 
 ## Round 2 Research Addendum (2026-08-05)
 
 > Source: archive §3.9 (live-verified round-2 research).
 
-1. **GA4 client names (for the §8 adapter boundary).** Python package `google-analytics-data` → `from google.analytics.data_v1beta import BetaAnalyticsDataClient`; core methods `run_report`, `batch_run_reports`, `run_funnel_report`. Use these when wiring `utils/ga4_client.py` (and the Phase-5 `POST /api/ga4/pull` adapter) instead of inventing new names.
+1. **GA4 client names (for the §8 adapter boundary).** Python package `google-analytics-data` → `from google.analytics.data_v1beta import BetaAnalyticsDataClient`; core methods `run_report`, `batch_run_reports`, `run_funnel_report`. Use these when wiring `utils/ga4_client.py` (and the Phase-5 `POST /api/v1/ga4/pull` adapter) instead of inventing new names.
 2. **GA4 pagination + quotas (live numbers for the Phase-5-forward pull).** `limit`/`offset` paging; default limit 10,000, max 250,000 rows/request; **Core Concurrent Requests Per Property = 10** (Standard) / 50 (360); token budgets 200k/day + 40k/hr per property; 120 thresholded-requests/hr cap; `returnPropertyQuota: true` for observability; `runFunnelReport` consumes a separate **Funnel** quota. *(§3.9 items 1–2, 6.)*
-3. **Gemini SDK.** Use `google-genai` — `client.models.generate_content_stream(...)` for `/api/chat` and summary; map `thoughts_token_count` into the server usage ledger. *(§3.9 item 4.)*
+3. **Gemini SDK.** Use `google-genai` — `client.models.generate_content_stream(...)` for `/api/v1/chat` and summary; map `thoughts_token_count` into the server usage ledger. *(§3.9 item 4.)*
 4. **AI SDK pin.** The whisperer frontend pins `ai@^7.0.48` — the Phase 1 wire-format decision (plain SSE vs SDK data-stream) must be validated against the v7 API surface. *(§3.9 item 3.)*
 ---
 
@@ -1078,5 +1083,5 @@ Cross-checks the 7 research corrections from the plan's Research Fold-In Log aga
 
 > Source: archive §4.11 (internal reconciliation batch). Apply at Phase 1 implementation.
 
-1. **Single ingestion size policy.** Replace the standalone `max_upload_bytes = 25 MB` default with a shared **`MAX_INGEST_BYTES = 100 MB`** — matching `utils/drive_client.py:48` (`MAX_DRIVE_IMPORT_BYTES`) — env-overridable, applied to both `POST /api/upload` and the Phase-5 `POST /api/drive/download` (Drive downloads happen server-side, so their byte budget applies to parsed content, not the request body). Note platform caps when choosing hosts: Vercel functions ≈4.5 MB body (blocked — archive §3.11); Cloud Run configurable to ~128 MB. The current Streamlit upload path has no explicit guard — this constant becomes the canonical limit.
-2. **GA4 measurement-contract mapping.** F4's `DatasetContext` is a transport descriptor; `plans/ga4-measurement-contract.md` defines computed metrics (5 rows). Wire the mapping at Phase 5: `POST /api/ga4/pull` returns a `DatasetContext` whose `metrics` entries carry contract provenance (`{"contract_row": "daily_reach", "validation_status": "provisional"}`), and add a future `GET /api/ga4/metrics` (contract rows + status) per the contract's Next-steps item 4 (`ReportContract` objects). Rows 3–5 stay `unavailable` until event-level GA4 access exists (aggregate-only; funnel nuance per archive §3.4).
+1. **Single ingestion size policy.** Replace the standalone `max_upload_bytes = 25 MB` default with a shared **`MAX_INGEST_BYTES = 100 MB`** — matching `utils/drive_client.py:48` (`MAX_DRIVE_IMPORT_BYTES`) — env-overridable, applied to both `POST /api/v1/upload` and the Phase-5 `POST /api/v1/drive/download` (Drive downloads happen server-side, so their byte budget applies to parsed content, not the request body). Note platform caps when choosing hosts: Vercel functions ≈4.5 MB body (blocked — archive §3.11); Cloud Run configurable to ~128 MB. The current Streamlit upload path has no explicit guard — this constant becomes the canonical limit. **Superseded 2026-08-06:** the locked policy splits this — **browser uploads cap at 25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`), while the **100 MB `MAX_INGEST_BYTES` applies to Drive/server-side ingestion only** (subject to metadata/streaming/MIME/decompression/row/column/temp-file limits). See the Canonical API Decisions block above and `master-plan.md` §4–5.
+2. **GA4 measurement-contract mapping.** F4's `DatasetContext` is a transport descriptor; `plans/ga4-measurement-contract.md` defines computed metrics (5 rows). Wire the mapping at Phase 5: `POST /api/v1/ga4/pull` returns a `DatasetContext` whose `metrics` entries carry contract provenance (`{"contract_row": "daily_reach", "validation_status": "provisional"}`), and add a future `GET /api/v1/ga4/metrics` (contract rows + status) per the contract's Next-steps item 4 (`ReportContract` objects). Rows 3–5 stay `unavailable` until event-level GA4 access exists (aggregate-only; funnel nuance per archive §3.4).

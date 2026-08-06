@@ -145,13 +145,13 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 **Tasks (F4 §1–§12 is the implementation packet; this is the task skeleton):**
 - [ ] Create `api/` per F4's target layout: `config.py` (env, CORS for `http://localhost:5173`), `dependencies.py` (session), `schemas.py`, `services/dataset_service.py`, `routes/health.py`, `routes/upload.py`, `main.py`.
-- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, 100 MB cap) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality`.
+- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, **25 MB direct-browser cap** — `MAX_BROWSER_UPLOAD_BYTES`, *not* 100 MB) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality`. The **100 MB `MAX_INGEST_BYTES`** applies to **Drive/server-side ingestion only** (Phase 5), subject to metadata, streaming, MIME, decompression, row, column, and temp-file limits — never to the browser upload path (locked 2026-08-05; wording conflict fixed 2026-08-06).
 - [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5** (state placement — see cross-cutting A).
 - [ ] GA4 OAuth **adapters only** in Phase 1 (start/callback scaffolding per F4 §8) — full flow is Phase 5. PKCE (S256) is required even in the adapter (Plan Phase 5 amendment; archive §3.2).
 - [ ] MSW test setup in the frontend *if* the React shell exists yet — otherwise defer to Phase 4 (F4 §12).
 - [ ] Add `requirements/base.txt` entries + `run_api.py` or `make run-api` (uvicorn).
 
-**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; upload→preview→quality works end-to-end via `httpx` contract tests; 100 MB cap enforced; baseline 742 pytest still green.
+**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; upload→preview→quality works end-to-end via `httpx` contract tests; **25 MB browser cap enforced** (boundary test with the §4 rejection message; the 100 MB `MAX_INGEST_BYTES` is a Phase 5 Drive/server-side concern); baseline 742 pytest still green.
 
 **Verification (planned, not run):** `pytest tests/api/` · `curl localhost:8000/healthz` · full `pytest` suite for regression.
 
@@ -212,7 +212,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **Prototype quarantine rule (2026-08-06; archive §4.18):** mock-evidence + deterministic-engine prototype code live under **test/fixture or prototype-only paths**, never runtime production sources; the three panels are **not mounted in the first production slice**; any design preview keeps them behind an obvious **"Demo / mock data"** label; mock sources are **never registered in the production source registry**.
 - [ ] `frontend/README.md` + gitignore for `node_modules`, `dist`.
 
-**Exit criteria (DoD):** `npm run dev` + `uvicorn` produce a usable app at `localhost:5173`; no references to `mock-ga4.ts`/`mock-braintree.ts` in runtime code (fixture-only); no component carrying a `mock` or `Lovable/Nitro` runtime dependency is mounted in the first slice (per `MANIFEST.md` `initial_slice` column); store talks to FastAPI with `credentials: "include"`.
+**Exit criteria (DoD):** `npm run dev` + `uvicorn` produce a usable app at `localhost:5173`; no references to `mock-ga4.ts`/`mock-braintree.ts` in runtime code (fixture-only); **only `functional` (plus optional `placeholder`) components from the `MANIFEST.md` `initial_mount` column are mounted in the first slice** — `deferred` components (Chat, AiSummary, ExportMenu, OnboardingTour, Drive sheet, equity/research/evidence panels) stay unmounted; no component carrying a `mock` or `Lovable/Nitro` runtime dependency is mounted in the first slice; store talks to FastAPI with `credentials: "include"`.
 
 ---
 
@@ -225,6 +225,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 **Tasks — GA4 OAuth:**
 - [ ] `POST /api/v1/ga4/connect` → OAuth URL from `ga4_client.py`, with **PKCE** (S256 `code_verifier`/`code_challenge`; store verifier server-side). (Plan amendment 1; archive §3.2.)
 - [ ] `GET /api/v1/ga4/callback` → validate `state`, exchange code server-side, store credentials server-side, redirect to React callback page with only `status=success` / safe error reason. **Provider tokens never reach React.** (F4 §8; archive §1.13.)
+- [ ] **Canonical callback status contract (2026-08-06):** `status=success` · `status=cancelled` (user cancelled at Google — the `provider_denied` reason is superseded) · `status=error&reason=<safe_code>` (`invalid_state` | `token_exchange_failed` | …). The exact same values are used in FastAPI redirects, the React callback route, F4, the Playwright tests, and the E2E matrix — no legacy spellings (`provider_denied`, `invalid_oauth_state`) in new code.
 - [ ] React callback route `/auth/ga4/callback` with `validateSearch` schema; on validation failure the router sets `error.routerCode === "VALIDATE_SEARCH"` and renders the route's `errorComponent` (verified against `@tanstack/react-router@1.170.20`). (Plan amendment 6; archive §3.6.)
 - [ ] `POST /api/v1/ga4/pull` → paginate (`limit`/`offset`, 10k-row pages, ≤9 dimensions, max 250k rows/request) and throttle for the **10 concurrent requests/property (Standard; 50 for 360)** quota; enable `returnPropertyQuota: true` for observability; account for token budgets (200k/day + 40k/hr per property) and the 120 thresholded-requests/hr cap. (Plan amendment 7; archive §3.9, §3.10.)
 - [ ] Align pulled metrics with `plans/ga4-measurement-contract.md` via `contract_row`/`validation_status` provenance; aggregate-only rows stay `unavailable`. (Archive §4.11.)
@@ -391,7 +392,7 @@ insights-explorer/
 - **Capture point:** `8b4b7b9` ("Added evidence and GA4 panels" — includes all 17 new commits; supersedes the stale `a71c371` capture).
 - **Scope:** `src/components/explorer/` (19) · `src/components/ui/` (46, shadcn — version-pin reference) · `src/routes/` (index/learn/__root port; `api/*` Nitro routes do-not-port) · `src/lib/` (store/utils port; mocks+engine fixture-only; `measurement-contract.ts` reference) · `src/router.tsx`, `src/styles.css` · `package.json`, `vite.config.ts`, `tsconfig.json` · `src/routeTree.gen.ts` (reference only — regenerated).
 - **Exclusions:** `.env` (tracked in source repo — rotation is gate 1) · lockfiles unless dependency reproduction needs them · Lovable gateway config/credentials · generated route trees (captured only as reference).
-- **Deliverable:** `migration/whisperer-30-reference/UI-CAPTURE-<SHA>/` with a **manifest** listing every file: source SHA · purpose · port classification (`Port/adapt` · `Reference only` · `Fixture only` · `Do not port`) · **`runtime_dependency`** (`none` / `mock` / `Lovable/Nitro` / `Python/FastAPI`) · **`initial_slice`** (`yes` / `no`). **Port/adapt means "UI shell" for mock-connected components** — the shell is copied but its data source/commands are replaced by FastAPI endpoints (refined 2026-08-06; see `UI-CAPTURE-8b4b7b9/MANIFEST.md`).
+- **Deliverable:** `migration/whisperer-30-reference/UI-CAPTURE-<SHA>/` with a **manifest** listing every file: source SHA · purpose · port classification (`Port/adapt` · `Reference only` · `Fixture only` · `Do not port`) · **`runtime_dependency`** (`none` / `mock` / `Lovable/Nitro` / `Python/FastAPI`) · **`initial_mount`** (`functional` / `placeholder` / `deferred` — renamed from `initial_slice` 2026-08-06; only `functional` components, plus optional `placeholder` shells, mount in the first slice). **Port/adapt means "UI shell" for mock-connected components** — the shell is copied but its data source/commands are replaced by FastAPI endpoints (refined 2026-08-06; see `UI-CAPTURE-8b4b7b9/MANIFEST.md`).
 - **Every captured file passes the credential guard** before commit.
 
 ---
