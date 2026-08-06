@@ -1,6 +1,6 @@
 # Phase 3 — Wire FastAPI to Real `utils/` + AI Analysis (executable spec)
 
-> 🔵 **ACTIVE** — research gate run 2026-08-06 (Gemini production readiness, archive §3.12 prompt 3). Expansion in progress; open decisions marked ⚠️ **DECISION** await owner answers (recorded below as they land). **Do not begin implementation until the decision markers are resolved.**
+> 🔵 **ACTIVE** — research gate run 2026-08-06 (Gemini production readiness, archive §3.12 prompt 3). **All 13 decisions confirmed 2026-08-06 (see register below).** Implementation may begin on `feat/react-fastapi-migration` when the owner greenlights it.
 >
 > **Status flow:** STUB → (research gate) → ACTIVE → gate evidence recorded → DONE. Phase 1 ✅ and Phase 2 ✅ are complete; this is the next executable phase.
 
@@ -61,7 +61,7 @@ Dispatched to the web + docs research agents. Findings below are **official-sour
 
 ### Reconciliation note
 
-Phase 2 kept `utils/gemini_client.py` framework-neutral with **sync** generators. Phase 3 can wrap the sync stream inside `StreamingResponse` (acceptable for local-first; blocks the event loop per chunk) **or** add an async `aio` path (production-shaped, Cloud Run-ready). ⚠️ **DECISION — see Task 5.**
+Phase 2 kept `utils/gemini_client.py` framework-neutral with **sync** generators. Phase 3 adds an **async `aio` path** for FastAPI SSE (confirmed D2 — `generate_response_stream_async` via `client.aio.models.generate_content_stream`, additive to the sync generator; see Task 5).
 
 ## Task sequence: Preconditions + 12 implementation/acceptance tasks
 
@@ -85,8 +85,10 @@ Extend `.env.example` (FastAPI section) and `scripts/check_credentials.py` **nam
 ```dotenv
 # ── FastAPI migration backend — AI (Phase 3) ─────────────────────────────
 GEMINI_API_KEY=your_api_key_here          # placeholder only — real keys live in untracked .env / deployment secrets
-GEMINI_MODEL=gemini-3.5-flash             # ⚠️ DECISION — see Task 4 (default model)
-AI_MAX_CONTEXT_TOKENS=200000              # prompt-budget guard (see Task 3)
+GEMINI_MODEL=gemini-2.5-flash             # confirmed D1: env-configurable, 2.5-flash fallback
+AI_MAX_CONTEXT_TOKENS=200000              # heuristic prompt-budget guard (confirmed D11)
+GEMINI_TIMEOUT_SECONDS=60                 # confirmed D10: explicit non-stream timeout
+GEMINI_STREAM_TIMEOUT_SECONDS=120         # confirmed D10: explicit streaming timeout
 ```
 
 Guard rules stay: **names only, no values in committed files, placeholders permitted in `.env.example`, real secrets always fail.** No `GEMINI_*` value may be committed even as a "safe default" if it is credential-shaped.
@@ -102,8 +104,10 @@ class Settings(BaseSettings):
     # ... existing Phase 1 fields ...
 
     gemini_api_key: str | None = None          # GEMINI_API_KEY — optional at startup (AI degrades)
-    gemini_model: str = "gemini-3.5-flash"     # GEMINI_MODEL — ⚠️ DECISION default (Task 4)
-    ai_max_context_tokens: int = 200_000       # AI_MAX_CONTEXT_TOKENS — prompt-budget guard (Task 3)
+    gemini_model: str = "gemini-2.5-flash"     # GEMINI_MODEL — confirmed D1: env-configurable, 2.5 fallback
+    ai_max_context_tokens: int = 200_000       # AI_MAX_CONTEXT_TOKENS — heuristic prompt guard (Task 4)
+    gemini_timeout_seconds: int = 60           # confirmed D10: non-stream per-request timeout
+    gemini_stream_timeout_seconds: int = 120   # confirmed D10: streaming timeout
 ```
 
 No startup validation on the key (the app must boot without AI). Add a `has_ai` property:
@@ -120,9 +124,9 @@ def has_ai(self) -> bool:
 
 ### 3. Server-side usage ledger
 
-Per-session in-memory ledger (local-first; durable store + budgets are §17 hosted-beta gates). ⚠️ **DECISION — add `UsageLedger` as a field on `AppSession` (recommended) vs a separate `api/stores/usage_store.py` keyed by session id.**
+Per-session in-memory ledger (local-first; durable store + budgets are §17 hosted-beta gates). **Confirmed D5: `UsageLedger` is a field on `AppSession`** — `clear_dataset_state` resets it. **Confirmed D13: Phase 3 records counts only — no per-session cap enforced (budgets stay a §17 hosted-beta gate).**
 
-Recommended shape (either home):
+Shape:
 
 ```python
 @dataclass
@@ -168,43 +172,35 @@ Thread-safety: `UsageLedger` mutation happens inside the request lifecycle (one 
 
 ---
 
-### 4. ⚠️ DECISION — default Gemini model + model selector pruning
+### 4. Default Gemini model + model selector pruning — **confirmed D1: env-configurable, 2.5-flash fallback**
 
-Options:
+- `GEMINI_MODEL` env var (default `gemini-2.5-flash`) drives every AI route via `settings.gemini_model`.
+- Selector pruned to **{`gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`}**.
+- **Prune `gemini-2.0-flash` (shut down 2026-06-01) and `gemini-1.5-flash` (deprecated) from `AVAILABLE_MODELS` + `MODEL_CONTEXT_LIMITS`** — locked by master-plan §7 model hygiene.
 
-| Option | Effect |
-|---|---|
-| **A. Keep `gemini-2.5-flash` default** (master-plan §7 current text) | Zero behaviour change; matches existing tests + Streamlit; prune only 2.0/1.5 from `AVAILABLE_MODELS` |
-| **B. Adopt `gemini-3.5-flash` default** (research-recommended workhorse) | Current-gen reasoning; update `DEFAULT_MODEL` + `AVAILABLE_MODELS` + `MODEL_CONTEXT_LIMITS`; re-run gemini unit tests with mocked responses (no live-key dependency) |
-| **C. Env-configurable, 2.5-flash fallback** | `GEMINI_MODEL` env with 2.5-flash default; selector pruned to {2.5-flash, 3.5-flash, 3.5-flash-lite} |
-
-Regardless: **prune `gemini-2.0-flash` (shut down) and `gemini-1.5-flash` (deprecated) from `AVAILABLE_MODELS` + `MODEL_CONTEXT_LIMITS`** — locked by master-plan §7 model hygiene.
-
-**Acceptance (any option):** `AVAILABLE_MODELS` contains no shut-down model; default model constant is used by every AI route; unit tests mock `_get_client` (no live key).
+**Acceptance:** `AVAILABLE_MODELS` contains no shut-down model; `settings.gemini_model` default is `gemini-2.5-flash` and is overridable via env; every AI route reads the model from settings; unit tests mock `_get_client` (no live key).
 
 ---
 
-### 5. ⚠️ DECISION — streaming implementation
+### 5. Streaming implementation — **confirmed D2: async `aio` path; D3: JSON envelope**
 
-| Option | Shape | Trade-off |
-|---|---|---|
-| **A. Wrap the Phase 2 sync generator** | `StreamingResponse(sync_gen(), media_type="text/event-stream")`; run chunk iteration via `anyio.to_thread` per chunk | Reuses tested framework-neutral `generate_response_stream`; per-chunk thread hop; fine local-first |
-| **B. Add an async `aio` path** | New `generate_response_stream_async` in `utils/gemini_client.py` using `client.aio.models.generate_content_stream`; `await client.aio.aclose()` on lifespan shutdown | Cloud Run-ready; clean `CancelledError` handling; adds a second code path to a Phase-2-tested module |
-| **C. Hybrid** | Keep sync utils; API route wraps with `run_in_threadpool` for the whole stream, buffering 1–2 chunks | Simpler than A per-chunk; slightly higher latency |
+- Add `generate_response_stream_async` to `utils/gemini_client.py` using `client.aio.models.generate_content_stream`, honoring `settings.gemini_stream_timeout_seconds`; close the aio client via a FastAPI lifespan (`await client.aio.aclose()`).
+- Keep the Phase 2 sync `generate_response_stream` intact for Streamlit — the async path is additive.
+- Wire format is locked: **plain SSE** — `media_type="text/event-stream"`, no AI SDK data-stream framing (decision #1; matches `ai@^7.0.48` + `toTextStreamResponse()`).
 
-**Recommended: B if Cloud Run concurrency matters soon; A if Phase 3 must stay minimal.** Wire format is locked: **plain SSE** — `data: <chunk>\n\n`, `media_type="text/event-stream"`, no AI SDK data-stream framing (decision #1; matches `ai@^7.0.48` + `toTextStreamResponse()` + the captured F3 reader).
-
-SSE event contract (⚠️ **DECISION — trailer shape**):
+SSE event contract (**confirmed D3 — JSON envelope**):
 
 ```text
 data: {"type":"text","content":"..."}\n\n        # per chunk
-data: {"type":"usage","input_tokens":N,...}\n\n  # final chunk: ledger/usage trailer (optional)
+data: {"type":"usage","input_tokens":N,"output_tokens":N,"thoughts_token_count":N,"total_token_count":N}\n\n  # final chunk: usage trailer from usage_metadata
+  # (present only when the provider reported usage)
 data: {"type":"done"}\n\n                        # stream end
+data: {"type":"error","detail":"..."}\n\n      # provider/stream failure (generic detail, never raw exception text)
 ```
 
-or plain text chunks + a final `[DONE]` line. **Recommended: JSON envelope** (survives commas in prose; F3 reader updated in Phase 4 to parse it — record in the store-drift matrix).
+Phase 4 updates the F3 reader to parse the JSON envelope — record this in the store-drift matrix.
 
-**Acceptance:** SSE contract test asserts ≥2 partial chunks stream before completion; disconnect cancels the generator (test with a cancelled TestClient stream where feasible).
+**Acceptance:** SSE contract test asserts ≥2 partial chunks stream before completion; disconnect cancels the async generator (`asyncio.CancelledError` propagates; Starlette handles it); usage trailer reflects the final chunk's `usage_metadata`.
 
 ---
 
@@ -225,7 +221,9 @@ class ChatError(BaseModel):
     detail: str
 ```
 
-Route (option A sketch — adjust per Task 5 decision):
+**Confirmed D9 — one conditional retry, only before streaming begins:** on `RESOURCE_EXHAUSTED`/429 from the *non-streaming* warm-up (or on the first aio call failure), retry **once** after a short backoff (~2–5 s) before surfacing the rate-limit error. Never retry mid-stream (client sees partial output).
+
+Route sketch (async path):
 
 ```python
 router = APIRouter(prefix="/api/v1", tags=["ai"])
@@ -270,6 +268,8 @@ async def chat(
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
 
+**Confirmed D12 — bounded chat history:** `messages` limited to **40 turns** and each `content` to **4,000 chars**; 422 on overflow (pydantic `Field` constraints).
+
 **Reconnect safety (release gate 3):** server is stateless per request — a reconnect re-sends the same `messages` payload minus the partial assistant turn; no duplicate assistant messages are appended server-side (client owns history). Partial output is safe to discard.
 
 **Errors:** no dataset → 409 (from `require_dataset`) · no API key → 503 with `{"detail": "AI features unavailable — configure GEMINI_API_KEY"}` (reuse `settings.has_ai`) · provider errors streamed as `type: error` events, never as raw exception text.
@@ -280,7 +280,7 @@ async def chat(
 
 ### 7. Deterministic-context assembly + prompt allowlist
 
-New `api/services/ai_service.py` (or extend `dataset_service` — ⚠️ **DECISION on home; recommended: separate `ai_service.py` to keep upload concerns separate**):
+New **`api/services/ai_service.py`** (confirmed D8 — separate service keeps upload concerns apart):
 
 ```python
 @dataclass(frozen=True)
@@ -317,7 +317,7 @@ def scrub_identifiers(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=drop) if drop else df
 ```
 
-⚠️ **DECISION — severity:** (a) **hard drop** (recommended — §8 says "removed or aggregated before any AI call") vs (b) drop + record a `DatasetWarning` vs (c) stats-only prompts with no raw sample rows at all (most conservative; `build_summary_prompt` would need a stats-only variant).
+**Confirmed D4 — drop + warning:** identifier columns are dropped from the prompt sample **and** a structured `DatasetWarning` (`code: "identifiers_scrubbed"` — extend the `DatasetWarning.code` literal) is attached to the response context so the user knows context was reduced. Stats-only prompts (option c) were explicitly not chosen.
 
 **Metric-status caveats** — enforce the canonical policy at the boundary:
 
@@ -335,7 +335,9 @@ def metric_status_caveats(ctx: DatasetContext) -> list[str]:
 
 Caveats are appended to the prompt (provisional → directional label; unavailable → never numeric evidence). `ctx.metrics` is empty in Phase 3 (no mutation endpoints yet) — the hook is in place for Phase 4/5.
 
-**Acceptance:** unit tests assert identifier columns never appear in `prompt_df`; caveat builder covers provisional + unavailable; `build_summary_prompt` gets the scrubbed sample.
+**Confirmed D11 — heuristic hard guard, optional exact count:** before the first Gemini call, estimate prompt tokens via `len(prompt) / 4` (heuristic) and hard-refuse with a typed 422 if over `AI_MAX_CONTEXT_TOKENS`; use `countTokens` only when exact accounting is needed (e.g. debugging oversized prompts).
+
+**Acceptance:** unit tests assert identifier columns never appear in `prompt_df` and a `DatasetWarning` with `code: identifiers_scrubbed` is emitted; caveat builder covers provisional + unavailable; `build_summary_prompt` gets the scrubbed sample; heuristic guard 422s an oversized prompt.
 
 ---
 
@@ -396,24 +398,9 @@ Both are **server-side deterministic** calls (`forecast_metric`, `build_funnel_d
 
 ---
 
-### 10. `POST /api/v1/export` (markdown/excel/pdf)
+### 10. Export — **confirmed D6: DEFERRED to Phase 4**
 
-```python
-class ExportRequest(BaseModel):
-    format: Literal["markdown", "excel", "pdf"] = "markdown"
-
-class ExportResponse(BaseModel):
-    format: str
-    filename: str
-    size_bytes: int
-    download_url: str   # Phase 6 serves static; Phase 3 returns the artifact inline (see below)
-```
-
-Phase 3 behavior: build via `report_exporter` (`build_markdown_report` / `build_excel_report` / `build_pdf_report`) and return `Response(content=..., media_type=...)` with `Content-Disposition: attachment`. **Retention §metadata:** log `{format, timestamp, row_count, opaque request/session id}` only — never contents (30-day metadata rule; no logging table needed yet — in-memory last-export record on the session, cleared by Clear Data).
-
-⚠️ **DECISION — export in Phase 3 vs Phase 4:** master-plan §7 lists export in the wire-real-utils task, but the Phase 1 boundary kept exports out. Options: (a) include now (parity with Streamlit) or (b) defer to Phase 4 with the React download flow. **Recommended: include** — `report_exporter` is already decoupled and deterministic; the frontend wiring is what belongs to Phase 4.
-
-**Acceptance:** export contract test returns a non-empty artifact per format with correct media type; metadata record contains no content.
+Export endpoints are **not** part of the Phase 3 PR. `report_exporter` (`build_markdown_report` / `build_excel_report` / `build_pdf_report`) is already decoupled and deterministic; the export API + React download flow ship together in Phase 4 (with the §metadata-only retention logging rule: `{format, timestamp, row_count, opaque request/session id}` — never contents). Note the deviation from master-plan §7's task list in the gate evidence.
 
 ---
 
@@ -443,29 +430,29 @@ Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; 
 
 | Test | Asserts |
 |---|---|
-| `test_chat.py` | 409 no dataset · 503 no key · mocked stream yields ≥2 partial chunks · usage trailer · error event shape |
-| `test_analysis_summary.py` | summary + usage returned · 409/503 · mocked `_get_client` |
+| `test_chat.py` | 409 no dataset · 503 no key · mocked stream yields ≥2 partial chunks · usage trailer · error event shape · bounded-history 422 · one-retry-on-429-before-stream |
+| `test_analysis_summary.py` | summary + usage returned · 409/503 · mocked `_get_client` · timeout config honored |
 | `test_analysis_forecast.py` | insufficient-data vs valid forecast · auto-detect date col |
 | `test_analysis_funnel.py` | per-step aggregation · min_length=2 validation |
-| `test_export.py` | markdown/excel/pdf artifacts + media types · metadata contains no content |
-| `test_usage.py` | ledger counts grow · Clear Data resets · by_request_type |
-| `test_ai_context.py` | identifier scrub drops PII columns · metric caveats for provisional/unavailable |
-| `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default |
+| `test_usage.py` | ledger counts grow · Clear Data resets · by_request_type · no cap enforced (D13) |
+| `test_ai_context.py` | identifier scrub drops PII columns + `identifiers_scrubbed` warning · metric caveats for provisional/unavailable · heuristic 422 guard |
+| `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default + override · timeout defaults |
 
-All Gemini routes mock `utils.gemini_client._get_client` — no live key in CI.
+All Gemini routes mock `utils.gemini_client` client — no live key in CI.
 
-**PR boundary (single PR):** `api/config.py` · `.env.example` guard additions · `utils/gemini_client.py` model hygiene · `api/services/ai_service.py` · `api/routes/chat.py` + `analysis.py` + `export.py` + `usage.py` · `api/schemas.py` additions · `api/stores/session_store.py` (or `usage_store.py`) · `tests/api/*` · `tests/test_gemini_client.py` updates. **No GA4, Drive, React, evidence.**
+**PR boundary (single PR):** `api/config.py` · `.env.example` guard additions · `utils/gemini_client.py` model hygiene + async stream path · `api/services/ai_service.py` · `api/routes/chat.py` + `analysis.py` + `usage.py` · `api/schemas.py` additions · `api/stores/session_store.py` (UsageLedger field) · `tests/api/*` · `tests/test_gemini_client.py` updates. **No GA4, Drive, React, evidence, export.**
 
 **Validation:** `pytest tests -q` (full regression, expect ~794 + new) · `pytest tests/api -q` · `git ls-files -z | xargs -0 python3 scripts/check_credentials.py` (exit 0) · `pre-commit run --all-files` · manual smoke: upload fixture → chat SSE curl with live key (local `.env` only).
 
 ## Exit criteria (DoD)
 
-- [ ] Chat + analysis + export + usage endpoints live under `/api/v1`; all contract-tested.
-- [ ] SSE contract test asserts partial chunks stream (release gate 3 reconnect shape documented).
-- [ ] Prompt allowlist + identifier scrub enforced per data-retention-policy §7–§8 (no raw rows, no identifiers, no tokens in prompts or usage events).
+- [ ] Chat + summary + forecast + funnel + usage endpoints live under `/api/v1`; all contract-tested (export deferred to Phase 4 per D6).
+- [ ] SSE contract test asserts ≥2 partial chunks stream (release gate 3 reconnect shape documented); JSON envelope events (`text`/`usage`/`done`/`error`) asserted.
+- [ ] Prompt allowlist + identifier scrub (drop + `identifiers_scrubbed` warning) enforced per data-retention-policy §7–§8 (no raw rows, no identifiers, no tokens in prompts or usage events).
 - [ ] Metric-status policy enforced at the boundary (provisional caveated; unavailable never numeric evidence).
-- [ ] Usage ledger per session, reset by Clear Data, no content stored.
-- [ ] `AVAILABLE_MODELS` pruned of shut-down models; default model decision recorded.
+- [ ] Usage ledger on `AppSession`, reset by Clear Data, counts only (no cap — D13), no content stored.
+- [ ] `AVAILABLE_MODELS` pruned of shut-down models; `GEMINI_MODEL` env-configurable with 2.5-flash fallback (D1).
+- [ ] Async aio streaming path + explicit timeouts + one pre-stream 429 retry + bounded chat history (D2/D9/D10/D12) tested.
 - [ ] Full regression + guard + hooks green; live smoke with a real local key.
 
 ## Gate table — Phase 3 gate
@@ -478,15 +465,20 @@ All Gemini routes mock `utils.gemini_client._get_client` — no live key in CI.
 | Retention boundary | Prompt allowlist + identifier scrub + metric-status caveats enforced | Implementation agent | `test_ai_context.py` + policy cross-check |
 | Phase 3 gate | All exit criteria met | Implementation agent | Record evidence; flip `specs/README.md`; open Phase 4 after the React 19 verification gate |
 
-## ⚠️ DECISION register (asked to owner 2026-08-06)
+## ✅ DECISION register — ALL CONFIRMED (2026-08-06)
 
-| # | Decision | Options | Status |
-|---|---|---|---|
-| 1 | Default Gemini model | A: keep 2.5-flash · B: adopt 3.5-flash · C: env-config, 2.5 fallback | ⏳ pending |
-| 2 | Streaming implementation | A: wrap sync gen · B: async aio path · C: hybrid | ⏳ pending |
-| 3 | SSE trailer shape | JSON envelope vs plain chunks + [DONE] | ⏳ pending |
-| 4 | Identifier severity | a: hard drop · b: drop + warning · c: stats-only prompts | ⏳ pending |
-| 5 | Usage ledger home | AppSession field vs separate usage_store | ⏳ pending |
-| 6 | ai_service home | separate `api/services/ai_service.py` vs extend dataset_service | ⏳ pending |
-| 7 | Export in Phase 3 | include now (recommended) vs defer to Phase 4 | ⏳ pending |
-| 8 | Free vs paid tier enforcement | document-only vs startup warning vs hard block | ⏳ pending |
+| # | Decision | Confirmed choice |
+|---|---|---|
+| 1 | Default Gemini model | **C — env-configurable `GEMINI_MODEL`, `gemini-2.5-flash` fallback; selector {2.5-flash, 3.5-flash, 3.5-flash-lite}** |
+| 2 | Streaming implementation | **B — async `aio` path (`generate_response_stream_async`), additive to the sync generator** |
+| 3 | SSE event shape | **A — JSON envelope** (`type: text/usage/done/error`); F3 reader updated in Phase 4 |
+| 4 | Identifier severity | **B — drop + structured `DatasetWarning` (`code: identifiers_scrubbed`)** |
+| 5 | Usage ledger home | **A — `UsageLedger` field on `AppSession`; reset by Clear Data** |
+| 6 | ai_service home | **A — separate `api/services/ai_service.py`** |
+| 7 | Export in Phase 3 | **B — deferred to Phase 4** (with the React download flow + metadata-only logging) |
+| 8 | Free vs paid tier | **Custom — do NOT infer free vs paid from the API key**; document-only (hosted beta requires a paid/Cloud key; local dev may use any key) |
+| 9 | 429/rate-limit retry | **Custom — one conditional retry, only before streaming begins** (never mid-stream) |
+| 10 | Request timeouts | **A — explicit** (`GEMINI_TIMEOUT_SECONDS=60`, `GEMINI_STREAM_TIMEOUT_SECONDS=120`) |
+| 11 | Prompt-size guard | **Custom — heuristic hard guard** (`len/4` → 422 over `AI_MAX_CONTEXT_TOKENS`), optional exact `countTokens` only when needed |
+| 12 | Chat payload limits | **A — bounded history** (40 turns, 4,000 chars/content, 422 on overflow) |
+| 13 | Per-session AI budget | **A — record counts only in Phase 3**; enforcement stays a §17 hosted-beta gate |
