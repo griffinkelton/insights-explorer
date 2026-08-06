@@ -200,6 +200,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 8. Phase 4 — Port React UI into `frontend/` (Week 4)
 
+> **STATUS: ✅ DONE (2026-08-06)** — Waves 4A + 4B complete on `feat/react-fastapi-migration` (`075dfa4` + `ed94679`). Evidence: `frontend/` scaffold (Vite 8.2.1 + TanStack Router 1.170.21 + Tailwind v4.3.3 + React 19.2.8 — Task 0 pins resolved, recharts absent), `api.ts` snake→camel boundary normalization + typed error map, drift-matrix store (server-owned state, no seeds, named-SSE chat with streamingId retry/cancel, summary, theme, usage), selective shadcn primitives, mounted Chat + AiSummary (Wave 4B), MSW+vitest 17 tests, Playwright Task 9 gate green against real FastAPI (upload → preview → quality → AI panel → Clear Data), CI `frontend-port` + `frontend-port-e2e` jobs, eslint quarantine + no-raw-fetch boundaries. Full record: `specs/phase-4-react-port.md`.
+
 **Inputs:** `specs/freebuff-prompt-wire-react-store.md` (F3 — 13 steps) · plan Phase 4 + amendments · archive §3.6 (validateSearch), §3.9 items 3/5 (pins, bun), §3.10 items 2/5 (strip list, Recharts) · `whisperer-30-reference/` (captured source; **the store-wiring instruction set is `whisperer-30-reference/STORE-DRIFT-MATRIX.md`** — captured store vs F3, supersedes the earlier drift cross-check).
 
 **Goal:** copy the whisperer-30 components in, strip the Start/Lovable/Nitro plumbing, and swap mock store calls for real API calls.
@@ -223,6 +225,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 ---
 
 ## 9. Phase 5 — GA4 OAuth + Drive Picker (Week 5)
+
+> **STATUS: 🔵 EXPANDED — execution-ready pending Task 0 research gates + decisions D1–D5 (2026-08-06).** `specs/phase-5-ga4-drive.md` expanded from the stub: Tasks 0–7 (GA4 feasibility + Drive browse-UX research gates; PKCE S256 OAuth service/routes with transaction-cookie binding; Drive `download` trust-boundary port of `utils/drive_client.py`; GA4 `pull` with measurement-contract provenance; browse path per D1 (slide-out `files.list` vs Picker iframe); React wiring into the Phase 4 shell; contract tests + 12-row Drive E2E matrix + guard allowlist). Open decisions D1–D5 (§13 #7/#9 + owner choices) must be settled before implementation; research gates are the first implementation task, not a precondition for this document.
 
 **Inputs:** plan Phase 5 + amendments (items 1–7) · archive §3.2 (PKCE), §3.3 (Picker), §3.4 (GA4), §3.6 (validateSearch) · F4 §8 (OAuth adapters) · `utils/ga4_client.py`, `utils/drive_client.py`, `components/drive_picker_component_frontend/`.
 
