@@ -115,8 +115,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 | # | Gate | Owner | Status |
 |---|---|---|---|
-| 1 | Rotate/remove tracked Lovable credentials | You | ⏳ **Blocked — manual provider-console work** — evidence: all real credentials identified · rotated/revoked · old ones confirmed unusable · tracked `.env` removed from index + gitignored · **history-wide secret scan passes** (not just new files) · rotation recorded without secret values (`env-rotation-checklist.md` Phases A–E) |
-| 2 | Create migration branch + Streamlit feature freeze | You | ⏳ **Open — manual Git work** (`branch-and-freeze-policy.md`) |
+| 1 | Rotate/remove tracked Lovable credentials | You | ✅ **DONE (2026-08-06)** — both exposed `AIzaSy…` keys owned by product owner's insights-explorer GCP setup, rotated/revoked + old keys confirmed invalid (user-confirmed ~2026-08-03); whisperer-30 tracked `.env` (Lovable connector key only) **untracked** (`2341c9c`, branch `fix/remove-tracked-env`, pushed), `.gitignore` rules + `.env.example` added; **history-wide secret scans clean in both repos** + credential guard exit 0; closure recorded without secret values (`env-rotation-checklist.md` — Gate 1 closure record) |
+| 2 | Create migration branch + Streamlit feature freeze | You | ✅ **DONE (2026-08-06)** — `feat/react-fastapi-migration` created + pushed from `main` @ `3769575`; Streamlit feature freeze **ACTIVE** on `main` (production/security fixes, CI/deploy fixes, and docs only; feature requests park in `IDEAS.md` as `post-migration`) — `branch-and-freeze-policy.md` §4 |
 | 3 | Publish canonical API decision record | ✅ Done | Confirm all implementation docs use `/api/v1` (F3/F4/plan top sections) |
 | 4 | Lock upload policy — 25 MB direct / 100 MB server-side with safeguards | ✅ Done | `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`; `MAX_INGEST_BYTES = 100 * 1024 * 1024`; revisit only after production evidence shows legit uploads > 25 MB |
 | 5a | Lock state contracts and placement policy | ✅ Done | Interface responsibilities, state-placement rules, TTL assumptions, failure behavior — locked in §5 + cross-cutting A |

@@ -56,6 +56,8 @@ git checkout -b feat/react-fastapi-migration
 # confirm: git branch --show-current  →  feat/react-fastapi-migration
 ```
 
+**DONE — branch created + pushed 2026-08-06 (gate 2 closed):** `feat/react-fastapi-migration` was cut from `main` @ `3769575` and pushed to `origin` (`origin/feat/react-fastapi-migration`). **The Streamlit feature freeze is now ACTIVE (2026-08-06):** `main` accepts only **production/security fixes, CI/deploy fixes, and docs**; new feature requests park in `IDEAS.md` tagged `post-migration`; the migration-impact test (§3) applies to every `main` change; fix-forward rule active (merge `main` → migration branch promptly after any `main` fix).
+
 ## 5. Lift criteria
 
 1. **Phase 1 DoD met** (upload → server session → React preview/quality → clear-data, with contract tests green) → freeze **relaxes** to: "no new Streamlit features that add migration surface; small Streamlit fixes OK."

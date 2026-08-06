@@ -3431,4 +3431,15 @@ Eighth review round (planning only — no migration product code). Sources: four
 | Gate 7 status corrected | master-plan §4 gate table | **Blocked by 1, 2, and 6 → blocked by 1 and 2; includes 5b** (Gate 6 approved 2026-08-06). Gate 7 is the actual implementation authorization — status matters |
 | Operational readiness | master-plan §17 (new) | Single deferred-gates section: product-modes table (local/private beta/public demo) + five deferred checkboxes (product-mode decision · auth/workspace isolation · logging/backup/error-reporting scrubbing · AI quota/rate-limit/kill-switch · rollback + accessibility/performance release checks) + recorded security-posture preference (Workload Identity Federation, managed secrets, least-privilege scopes) + explicit out-of-scope list (SOC 2, billing, RBAC, warehouse schema, slide-out API, evidence connector). Applies only before hosted beta, not Phase 1 — deliberately not a new spec package |
 
+### 4.28 Gates 1 & 2 closed (2026-08-06)
+
+Gate-1 and gate-2 closure records — the reviewer's "two manual gates" are now both closed with recorded evidence. Still no migration product code written; this round is process/security work plus the freeze activation.
+
+| Gate | Evidence |
+|---|---|
+| **Gate 1 — credential remediation** | Both exposed `AIzaSy…` keys (`AIzaSyC4mri…` / `AIzaSyDaGmW…`) classified as **owned by the product owner's insights-explorer GCP setup** — verified NOT in the whisperer-30 `.env` (which contains only `VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY`, a Lovable connector key, non-AIza) and not in either repo's git history. Rotated/revoked + old keys confirmed invalid (**user-confirmed ~2026-08-03**). whisperer-30 tracked `.env` **untracked** in commit `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`): `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created placeholder-only; `.env` remains on disk for local dev. **History-wide secret scans clean in both repos** (`git rev-list --all` × `git grep` for full-length keys → no hits) + `scripts/check_credentials.py` exit 0. Recorded per the reviewer's closure list (provider, type, owner, rotation date, invalidation, scan reference — no key values) in `env-rotation-checklist.md` — Gate 1 closure record |
+| **Gate 2 — migration branch + freeze** | `feat/react-fastapi-migration` created from `main` @ `3769575` and pushed to `origin` (2026-08-06). **Streamlit feature freeze ACTIVE:** `main` accepts only production/security fixes, CI/deploy fixes, and docs; feature requests park in `IDEAS.md` as `post-migration`; migration-impact test + fix-forward rule active. Recorded in `branch-and-freeze-policy.md` §4 and the master-plan gate table |
+
+**Post-closure status:** gates 1, 2, and 6 are closed; **gate 7 (vertical slice) is unblocked** — the upload → preview → quality → clear implementation PR may begin. Follow-ups that remain non-blocking: merge `fix/remove-tracked-env` into whisperer-30 `main`; optional history scrub; Phase 1 guard-allowlist additions.
+
 *— End of compiled archive —*
