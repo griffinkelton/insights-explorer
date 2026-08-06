@@ -902,6 +902,8 @@ SPA extractor must fail loudly (not silently return empty) if DOM structure chan
 
 > **Not in scope for the evidence connector's first slice.** This section parks reference guidance for a **future technical-document RAG workstream** (migration docs, contracts, policies, specs). Do not implement RAG, embeddings, rerankers, or summary chains in the migration (explicitly a Phase 3 non-goal — see `migration/specs/phase-3-ai-analysis.md` Task 0) or in the connector's first slice. Re-open only as an explicit workstream.
 >
+> **SECONDARY EVIDENCE (label added 2026-08-06):** the citations below (RAGAS, HNSW/milvus, atlan, useparagon, meilisearch, unstructured, safjan, evidentlyai, arxiv) are owner-provided reference links — **not verified authority**. When this workstream opens, its external claims must receive **fresh research per the research-gating discipline** (`migration/master-plan.md` §11-G / archive §3.12) before any design is treated as binding.
+>
 > **Boundary rule for this connector:** when retrieval is eventually built for the evidence connector, it must retrieve **approved, aggregate, provenance-bearing evidence artifacts** — never person-level rows, and never raw client data.
 
 ### Chunk hierarchy + chunking rules
