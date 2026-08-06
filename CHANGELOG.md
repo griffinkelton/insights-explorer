@@ -6,6 +6,27 @@
 
 ---
 
+## React/FastAPI migration — Phase 3 (AI/analysis) execution-ready
+
+**Date:** 2026-08-06 | **Status:** 🔵 Spec ACTIVE + execution-ready (no product code yet — awaiting owner authorization) | **Branch:** docs on `main`; implementation lands on `feat/react-fastapi-migration`
+
+Spec: `migration/specs/phase-3-ai-analysis.md`. Commits: expansion `bbd15e7` · decisions `75630d4` · refinement `e4bd063` · policy sync `b6f56c5`. Research gate (Gemini production readiness) run; **all 13 decisions confirmed and refined**; `GEMINI_DATA_POLICY` + AI env vars canonicalized into `migration/policies/data-retention-policy.md` §7.1–7.2.
+
+### What is specified (12 tasks, embedded code)
+
+- **Env + settings:** names-only guard additions (`GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_DATA_POLICY`, `AI_MAX_INPUT_TOKENS`, `AI_RESERVED_OUTPUT_TOKENS`, `AI_MAX_CONTEXT_CHARS`, three timeouts) · `Settings` fields + `has_ai` property.
+- **Runtime tier policy:** `GEMINI_DATA_POLICY` = `local_free` (startup warning; never client data) · `client_paid` (hosted beta requirement) · `disabled` (503 `feature_disabled`) — **never inferred from key format**.
+- **Usage ledger:** `UsageLedger` field on `AppSession` (request/success/failure + token counts by model and request type); counts only in Phase 3 (no cap); reset by Clear Data.
+- **Model hygiene:** prune shut-down `gemini-2.0-flash` + deprecated `gemini-1.5-flash`; `GEMINI_MODEL` env-configurable, `gemini-2.5-flash` fallback; selector {2.5-flash, 3.5-flash, 3.5-flash-lite}.
+- **Streaming:** additive async `aio` path (`generate_response_stream_async`) for FastAPI SSE; named SSE events (`event: text/usage/done/error`) with JSON payloads + typed error codes (`rate_limited`, `quota_exhausted`, `provider_unavailable`, `timeout`, `context_too_large`, `feature_disabled`).
+- **Endpoints:** `POST /api/v1/chat` (SSE; bounded history 20 msgs / 24k chars; conditional pre-text 429 retry; reconnect-safe) · `POST /api/v1/analysis/summary` (Gemini via `prompt_templates`) · `POST /api/v1/analysis/forecast` + `funnel` (deterministic utils, no Gemini) · `GET /api/v1/ai/usage`.
+- **AI boundary:** deterministic-context assembly in new `api/services/ai_service.py`; identifier scrub (drop + `identifiers_removed_for_ai` warning with `removed_columns`); heuristic prompt guard (chars÷4, 24k − 4k reserved) with deterministic trim order; metric-status caveats (provisional caveated, unavailable never numeric).
+- **Timeouts:** three client-side values — first token 30 s, generate 60 s, stream 120 s — cancel + typed `timeout` event.
+- **Deferred:** export endpoints → Phase 4 (with the React download flow).
+- **Contract tests:** `test_chat` / `test_analysis_summary` / `test_analysis_forecast` / `test_analysis_funnel` / `test_usage` / `test_ai_context` / `test_settings_ai` — all mock the Gemini client, no live key in CI.
+
+---
+
 ## React/FastAPI migration — Phase 2 (utils decoupling) complete
 
 **Date:** 2026-08-06 | **Status:** ✅ Complete | **Branch:** `feat/react-fastapi-migration` | **Tests:** 794 pytest
