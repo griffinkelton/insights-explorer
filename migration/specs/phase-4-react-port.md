@@ -86,11 +86,9 @@ msw                  ^2.15.0          @testing-library/react (add; see Task 6)
 
 ---
 
-## Task 1 — Scaffold `frontend/`
+## Task 1 — Scaffold `frontend/`Create `frontend/` as a **sibling of `api/`** (master-plan §13 decision #6; owner decision 2026-08-06), npm-based, from the strip-list-derived stack. **Do not port `routeTree.gen.ts`** — regenerate via the router plugin (captured copy is reference only).
 
-Create `frontend/` as a **sibling of `api/`** (master-plan §13 decision #6), npm-based, from
-the strip-list-derived stack. **Do not port `routeTree.gen.ts`** — regenerate via the router
-plugin (captured copy is reference only).
+**Dev serving — owner decision 2026-08-06: Vite proxy to FastAPI.** `vite.config.ts` proxies `/api` → `http://localhost:8000` in dev, so the frontend uses **relative `/api/v1`** everywhere and no `VITE_API_BASE` is needed for local work (CORS still configured for `http://localhost:5173`). Phase 6 makes the deploy same-origin.
 
 **Layout target (master-plan §12):**
 
@@ -109,8 +107,9 @@ frontend/
 │   ├── routes/                # __root.tsx, index.tsx (functional); learn.tsx (deferred)
 │   ├── components/
 │   │   ├── explorer/          # ported shell components (Task 2)
-│   │   └── ui/                # shadcn primitives — re-add via `npx shadcn add` (46 files,
-│   │                          #   version-pinned to the capture's components.json)
+│   │   └── ui/                # shadcn primitives — regenerate ONLY the subset actually
+│   │                          #   imported by ported components (owner decision
+│   │                          #   2026-08-06: selective regenerate, not all 46)
 │   ├── lib/
 │   │   ├── explorer-store.tsx # context provider (Task 4)
 │   │   ├── api.ts             # typed client (Task 3)
@@ -161,7 +160,7 @@ data source/commands replaced by FastAPI endpoints — mock imports never surviv
 
 | File | Owning phase / note |
 |---|---|
-| `components/explorer/Chat.tsx` | Phase 4 Task 5 (SSE reader) — ported in this spec but **not mounted until Task 5 is done** |
+| `components/explorer/Chat.tsx` | **Ported + SSE reader MSW-tested in this phase, but NOT mounted in slice 1** (owner decision 2026-08-06) — mounts in a Phase 4 follow-up PR after the upload→preview→quality→clear slice ships |
 | `components/explorer/AiSummary.tsx`, `Markdown.tsx` | Phase 4 (with Chat) |
 | `components/explorer/ExportMenu.tsx` | Phase 4/5 — needs export endpoints (deferred from Phase 3 per decision D6) |
 | `components/explorer/OnboardingTour.tsx` | Phase 4 polish pass |
@@ -194,10 +193,7 @@ Do-not-port (deleted / never copied):
 3. `src/prototype/` holds the evidence-connector demo panels (EvidenceConnector /
    InsightCandidates / MeasurementContract) — excluded from production routes or behind a
    clear demo flag.
-4. Any preview using mock evidence must visibly show **"Demo / mock data"**.
-
-**Acceptance:** every one of the 94 captured files accounted for (ported / re-added / fixture /
-reference / do-not-port) in the gate table; no `mock-*` import reachable from production code.
+4. Any preview using mock evidence must visibly show **"Demo / mock data"**.**Acceptance:** every one of the 94 captured files accounted for (ported / selectively re-added / fixture / reference / do-not-port) in the gate table; no `mock-*` import reachable from production code.
 
 ---
 
@@ -247,7 +243,9 @@ export interface ApiError { detail: string; }
 
 ```ts
 // F4 §10 parked pattern, adapted to the Phase 1–3 contract.
-const API_BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
+// Dev: the Vite proxy (Task 1) forwards /api → FastAPI, so the relative path
+// is correct for local AND same-origin Phase 6 deploys.
+const API_BASE = "/api/v1";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -585,10 +583,10 @@ Extend the existing Playwright suite with the first-slice frontend flow (real Fa
 together; MSW is for component tests, not this gate):
 
 ```text
-1. Serve: uvicorn api.main:app --port 8000  +  npm run dev (VITE_API_BASE=http://localhost:8000/api/v1)
+1. Serve via the **Vite proxy** (Task 1): `uvicorn api.main:app --port 8000`  +  `npm run dev` (frontend at 5173, `/api` proxied to 8000).
 2. Flow: load / → upload sample.csv → preview renders rows → quality renders grade →
-        add filter → add metric → summary streams (typed SSE) → chat streams →
-        Clear Data → empty state returns, /ai/usage resets.
+        add filter → add metric → (chat panel not mounted in slice 1 — reader covered by
+        MSW tests) → Clear Data → empty state returns, /ai/usage resets.
 3. Assert: no console errors; no 409/410 unless expected; a11y smoke (tab through controls);
         bundle size and TTFT within the Task 7 budgets.
 ```
