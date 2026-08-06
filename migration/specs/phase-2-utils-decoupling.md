@@ -1,14 +1,8 @@
 # Phase 2 — Decouple `utils/` from Streamlit (executable)
 
-> 🔵 **DRAFT — expanded from stub 2026-08-06** after Phase 1 closed (commit `eaa6ac5`).
-> **Product-owner Q&A answered 2026-08-06**, then **refined 2026-08-06 (review round)** —
-> all four decisions confirmed with upgrades: thread-safe fingerprint memo, structured
-> `UsageEvent` (safe fields only, best-effort sinks), structured `DatasetWarning`, and a
-> standard quarantine banner + explicit boundary guard (see
-> [Confirmed decisions](#confirmed-decisions-2026-08-06-product-owner)). Owner chose
-> **planning-only for now**: this spec is ready to execute but implementation is **not
-> yet authorized**. It becomes **ACTIVE** when the owner greenlights Phase 2 and
-> `specs/README.md`'s status table is flipped.
+> ✅ **DONE** (2026-08-06) — Gate closed. Implemented on branch **`feat/react-fastapi-migration`** (commit `8c66eea`). Full regression **794 passed**, guard exit 0, hooks green. See [Gate table](#gate-table--phase-2-gate) for closure evidence.
+> **Shipped:** `utils/caching.py` content-fingerprint LRU memo (`RLock`-guarded, bounded 32-entry default, injectable sizing, test-reset hook) + `tests/test_caching.py` (content identity, LRU eviction, byte-budget behavior, reset, concurrent access) · framework-neutral `utils/gemini_client.py` with structured `UsageEvent` + injected `usage_sink` · Streamlit-owned usage accounting wired from `chat.py`/`summary.py`/`data_preview.py` · Streamlit cache removed from shared modules; forecasting migrated to the fingerprint cache · `load_file()` adapter swap + structured upload truncation warnings · Streamlit-only quarantine banners + dynamic-import boundary guard (`tests/test_utils_import_boundary.py`).
+> All four decisions confirmed with upgrades (thread-safe memo, safe-field `UsageEvent`, structured `DatasetWarning`, quarantine banner + guard): see [Confirmed decisions](#confirmed-decisions-2026-08-06-product-owner). **Branch-state note:** implementation lives on `feat/react-fastapi-migration`; `main` carries the reconciled planning/documentation record until migration merge.
 
 ## Purpose
 
@@ -767,7 +761,7 @@ pre-commit hooks (ruff, black, guard, detect-private-key) green on all touched f
 
 | Gate | Evidence | Owner | How to close |
 |---|---|---|---|
-| Phase 2 — decoupled `utils/` | Zero `st.` imports outside quarantined trio · `STREAMLIT-ONLY` banners present · boundary guard green in CI · 452 utils tests green · Phase 1 contract tests green on `load_file()` adapter | Implementation agent | Record evidence in the PR + `CHANGELOG.md`; flip `specs/README.md` Phase 2 row to DONE and Phase 3 stub to ACTIVE after its Gemini research gate (archive §3.12) |
+| **Phase 2 — decoupled `utils/`** | ✅ **CLOSED 2026-08-06** — commit `8c66eea` on `feat/react-fastapi-migration`. `grep -rn 'import streamlit' utils/` matches only the quarantined trio (`styles.py`, `error_boundary.py`, `session.py`) — all three carry `STREAMLIT-ONLY` banners; `grep -rn 'streamlit' api/ tests/api/` → empty; `tests/test_utils_import_boundary.py` green (incl. dynamic-import forms `importlib.import_module`/`__import__` — guard now runs forever, incl. CI); 452 utils-facing tests green (`test_data_context` 112 untouched); Phase 1 contract tests green against the `load_file()` adapter; `tests/test_caching.py` covers fingerprint memo (identity/LRU/byte-budget/reset/concurrency); Streamlit smoke passes (feature freeze intact). Evidence: **794 passed**, guard exit 0, hooks green. | Implementation agent | Recorded 2026-08-06; `specs/README.md` Phase 2 row flipped to DONE |
 
 ## Confirmed decisions (2026-08-06 product owner)
 
@@ -778,10 +772,9 @@ pre-commit hooks (ruff, black, guard, detect-private-key) green on all touched f
 | P2 | `load_file` truncation warning | **`DatasetContext.warnings` with structured `DatasetWarning`** | `code: "rows_truncated"` + message + loaded/original row counts; surfaced end-to-end now; new contract test required (refined) |
 | Q4 | Quarantined trio (`styles`/`error_boundary`/`session`) | **Standard banner in place** | `STREAMLIT-ONLY MODULE` banner + boundary guard forbidding `api/**` and shared utils from importing the trio or streamlit (refined) |
 
-**Authorization status (2026-08-06):** planning-only. Owner confirmed the four
-spec decisions but has **not** authorized Phase 2 implementation yet. Flip this spec to
-ACTIVE (and begin Tasks 1–10 on `feat/react-fastapi-migration`) only when the owner
-greenlights execution.
+**Authorization status (2026-08-06):** ✅ **IMPLEMENTED + CLOSED.** Owner confirmed the
+four spec decisions; Tasks 1–10 were executed on `feat/react-fastapi-migration` as
+commit `8c66eea` — 794 passed, guard exit 0, hooks green (see [Gate table](#gate-table--phase-2-gate)).
 
 ## Parked/absorbed content
 
