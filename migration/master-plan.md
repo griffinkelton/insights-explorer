@@ -129,6 +129,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 5. Phase 1 — API contract & FastAPI skeleton (Week 1)
 
+> **STATUS: ✅ DONE (2026-08-06)** — vertical slice shipped on `feat/react-fastapi-migration` (`eaa6ac5` + `66c0f1d`, review fixes; YAML-aware guard). Evidence: 782 tests, guard exit 0, live uvicorn smoke (session-cookie lifecycle) recorded in `specs/phase-1-upload-slice.md` Gate 7.
+
 **Inputs:** `specs/phase-1-api-react-callback-tests-implementation.md` (F4 — full packet) · plan Phase 1 + amendments · archive §3.5 (wire format), §3.9 (ai pin), §4.2 (canonical shapes), §4.11 (size policy).
 
 **Goal:** stand up `api/` (FastAPI) with the JSON contract between React and Python, using F4's vertical slice as the code-level reference.
@@ -160,6 +162,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 ---
 
 ## 6. Phase 2 — Decouple `utils/` from Streamlit (Week 2)
+
+> **STATUS: ✅ DONE (2026-08-06)** — `8c66eea` on `feat/react-fastapi-migration`. Import-boundary guard (`tests/test_utils_import_boundary.py`), `utils/caching.py` fingerprint memo, `UsageEvent` + `usage_sink` threading, structured `DatasetWarning` + `load_file()` adapter, quarantine banners on `styles`/`error_boundary`/`session`. Evidence: 794 tests, guard exit 0, hooks green. Full record: `specs/phase-2-utils-decoupling.md`.
 
 **Inputs:** plan Phase 2 · `policies/session-state-inventory.md` (which `st.session_state` reads move where) · `policies/test-layer-inventory.md` §1 (452 utils-facing tests must stay green).
 
