@@ -139,6 +139,8 @@ class TestEnvAllowlist:
         assert "API_CORS_ORIGINS" in joined
         assert "MAX_BROWSER_UPLOAD_BYTES" in joined
         assert "MAX_INGEST_BYTES" in joined
+        assert "GEMINI_MODEL" in joined
+        assert "AI_MAX_INPUT_TOKENS" in joined
 
     def test_check_env_example_rejects_real_or_empty_secret(self):
         guard = self._guard()
@@ -326,6 +328,17 @@ class TestYamlEnvAllowlist:
         guard = self._guard()
         errors = guard.check_yaml_env_file("env:\n  GEMINI_MODEL: gemini-3.5-flash\n")
         assert any("GEMINI_MODEL" in e for e in errors)
+
+    def test_yaml_numeric_config_value_fails_in_deployment_config(self):
+        # YAML int scalars are normalized via _yaml_scalar() and must be
+        # flagged like string values — deployment config cannot hardcode
+        # allowlisted AI values either.
+        guard = self._guard()
+        errors = guard.check_yaml_env_file(
+            "env:\n  AI_MAX_INPUT_TOKENS: 24000\n  AI_STREAM_TIMEOUT_SECONDS: 120\n"
+        )
+        assert any("AI_MAX_INPUT_TOKENS" in e for e in errors)
+        assert any("AI_STREAM_TIMEOUT_SECONDS" in e for e in errors)
 
     def test_yaml_concrete_config_value_fails_in_deployment_config(self):
         # Per policy, a committed deployment YAML may not carry a concrete
