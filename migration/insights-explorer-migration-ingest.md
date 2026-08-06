@@ -3272,4 +3272,15 @@ External review of the Lovable implementation-transcript fold-in (§4.17). **Not
 | Browse-UX timing | master-plan open decision #9 | Decision moved to **Phase 5 only — not a Phase 1 blocker**. Recommended default: **Picker iframe** (tested component, lower maintenance); slide-out browser only if Drive is a core differentiator; both call the same `POST /api/v1/drive/download`, so swappable later |
 | Doc-role split confirmed | master-plan source map + README lifecycle | Transcript/conversations are reference/archive only — not fed into default coding-agent context; master plan, canonical contract, and OpenAPI schema are the three sources of truth |
 
+### 4.19 Research-gap round — Drive API live-verification + local cross-check (2026-08-06)
+
+User asked whether the Lovable fold-in left research gaps. Two were found and filled: Drive-list pagination details and the Google-native export path. Also cross-checked against the existing Python code. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| `files.list` pagination live-verified | master-plan Phase 5; inventory §6.3 | Drive API v3: `pageSize` max **1,000** (default 100) — prototype's 50 is safe but raisable; `nextPageToken` is opaque, passed back as `pageToken`, omitted = no more pages; default quota 1B requests/day, 20k queries/100s per user — far above a modest analytics app's needs |
+| Native-file `size` field confirmed absent | master-plan Phase 5; inventory §6.3 | Google-native files (Sheets/Docs) have **no `size` metadata field** — confirms why `download_drive_file`'s `_BoundedBytesIO` stream cap (layer 2) exists |
+| **10 MB Google export cap** | master-plan Phase 5 + risk register | `files.export` caps native-doc exports at **10 MB** per file — Sheets imports can never approach the 100 MB policy; CSV/XLSX (`alt=media`, 5 TB/file ceiling) are the 100 MB-relevant paths |
+| **Trust boundary already implemented** | master-plan Phase 5 + risk register; inventory §6.3 | Local cross-check of `utils/drive_client.py`: `download_drive_file` already does everything §4.18's trust-boundary correction asked for — server-authoritative metadata (`files.get(fields="name,mimeType,size")`), `DRIVE_IMPORT_MIME_TYPES` allowlist, Sheets `export_media(text/csv)` first-sheet-only, 3-layer size enforcement (metadata preflight / `_BoundedBytesIO` stream cap / final `len()` check), typed `DriveImportError` codes (`unsupported_type/too_large/empty_file/not_found/access_denied/download_failed`). **Phase 5 ports this function into `api/services/drive_service.py` — it does not design it.** Risk row downgraded High → High (mitigated) |
+
 *— End of compiled archive —*
