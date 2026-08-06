@@ -323,7 +323,8 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
             next[next.length - 1] = { ...cur };
             return next;
           });
-        } else if (!isAbort) {
+        }
+        if (!isAbort) {
           setError(
             err instanceof ApiRequestError
               ? mapApiError(err.status, err.message)
@@ -351,15 +352,16 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
   );
 
   const retryLastTurn = useCallback(async () => {
-    // Drift row 11: retry sends the SAME { messages, mode } history — drop the
-    // partial assistant turn AND the last user turn, then re-send it. Never
-    // duplicate the assistant message.
+    // Drift row 11: retry sends the SAME { messages, mode } history — strip any
+    // trailing partial assistant turn, then re-send the last user turn. Never
+    // duplicate the user message or the assistant turn. (The typed-error path
+    // clears partialAssistantRef on `done`, so derive from chat shape, not the
+    // ref — otherwise the last user turn gets duplicated.)
     if (chatState === "streaming") return;
-    const history = partialAssistantRef.current ? chat.slice(0, -1) : chat;
-    const lastUser = [...history].reverse().find((m) => m.role === "user");
+    const withoutPartial = chat.at(-1)?.role === "assistant" ? chat.slice(0, -1) : chat;
+    const lastUser = [...withoutPartial].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
-    const base = history.slice(0, -1); // drop the last user turn
-    await startStream(base, lastUser.content);
+    await startStream(withoutPartial.slice(0, -1), lastUser.content);
   }, [chat, chatState, startStream]);
 
   const cancelStream = useCallback(() => {

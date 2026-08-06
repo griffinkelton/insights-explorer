@@ -155,6 +155,64 @@ describe("explorer-store — drift matrix rows", () => {
     expect(hook.result.current.chat[0].role).toBe("user");
   });
 
+  it("row 11 regression: retry after a typed SSE error does NOT duplicate the user message", async () => {
+    // First request fails with a typed provider error; retry succeeds.
+    let calls = 0;
+    const bodies: { messages: { role: string; content: string }[] }[] = [];
+    server.use(
+      http.post("/api/v1/chat", async ({ request }) => {
+        calls += 1;
+        bodies.push((await request.json()) as { messages: { role: string; content: string }[] });
+        const encoder = new TextEncoder();
+        if (calls === 1) {
+          const stream = new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                encoder.encode(
+                  'event: error\ndata: {"type":"error","code":"provider_unavailable","retryable":true,"message":"Provider down"}\n\n',
+                ),
+              );
+              controller.enqueue(encoder.encode('event: done\ndata: {"type":"done"}\n\n'));
+              controller.close();
+            },
+          });
+          return new HttpResponse(stream, { headers: { "content-type": "text/event-stream" } });
+        }
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('event: text\ndata: {"type":"text","content":"Recovered answer"}\n\n'));
+            controller.enqueue(encoder.encode('event: done\ndata: {"type":"done"}\n\n'));
+            controller.close();
+          },
+        });
+        return new HttpResponse(stream, { headers: { "content-type": "text/event-stream" } });
+      }),
+    );
+    const hook = renderStore();
+    await loadSample(hook);
+
+    await act(async () => {
+      await hook.result.current.sendMessage("Summarize?");
+    });
+    expect(hook.result.current.chatState).toBe("error");
+
+    // The failed turn leaves [user, assistant(failed)] in chat.
+    expect(hook.result.current.chat.map((m) => m.role)).toEqual(["user", "assistant"]);
+
+    await act(async () => {
+      await hook.result.current.retryLastTurn();
+    });
+
+    // Wire body must NOT contain the user message twice — this was the bug:
+    // retry previously computed the base from a cleared ref and re-appended.
+    expect(bodies[1].messages.map((m) => m.role)).toEqual(["user"]);
+    expect(bodies[1].messages.at(-1)?.content).toBe("Summarize?");
+    // Final transcript is still [user, assistant] — no duplicated turns.
+    expect(hook.result.current.chat.map((m) => m.role)).toEqual(["user", "assistant"]);
+    expect(hook.result.current.chat[1].content).toBe("Recovered answer");
+    expect(hook.result.current.chatState).toBe("ready");
+  });
+
   it("row 12: store types come from api-types, never mock fixtures — context normalized at the boundary", async () => {
     const hook = renderStore();
     await loadSample(hook);
