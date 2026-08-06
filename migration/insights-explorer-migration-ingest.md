@@ -3222,4 +3222,16 @@ Third review pass tightened the priority gates and removed decision ambiguity. *
 | Staging requirement precision | master-plan §3–5, risk register; F4/plan supersessions | Shared OAuth/session store proven **before Phase 5**; object storage proven **only if signed-upload architecture is chosen**; in-memory local stores are sufficient for the Phase 1 vertical slice if they follow the final interfaces |
 | Gate-6 evidence | master-plan checklist; `data-retention-policy.md` §11 | The five retention/clear-data/Gemini decision points enumerated as an approval checklist — gate 6 closes on approval |
 
+### 4.15 Lovable update inventory + local-first posture (2026-08-06)
+
+User feedback round 4 (3 user notes + reviewer items). **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Lovable commit inventory | new `whisperer-30-reference/LOVABLE-UPDATES-080525.md` (+ `migration/lovable-commits.json` captured) | 17 new commits (08-06 00:05–00:13 UTC) inventoried via `git show --stat --name-status` after `git fetch origin`: Drive-import UI (`DriveImportSheet.tsx`, `Sidebar.tsx`, `drive-browse.server.ts`, `api/drive-files.ts`), `measurement-contract.ts`, evidence/GA4/insights panels (`insights/engine.ts`, `EvidenceConnectorPanel.tsx`, `InsightCandidates.tsx`, `MeasurementContractPanel.tsx`, `mock-evidence.ts`, research sources/types/api changes), merge `8b4b7b9`; `routeTree.gen.ts` generated (do not port) |
+| Local-first posture | master-plan principles §2.9, §3, §4–5, §13, risk register | Product runs locally first, hosted beta later — in-memory `SessionStore`/`DatasetStore` acceptable through Phase 5; shared ephemeral OAuth/session store + object storage + Cloud Run are beta/hosting-time work |
+| API surface confirmed | master-plan §2.10 | No new external APIs for the migration — still Google OAuth, GA4 Data API, Drive, Picker, Gemini; Cloud Resource Manager is the only enablement item |
+| Gate-closure evidence rule | master-plan Phase 0 | "A gate closes only when its stated evidence is present — not because its document exists"; Gate 1 evidence gains a **history-wide secret scan** step (env-rotation Phase E step 3) |
+| Conversation export relocated | `migration/archive/freebuff-conversation-080525.sanitized.md` | Moved out of the repo root (reviewer feedback — large-file noise); marked **SANITIZED — INTERNAL — DO NOT SEND TO EXTERNAL MODELS**; credential guard re-verified clean |
+
 *— End of compiled archive —*

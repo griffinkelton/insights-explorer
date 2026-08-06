@@ -1,0 +1,351 @@
+{
+  "repository": "griffinkelton/insights-whisperer-30",
+  "purpose": "Commit-to-file-change inventory for migration review. Treat mock data, Lovable/Nitro server routes, and generated routeTree changes as prototype artifacts until reviewed against the canonical insights-explorer migration plan.",
+  "inspected_commits": [
+    {
+      "sha": "88bea9ada9ea914820fb1a867064e75636ab6a08",
+      "timestamp_utc": "2026-08-06T00:05:14Z",
+      "message": "Work in progress",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 10,
+        "deletions": 0,
+        "files_changed": 1
+      },
+      "files": [
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "generated-routing-artifact",
+      "freebuff_review_focus": [
+        "Do not manually port generated routeTree output.",
+        "Regenerate after React/TanStack routing is finalized in the canonical frontend."
+      ]
+    },
+    {
+      "sha": "36c1e9af2140f56d76a830447d27b4827bfeab97",
+      "timestamp_utc": "2026-08-06T00:05:48Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 105,
+        "deletions": 0,
+        "files_changed": 2
+      },
+      "files": [
+        {
+          "path": "src/lib/research/drive-browse.server.ts",
+          "status": "added",
+          "additions": 88,
+          "deletions": 0
+        },
+        {
+          "path": "src/routes/api/drive-files.ts",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "drive-prototype-server-path",
+      "freebuff_review_focus": [
+        "Compare intended Drive browsing behavior with insights-explorer/utils/drive_client.py.",
+        "Do not retain the TanStack/Lovable server route as production backend.",
+        "Port useful UI/data-shape concepts into FastAPI /api/v1/drive endpoints only.",
+        "Preserve existing Python size, MIME, error-taxonomy, and credential safeguards."
+      ]
+    },
+    {
+      "sha": "0ef1046318c589d707626269457b36e1eca00f18",
+      "timestamp_utc": "2026-08-06T00:06:35Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 332,
+        "deletions": 3,
+        "files_changed": 2
+      },
+      "files": [
+        {
+          "path": "src/components/explorer/DriveImportSheet.tsx",
+          "status": "added",
+          "additions": 305,
+          "deletions": 0
+        },
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 27,
+          "deletions": 3
+        }
+      ],
+      "migration_classification": "high-value-react-drive-ui",
+      "freebuff_review_focus": [
+        "Review DriveImportSheet.tsx as a reusable React UX component.",
+        "Map its actions to the planned FastAPI /api/v1/drive/picker-token and /api/v1/drive/download contract.",
+        "Verify loading, cancel, retry, file-type, file-size, and permission-error states.",
+        "Do not couple the component directly to Lovable/TanStack server routes.",
+        "Do not port routeTree.gen.ts manually."
+      ]
+    },
+    {
+      "sha": "5e8565035b857fa027e7bedf7a55a1a2f9288582",
+      "timestamp_utc": "2026-08-06T00:06:43Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 4,
+        "deletions": 11,
+        "files_changed": 2
+      },
+      "files": [
+        {
+          "path": "src/components/explorer/Sidebar.tsx",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 10
+        }
+      ],
+      "migration_classification": "react-sidebar-drive-entry",
+      "freebuff_review_focus": [
+        "Identify the Sidebar.tsx Drive-import trigger and its props/state assumptions.",
+        "Ensure the final frontend trigger calls the shared explorer store rather than a mock or Lovable endpoint.",
+        "Treat routeTree.gen.ts as generated output."
+      ]
+    },
+    {
+      "sha": "cf422a96e34882ce4d87462c2a3a44448ccdc292",
+      "timestamp_utc": "2026-08-06T00:06:54Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 10,
+        "deletions": 0,
+        "files_changed": 1
+      },
+      "files": [
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "generated-routing-artifact",
+      "freebuff_review_focus": [
+        "No direct migration work unless it reflects a newly added source route.",
+        "Regenerate from source routes after porting."
+      ]
+    },
+    {
+      "sha": "3f9c56e4d39e8516a05abd4dcd4ae5db53178b2a",
+      "timestamp_utc": "2026-08-06T00:06:58Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 0,
+        "deletions": 10,
+        "files_changed": 1
+      },
+      "files": [
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 10
+        }
+      ],
+      "migration_classification": "generated-routing-artifact",
+      "freebuff_review_focus": [
+        "No direct port required."
+      ]
+    },
+    {
+      "sha": "3059a0fd97c6b3b3d8eb3193b190aa279d9aa9ae",
+      "timestamp_utc": "2026-08-06T00:07:01Z",
+      "message": "Added import from Drive sidebar",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 441,
+        "deletions": 4,
+        "files_changed": 5
+      },
+      "files": [
+        {
+          "path": "src/components/explorer/DriveImportSheet.tsx",
+          "status": "added",
+          "additions": 305,
+          "deletions": 0
+        },
+        {
+          "path": "src/components/explorer/Sidebar.tsx",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "src/lib/research/drive-browse.server.ts",
+          "status": "added",
+          "additions": 88,
+          "deletions": 0
+        },
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 27,
+          "deletions": 3
+        },
+        {
+          "path": "src/routes/api/drive-files.ts",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "drive-import-feature-aggregate",
+      "freebuff_review_focus": [
+        "This is the primary aggregate commit for the Lovable Drive-import feature.",
+        "Review the DriveImportSheet and Sidebar together.",
+        "Replace drive-browse.server.ts and api/drive-files.ts with FastAPI-backed equivalents.",
+        "Use insights-explorer's existing Drive implementation as the behavioral/security authority."
+      ]
+    },
+    {
+      "sha": "e9633942ab748c07854c0acc3980f5faa4a0e930",
+      "timestamp_utc": "2026-08-06T00:09:50Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 110,
+        "deletions": 0,
+        "files_changed": 1
+      },
+      "files": [
+        {
+          "path": "src/lib/measurement-contract.ts",
+          "status": "added",
+          "additions": 110,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "important-contract-reference",
+      "freebuff_review_focus": [
+        "Compare this file line-by-line with insights-explorer/plans/ga4-measurement-contract.md.",
+        "Do not create a second competing measurement contract.",
+        "If useful, generate TypeScript API client types from the canonical Python/OpenAPI contract instead."
+      ]
+    },
+    {
+      "sha": "e4d1adb6755777edd5edb20b3daaf8c1c5dc8069",
+      "timestamp_utc": "2026-08-06T00:10:27Z",
+      "message": "Changes",
+      "author": "lovable-dev[bot]",
+      "summary": {
+        "additions": 184,
+        "deletions": 0,
+        "files_changed": 2
+      },
+      "files": [
+        {
+          "path": "src/lib/evidence/mock-evidence.ts",
+          "status": "added",
+          "additions": 174,
+          "deletions": 0
+        },
+        {
+          "path": "src/routeTree.gen.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        }
+      ],
+      "migration_classification": "mock-evidence-prototype",
+      "freebuff_review_focus": [
+        "Treat mock-evidence.ts as test/demo fixture material only.",
+        "Compare its shape with the planned evidence-connector domain model.",
+        "Do not allow mock evidence to become a production data source or a second contract.",
+        "Do not port routeTree.gen.ts manually."
+      ]
+    }
+  ],
+  "pending_commit_inspection": [
+    {
+      "sha": "95fdb9bb04bdce70b615ce734c9d8c2ed83f89d4",
+      "required_command": "git show --stat --name-status 95fdb9bb04bdce70b615ce734c9d8c2ed83f89d4"
+    },
+    {
+      "sha": "ff841e802f72591701d861bc8599c0afec93a421",
+      "required_command": "git show --stat --name-status ff841e802f72591701d861bc8599c0afec93a421"
+    },
+    {
+      "sha": "def46f02a6c043376b1b0e5e4d1fdc3f78340fcb",
+      "required_command": "git show --stat --name-status def46f02a6c043376b1b0e5e4d1fdc3f78340fcb"
+    },
+    {
+      "sha": "a0614ae4bf48bf3a16c905b9cd990cc22bdd40df",
+      "required_command": "git show --stat --name-status a0614ae4bf48bf3a16c905b9cd990cc22bdd40df"
+    },
+    {
+      "sha": "e11739797fe16b2433dda0abf9c1902bdcc2ed22",
+      "required_command": "git show --stat --name-status e11739797fe16b2433dda0abf9c1902bdcc2ed22"
+    },
+    {
+      "sha": "84eecfdb411ddabe9f6eb99bf8d77ea155a60d7f",
+      "required_command": "git show --stat --name-status 84eecfdb411ddabe9f6eb99bf8d77ea155a60d7f"
+    },
+    {
+      "sha": "561cafec776bf5baec9a6852c1ef2a48477bbd6a",
+      "required_command": "git show --stat --name-status 561cafec776bf5baec9a6852c1ef2a48477bbd6a"
+    },
+    {
+      "sha": "8b4b7b9cd8ee3ca5aa4b90c1c209d6e4e8b33cca",
+      "required_command": "git show --stat --name-status 8b4b7b9cd8ee3ca5aa4b90c1c209d6e4e8b33cca"
+    }
+  ],
+  "priority_file_groups_for_review": [
+    {
+      "group": "Drive import UI and prototype backend",
+      "paths": [
+        "src/components/explorer/DriveImportSheet.tsx",
+        "src/components/explorer/Sidebar.tsx",
+        "src/lib/research/drive-browse.server.ts",
+        "src/routes/api/drive-files.ts"
+      ]
+    },
+    {
+      "group": "Measurement contract",
+      "paths": [
+        "src/lib/measurement-contract.ts"
+      ]
+    },
+    {
+      "group": "Evidence prototype fixture",
+      "paths": [
+        "src/lib/evidence/mock-evidence.ts"
+      ]
+    },
+    {
+      "group": "Generated files; do not directly port",
+      "paths": [
+        "src/routeTree.gen.ts"
+      ]
+    }
+  ],
+  "freebuff_instructions": [
+    "Inspect all pending SHAs before declaring the commit inventory complete.",
+    "Build a deduplicated final-state file inventory; several listed SHAs are intermediate/generated-route commits and may not represent unique product work.",
+    "For Drive code, retain React UX/state patterns but replace Lovable/TanStack server implementation with FastAPI /api/v1 endpoints backed by insights-explorer Python utilities.",
+    "For measurement-contract.ts, compare against the canonical GA4 measurement contract before reusing any definitions.",
+    "For mock-evidence.ts, move useful fixture shapes into frontend test fixtures or API contract fixtures; do not retain it in production runtime code.",
+    "Treat all Lovable server routes, AI gateway behavior, and generated route tree output as non-canonical until reconciled with the main migration master plan."
+  ]
+}

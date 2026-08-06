@@ -103,7 +103,8 @@ rm <whisperer-30-clone>/.env        # or move to a gitignored local secrets stor
 
 1. Extend the existing guard: `scripts/check_credentials.py` + `.pre-commit-config.yaml` + the credential-guard tests to cover the **new FastAPI env vars** (`API_SESSION_SECRET`, `API_CORS_ORIGINS`, `FRONTEND_URL`, `MAX_UPLOAD_BYTES` — F4 §3) — keys present, values placeholder-only in `.env.example`.
 2. Add a secret-scanning hook (gitleaks / detect-secrets) to the whisperer-30 clone **before** it's copied in; keep it for the merged repo.
-3. Never commit a `.env` again: the gitignore rule + a CI step that fails if `.env` appears in `git ls-files`.
+3. **History-wide scan (Gate 1 evidence, 2026-08-06):** run the secret scan across **full git history**, not just staged files — e.g. `gitleaks git` (or `git log -p | <guard>`) on both the whisperer-30 clone and `insights-explorer` — to prove no live secret was committed anywhere previously. Record the scan result (no secret values) as Gate 1 evidence.
+4. Never commit a `.env` again: the gitignore rule + a CI step that fails if `.env` appears in `git ls-files`.
 
 ## Verification (done = checklist complete)
 

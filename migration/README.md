@@ -33,6 +33,8 @@ Index for the migration decision material: moving the `insights-explorer` produc
 
 Frozen, dated snapshot of the source UI repo (`griffinkelton/insights-whisperer-30` @ `a71c3712`, captured 2026-08-05): the Lovable design prompt, the UI-shell plan, the explorer-store contract (F3's target), the chat endpoint + BrainGuide system prompt (**reference-only — never production logic**), research types/sources, mock data shapes (→ MSW fixtures), and the stack/config manifest. See [whisperer-30-reference/WHISPERER-30-REFERENCE.md](whisperer-30-reference/WHISPERER-30-REFERENCE.md) for what was captured, why, and what was deliberately excluded (notably the tracked `.env`).
 
+**Update 2026-08-06:** a second wave of Lovable commits (17 commits: Drive-import UI, `measurement-contract.ts`, evidence/GA4/insights panels) is inventoried in [whisperer-30-reference/LOVABLE-UPDATES-080525.md](whisperer-30-reference/LOVABLE-UPDATES-080525.md) — file-level changes only; plan implications pending. The sanitized full conversation export lives in `migration/archive/freebuff-conversation-080525.sanitized.md` — marked **SANITIZED — INTERNAL — DO NOT SEND TO EXTERNAL MODELS**.
+
 ---
 
 ## How they relate
