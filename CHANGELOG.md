@@ -6,6 +6,17 @@
 
 ---
 
+## React/FastAPI migration — Phase 3 approved; Phase 4 scope corrected (review round)
+
+**Date:** 2026-08-06 | **Status:** Phase 3 APPROVED as complete (`bb6f564` + `bcf4866` on `feat/react-fastapi-migration`); Phase 4 spec updated per review — filter/metric controls removed from the slice-1 flow | **Branch:** docs on `main`
+
+- **Phase 3 verdict: approved.** Reviewer confirmed the implementation matches the spec (server-owned Gemini, named-SSE typed errors, deterministic bounded context, identifier scrub, metric-status caveats, counts-only ledger, per-session `ai_lock`). Reminder recorded: the in-memory `ai_lock`/session/ledger are single-worker-correct; cross-instance correctness arrives only with the Phase 6 Redis milestone.
+- **Phase 4 Option A correction (spec `phase-4-react-port.md`):** “add filter → add metric” removed from the Task 9 Playwright first-slice flow — Phase 3 ships no filter/metric sync endpoints and state is server-owned. Slice 1 flow is now exactly upload → context → preview → quality → clear; filter/metric controls are omitted/disabled-deferred until sync endpoints land with their own contracts.
+- **Wave 4A / 4B split added:** 4A = functional shell (scaffold, upload/preview/quality/clear, MSW + Playwright, CI); 4B = AI UI integration (SSE reader, chat store, mounted Chat + Summary, reconnect/cancel/error UX) — Phase 3 already provides the backend.
+- **Acceptance items added:** Task 0 locks exact resolved versions in the committed `package-lock.json` (`npm ci` only in CI); Recharts absent from the slice-1 runtime if ChartsRow stays a placeholder; generated shadcn components committed as source; `routeTree.gen.ts` generated + drift-checked, never copied; frontend no-secrets guard (no `GEMINI_*`/OAuth/Drive/session secrets in env, Vite vars, source maps, fixtures, or browser storage); Playwright gate uses cookie-aware `credentials: "include"` through the proxy; first React PR verifies mobile/desktop + keyboard before visual polish.
+
+---
+
 ## React/FastAPI migration — Phase 3 implementation complete
 
 **Date:** 2026-08-06 | **Status:** Phase 3 (AI/analysis) IMPLEMENTED + tested on `feat/react-fastapi-migration` (`bb6f564`) — 859 passed (incl. 73 `tests/api` contract tests), guard exit 0, hooks green | **Branch:** code on `feat/react-fastapi-migration`; docs on `main`

@@ -78,6 +78,11 @@ msw                  ^2.15.0          @testing-library/react (add; see Task 6)
 3. If neither yields a clean `npm ci` + build: move to `recharts@^3.x` and record the version.
 4. **Acceptance:** `npm ci && npm run build` green with the chosen resolution; record
    `recharts <resolved>` in the gate table.
+5. **Lockfile discipline:** commit `frontend/package-lock.json` with the resolved versions of
+   React, TanStack Router/plugin, Vite, Tailwind, Recharts (if used), MSW, and every
+   shadcn-generated dependency. CI installs with `npm ci` only; version bumps are deliberate,
+   reviewed PRs — never floating-range drift. Recharts stays **absent** from the first-slice
+   runtime if ChartsRow is a visual placeholder; do not add it merely for future use.
 
 **TanStack Router validation probe (parked from F4 §11; master-plan §8):** verify
 `validateSearch` + `errorComponent` behavior against the resolved router version
@@ -315,6 +320,31 @@ Included (first PR):
 Deferred (owned by later PRs/phases):
   mounted chat UI · summary UI · live charts + chart API · Drive UI · GA4 OAuth UI
   · exports · evidence/prototype panels · client-side analytics calculations
+  · filter/metric control UI (no sync endpoints in slice 1 — see note below)
+```
+
+**Filter/metric controls are OUT of the first-slice flow (review decision 2026-08-06).**
+Phase 3 ships no filter/metric mutation or synchronization endpoints, and filter/metric state
+is server-owned (master-plan §8; drift rows 1–4). Slice 1 therefore does **not** render
+interactive filter/metric controls — they are omitted (or visibly disabled/deferred) until a
+later PR adds the sync endpoints plus their request/version contracts, validation, tests,
+stale-state handling, and Clear Data reset behavior. Upload → context → preview → quality →
+clear is the complete slice-1 user flow.
+
+### Implementation waves (PR sequencing)
+
+Treat Phase 4 as **two waves**, even though it is one spec:
+
+```text
+Wave 4A — functional shell (first PRs):
+  Task 0 probes · Vite + TanStack Router scaffold · theme/tokens/layout shell · selective
+  shadcn primitives · api.ts + api-types.ts · upload, context hydration, preview, quality,
+  Clear Data · ChartsRow deferred/empty state · MSW + Playwright functional slice · CI
+  frontend build/typecheck
+
+Wave 4B — AI UI integration (follow-up PRs; Phase 3 already provides the backend):
+  SSE reader utility · MSW named-SSE parser tests · chat store wiring · mounted Chat panel
+  · Summary/AiSummary UI · reconnect/cancel/error UX · TTFT + stream-completion observability
 ```
 
 ChartsRow renders an explicit empty state, e.g. **"Charts will appear when the chart-analysis
@@ -689,8 +719,8 @@ Applied to the first-slice shell (Sidebar, TopBar, UploadZone, EmptyHero, DataPr
 Scorecard) and carried into every deferred component:
 
 ```text
-Keyboard-operable: upload zone, Clear Data, filter/metric controls, all dialog/sheet/chat
-  controls reachable and operable via Tab/Enter/Space.
+Keyboard-operable: upload zone, Clear Data, all dialog/sheet controls reachable and operable
+  via Tab/Enter/Space (filter/metric and chat controls join when their PRs land — Waves 4A/4B).
 Focus management: dialogs/sheets trap focus; focus returns to the trigger on close.
 Non-color-only states: loading / empty / error / success / permission each carry
   icon+text (never color alone).
@@ -740,11 +770,16 @@ together; MSW is for component tests, not this gate):
 ```text
 1. Serve via the **Vite proxy** (Task 1): `uvicorn api.main:app --port 8000`  +  `npm run dev` (frontend at 5173, `/api` proxied to 8000).
 2. Flow: load / → upload sample.csv → preview renders rows → quality renders grade →
-        add filter → add metric → (chat panel not mounted in slice 1 — reader covered by
-        MSW tests) → Clear Data → empty state returns, /ai/usage resets.
+        (filter/metric controls NOT in slice 1 — review decision; chat panel not mounted,
+        reader covered by MSW tests) → Clear Data → empty state returns, /ai/usage resets.
 3. Assert: no console errors; no 409/410 unless expected; a11y smoke (tab through controls);
         bundle size and TTFT within the Task 7 budgets.
 ```
+
+All API calls in this gate run through the Vite proxy with cookie-aware
+`fetch(..., { credentials: "include" })` — the session cookie set by FastAPI must round-trip
+through the proxied browser origin (`localhost:5173`) exactly as it will in production
+same-origin serving.
 
 **Acceptance:** the gate passes locally and in CI (headless Chromium); recorded in the gate table.
 
@@ -752,14 +787,24 @@ together; MSW is for component tests, not this gate):
 
 ## Exit criteria
 
-- [ ] `npm ci && npm run check && npm run build && npm run test` green in CI (frontend gate).
+- [ ] `npm ci && npm run check && npm run build && npm run test` green in CI (frontend gate);
+      installs use `npm ci` against the committed `package-lock.json`.
 - [ ] Upload → preview → quality → clear works in React against FastAPI (MSW + real).
 - [ ] Chat + summary stream over the named-SSE wire with correct terminal behavior; no
-      `[DONE]`; `streamingId` reconnect rule implemented.
+      `[DONE]`; `streamingId` reconnect rule implemented (Wave 4B).
 - [ ] Every one of the 94 captured manifest rows accounted for; no production import of
       mock/prototype modules; prototype quarantine rules hold.
-- [ ] Filter/metric state server-synced; no dataset id / provider token in any payload;
-      `credentials: "include"` everywhere.
+- [ ] No dataset id / provider token / session secret in any payload; `credentials: "include"`
+      everywhere. Frontend no-secrets guard: no `GEMINI_*`, Google OAuth secret, Drive
+      credential, session key, or backend-only config in `frontend/.env`, Vite variables,
+      source maps, fixtures, or browser storage.
+- [ ] `routeTree.gen.ts` generated by the router plugin (local/CI) and checked for drift —
+      never hand-edited or copied from the capture; generated shadcn components committed as
+      project source, not regenerated in CI.
+- [ ] Filter/metric controls omitted (or visibly disabled/deferred) in slice 1 — no
+      client-authoritative state; sync endpoints land with their own contracts in a later PR.
+- [ ] First React PR verifies mobile/desktop shell behavior + keyboard operation before visual
+      polish expands (review acceptance item).
 - [ ] A11y + performance baselines measured and recorded (Task 7).
 - [ ] Playwright user-flow gate green.
 
