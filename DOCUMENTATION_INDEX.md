@@ -64,7 +64,7 @@
 
 ## 🚚 React/FastAPI Migration (`migration/`)
 
-> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Planning-only — no migration product code written (2026-08-06). Entry gates closed: credentials remediated · `feat/react-fastapi-migration` + Streamlit freeze active · retention/AI-boundary policy approved — the Phase 1 vertical slice is unblocked.** Start at `migration/README.md`.
+> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Phase 1 (upload slice) ✅ and Phase 2 (utils decoupling) ✅ complete on `feat/react-fastapi-migration` (794 tests, guard exit 0). Entry gates closed: credentials remediated · branch + Streamlit freeze active · retention/AI-boundary policy approved. Phase 3 (AI/analysis) spec expansion is active, pending the Gemini research gate.** Start at `migration/README.md`.
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
@@ -73,9 +73,9 @@
 | [migration/archive/insights-explorer-migration-ingest.md](migration/archive/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
 | [migration/archive/insights-explorer-migration-plan.md](migration/archive/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
 | [migration/specs/README.md](migration/specs/README.md) | **Tactical execution index + authority map** for the per-phase spec suite — active spec, phase gates, cross-cutting tracks, supersession rules | Suite index (2026-08-06) |
-| [migration/specs/phase-1-upload-slice.md](migration/specs/phase-1-upload-slice.md) | **ACTIVE — executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | 🔵 Active (2026-08-06) |
-| [migration/specs/phase-2-utils-decoupling.md](migration/specs/phase-2-utils-decoupling.md) | Phase 2 outline — decouple `utils/` from Streamlit | ⚪ Stub |
-| [migration/specs/phase-3-ai-analysis.md](migration/specs/phase-3-ai-analysis.md) | Phase 3 outline — Gemini/chat SSE + analysis (research gate before expansion) | ⚪ Stub |
+| [migration/specs/phase-1-upload-slice.md](migration/specs/phase-1-upload-slice.md) | **DONE — executable Phase 1 vertical slice** (guard allowlist → bootstrap → stores → upload/context/preview/quality/clear → contract tests) | ✅ Done (2026-08-06) — 782 tests, guard exit 0, live smoke verified |
+| [migration/specs/phase-2-utils-decoupling.md](migration/specs/phase-2-utils-decoupling.md) | **DONE — utils decoupling** (import-boundary guard, fingerprint memo, `UsageEvent` usage_sink, `DatasetWarning` contract, `load_file` adapter, quarantine banners) | ✅ Done (2026-08-06) — `8c66eea` on `feat/react-fastapi-migration`, 794 tests, guard exit 0 |
+| [migration/specs/phase-3-ai-analysis.md](migration/specs/phase-3-ai-analysis.md) | **ACTIVE — AI/analysis spec expansion** (Gemini/chat SSE + analysis; research gate running) | 🔵 Active (2026-08-06) |
 | [migration/specs/phase-4-react-port.md](migration/specs/phase-4-react-port.md) | Phase 4 outline — React port, absorbs F3 (React 19 research gate) | ⚪ Stub |
 | [migration/specs/phase-5-ga4-drive.md](migration/specs/phase-5-ga4-drive.md) | Phase 5 outline — GA4 OAuth + Drive, absorbs F4 GA4 sections (GA4/Drive research gates) | ⚪ Stub |
 | [migration/specs/phase-6-cutover-hosting.md](migration/specs/phase-6-cutover-hosting.md) | Phase 6 outline — cutover + Cloud Run + §17 deferred gates (research gate) | ⚪ Stub |

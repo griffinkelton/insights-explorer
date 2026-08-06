@@ -4,9 +4,11 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 
 > ## Current execution target
 >
-> **Phase 1 is DONE** (`eaa6ac5` + `66c0f1d` on `feat/react-fastapi-migration`; 782 tests, guard exit 0).
+> **Phase 1 is DONE** (`eaa6ac5` + `66c0f1d` on `feat/react-fastapi-migration`; 782 tests, guard exit 0; live smoke verified).
 >
-> **Next spec:** [`phase-2-utils-decoupling.md`](phase-2-utils-decoupling.md) — expanded to full executable detail with all decisions confirmed (2026-08-06), but **planning-only**: implementation is **not yet authorized**. Begin Phase 2 tasks only when the owner greenlights it (on `feat/react-fastapi-migration`).
+> **Phase 2 is DONE** (`8c66eea` on `feat/react-fastapi-migration`; 794 tests, guard exit 0). The utils layer is framework-decoupled: import-boundary guard, fingerprint memo, `UsageEvent` usage accounting, structured `DatasetWarning`, `load_file()` adapter, quarantine banners.
+>
+> **Next spec:** [`phase-3-ai-analysis.md`](phase-3-ai-analysis.md) — expansion pending the Gemini research gate.
 
 **Strategic authority:** `migration/master-plan.md` (phases, locked decisions, risk register). **Evidence authority:** `migration/archive/insights-explorer-migration-ingest.md` (Parts 1–4: synthesis, verbatim sources, live-verified research, reconciliation ledger). **Semantic authority:** `../../plans/ga4-measurement-contract.md` (metrics + metric-status consumption policy). This folder turns those into **task-ordered, executable instructions** — file-level steps, code, acceptance criteria, and per-phase gates.
 
@@ -21,8 +23,8 @@ A single "master implementation spec" would go stale: later phases depend on fre
 | Spec | Status | Gate |
 |---|---|---|
 | Phase 1 — upload slice (`phase-1-upload-slice.md`) | ✅ **DONE** | Gate 7 closed 2026-08-06 — 782 passed, guard exit 0, commits `eaa6ac5` + `66c0f1d` |
-| Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | 🔵 **DRAFT (planning-only)** | Expanded + decisions confirmed; awaiting owner authorization |
-| Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | ⚪ STUB | Gemini research gate |
+| Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | ✅ **DONE** | Closed 2026-08-06 — `8c66eea` on `feat/react-fastapi-migration`, 794 passed, guard exit 0, hooks green |
+| Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | 🔵 **ACTIVE** | Gemini research gate — being expanded to executable spec |
 | Phase 4 — React port (`phase-4-react-port.md`) | ⚪ STUB | React/Recharts verification gate |
 | Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | ⚪ STUB | GA4 + selected Drive UX research |
 | Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | ⚪ STUB | Cloud Run readiness gate |

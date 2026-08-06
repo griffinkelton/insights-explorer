@@ -6,6 +6,23 @@
 
 ---
 
+## React/FastAPI migration — Phase 2 (utils decoupling) complete
+
+**Date:** 2026-08-06 | **Status:** ✅ Complete | **Branch:** `feat/react-fastapi-migration` | **Tests:** 794 pytest
+
+Spec: `migration/specs/phase-2-utils-decoupling.md` (expanded `9753d41`, decisions `3f48cf8`, review-round `2aeb354` + `22e3a33`). Implementation commit: `8c66eea`.
+
+### What shipped
+
+- **Import-boundary guard** (`tests/test_utils_import_boundary.py`): AST walk forbids `api/**` and shared utils from importing the three `STREAMLIT-ONLY` modules in any import form — closes the `from utils.styles import foo` bypass.
+- **Fingerprint memo** (`utils/caching.py`): bounded, thread-safe (`RLock`), opt-in LRU keyed by DataFrame fingerprint + args; defaults `maxsize=32`, `byte_budget=None` (injectable `sizeof`); replaces `@st.cache_data` on `forecast_metric`.
+- **Gemini usage accounting** (`utils/gemini_client.py`): structured `UsageEvent` (timestamp, model, request_type, input/output/thoughts/cached/total/tool tokens, success, `sanitized_error_class`) threaded via optional `usage_sink`; Streamlit side (`utils/session.py` `_streamlit_usage_sink`) preserves legacy counters; sink failures best-effort/logged with error class only.
+- **Structured truncation warning**: `DatasetWarning` (`code`, `message`, `original_row_count`, `loaded_row_count`) on `DatasetContext.warnings`; `load_file()` adapter replaces `parse_uploaded_file` with identical error taxonomy; upload route surfaces the warning.
+- **Decoupled modules**: `utils/data_loader.py`, `utils/forecasting.py`, `utils/prompt_templates.py`, `utils/gemini_client.py` — zero Streamlit imports (9 already-clean modules verified untouched).
+- **Quarantine banners**: `STREAMLIT-ONLY MODULE` docstrings on `utils/styles.py`, `utils/error_boundary.py`, `utils/session.py`.
+
+---
+
 ## Interstitial (v0.3.0 → v0.4.0) — UI Polish Sprint
 
 **Date:** 2026-08-03 → 2026-08-05 | **Status:** ✅ Complete (Workstreams A + B) | **Tests:** 730 pytest + 29 Playwright smoke (incl. Phase 3.2e + hero-entry fix `736a52d`)
