@@ -1,6 +1,6 @@
 # Phase 1 — Upload Vertical Slice (executable spec)
 
-> 🔵 **ACTIVE** (2026-08-06) — Gate 7 open. Execute on branch **`feat/react-fastapi-migration`**. Local-first, single-user, in-memory stores.
+> ✅ **DONE** (2026-08-06) — Gate 7 closed. Implemented on branch **`feat/react-fastapi-migration`** (commits `eaa6ac5` + review round `66c0f1d`). Full regression **782 passed**, guard CI parity exit 0, hooks green. See [Review-fix addendum](#review-fix-addendum-2026-08-06--closed-before-phase-1-done).
 > Source of the embedded code: F4 (`phase-1-api-react-callback-tests-implementation.md` — **superseded for execution**, retained as reference). Locked decisions: master-plan §5. Step 1 (environment guard) is the **first security task** of the migration.
 
 ## Tracks consumed
@@ -888,10 +888,21 @@ pytest tests/api -q                            # contract-only check when iterat
 
 | Gate | Evidence | Owner | How verified |
 |---|---|---|---|
-| **Gate 7 — vertical slice works** | `pytest tests/api/` green · `/healthz` curl passes · upload→clear lifecycle verified · 25 MB boundary test green · baseline suite green | Implementation agent | Record evidence in this file + master-plan §5; flip `phase-1-upload-slice.md` to DONE and Phase 2 to ACTIVE in `specs/README.md` |
+| **Gate 7 — vertical slice works** | ✅ **CLOSED 2026-08-06** — `pytest tests/` = **782 passed** (full regression incl. Phase 1 suite) · guard CI parity (`git ls-files \| xargs check_credentials.py`) exit 0 · pre-commit hooks green · upload→context→preview→quality→clear lifecycle covered by contract tests · 25 MB boundary + YAML-guard review tests green. Commits: `eaa6ac5` (slice) + `66c0f1d` (review round: YAML guard, store test helpers). | Implementation agent | Recorded 2026-08-06; flip `specs/README.md` Phase 1 → DONE (see review-fix addendum below) |
 | Release gate 1 — no regression | 452 utils-facing tests stay green | Agent + reviewer | `pytest` baseline before merge |
 | Release gate 2 — contract | Endpoint/schema/error behavior matches this spec | Agent | `pytest tests/api/` + OpenAPI schema dump review |
 | Release gate 3 — user flow | Upload → preview → clear works (MSW/Playwright where the shell exists) | Agent | Contract tests now; Playwright joins with the React shell (Phase 4) |
+
+### Review-fix addendum (2026-08-06) — closed before Phase 1 DONE
+
+Per external review round, four corrections landed in `66c0f1d`:
+
+| Review issue | Fix | Verified |
+|---|---|---|
+| A. Guard only parsed dotenv `NAME=value`, not YAML `NAME: value` in workflows/cloudbuild | `check_yaml_env_file()` — `yaml.safe_load()` tree walk; rejects literal allowlisted values; permits `${{ secrets.X }}` and Cloud secret-manager refs; `PyYAML>=6.0` pinned in `requirements/dev.txt` | 7 new `TestYamlEnvAllowlist` tests + 2 `main()` e2e cases green |
+| B. Upload “bounded read” comment overclaimed | Comment now states the cap is application-level during route processing; upstream multipart may spool first | — |
+| C. Store locking ≠ DataFrame immutability | Read-only-by-convention invariant documented on `InMemoryDatasetStore` | — |
+| D. Tests reached into `_sessions`/`_items` private dicts | Public `clear_for_test()`/`count_for_test()` on both stores; conftest + session tests use only the public surface | 8 session tests green |
 
 ## Source documents
 

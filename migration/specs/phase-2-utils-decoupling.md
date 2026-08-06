@@ -149,19 +149,25 @@ def _imports_streamlit(tree: ast.AST) -> bool:
 
 
 def _imports_quarantined(tree: ast.AST) -> bool:
-    """True if the tree imports a quarantined module (utils.styles / error_boundary / session).
+    """True if the tree imports a quarantined module in any form.
 
-    Refined 2026-08-06: api/** and framework-neutral utils/** must not import the
-    quarantined trio, in any import form.
+    Review fix (2026-08-06): the module, not the imported symbol, is the
+    boundary. ``from utils.styles import inject_global_styles`` must be caught
+    even though the symbol name is not ``styles``.
     """
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import) and any(
-            a.name in QUARANTINED_PATHS or a.name in QUARANTINED_NAMES for a in node.names
-        ):
-            return True
-        if isinstance(node, ast.ImportFrom) and node.module in {"utils", *QUARANTINED_PATHS}:
-            if any(a.name in QUARANTINED_NAMES for a in node.names):
+        if isinstance(node, ast.Import):
+            # ``import utils.styles`` — module path is the boundary.
+            if any(alias.name in QUARANTINED_PATHS for alias in node.names):
                 return True
+        if isinstance(node, ast.ImportFrom):
+            # ``from utils.styles import foo`` is ALWAYS quarantined.
+            if node.module in QUARANTINED_PATHS:
+                return True
+            # ``from utils import styles`` is quarantined (symbol name = module).
+            if node.module == "utils":
+                if any(alias.name in QUARANTINED_NAMES for alias in node.names):
+                    return True
     return False
 
 
@@ -193,6 +199,24 @@ def test_no_quarantined_imports_in_api_or_shared() -> None:
         assert not _imports_quarantined(tree), (
             f"{path} must not import a STREAMLIT-ONLY module"
         )
+
+
+def _is_quarantined_source(source: str) -> bool:
+    return _imports_quarantined(ast.parse(source))
+
+
+def test_import_forms_all_caught() -> None:
+    """Every import form of a quarantined module must be caught (review fix)."""
+    assert _is_quarantined_source("import utils.styles")
+    assert _is_quarantined_source("from utils import styles")
+    assert _is_quarantined_source("from utils.styles import inject_global_styles")
+    assert _is_quarantined_source("from utils.session import initialize_session_state")
+    assert _is_quarantined_source("from utils.error_boundary import render_error")
+    # Sanity: legit imports are NOT flagged.
+    assert not _is_quarantined_source("from utils import data_loader")
+    assert not _is_quarantined_source("from utils.data_loader import load_file")
+    assert not _is_quarantined_source("import streamlit as st")
+    assert not _is_quarantined_source("import pandas as pd")
 
 
 def test_quarantine_banners_present() -> None:
@@ -254,12 +278,17 @@ small framework-neutral fingerprint-keyed memo (new `utils/caching.py`) and appl
 # utils/caching.py (new)
 """Framework-neutral, thread-safe memoization keyed on DataFrame content fingerprint.
 
-Design rules (confirmed + refined P0, 2026-08-06):
+Design rules (confirmed + refined P0 + review fix, 2026-08-06):
 - Key: (fingerprint(df), rest args, sorted kwargs) — content identity, not object id.
 - Value: immutable computed result only — never a mutable DataFrame reference.
-- Bounded: max entries AND optional byte budget; no unbounded dataframe retention.
+- Bounded: max entries (default 32) AND an OPTIONAL byte budget (default None).
 - Thread-safe: RLock guards every cache mutation (FastAPI worker threads).
 - cache_clear() exposed for tests; no session-state dependency; no Streamlit import.
+- byte_budget is an APPROXIMATE object-overhead guard, not a guaranteed memory
+  cap: sys.getsizeof measures shallow Python object size only, not arrays,
+  nested lists, Pandas objects, or model internals. Sizing is injectable so a
+  domain-specific sizeof_forecast_result() can be supplied later if memory
+  pressure becomes real.
 """
 from __future__ import annotations
 
@@ -271,12 +300,17 @@ from typing import Any, Callable
 from utils.data_context import fingerprint_frame
 
 
-def memoize_fingerprint(maxsize: int = 128, byte_budget: int | None = None):
+def memoize_fingerprint(
+    maxsize: int = 32,
+    byte_budget: int | None = None,
+    sizeof: Callable[[Any], int] = sys.getsizeof,
+):
     """Memoize a function whose first argument is a DataFrame.
 
     Key = (fingerprint(df), args, sorted-kwargs); rest args must be hashable.
-    When byte_budget is set, least-recently-used entries are evicted while the
-    estimated retained bytes exceed the budget.
+    Defaults (review fix 2026-08-06): maxsize=32, byte_budget=None — the LRU
+    count is predictable, while an uninstrumented byte budget would create
+    false confidence. Pass sizeof= when you have an accurate size estimator.
     """
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -305,7 +339,7 @@ def memoize_fingerprint(maxsize: int = 128, byte_budget: int | None = None):
                 cache[key] = result
                 cache.move_to_end(key)
                 if byte_budget is not None:
-                    retained_bytes[key] = sys.getsizeof(result)
+                    retained_bytes[key] = sizeof(result)
                 if len(cache) > maxsize:
                     _evict(len(cache) - maxsize)
                 if byte_budget is not None:
@@ -334,10 +368,12 @@ def forecast_metric(df: pd.DataFrame, ...) -> ForecastResult:
     ...  # body unchanged
 ```
 
-**Confirmed + refined (P0, 2026-08-06):** keep the fingerprint memo — bounded,
-**thread-safe** (`RLock`), optional byte budget, `cache_clear()` for tests, and no
-session-state dependency (review-round refinement). Rejected alternative: plain
-function + Phase 3 server cache.
+**Confirmed + refined + review-fixed (P0, 2026-08-06):** keep the fingerprint memo —
+bounded, **thread-safe** (`RLock`), `cache_clear()` for tests, no session-state
+dependency. **Review fix:** defaults are `maxsize=32`, `byte_budget=None` (predictable
+LRU count; no fake memory cap without an accurate estimator); `sizeof` is injectable;
+byte budget is documented as an *approximate* object-overhead guard. Rejected
+alternative: plain function + Phase 3 server cache.
 
 **Acceptance:** `grep -n streamlit utils/forecasting.py` → empty;
 `pytest tests/test_forecasting.py -q` green (31 tests); a new
@@ -365,8 +401,11 @@ injection — the API layer passes `None` or a server-side ledger later; Streaml
 passes a session-state writer, preserving identical behavior):
 
 ```python
-from dataclasses import asdict, dataclass, field
+import logging
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -385,6 +424,8 @@ class UsageEvent:
     output_tokens: int = 0
     thoughts_token_count: int = 0
     cached_token_count: int = 0  # preserved for the legacy total_cached_tokens counter
+    tool_use_token_count: int = 0
+    total_token_count: int = 0  # provider-reported total when available (review fix)
     success: bool = True
     sanitized_error_class: str | None = None
 
@@ -412,14 +453,36 @@ def _emit_usage(
         output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
         thoughts_token_count=getattr(usage, "thoughts_token_count", 0) or 0,
         cached_token_count=getattr(usage, "cached_content_token_count", 0) or 0,
+        tool_use_token_count=getattr(usage, "tool_use_token_count", 0) or 0,
+        total_token_count=getattr(usage, "total_token_count", 0) or 0,
         success=success,
         sanitized_error_class=error_class,
     )
+    # Review fix (2026-08-06): preserve provider semantics — if the provider did
+    # NOT report a total, fall back to a documented sum (never silently
+    # substitute a weaker number that changes the meaning of the legacy counter).
+    if event.total_token_count == 0:
+        event = replace(
+            event,
+            total_token_count=(
+                event.input_tokens
+                + event.output_tokens
+                + event.thoughts_token_count
+                + event.cached_token_count
+                + event.tool_use_token_count
+            ),
+        )
     if usage_sink is not None:
         try:
             usage_sink(event)
-        except Exception:  # best-effort — telemetry never breaks a request
-            logger.warning("usage_sink failed", exc_info=True)
+        except Exception as exc:  # best-effort — telemetry never breaks a request
+            # Review fix (2026-08-06): log a generic event with only the error
+            # CLASS — never str(exc), which could contain prompt content or raw
+            # rows from an arbitrary API ledger or Streamlit sink.
+            logger.warning(
+                "usage_sink_failed",
+                extra={"error_class": type(exc).__name__},
+            )
     return event
 ```
 
@@ -456,14 +519,16 @@ def _streamlit_usage_sink(event: UsageEvent) -> None:
         ("total_output_tokens", event.output_tokens),
         ("total_thought_tokens", event.thoughts_token_count),
         ("total_cached_tokens", event.cached_token_count),
-        ("total_tokens_used", event.input_tokens + event.output_tokens),
+        ("total_tokens_used", event.total_token_count),  # provider total (review fix)
     ]:
         if key not in st.session_state:
             st.session_state[key] = 0
         st.session_state[key] += value
-    if "api_success_count" not in st.session_state:
-        st.session_state.api_success_count = 0
-    st.session_state.api_success_count += 1
+    if event.success:  # review fix: only successful requests count (errors may
+        # emit usage events later; they must not inflate the success counter)
+        if "api_success_count" not in st.session_state:
+            st.session_state.api_success_count = 0
+        st.session_state.api_success_count += 1
     history = st.session_state.get("chat_history", [])
     if history and "usage" not in history[-1]:
         history[-1]["usage"] = asdict(event)
@@ -473,9 +538,12 @@ Update Streamlit call sites (`components/chat.py`, `components/summary.py`,
 `components/data_preview.py`) to pass `usage_sink=_streamlit_usage_sink` where they
 call `generate_response`/`generate_response_stream`. Net behavior identical.
 
-**Confirmed + refined (P1, 2026-08-06):** sink threading with a structured
-**`UsageEvent`** — safe operational fields only (never prompt content, raw rows, user
-messages, or model output); sink failures are **best-effort/logged**, never fatal.
+**Confirmed + refined + review-fixed (P1, 2026-08-06):** sink threading with a
+structured **`UsageEvent`** — safe operational fields only (never prompt content, raw
+rows, user messages, or model output); sink failures are **best-effort/logged** with
+only the error class logged (never `str(exc)`). **Review fix:** `total_token_count` and
+`tool_use_token_count` added; `total_tokens_used` uses the provider-reported total with
+a documented fallback sum; `api_success_count` increments only when `event.success`.
 Rejected alternatives: callers accumulate a returned dict; usage events carrying
 prompt/response content.
 

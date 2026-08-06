@@ -4,9 +4,9 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 
 > ## Current execution target
 >
-> **ACTIVE:** [`phase-1-upload-slice.md`](phase-1-upload-slice.md)
+> **Phase 1 is DONE** (`eaa6ac5` + `66c0f1d` on `feat/react-fastapi-migration`; 782 tests, guard exit 0).
 >
-> Execute only this spec. Do not begin later-phase work until its exit criteria are met and the master-plan phase gate is opened. (Gate 7 open — vertical slice authorized 2026-08-06.)
+> **Next spec:** [`phase-2-utils-decoupling.md`](phase-2-utils-decoupling.md) — expanded to full executable detail with all decisions confirmed (2026-08-06), but **planning-only**: implementation is **not yet authorized**. Begin Phase 2 tasks only when the owner greenlights it (on `feat/react-fastapi-migration`).
 
 **Strategic authority:** `migration/master-plan.md` (phases, locked decisions, risk register). **Evidence authority:** `migration/archive/insights-explorer-migration-ingest.md` (Parts 1–4: synthesis, verbatim sources, live-verified research, reconciliation ledger). **Semantic authority:** `../../plans/ga4-measurement-contract.md` (metrics + metric-status consumption policy). This folder turns those into **task-ordered, executable instructions** — file-level steps, code, acceptance criteria, and per-phase gates.
 
@@ -20,8 +20,8 @@ A single "master implementation spec" would go stale: later phases depend on fre
 
 | Spec | Status | Gate |
 |---|---|---|
-| Phase 1 — upload slice (`phase-1-upload-slice.md`) | 🔵 **ACTIVE** | Gates 1, 2, 6 closed; gate 7 open |
-| Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | ⚪ STUB | Opens after Phase 1 |
+| Phase 1 — upload slice (`phase-1-upload-slice.md`) | ✅ **DONE** | Gate 7 closed 2026-08-06 — 782 passed, guard exit 0, commits `eaa6ac5` + `66c0f1d` |
+| Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | 🔵 **DRAFT (planning-only)** | Expanded + decisions confirmed; awaiting owner authorization |
 | Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | ⚪ STUB | Gemini research gate |
 | Phase 4 — React port (`phase-4-react-port.md`) | ⚪ STUB | React/Recharts verification gate |
 | Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | ⚪ STUB | GA4 + selected Drive UX research |
