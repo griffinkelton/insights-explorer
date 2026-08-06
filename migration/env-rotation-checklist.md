@@ -50,6 +50,19 @@ Classify each key found in Phase A against its provider, and mark real vs placeh
 - Any **real** value → rotate (Phase C).
 - **Placeholder** values (`your-key-here`, `changeme`, empty) → safe to leave, but still delete the file (Phase D) so the pattern doesn't recur.
 
+### Suspected keys from the conversation export (2026-08-05)
+
+During sanitization of `freebuff-conversation-080525.md` (repo root, committed 2026-08-05) two Google API-key-shaped strings were found and **redacted** in the committed file:
+
+- `AIzaSyC4mri…` prefix key shape (×3 occurrences)
+- `AIzaSyDaGmW…` prefix key shape (×1 occurrence)
+
+*(Full fingerprints were redacted from this checklist by the repo's credential guard; the sanitized originals are recoverable from the local pre-sanitization copy only — not from git history.)*
+
+Ownership rule at rotation time (gate 1):
+- If a fingerprint belongs to the **insights-explorer** GCP / Drive-Picker / Gemini setup → **treat as exposed and rotate** (the conversation was shared with external reviewers).
+- If it originated from the **whisperer-30 (Lovable) tracked `.env`** → those are Lovable's keys, not ours to rotate — still remove the `.env` from that repo per Phase D and confirm nothing of ours uses the same key.
+
 ## Phase C — Rotate / revoke (manual, at the provider consoles)
 
 1. **Google Cloud Console** (console.cloud.google.com):
