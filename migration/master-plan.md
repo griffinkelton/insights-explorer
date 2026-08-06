@@ -328,6 +328,20 @@ Both pipelines updated in Phase 6 · frontend build gate (**`npm ci` → typeche
 ### F. Data retention & AI data boundary — `data-retention-policy.md`
 Written **before the API exists** (Phase 0/1): upload retention window, whether raw dataframes persist or are session-only, session expiry, exactly what "Clear Data" deletes, what export logging retains, which fields are allowed in Gemini prompts, and which identifiers must be removed/aggregated before an AI call. "Server-owned" is better than browser-owned, but it is not automatically privacy-safe.
 
+### G. Research discipline — when to invoke the web/docs research agent (2026-08-06)
+Invoke external research **only when an external platform decision is imminent**; never to re-derive internal decisions already locked in this plan. Full policy, the four ready-to-use research prompts, and the "do not research again" allowlist live in **archive §3.12**; this section is the pointer + timing map.
+
+| Priority | Research area | Invoke before | Why |
+|---|---|---|---|
+| High | GA4 report compatibility + funnel feasibility (`runReport`/`runFunnelReport`/`getMetadata`/`checkCompatibility`, dim/metric combos, thresholding, `returnPropertyQuota`) | Phase 5 | Exact current API support for the app's intended requests, not generic quotas — risk item 7 stays open until then (9 dims / 10 metrics, 7 for funnel; limits page 404s) |
+| High | Gemini production models — availability, deprecations, pricing, rate limits, `google-genai` streaming + cancel/disconnect | Phase 3 | Model lifecycle changes quickly; §3.10 facts must be re-verified at implementation time |
+| Medium | Drive shared-drive behavior (`supportsAllDrives`, `includeItemsFromAllDrives`, `corpora`) | Phase 5, **only if slide-out browse chosen** (decision #9) | The remaining practical external gap for `files.list`; §4.19 verified pagination but not shared drives |
+| Medium | Google Picker setup/security (project number, referrer restriction, scopes, token flow) | Phase 5, **only if Picker iframe chosen** (decision #9) | Current launch requirements |
+| Medium | Cloud Run production-readiness (SSE timeouts/reconnect, cookies behind proxy, HTTP/1 vs h2c, SPA serving, memory for Pandas/XLSX) | Phase 6 | Needs a current check before hosted beta |
+| Low | React 19 / Recharts compatibility + toolchain versions | Phase 4 | **npm is already locked** (2026-08-06) — re-verify versions only, never revisit the package-manager decision |
+
+**Do not research again** (internal/verified): the 25 MB / 100 MB ingestion policy · metric-status consumption policy · the `file_id`-only Drive trust boundary (`utils/drive_client.py`) · mock/prototype quarantine rules · `measurement-contract.ts` faithfulness (verified) · the fake Lovable Import behavior · the Phase 1 vertical-slice scope.
+
 ---
 
 ## 12. File organization (target layout)

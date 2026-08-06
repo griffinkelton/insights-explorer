@@ -3021,6 +3021,51 @@ Product-owner question: *"could we host this on Vercel like my website?"* Answer
 
 **Recommendation (recorded):** keep the container path — **Cloud Run** (the repo already deploys via `cloudbuild.yaml`; §3.10 item 3), with Railway/Render as equivalents. Vercel remains a *frontend-only* option only if the architecture changes (not recommended). *Sources: vercel.com/docs (limits); gravity-index hosting comparison (2026-08-05).*
 
+### 3.12 Research-gating policy & ready-to-use research prompts (2026-08-06)
+
+Research-discipline policy adopted from the sixth review round. **Invoke the web/docs research agent only when an external platform decision is imminent; never to re-derive internal decisions that are already locked and grounded in this repo.** Pointer: master-plan §11-G carries the timing map; this section holds the full policy + prompts.
+
+**Do not research again** — internal implementation/contract work, not web-research questions:
+
+- The 25 MB browser-upload cap and 100 MB Drive/server-side ingestion policy (locked — §4.11/§4.13).
+- Metric-status behavior: validated / provisional / unavailable (canonical contract + master-plan §11-B).
+- The `file_id`-only Drive download trust boundary (already implemented in `utils/drive_client.py` — §4.19).
+- Mock/prototype quarantine rules (master-plan §12).
+- Whether `measurement-contract.ts` matches the canonical contract (verified faithful — §4.16–4.17).
+- The fake Lovable Import behavior (verified — §4.18).
+- The Phase 1 upload → preview → quality → clear vertical slice (internal scope, master-plan §5).
+
+**Research still worth doing** (decision-critical, externally changing):
+
+| Priority | Research area | When to invoke | Why it matters |
+|---|---|---|---|
+| High | GA4 report compatibility + funnel feasibility | Before Phase 5 | Exact current support for the dimensions/metrics/funnel requests the app intends to make — not just generic quotas (risk-register item 7: dim/metric limits "reported, not live-verified") |
+| High | Gemini production model availability, pricing, rate limits, SDK streaming | Immediately before Phase 3 | Model names, deprecations, quotas, streaming APIs change quickly — §3.9/§3.10 facts must be re-verified at implementation |
+| Medium | Drive shared-drive behavior + required flags | Only if slide-out browse chosen (Phase 5) | Pagination is verified (§4.19); Shared Drives are the remaining practical external gap |
+| Medium | Google Picker setup + security | Only if Picker iframe chosen (Phase 5) | Project number, referrer restriction, scopes, token flow, Workspace behavior |
+| Medium | Cloud Run deployment/SSE behavior | Before Phase 6 | Timeouts, concurrency, HTTP/1 vs h2c, static SPA serving, cookies, streaming reconnect |
+| Low | Bun vs npm + React 19/Recharts compatibility | Before Phase 4 | **npm already locked (2026-08-06)** — only version re-verification remains, not the decision |
+
+**Ready-to-use research prompts** (recorded verbatim so an agent can be dispatched without re-authoring):
+
+**Prompt 1 — GA4 feasibility (before Phase 5):**
+
+> Research the official GA4 Data API documentation for the Insights Explorer migration. Determine the exact current compatibility, limits, and request requirements for: `runReport`, `runFunnelReport`, `getMetadata`, and `checkCompatibility`; page-path × device-category engagement reporting; questionnaire-start, questionnaire-completion, and post-questionnaire-action measurement; required event/session/user identifiers for cohort/funnel logic; dimension/metric combinations that are incompatible or potentially thresholded; pagination, quota, retry, and `returnPropertyQuota` behavior. Return: official-source citations, implementation constraints, a proposed FastAPI request shape, and a test matrix. Do not recommend inventing metrics that the canonical GA4 measurement contract marks unavailable.
+
+**Prompt 2 — Drive slide-out browse (only if chosen, Phase 5):**
+
+> Research the official Google Drive API v3 documentation for a FastAPI-backed Drive browsing endpoint. Validate: `files.list` pagination via `pageToken` / `nextPageToken`; search query escaping and folder browsing by parent ID; Shared Drive support: `supportsAllDrives`, `includeItemsFromAllDrives`, `corpora`, and relevant request flags; required OAuth scopes for list, metadata, download, and export; handling Google-native Sheets versus binary CSV/XLSX files; current export limits and error behavior. Return a source-backed `/api/v1/drive/list` and `/api/v1/drive/download` contract. Preserve the existing Python `utils/drive_client.py` error taxonomy; do not design a second downloader.
+
+**Prompt 3 — Gemini production readiness (immediately before Phase 3):**
+
+> Research the official Gemini API documentation for a production FastAPI integration as of today. Verify: currently supported text models appropriate for analytics explanation; model deprecations and replacement paths; pricing/free-tier and quota behavior; Python `google-genai` streaming API and cancellation/disconnect behavior; request-size/context limits relevant to DataContext and prompt templates; data handling/privacy controls relevant to client analytics data. Return: exact recommended model IDs, a fallback strategy, environment-variable requirements, rate-limit/retry guidance, and official citations. Do not use non-official model-lifecycle claims unless explicitly labeled as secondary evidence.
+
+**Prompt 4 — Cloud Run readiness (before deployment, not now):**
+
+> Research current official Cloud Run documentation for a single-origin React SPA + FastAPI deployment with SSE. Validate: container static-file serving and SPA fallback patterns; SSE timeout, reconnect, disconnect, and concurrency behavior; cookie security behind Cloud Run proxy headers; request size and HTTP/1 versus end-to-end HTTP/2 implications; memory/concurrency recommendations for Pandas/XLSX ingestion; health/readiness endpoints and rollout strategy. Return a production checklist and a Cloud Build / Cloud Run configuration review.
+
+**Timing map:** Phase 0/1 — **no additional external research required** · before Phase 3 — Gemini (Prompt 3) · before Phase 4 — React 19/Recharts version re-check only · before Phase 5 — GA4 (Prompt 1) + the Drive UX-dependent prompt (Prompt 2 or Picker research) · before Phase 6 — Cloud Run (Prompt 4). Gate rule: dispatch a research agent only when the corresponding phase is imminent, so the plan stays current without generating archival material implementation can't use.
+
 ---
 
 ## Part 4 — Cross-check & reconciliation ledger (added 2026-08-05)
@@ -3340,5 +3385,15 @@ Sixth review round (planning only — no migration product code). Source: review
 |---|---|---|
 | OAuth status vocabulary — locally verified | all active docs vs archive | Ran the reviewer's exact grep (`git grep -nE 'provider_denied\|invalid_oauth_state\|status=cancelled\|invalid_state' -- migration/`). **Confirmed:** `status=cancelled` and `invalid_state` are the only forms in active implementation docs — F4's redirect code (`status=cancelled`, `status=error&reason=invalid_state`), its `readableReason` switch and callback test list, master-plan §9's contract, and the Phase 5 E2E matrix. `provider_denied` / `invalid_oauth_state` appear **only** in archive/verbatim material (`insights-explorer-migration-ingest.md` Parts 2–3, `archive/freebuff-conversation-080525.sanitized.md`) and as deliberate supersession notes (F4 "are superseded spellings"; master-plan "no legacy spellings in new code"). The reviewer's GitHub code-search finding was a stale index, not real drift |
 | Trust-boundary wording | STORE-DRIFT-MATRIX | Rewrote the **Server-session rule** preamble to the reviewer's exact formulation: the client sends `credentials: "include"` — the HttpOnly session cookie is the only browser-held identifier; **no session ID, dataset reference, raw data, provider token, or client-authoritative dataset reference ever travels as request data**; FastAPI resolves the authenticated session and active dataset server-side; filters/metrics sync through explicit API mutations; chat and summary requests contain only `{ messages, mode }` plus an optional non-authoritative client state/version for stale-write detection, which the server reconciles or rejects |
+
+### 4.25 Research-gating policy fold-in (2026-08-06)
+
+Companion to §4.24 (same review round): the reviewer's research-discipline prompt — what to research, what never to research again, and four ready-to-use agent prompts — cross-checked against the archive and folded into the docs.
+
+| Change | Where | What |
+|---|---|---|
+| Research discipline workstream | master-plan §11-G | New cross-cutting workstream G: invoke the web/docs research agent **only when an external platform decision is imminent**; timing map (GA4 + Gemini = High before Phases 5/3 · Drive/Picker = UX-dependent, Phase 5 · Cloud Run = Phase 6 · React 19/Recharts = Phase 4 version re-check only); "do not research again" allowlist |
+| Ready-to-use prompts + policy | archive §3.12 | The four research prompts recorded verbatim (GA4 feasibility, Drive slide-out, Gemini production readiness, Cloud Run readiness) plus the do-not-research list and timing map |
+| Cross-check result | §4.25 | Every "do not research again" item maps to live-verified material (§4.11/§4.13 size policy · canonical contract metric policy · §4.19 Drive trust boundary · §4.16–4.17 contract faithfulness · §4.18 fake-Import). The policy's genuinely open gaps align with existing open items: risk-register item 7 (GA4 dim/metric limits — still "reported, not live-verified") and Drive **shared-drive** behavior (only pagination verified, §4.19). npm already locked (2026-08-06) → the bun-vs-npm research item is closed; only React 19/Recharts version re-verification remains before Phase 4 |
 
 *— End of compiled archive —*
