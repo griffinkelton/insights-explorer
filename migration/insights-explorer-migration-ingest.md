@@ -3442,4 +3442,15 @@ Gate-1 and gate-2 closure records — the reviewer's "two manual gates" are now 
 
 **Post-closure status:** gates 1, 2, and 6 are closed; **gate 7 (vertical slice) is unblocked** — the upload → preview → quality → clear implementation PR may begin. Follow-ups that remain non-blocking: merge `fix/remove-tracked-env` into whisperer-30 `main`; optional history scrub; Phase 1 guard-allowlist additions.
 
+### 4.29 Phase 1 authorized — branch sync, guard allowlist, first-PR scope (2026-08-06)
+
+The reviewer's unblock message was folded in (no product code yet — this round is process + docs).
+
+| Change | Where | What |
+|---|---|---|
+| Branch sync | `feat/react-fastapi-migration` | Fast-forwarded `3769575 → d1f6f6c` (gate closures, retention approval, once-over QA) and pushed — the branch is current for Phase 1 code |
+| Phase 1 authorization + PR scope | master-plan §5 | Recorded the reviewer's first-PR boundary (FastAPI bootstrap · `/healthz` · config + safe env handling · `SessionStore`/`DatasetStore` interfaces + in-memory impls · `POST /api/v1/upload` 25 MB · `data/context` · `data/preview` · `data/quality` · **`data/clear`** · contract tests) and the keep-out list (React, GA4, Drive, Gemini/chat, charts/forecast/funnels/exports, evidence panels). **Added the previously-omitted `POST /api/v1/data/clear`** to the §5 vertical-slice task and exit criteria |
+| Guard allowlist caution | master-plan §11-D + env-rotation-checklist Phase E | FastAPI env-var validation now — **names only**: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. Guard validates names / expected presence in deployment / no committed values — never permissive wildcards, never trust a value for matching a broad shape |
+| Lovable `.env` merge (housekeeping) | whisperer-30 | `fix/remove-tracked-env` → merge into whisperer-30 `main` recommended before reusing/archiving the frontend source (does **not** block the Phase 1 FastAPI slice). Result: `.env` untracked but local, `.env`/`.env.*` ignored, `.env.example` committed with placeholders |
+
 *— End of compiled archive —*

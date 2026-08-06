@@ -133,6 +133,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 **Goal:** stand up `api/` (FastAPI) with the JSON contract between React and Python, using F4's vertical slice as the code-level reference.
 
+**Authorization (2026-08-06 — reviewer unblock):** Phase 1 is authorized. **First PR scope (only):** FastAPI app bootstrap · `/healthz` · configuration + safe environment-variable handling · `SessionStore`/`DatasetStore` interfaces + in-memory local implementations · `POST /api/v1/upload` (25 MB browser cap) · `GET /api/v1/data/context` · `GET /api/v1/data/preview` · `GET /api/v1/data/quality` · `POST /api/v1/data/clear` · API contract tests. **Keep out of the first PR:** React UI porting · GA4 OAuth · Drive integration · Gemini/chat · charts/forecasting/funnels/exports · evidence/prototype panels.
+
 **Locked decisions (do not re-litigate):**
 - **Canonical contract shapes (Part 4 §4.2):** `GET /healthz` (not `/health`) · `POST /api/v1/ga4/connect` returns `{ authorization_url }` (snake_case at the boundary) · upload returns `{ dataset }` wrapper (plus `{ dataset, rows }` where F4 specifies) · `credentials: "include"` in the client · `setSourceFromApi` in the store · API versioned **`/api/v1`** (all routes below use the versioned prefix).
 - **Chat wire format — decide at contract time and record in OpenAPI:** plain SSE (`text/event-stream`, `data: <chunk>\n\n`) vs AI SDK data-stream (`toDataStreamResponse()`/`toUIMessageStreamResponse()`). The captured repo pins **`ai@^7.0.48`** and its chat route uses `streamText(...).toTextStreamResponse()` (plain text) — F3's store reader consumes plain text, so **plain SSE is the default unless the team chooses `useChat`** (which requires the SDK format). (Plan Phase 1; archive §3.5, §3.10 item 1.)
@@ -145,13 +147,13 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 **Tasks (F4 §1–§12 is the implementation packet; this is the task skeleton):**
 - [ ] Create `api/` per F4's target layout: `config.py` (env, CORS for `http://localhost:5173`), `dependencies.py` (session), `schemas.py`, `services/dataset_service.py`, `routes/health.py`, `routes/upload.py`, `main.py`.
-- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, **25 MB direct-browser cap** — `MAX_BROWSER_UPLOAD_BYTES`, *not* 100 MB) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality`. The **100 MB `MAX_INGEST_BYTES`** applies to **Drive/server-side ingestion only** (Phase 5), subject to metadata, streaming, MIME, decompression, row, column, and temp-file limits — never to the browser upload path (locked 2026-08-05; wording conflict fixed 2026-08-06).
+- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, **25 MB direct-browser cap** — `MAX_BROWSER_UPLOAD_BYTES`, *not* 100 MB) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality` → **`POST /api/v1/data/clear`** (server-side Clear Data per `data-retention-policy.md` §5). The **100 MB `MAX_INGEST_BYTES`** applies to **Drive/server-side ingestion only** (Phase 5), subject to metadata, streaming, MIME, decompression, row, column, and temp-file limits — never to the browser upload path (locked 2026-08-05; wording conflict fixed 2026-08-06).
 - [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5** (state placement — see cross-cutting A).
 - [ ] GA4 OAuth **adapters only** in Phase 1 (start/callback scaffolding per F4 §8) — full flow is Phase 5. PKCE (S256) is required even in the adapter (Plan Phase 5 amendment; archive §3.2).
 - [ ] MSW test setup in the frontend *if* the React shell exists yet — otherwise defer to Phase 4 (F4 §12).
 - [ ] Add `requirements/base.txt` entries + `run_api.py` or `make run-api` (uvicorn).
 
-**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; upload→preview→quality works end-to-end via `httpx` contract tests; **25 MB browser cap enforced** (boundary test with the §4 rejection message; the 100 MB `MAX_INGEST_BYTES` is a Phase 5 Drive/server-side concern); baseline 742 pytest still green.
+**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; **upload→preview→quality→clear** works end-to-end via `httpx` contract tests (incl. the Clear Data semantics from `data-retention-policy.md` §5); **25 MB browser cap enforced** (boundary test with the §4 rejection message; the 100 MB `MAX_INGEST_BYTES` is a Phase 5 Drive/server-side concern); baseline 742 pytest still green.
 
 **Verification (planned, not run):** `pytest tests/api/` · `curl localhost:8000/healthz` · full `pytest` suite for regression.
 
@@ -320,7 +322,9 @@ Rename the prototype helper to `modelVisibleMetrics()` / `nonUnavailableMetrics(
 **742 = 452 utils-facing (61%, transfer as-is) + 290 Streamlit-layer (39%, rewrite/retire) + 40 Playwright E2E.** Per-file transfer paths in the inventory; four-layer matrix in archive §1.13 item 5. DoD per phase includes its test gate.
 
 ### D. Security & credentials — `env-rotation-checklist.md` + existing credential guard
-`.env` rotation (Phase 0) · credential guard patterns extended to FastAPI env vars · `.env.example` updated with all new API env vars (session secret, CORS origins) · `__Host-` cookie prefix (needs `Secure` + `Path=/` + no `Domain`) · never log keys or echo tokens in responses.
+`.env` rotation (Phase 0 — **Gate 1 closed 2026-08-06**) · credential guard patterns extended to FastAPI env vars · `.env.example` updated with all new API env vars (session secret, CORS origins) · `__Host-` cookie prefix (needs `Secure` + `Path=/` + no `Domain`) · never log keys or echo tokens in responses.
+
+**Guard allowlist rule (2026-08-06):** prepare FastAPI env-var validation now — **names only**: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. The guard validates variable names, expected presence in deployment, and that **no values are committed** — never treat a secret value as trusted because it matches a broad pattern, and never put permissive wildcard patterns into the allowlist.
 
 ### E. CI/CD & deployment — `cloudbuild.yaml` + `.github/workflows/test.yml` + `dockerfile-pattern.md`
 Both pipelines updated in Phase 6 · frontend build gate (**`npm ci` → typecheck → build** — package manager locked to npm 2026-08-06) added alongside pytest · container deployment to Cloud Run · smoke script reworked for the new stack.
