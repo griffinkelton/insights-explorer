@@ -6,6 +6,19 @@
 
 ---
 
+## React/FastAPI migration — Phase 3 implementation complete
+
+**Date:** 2026-08-06 | **Status:** Phase 3 (AI/analysis) IMPLEMENTED + tested on `feat/react-fastapi-migration` (`bb6f564`) — 859 passed (incl. 73 `tests/api` contract tests), guard exit 0, hooks green | **Branch:** code on `feat/react-fastapi-migration`; docs on `main`
+
+- **Task 0 probe recorded:** `google-genai` 2.14.0 — `client.models.count_tokens(*, model, contents, config) -> CountTokensResponse` (field `total_tokens`); near-limit preflight only (D11).
+- **New endpoints:** `POST /api/v1/chat` (SSE streaming — `event: text/usage/done/error` + optional `warning`; terminal sequences per C5; bounded `ai_lock` queue-wait → typed `ai_busy` per C6; failure `UsageEvent(success=False)` emitted before typed error); `POST /api/v1/analysis/summary` (Gemini, non-streaming, reserved output cap); `POST /api/v1/analysis/forecast` + `/analysis/funnel` (deterministic — no Gemini); `GET /api/v1/ai/usage` (per-session ledger, counts only, reset by Clear Data).
+- **`api/services/ai_service.py`:** deterministic-context assembly, identifier scrub (`identifiers_removed_for_ai` warning), metric-status caveats, two-stage token guard (chars÷4 → `countTokens` near-limit preflight → deterministic trim → typed `context_too_large`), `validate_chat_messages` (D12), `classify_provider_error` (typed codes, never raw text).
+- **`utils/gemini_client.py`:** model hygiene (2.0/1.5 pruned; 3.5-flash/lite added), `generate_response_stream_async` (aio path, first-token + stream deadlines), `count_tokens`, `emit_usage_failure`.
+- **Settings (C3/C4):** `GEMINI_DATA_POLICY` Literal-validated; `AI_MAX_CONTEXT_TOKENS` (total budget) + `AI_RESERVED_OUTPUT_TOKENS` (provider max_output); timeouts + `AI_QUEUE_WAIT_SECONDS`; `has_ai`.
+- **29 new contract tests** across `tests/api/` (chat SSE lifecycle, typed errors, ai_busy, ledger, analysis, settings, ai_service units).
+
+---
+
 ## React/FastAPI migration — Phase 3 go-verified + queue-wait policy settled
 
 **Date:** 2026-08-06 | **Status:** reviewer verified Phase 2 implementation on the migration branch and issued **GO** for Phase 3; spec updated with the remaining operational decisions | **Branch:** docs on `main`; code on `feat/react-fastapi-migration`
