@@ -3259,4 +3259,17 @@ User provided Lovable's raw build transcript (what it actually did, with full fi
 | AI-boundary pattern | inventory §6.3 | `contractContext()`/`evidenceContext()`/`insightContext()` — deterministic text assembled from a single source of truth, model never recalculates; maps to `utils/prompt_templates.py` in the port |
 | Evidence-connector design reference | inventory §6.2 | Mock details (allowlist, SyncRecord, 78% linkage, small-cell min 50, gate states) are reference material for the deferred evidence-connector workstream — stays out of the first slice (gate 8) |
 
+### 4.18 Review refinement — metric-state policy, pagination, trust boundary, quarantine (2026-08-06)
+
+External review of the Lovable implementation-transcript fold-in (§4.17). **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Metric-state policy | master-plan cross-cutting B + risk register | `computableMetrics()` admits **provisional** rows (filters only `unavailable`) — policy contradiction vs "no metric until validated". Adopted table: `validated` → full use with provenance; `provisional` → dashboard + **directional-only** insights + labeled Gemini; `unavailable` → shown unavailable, no computed claim, Gemini blocked-capability only. Rename helper to `modelVisibleMetrics()`/`nonUnavailableMetrics()` |
+| Drive-list pagination | master-plan Phase 5 + risk register | Prototype has `pageSize: 50` but no continuation token → folders >50 entries truncate. Contract gains `page_token` (request) + `next_page_token` (response, opaque or null) + "Load more" in the sheet |
+| Download trust boundary | master-plan Phase 5 + risk register | Accept `file_id` only — never client filename/MIME/size. Server re-fetches metadata, enforces 100 MB + MIME allowlist server-side, export path for Google-native Sheets, post-download decompression/row/column/temp-file limits, same typed errors as upload; sheet checks are UX guidance only |
+| Prototype quarantine | master-plan Phase 4 + risk register | `mock-evidence.ts` + engine → test/fixture or prototype-only paths, never production sources; panels unmounted in first production slice; "Demo / mock data" label in previews; mock sources never in prod source registry |
+| Browse-UX timing | master-plan open decision #9 | Decision moved to **Phase 5 only — not a Phase 1 blocker**. Recommended default: **Picker iframe** (tested component, lower maintenance); slide-out browser only if Drive is a core differentiator; both call the same `POST /api/v1/drive/download`, so swappable later |
+| Doc-role split confirmed | master-plan source map + README lifecycle | Transcript/conversations are reference/archive only — not fed into default coding-agent context; master plan, canonical contract, and OpenAPI schema are the three sources of truth |
+
 *— End of compiled archive —*
