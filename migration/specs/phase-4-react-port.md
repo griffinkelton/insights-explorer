@@ -325,11 +325,11 @@ Deferred (owned by later PRs/phases):
 
 **Filter/metric controls are OUT of the first-slice flow (review decision 2026-08-06).**
 Phase 3 ships no filter/metric mutation or synchronization endpoints, and filter/metric state
-is server-owned (master-plan §8; drift rows 1–4). Slice 1 therefore does **not** render
-interactive filter/metric controls — they are omitted (or visibly disabled/deferred) until a
-later PR adds the sync endpoints plus their request/version contracts, validation, tests,
-stale-state handling, and Clear Data reset behavior. Upload → context → preview → quality →
-clear is the complete slice-1 user flow.
+is server-owned (master-plan §8; drift rows 1–4). Slice 1 therefore does **not** render interactive filter/metric controls: they are **omitted**
+in Wave 4A (not merely disabled placeholders). The later PR that adds the sync endpoints
+renders them (disabled until server state arrives) with request/version contracts, validation,
+tests, stale-state handling, and Clear Data reset behavior. Upload → context → preview →
+quality → clear is the complete slice-1 user flow.
 
 ### Implementation waves (PR sequencing)
 
@@ -770,8 +770,9 @@ together; MSW is for component tests, not this gate):
 ```text
 1. Serve via the **Vite proxy** (Task 1): `uvicorn api.main:app --port 8000`  +  `npm run dev` (frontend at 5173, `/api` proxied to 8000).
 2. Flow: load / → upload sample.csv → preview renders rows → quality renders grade →
-        (filter/metric controls NOT in slice 1 — review decision; chat panel not mounted,
-        reader covered by MSW tests) → Clear Data → empty state returns, /ai/usage resets.
+        Clear Data → empty state returns, /ai/usage resets. Filter/metric controls are not
+        mounted in slice 1 (review decision; see scope note), and the chat panel is not
+        mounted — the SSE reader is covered by MSW tests.
 3. Assert: no console errors; no 409/410 unless expected; a11y smoke (tab through controls);
         bundle size and TTFT within the Task 7 budgets.
 ```
