@@ -166,13 +166,17 @@ class UsageLedger:
     estimated_prompt_tokens: int = 0      # chars÷4 estimate before trimming
     context_trimmed: int = 0              # count of requests where trimming dropped content
     identifiers_removed: int = 0          # count of requests where scrub_identifiers dropped columns
+    # Latency observability (safe — timestamps only, no content; refined 2026-08-06):
+    request_started_at: datetime | None = None       # request entry
+    provider_first_token_at: datetime | None = None  # first streamed chunk received
+    provider_completed_at: datetime | None = None    # final chunk / response done
     by_request_type: dict[str, int] = field(default_factory=dict)  # "summary" | "chat" | ...
     by_model: dict[str, int] = field(default_factory=dict)         # per-model request counts
 ```
 
 These dimensions answer the useful diagnostic questions **without logging sensitive content**: which feature uses the most tokens · are prompts frequently trimmed · which model is expensive · is free-tier quota causing failures · are retries increasing cost · does a prompt-template change increase token use.
 
-**Never log prompt text, sample rows, user messages, or model output to debug token counts.**
+**Latency observability (refined 2026-08-06):** from the three timestamps compute `TTFT = provider_first_token_at − request_started_at` and `TTLT = provider_completed_at − request_started_at` — observability only, letting you distinguish slow provider response vs oversized deterministic context vs expensive exact-token preflight vs long model output. **Never log prompt text, sample rows, user messages, or model output to debug token counts.**
 
 A `usage_sink` factory binds the Phase 2 `UsageEvent` to the ledger:
 
@@ -439,14 +443,22 @@ Pipeline (every request): validate chat payload limits → build deterministic c
 1. Estimate tokens locally via **chars ÷ 4** — never a `countTokens` API call before every request (extra latency + quota use + failure mode). There is no universally accurate "tiktoken for Gemini" — Gemini uses its own tokenizer; local estimates are model-approximate.
 2. Effective rule: `estimated_input_tokens <= AI_MAX_INPUT_TOKENS - AI_RESERVED_OUTPUT_TOKENS` (i.e. 24,000 − 4,096).
 3. **Deterministic trim order:** (1) drop raw/sample rows first → (2) reduce sample-row count → (3) keep quality warnings, metric-status caveats, filters, provenance → (4) keep aggregate summaries → (5) **reject only if the deterministic minimum context still exceeds the guard**.
-4. **Exact `countTokens` only at ≥80% of budget** (or for debugging/evaluation):
+4. **Exact `countTokens` only in the near-limit band** (≈80–100% of budget), never on ordinary requests:
    ```python
-   if estimated_tokens >= int(max_prompt_tokens * 0.8):
-       exact = client.models.count_tokens(model=model, contents=contents).total_tokens
+   estimate = len(assembled_prompt) // 4
+   if estimate < int(max_prompt_tokens * 0.80):
+       stream_now()                          # ordinary request — no preflight, best TTFT
+   elif estimate < max_prompt_tokens:
+       exact = await count_tokens(assembled_prompt)   # near-limit band only
+       stream_now() if exact <= max_prompt_tokens else trim_or_reject()
+   else:
+       trim_or_reject()                      # over budget — trim deterministically, then reject if still over
    ```
 5. Count the **whole assembled request** (system instructions + deterministic context + metric caveats + chat history + samples), not just the newest user message; treat counts as **model-specific**.
 6. Guard failure returns a typed non-provider error: `{"type":"error","code":"context_too_large","retryable":false,"message":"The analysis context is too large. Narrow filters or reduce the dataset scope."}`
 7. After the response, record **actual provider usage** (`usage_metadata`) so estimates can be tuned — via the ledger's safe diagnostic dimensions (Task 3); never log prompt text to debug counts.
+
+**Preserve perceived responsiveness (streaming):** build deterministic context locally → run the local heuristic immediately → begin the provider stream immediately unless near the threshold → avoid a `countTokens` preflight on ordinary requests → send the first SSE `text` event as soon as the provider emits a chunk → emit usage only at the end. Prompt size affects time-to-first-token; output length affects time-to-last-token — reserve output budget, cap output length, and stream.
 
 **Acceptance:** unit tests assert identifier columns never appear in `prompt_df`, `removed_columns` is populated, and a `DatasetWarning` with `code: identifiers_removed_for_ai` is emitted; caveat builder covers provisional + unavailable; `build_summary_prompt` gets the scrubbed sample; heuristic guard + trim order (raw rows dropped first, caveats kept) verified; `context_too_large` error typed and non-retryable.
 
@@ -531,11 +543,13 @@ class UsageResponse(BaseModel):
     estimated_prompt_tokens: int
     context_trimmed: int
     identifiers_removed: int
+    avg_ttft_ms: int | None        # mean time-to-first-token across requests (observability)
+    avg_ttlt_ms: int | None        # mean time-to-last-token across requests (observability)
     by_request_type: dict[str, int]
     by_model: dict[str, int]
 ```
 
-Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; also lets the React shell render usage stats without touching Streamlit session state. **Acceptance:** contract test asserts counts grow across requests, diagnostic dimensions update when trimming/scrubbing occurs, and Clear Data resets everything.
+Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; also lets the React shell render usage stats without touching Streamlit session state. Latency aggregates (`avg_ttft_ms`/`avg_ttlt_ms`) are computed from the ledger's timestamp fields — observability only, no content. **Acceptance:** contract test asserts counts grow across requests, diagnostic dimensions update when trimming/scrubbing occurs, latency aggregates are present after a mocked stream, and Clear Data resets everything.
 
 ---
 
@@ -551,8 +565,8 @@ Reads the per-session ledger (Task 3). Feeds the §17 AI cost guardrails later; 
 | `test_analysis_summary.py` | summary + usage returned · 409/503 · mocked `_get_client` · timeout config honored |
 | `test_analysis_forecast.py` | insufficient-data vs valid forecast · auto-detect date col |
 | `test_analysis_funnel.py` | per-step aggregation · min_length=2 validation |
-| `test_usage.py` | ledger counts grow (success/failure/tokens + tool_tokens by model + request type) · diagnostic dimensions update (estimated_prompt_tokens, context_trimmed, identifiers_removed) · Clear Data resets · no cap enforced (D13) |
-| `test_ai_context.py` | identifier scrub drops PII columns + `identifiers_removed_for_ai` warning with `removed_columns` · metric caveats for provisional/unavailable · heuristic guard + trim order (raw rows dropped first, caveats kept) · sliding-window history (newest user kept, oldest assistant dropped first) · exact countTokens only at ≥80% budget (mocked) |
+| `test_usage.py` | ledger counts grow (success/failure/tokens + tool_tokens by model + request type) · diagnostic dimensions update (estimated_prompt_tokens, context_trimmed, identifiers_removed) · latency aggregates present after a mocked stream (TTFT/TTLT) · Clear Data resets · no cap enforced (D13) |
+| `test_ai_context.py` | identifier scrub drops PII columns + `identifiers_removed_for_ai` warning with `removed_columns` · metric caveats for provisional/unavailable · heuristic guard + trim order (raw rows dropped first, caveats kept) · sliding-window history (newest user kept, oldest assistant dropped first) · 3-branch budget flow (stream-now < 80% · exact countTokens in 80–100% band · trim/reject over) |
 | `test_settings_ai.py` | boots with/without key · `has_ai` · `GEMINI_MODEL` default + override · timeout defaults · `GEMINI_DATA_POLICY` modes (`local_free` warn, `client_paid`, `disabled` 503) |
 
 All Gemini routes mock `utils.gemini_client` client — no live key in CI.
@@ -567,7 +581,7 @@ All Gemini routes mock `utils.gemini_client` client — no live key in CI.
 - [ ] SSE contract test asserts ≥2 partial chunks stream (release gate 3 reconnect shape documented); **named events** (`event: text/usage/done/error`) + JSON payloads + typed error codes asserted.
 - [ ] Prompt allowlist + identifier scrub (drop + `identifiers_removed_for_ai` warning with `removed_columns`) enforced per data-retention-policy §7–§8 (no raw rows, no identifiers, no tokens in prompts or usage events).
 - [ ] Metric-status policy enforced at the boundary (provisional caveated; unavailable never numeric evidence).
-- [ ] Usage ledger on `AppSession` (request/success/failure/token + tool-token counts by model + request type, plus safe diagnostics `estimated_prompt_tokens`/`context_trimmed`/`identifiers_removed`), reset by Clear Data, counts only (no cap — D13), no content stored; never log prompt text to debug counts.
+- [ ] Usage ledger on `AppSession` (request/success/failure/token + tool-token counts by model + request type, safe diagnostics `estimated_prompt_tokens`/`context_trimmed`/`identifiers_removed`, latency timestamps → TTFT/TTLT), reset by Clear Data, counts only (no cap — D13), no content stored; never log prompt text to debug counts.
 - [ ] `AVAILABLE_MODELS` pruned of shut-down models; `GEMINI_MODEL` env-configurable with 2.5-flash fallback (D1).
 - [ ] Async aio streaming path + three explicit timeouts (30/60/120) + conditional pre-text 429 retry + two-layer bounded chat history (D2/D9/D10/D12) tested.
 - [ ] `GEMINI_DATA_POLICY` modes behave as documented (`local_free` warns; `disabled` 503s) — never inferred from key format (D7).
