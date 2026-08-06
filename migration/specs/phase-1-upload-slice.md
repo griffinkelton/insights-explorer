@@ -60,7 +60,7 @@ MAX_BROWSER_UPLOAD_BYTES=26214400                      # 25 MB = 25 * 1024 * 102
 MAX_INGEST_BYTES=104857600                             # 100 MB = 100 * 1024 * 1024 (Drive/server-side only)
 ```
 
-Placeholder convention (applies to `API_SESSION_SECRET` only): empty, `<angle-bracket>`, `your_xxx_here`, `replace-with-...`, or `...` — anything else is a real value and fails. The four config vars above intentionally carry concrete safe defaults (dev origin + byte limits); they are rejected only when they appear in **committed real env files** — never inside `.env.example`.
+Placeholder convention (applies to `API_SESSION_SECRET` only): `<angle-bracket>`, `your_xxx_here`, `replace-with-...`, or `...` — an **empty value** and anything else are treated as real values and fail (the `PLACEHOLDER_VALUE` regex matches only the bracketed/`your_`/`replace-with-`/`...` forms; an empty string matches nothing and is therefore rejected). The four config vars above intentionally carry concrete safe defaults (dev origin + byte limits); they are rejected only when they appear in **committed real env files** — never inside `.env.example`.
 
 ### 1.2 `scripts/check_credentials.py` — two-part guard
 
@@ -170,7 +170,24 @@ The current Streamlit UI stays alive alongside; it must not call FastAPI from in
 
 ```python
 from functools import lru_cache
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PLACEHOLDER_PREFIXES = ("replace-with-", "your_", "<")
+
+
+def validate_session_secret(value: str, environment: str) -> str:
+    """Reject empty/placeholder secrets outside an explicit test environment —
+    copying `.env.example` to `.env` without editing must fail at startup."""
+    if environment == "test":
+        return value
+    if not value or value == "..." or value.startswith(PLACEHOLDER_PREFIXES):
+        raise ValueError(
+            "API_SESSION_SECRET must be a real deployment/local secret, "
+            "not an .env.example placeholder."
+        )
+    return value
 
 
 class Settings(BaseSettings):
@@ -182,6 +199,11 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     max_browser_upload_bytes: int = 25 * 1024 * 1024     # MAX_BROWSER_UPLOAD_BYTES (locked)
     max_ingest_bytes: int = 100 * 1024 * 1024            # MAX_INGEST_BYTES — Drive/server-side only
+
+    @field_validator("api_session_secret")
+    @classmethod
+    def _validate_secret(cls, value: str, info) -> str:
+        return validate_session_secret(value, info.data.get("environment", "development"))
 
     @property
     def cors_origins(self) -> list[str]:
@@ -348,25 +370,33 @@ sessions = InMemorySessionStore()
 
 ```python
 class InMemoryDatasetStore:
-    """Dev implementation — memory-cache semantics (eviction-tolerant; Phase 6 note)."""
+    """Dev implementation — memory-cache semantics (eviction-tolerant; Phase 6 note).
+    Thread-safe: FastAPI may run sync endpoints in worker threads, so even the
+    dev store guards its dict with an RLock (mirrors InMemorySessionStore)."""
 
     def __init__(self) -> None:
         self._items: dict[str, StoredDataset] = {}
+        self._lock = RLock()
 
     def put(self, dataframe: pd.DataFrame, context: DatasetContext) -> StoredDataset:
         item = StoredDataset(id=uuid4().hex, dataframe=dataframe, context=context)
-        self._items[item.id] = item
+        with self._lock:
+            self._items[item.id] = item
         return item
 
     def get(self, dataset_id: str) -> StoredDataset | None:
-        return self._items.get(dataset_id)
+        with self._lock:
+            return self._items.get(dataset_id)
 
     def remove(self, dataset_id: str) -> None:
-        self._items.pop(dataset_id, None)
+        with self._lock:
+            self._items.pop(dataset_id, None)
 
 
 datasets = InMemoryDatasetStore()
 ```
+
+(`RLock` / `uuid4` imports added at the top of the module.)
 
 `api/dependencies.py` — cookie → session. The cookie value is **signed with `itsdangerous`** (so `API_SESSION_SECRET` is required and used — never dead config), and expiry is **enforced server-side** (`min(2 h idle, 12 h absolute)`, §6 policy; `__Host-` in production):
 
@@ -524,8 +554,9 @@ def parse_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
 def clear_dataset_state(session: AppSession) -> None:
     """Policy-real Clear Data (retention-policy §5) — an explicit method, never
     an implied metadata.clear(). Establishes the cleanup namespace now so later
-    phases don't invent inconsistent cleanup behavior. Preserves only the GA4
-    OAuth connection and the theme preference."""
+    phases don't invent inconsistent cleanup behavior. Preserves only the durable
+    GA4 connection (ga4_credentials) and the theme preference; transient OAuth
+    flow state is cleared."""
     # Active dataset + derived artifacts.
     if session.dataset_id:
         datasets.remove(session.dataset_id)
@@ -538,7 +569,10 @@ def clear_dataset_state(session: AppSession) -> None:
     session.metadata.pop("chat_history", None)     # Phase 3: chat context
     session.metadata.pop("usage_counters", None)   # Phase 3: per-session usage
     session.metadata.pop("export_temp_refs", None) # Phase 4+: export temp files
-    # ga4_credentials / oauth_state / theme stay put on purpose.
+    # Transient OAuth-flow artifacts do not survive Clear Data:
+    session.oauth_state = None
+    session.code_verifier = None
+    # session.ga4_credentials is kept — that is the durable provider connection.
 ```
 
 (`clear_dataset_state` needs `datasets` from `api.stores.dataset_store` and `AppSession` from `api.stores.session_store` at the top of the module.)
@@ -554,6 +588,7 @@ from api.config import get_settings
 from api.dependencies import AppSession, get_or_create_session
 from api.schemas import UploadResponse
 from api.services.dataset_service import clear_dataset_state, make_context, parse_uploaded_file
+from api.services.quality_service import build_quality_report
 from api.stores.dataset_store import datasets  # canonical store location (api/stores)
 
 router = APIRouter(prefix="/api/v1", tags=["data"])
@@ -801,6 +836,7 @@ Use `httpx` + FastAPI's `TestClient`/`ASGITransport`:
 - [ ] **Cookie is signed:** a tampered cookie value (flipped character) is treated as no session → a fresh cookie is issued, never a 500.
 - [ ] **Idle expiry:** backdate `session.last_accessed_at` > 2 h → next request issues a fresh session and the old dataset is removed (no stale-state path).
 - [ ] **Absolute expiry:** backdate `session.created_at` > 12 h → same fresh-session behavior.
+- [ ] **Runtime secret validation:** `API_SESSION_SECRET=replace-with-a-long-random-value` (placeholder) → `Settings()`/app startup **fails outside test mode**; an empty value fails; a generated real value passes; `environment=test` bypasses the check.
 - [ ] Guard tests from §1 pass (`tests/test_credential_guard.py`).
 
 Test file note: no full-length credential-shaped strings in test sources (runtime concatenation convention).
@@ -826,7 +862,7 @@ Do not scaffold a React app in Phase 1 if none exists.
 ```bash
 # from repo root (branch: feat/react-fastapi-migration)
 pip install -r requirements/base.txt
-cp .env.example .env        # fill API_SESSION_SECRET (generated value — never committed)
+cp .env.example .env        # fill API_SESSION_SECRET with a generated value (never committed; startup rejects the placeholder)
 uvicorn api.main:app --reload --port 8000
 
 curl http://localhost:8000/healthz            # {"status":"ok"}
