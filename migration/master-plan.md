@@ -13,18 +13,18 @@ The `migration/` folder holds eleven planning docs plus a reference capture. Thi
 
 | What | Where |
 |---|---|
-| **Raw material + verification** (source of truth) | `insights-explorer-migration-ingest.md` (archive, Parts 1–4) |
-| **The 6-phase roadmap** (the phase *shapes* below come from here) | `insights-explorer-migration-plan.md` |
-| **Phase 1 backend implementation packet** (code-level detail) | `phase-1-api-react-callback-tests-implementation.md` (F4) |
-| **Frontend store wiring prompt** (13-step change list) | `freebuff-prompt-wire-react-store.md` (F3) |
-| **Security gate before any code copy-in** | `env-rotation-checklist.md` |
-| **Process policy (branch + freeze)** | `branch-and-freeze-policy.md` |
-| **State migration record** (44 keys) | `session-state-inventory.md` |
-| **Which tests transfer** (742 = 452 + 290 + 40) | `test-layer-inventory.md` |
-| **Hosting pattern** (single-origin Docker) | `dockerfile-pattern.md` |
-| **Independent audit lens** | `glm-5-2-vs-perplexity-migration-comparison.md` |
+| **Raw material + verification** (source of truth) | `archive/insights-explorer-migration-ingest.md` (archive, Parts 1–4) |
+| **The 6-phase roadmap** (the phase *shapes* below come from here) | `archive/insights-explorer-migration-plan.md` |
+| **Phase 1 backend implementation packet** (code-level detail) | `specs/phase-1-api-react-callback-tests-implementation.md` (F4) |
+| **Frontend store wiring prompt** (13-step change list) | `specs/freebuff-prompt-wire-react-store.md` (F3) |
+| **Security gate before any code copy-in** | `policies/env-rotation-checklist.md` |
+| **Process policy (branch + freeze)** | `policies/branch-and-freeze-policy.md` |
+| **State migration record** (44 keys) | `policies/session-state-inventory.md` |
+| **Which tests transfer** (742 = 452 + 290 + 40) | `policies/test-layer-inventory.md` |
+| **Hosting pattern** (single-origin Docker) | `policies/dockerfile-pattern.md` |
+| **Independent audit lens** | `archive/glm-5-2-vs-perplexity-migration-comparison.md` |
 | **Source UI repo frozen capture** (18 files) | `whisperer-30-reference/` |
-| **Retention & AI data-boundary policy** (new) | `data-retention-policy.md` |
+| **Retention & AI data-boundary policy** (new) | `policies/data-retention-policy.md` |
 
 The master plan adds what none of the source docs have: **execution order, inter-phase dependencies, a single file-organization target, cross-cutting workstreams, and one Definition of Done**.
 
@@ -43,10 +43,10 @@ The master plan adds what none of the source docs have: **execution order, inter
 ## 2. Guiding principles (locked decisions from the archive)
 
 1. **`insights-explorer` is the system of record.** whisperer-30's React components are adopted wholesale as the new frontend; its mocks/gateway/prompts never become production logic. (Archive §1.1; plan "Decision".)
-2. **Server-owned session model.** Browser holds only an opaque `HttpOnly` secure session cookie. Dataset reference, OAuth credentials, filter/metric/chat state live server-side. Raw data and provider tokens never reach localStorage, URLs, logs, or client analytics. (Archive §1.13 / Batch 3, item 3; `session-state-inventory.md` §7.)
-3. **Single-origin deployment.** Built React SPA served statically behind the FastAPI container — required for cookies, OAuth callbacks, CORS, and SSE. No split origins. (Archive §3.1, §3.10 item 3, §3.11; `dockerfile-pattern.md`.)
+2. **Server-owned session model.** Browser holds only an opaque `HttpOnly` secure session cookie. Dataset reference, OAuth credentials, filter/metric/chat state live server-side. Raw data and provider tokens never reach localStorage, URLs, logs, or client analytics. (Archive §1.13 / Batch 3, item 3; `policies/session-state-inventory.md` §7.)
+3. **Single-origin deployment.** Built React SPA served statically behind the FastAPI container — required for cookies, OAuth callbacks, CORS, and SSE. No split origins. (Archive §3.1, §3.10 item 3, §3.11; `policies/dockerfile-pattern.md`.)
 4. **Contract discipline.** `plans/ga4-measurement-contract.md` stays canonical; Python domain models serialize at one API boundary; typed React client generated/validated from OpenAPI; API versioned `/api/v1`; naming normalized once (API emits snake_case, client translates). (Archive §1.13 item 4; §4.2.)
-5. **Test by behavior, not implementation.** Four-layer matrix: Python unit · FastAPI contract · React component (MSW) · Playwright E2E. Mocks become test fixtures only. (Archive §1.13 item 5; `test-layer-inventory.md`.)
+5. **Test by behavior, not implementation.** Four-layer matrix: Python unit · FastAPI contract · React component (MSW) · Playwright E2E. Mocks become test fixtures only. (Archive §1.13 item 5; `policies/test-layer-inventory.md`.)
 6. **Tight Phase 1 scope.** One vertical slice first: Upload CSV → validate via existing Python logic → server session → React preview/quality → clear-data → regression tests. Then GA4 → Drive → AI streaming → advanced analysis. (Archive §1.13 item 7.)
 7. **Incremental PRs per deliverable; additive documentation.** Original docs preserved; decisions appended as dated addenda.
 8. **whisperer-30 stays a living design reference until cutover.** (Archive §1.13 item 2.)
@@ -95,19 +95,19 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 4. Phase 0 — Security gate & process setup (prereq, no product code)
 
-**Inputs:** `env-rotation-checklist.md` (full) · `branch-and-freeze-policy.md` (full) · archive §1.13 / Batch 3.
+**Inputs:** `policies/env-rotation-checklist.md` (full) · `policies/branch-and-freeze-policy.md` (full) · archive §1.13 / Batch 3.
 
 **Goal:** make it safe to copy whisperer-30 code in, and freeze Streamlit feature work so the migration surface stops growing.
 
 **Tasks:**
-- [ ] **Rotate/revoke credentials (manual — provider consoles).** The whisperer-30 repo tracks a real `.env` (62 B, commit `9059739`, no `.env.example`, no gitignore rule). Treat as potentially exposed: inspect git history → identify real vs placeholder per provider (Google Cloud / Gemini / Lovable / other) → **rotate every real credential** → `git rm --cached .env` → add safe `.env.example` → gitignore rule. History scrub (`git filter-repo`) is optional but documented. *Follow `env-rotation-checklist.md` Phases A–E.*
-- [ ] **Cut `feat/react-fastapi-migration` branch.** `main` = production/security fixes only; all migration work lands on the branch with the fix-forward rule. Feature freeze applies to broad Streamlit work (test: any new `st.session_state` key during the freeze needs a documented replacement — see `session-state-inventory.md`). Lift criteria in `branch-and-freeze-policy.md` §5.
-- [ ] **Inventory the 44 `st.session_state` keys** (done — `session-state-inventory.md`). Adopt it as the working checklist for Phases 2/4.
+- [ ] **Rotate/revoke credentials (manual — provider consoles).** The whisperer-30 repo tracks a real `.env` (62 B, commit `9059739`, no `.env.example`, no gitignore rule). Treat as potentially exposed: inspect git history → identify real vs placeholder per provider (Google Cloud / Gemini / Lovable / other) → **rotate every real credential** → `git rm --cached .env` → add safe `.env.example` → gitignore rule. History scrub (`git filter-repo`) is optional but documented. *Follow `policies/env-rotation-checklist.md` Phases A–E.*
+- [ ] **Cut `feat/react-fastapi-migration` branch.** `main` = production/security fixes only; all migration work lands on the branch with the fix-forward rule. Feature freeze applies to broad Streamlit work (test: any new `st.session_state` key during the freeze needs a documented replacement — see `policies/session-state-inventory.md`). Lift criteria in `policies/branch-and-freeze-policy.md` §5.
+- [ ] **Inventory the 44 `st.session_state` keys** (done — `policies/session-state-inventory.md`). Adopt it as the working checklist for Phases 2/4.
 - [ ] **Confirm the Streamlit baseline is green** before any changes (see Phase 1 verification commands).
 - [x] **Lock the browser-upload architecture — DONE (2026-08-05): 25 MB direct browser cap.** Cloud Run under HTTP/1 caps request size at **32 MiB**; end-to-end HTTP/2 has no stated request-size limit — but HTTP/2 is **not** selected merely to preserve 100 MB browser uploads (it adds transport/deployment complexity without solving parsing memory, dataframe expansion, processing time, retention, or cleanup). Signed Cloud Storage upload is deferred until real file-size evidence requires it. (Archive §4.12–4.13; Cloud Run quotas.)
 - [x] **Lock the session/data architecture — DONE (2026-08-05): state placement, not one store.** `SessionStore`/`DatasetStore` interfaces with in-memory implementations for local dev. Staging proof is scoped precisely — **local-first revision (2026-08-06):** prove a *shared OAuth/session implementation* **before the hosted beta** (in-memory stores are acceptable through Phase 5, since local use is single-process); **object storage is proven only if the signed-upload architecture is chosen** — not a Phase 5 prerequisite; **Phase 1's in-memory local implementation is sufficient for the vertical slice** as long as it follows the final interfaces. Cloud Run routes requests across instances and session affinity is best-effort, not a consistency guarantee. The durable database choice (refresh tokens, audit) is postponed until real multi-user/audit requirements exist. (Archive §4.13–4.15.)
 - [x] **Publish the canonical API decision record** (prefix `/api/v1`, `/healthz`, `{ dataset }`, HttpOnly cookie + `credentials: "include"`, snake_case at the boundary, `api.ts` camelCase, chat transport, upload policy) and add it to the top of every implementation-facing doc (F3, F4, plan) with old paths marked superseded. **DONE (2026-08-05 revision pass).**
-- [x] **Write the data-retention + Gemini data-boundary policy** — **DONE (2026-08-05), defaults APPROVED (2026-08-06):** `migration/data-retention-policy.md` exists and all five §11 defaults were approved by the product owner on 2026-08-06 (24 h retention / 2 h-12 h session / Clear Data semantics / 30-day export metadata / Gemini allowlist-only), closing gate 6.
+- [x] **Write the data-retention + Gemini data-boundary policy** — **DONE (2026-08-05), defaults APPROVED (2026-08-06):** `policies/data-retention-policy.md` exists and all five §11 defaults were approved by the product owner on 2026-08-06 (24 h retention / 2 h-12 h session / Clear Data semantics / 30-day export metadata / Gemini allowlist-only), closing gate 6.
 
 **Exit criteria (DoD):** `.env` rotation completed with evidence (checklist §Verification) · branch created · baseline test run recorded.
 
@@ -115,13 +115,13 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 | # | Gate | Owner | Status |
 |---|---|---|---|
-| 1 | Rotate/remove tracked Lovable credentials | You | ✅ **DONE (2026-08-06)** — both exposed `AIzaSy…` keys owned by product owner's insights-explorer GCP setup, rotated/revoked + old keys confirmed invalid (user-confirmed ~2026-08-03); whisperer-30 tracked `.env` (Lovable connector key only) **untracked** (`2341c9c`, branch `fix/remove-tracked-env`, pushed), `.gitignore` rules + `.env.example` added; **history-wide secret scans clean in both repos** + credential guard exit 0; closure recorded without secret values (`env-rotation-checklist.md` — Gate 1 closure record) |
-| 2 | Create migration branch + Streamlit feature freeze | You | ✅ **DONE (2026-08-06)** — `feat/react-fastapi-migration` created + pushed from `main` @ `3769575`; Streamlit feature freeze **ACTIVE** on `main` (production/security fixes, CI/deploy fixes, and docs only; feature requests park in `IDEAS.md` as `post-migration`) — `branch-and-freeze-policy.md` §4 |
+| 1 | Rotate/remove tracked Lovable credentials | You | ✅ **DONE (2026-08-06)** — both exposed `AIzaSy…` keys owned by product owner's insights-explorer GCP setup, rotated/revoked + old keys confirmed invalid (user-confirmed ~2026-08-03); whisperer-30 tracked `.env` (Lovable connector key only) **untracked** (`2341c9c`, branch `fix/remove-tracked-env`, pushed), `.gitignore` rules + `.env.example` added; **history-wide secret scans clean in both repos** + credential guard exit 0; closure recorded without secret values (`policies/env-rotation-checklist.md` — Gate 1 closure record) |
+| 2 | Create migration branch + Streamlit feature freeze | You | ✅ **DONE (2026-08-06)** — `feat/react-fastapi-migration` created + pushed from `main` @ `3769575`; Streamlit feature freeze **ACTIVE** on `main` (production/security fixes, CI/deploy fixes, and docs only; feature requests park in `IDEAS.md` as `post-migration`) — `policies/branch-and-freeze-policy.md` §4 |
 | 3 | Publish canonical API decision record | ✅ Done | Confirm all implementation docs use `/api/v1` (F3/F4/plan top sections) |
 | 4 | Lock upload policy — 25 MB direct / 100 MB server-side with safeguards | ✅ Done | `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`; `MAX_INGEST_BYTES = 100 * 1024 * 1024`; revisit only after production evidence shows legit uploads > 25 MB |
 | 5a | Lock state contracts and placement policy | ✅ Done | Interface responsibilities, state-placement rules, TTL assumptions, failure behavior — locked in §5 + cross-cutting A |
 | 5b | Implement/test local `SessionStore`/`DatasetStore` | Implementation agent | **Phase 1 task** — `InMemorySessionStore`/`InMemoryDatasetStore`; part of the vertical slice |
-| 6 | Confirm retention, clear-data, and Gemini boundary defaults | You | **APPROVED (2026-08-06)** — product owner approved all five points in `data-retention-policy.md` §11: **`RETENTION_HOURS` 24 h** (upper bound for a future persisted store — **effective Phase 1 retention ≤ 12 h**, earlier of session expiry and `RETENTION_HOURS`) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence |
+| 6 | Confirm retention, clear-data, and Gemini boundary defaults | You | **APPROVED (2026-08-06)** — product owner approved all five points in `policies/data-retention-policy.md` §11: **`RETENTION_HOURS` 24 h** (upper bound for a future persisted store — **effective Phase 1 retention ≤ 12 h**, earlier of session expiry and `RETENTION_HOURS`) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence |
 | 7 | Build upload → preview → quality → clear vertical slice | Implementation agent | ⏳ **Blocked by 1 and 2; includes 5b** — Gate 6 approved 2026-08-06 |
 | 8 | Explicitly defer GA4, Drive, chat, and export | You | 🟢 Active (by plan) |
 
@@ -129,7 +129,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 5. Phase 1 — API contract & FastAPI skeleton (Week 1)
 
-**Inputs:** `phase-1-api-react-callback-tests-implementation.md` (F4 — full packet) · plan Phase 1 + amendments · archive §3.5 (wire format), §3.9 (ai pin), §4.2 (canonical shapes), §4.11 (size policy).
+**Inputs:** `specs/phase-1-api-react-callback-tests-implementation.md` (F4 — full packet) · plan Phase 1 + amendments · archive §3.5 (wire format), §3.9 (ai pin), §4.2 (canonical shapes), §4.11 (size policy).
 
 **Goal:** stand up `api/` (FastAPI) with the JSON contract between React and Python, using F4's vertical slice as the code-level reference.
 
@@ -143,17 +143,17 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - **Session/data architecture (state placement, not a single store — locked 2026-08-05; local-first revision 2026-08-06):** `SessionStore`/`DatasetStore` **interfaces** defined now with in-memory implementations for local dev (**sufficient through Phase 5 under the local-first posture**); a **shared ephemeral session/OAuth store is proven before the hosted beta** (GA4 + Drive depend on it at scale); **object storage is proven only if signed-upload architecture is chosen**. State is placed **by type**: browser session ID → HttpOnly cookie; OAuth state/PKCE verifier → ephemeral store with short TTL (Redis/Valkey); active dataset metadata/filters/metrics → shared store; raw uploads → object storage (Cloud Storage); parsed dataframes → memory cache (eviction-tolerant); OAuth refresh tokens → encrypted durable store; chat usage/audit → Postgres later. No provider token or raw dataset is stored in the browser. (Archive §4.13–4.14.)
 - **Blocking work:** keep CPU-heavy routes synchronous or run blocking work in a controlled thread pool (never inline in `async def` hot paths — it stalls SSE/chat); hard-cap rows, columns, and **decompressed** size; reject password-protected spreadsheets, suspicious MIME mismatches, and compression bombs; stream or temp-store exports instead of buffering in memory.
 - **OAuth production-real from the start:** persist `state`, PKCE verifier, creation time, and intended post-auth return path in the shared session with a short expiry and one-time use; maintain separate redirect URIs for local/staging/production from an allowed-host config — never derive the redirect host loosely from request headers.
-- **Data retention (policy before API):** adopt `migration/data-retention-policy.md` — upload retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt field allowlist, identifier removal/aggregation before AI calls.
+- **Data retention (policy before API):** adopt `policies/data-retention-policy.md` — upload retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt field allowlist, identifier removal/aggregation before AI calls.
 
 **Tasks (F4 §1–§12 is the implementation packet; this is the task skeleton):**
 - [ ] Create `api/` per F4's target layout: `config.py` (env, CORS for `http://localhost:5173`), `dependencies.py` (session), `schemas.py`, `services/dataset_service.py`, `routes/health.py`, `routes/upload.py`, `main.py`.
-- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, **25 MB direct-browser cap** — `MAX_BROWSER_UPLOAD_BYTES`, *not* 100 MB) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality` → **`POST /api/v1/data/clear`** (server-side Clear Data per `data-retention-policy.md` §5). The **100 MB `MAX_INGEST_BYTES`** applies to **Drive/server-side ingestion only** (Phase 5), subject to metadata, streaming, MIME, decompression, row, column, and temp-file limits — never to the browser upload path (locked 2026-08-05; wording conflict fixed 2026-08-06).
+- [ ] Implement the **vertical slice**: `POST /api/v1/upload` (multipart, **25 MB direct-browser cap** — `MAX_BROWSER_UPLOAD_BYTES`, *not* 100 MB) → `GET /api/v1/data/context` + `GET /api/v1/data/preview` → `GET /api/v1/data/quality` → **`POST /api/v1/data/clear`** (server-side Clear Data per `policies/data-retention-policy.md` §5). The **100 MB `MAX_INGEST_BYTES`** applies to **Drive/server-side ingestion only** (Phase 5), subject to metadata, streaming, MIME, decompression, row, column, and temp-file limits — never to the browser upload path (locked 2026-08-05; wording conflict fixed 2026-08-06).
 - [ ] Session: define `SessionStore`/`DatasetStore` interfaces; in-memory implementation keyed by opaque `HttpOnly` cookie for dev; **shared ephemeral session/OAuth storage + object storage for raw uploads proven before Phase 5** (state placement — see cross-cutting A).
 - [ ] GA4 OAuth **adapters only** in Phase 1 (start/callback scaffolding per F4 §8) — full flow is Phase 5. PKCE (S256) is required even in the adapter (Plan Phase 5 amendment; archive §3.2).
 - [ ] MSW test setup in the frontend *if* the React shell exists yet — otherwise defer to Phase 4 (F4 §12).
 - [ ] Add `requirements/base.txt` entries + `run_api.py` or `make run-api` (uvicorn).
 
-**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; **upload→preview→quality→clear** works end-to-end via `httpx` contract tests (incl. the Clear Data semantics from `data-retention-policy.md` §5); **25 MB browser cap enforced** (boundary test with the §4 rejection message; the 100 MB `MAX_INGEST_BYTES` is a Phase 5 Drive/server-side concern); baseline 742 pytest still green.
+**Exit criteria (DoD):** app runs on `:8000`; `/healthz` passes; **upload→preview→quality→clear** works end-to-end via `httpx` contract tests (incl. the Clear Data semantics from `policies/data-retention-policy.md` §5); **25 MB browser cap enforced** (boundary test with the §4 rejection message; the 100 MB `MAX_INGEST_BYTES` is a Phase 5 Drive/server-side concern); baseline 742 pytest still green.
 
 **Verification (planned, not run):** `pytest tests/api/` · `curl localhost:8000/healthz` · full `pytest` suite for regression.
 
@@ -161,14 +161,14 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 6. Phase 2 — Decouple `utils/` from Streamlit (Week 2)
 
-**Inputs:** plan Phase 2 · `session-state-inventory.md` (which `st.session_state` reads move where) · `test-layer-inventory.md` §1 (452 utils-facing tests must stay green).
+**Inputs:** plan Phase 2 · `policies/session-state-inventory.md` (which `st.session_state` reads move where) · `policies/test-layer-inventory.md` §1 (452 utils-facing tests must stay green).
 
 **Goal:** make `utils/` importable by FastAPI while Streamlit keeps working.
 
 **Tasks:**
 - [ ] The seven Streamlit-coupled utils: `data_loader` (drop `@st.cache_data`), `error_boundary` (keep Streamlit-only), `forecasting` (drop `st.cache`), `gemini_client` (drop Streamlit rate-limit display; keep core calls), `prompt_templates` (pass context as args, no `st.session_state` reads), `session` (replaced by FastAPI session — see cross-cutting A), `styles` (Streamlit-only, stays).
 - [ ] Confirm remaining utils are pure: `data_context`, `ga4_client`, `drive_client`, `charts`, `funnels`, `quality`, `exports`, `commands`, `sanitize`.
-- [ ] Every removed `st.session_state` read gets its replacement from `session-state-inventory.md` (44 keys, 6 groups).
+- [ ] Every removed `st.session_state` read gets its replacement from `policies/session-state-inventory.md` (44 keys, 6 groups).
 
 **Exit criteria (DoD):** `utils/` Streamlit-free or minimally coupled; FastAPI imports any util without touching `st`; **all 742 tests still pass** (utils tests prove behavior preserved).
 
@@ -196,7 +196,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 8. Phase 4 — Port React UI into `frontend/` (Week 4)
 
-**Inputs:** `freebuff-prompt-wire-react-store.md` (F3 — 13 steps) · plan Phase 4 + amendments · archive §3.6 (validateSearch), §3.9 items 3/5 (pins, bun), §3.10 items 2/5 (strip list, Recharts) · `whisperer-30-reference/` (captured source; **the store-wiring instruction set is `whisperer-30-reference/STORE-DRIFT-MATRIX.md`** — captured store vs F3, supersedes the earlier drift cross-check).
+**Inputs:** `specs/freebuff-prompt-wire-react-store.md` (F3 — 13 steps) · plan Phase 4 + amendments · archive §3.6 (validateSearch), §3.9 items 3/5 (pins, bun), §3.10 items 2/5 (strip list, Recharts) · `whisperer-30-reference/` (captured source; **the store-wiring instruction set is `whisperer-30-reference/STORE-DRIFT-MATRIX.md`** — captured store vs F3, supersedes the earlier drift cross-check).
 
 **Goal:** copy the whisperer-30 components in, strip the Start/Lovable/Nitro plumbing, and swap mock store calls for real API calls.
 
@@ -264,15 +264,15 @@ GA4 E2E: connect → pull → preview success path plus the OAuth error/cancel p
 
 ## 10. Phase 6 — Cutover, hosting, retire Streamlit (Week 6)
 
-**Inputs:** plan Phase 6 + amendments · `dockerfile-pattern.md` (full) · `test-layer-inventory.md` §4 (retirement checklist) · archive §3.10 item 3 (Cloud Run), §3.11 (Vercel eval).
+**Inputs:** plan Phase 6 + amendments · `policies/dockerfile-pattern.md` (full) · `policies/test-layer-inventory.md` §4 (retirement checklist) · archive §3.10 item 3 (Cloud Run), §3.11 (Vercel eval).
 
 **Goal:** one product at one URL on container hosting; Streamlit retired; docs updated.
 
 **Tasks:**
 - [ ] **Hosting: Cloud Run (recommended).** The repo already deploys via `cloudbuild.yaml` → docker build → Artifact Registry → `gcloud run deploy`. Bind `$PORT` (8080); raise the request timeout for SSE (default 300s, max 3600s) or heartbeat; treat session affinity as best-effort (design chat reconnect); enable HTTP/2 (`h2c`); set the OAuth redirect to the explicit public HTTPS URL (Cloud Run proxies `X-Forwarded-Proto`). (Archive §3.10 item 3.)
-- [ ] **Single-origin Dockerfile** per `dockerfile-pattern.md`: stage 1 Vite build → stage 2 Python runtime serving static SPA + `/assets` mount + SPA fallback guarded to non-API paths. Vercel is **ruled out for the backend** (≈4.5 MB serverless body cap vs 100 MB ingestion; duration limits vs SSE; stateless vs sessions) — SPA-on-Vercel + API-elsewhere is rejected (split origins). (Archive §3.11.)
+- [ ] **Single-origin Dockerfile** per `policies/dockerfile-pattern.md`: stage 1 Vite build → stage 2 Python runtime serving static SPA + `/assets` mount + SPA fallback guarded to non-API paths. Vercel is **ruled out for the backend** (≈4.5 MB serverless body cap vs 100 MB ingestion; duration limits vs SSE; stateless vs sessions) — SPA-on-Vercel + API-elsewhere is rejected (split origins). (Archive §3.11.)
 - [ ] **Feature-parity checklist** (12 features: upload, GA4, Drive, preview, quality, summary, charts, forecast & funnel, chat, export, Learn, onboarding).
-- [ ] **Retire Streamlit tests** per `test-layer-inventory.md`: 290 Streamlit-layer tests rewritten as API-contract tests or retired; 452 utils tests stay; 40 Playwright tests become the new E2E baseline.
+- [ ] **Retire Streamlit tests** per `policies/test-layer-inventory.md`: 290 Streamlit-layer tests rewritten as API-contract tests or retired; 452 utils tests stay; 40 Playwright tests become the new E2E baseline.
 - [ ] Update `README.md`, `ARCHITECTURE.md`, `CHANGELOG.md` (v0.4.0 entry); archive `insights-whisperer-30` repo with a fold-in note.
 - [ ] Update **both** CI pipelines: `.github/workflows/test.yml` (pytest + frontend build + Playwright) and `cloudbuild.yaml` (container build/deploy). (Archive §1.13.)
 
@@ -286,7 +286,7 @@ GA4 E2E: connect → pull → preview success path plus the OAuth error/cancel p
 
 These run alongside the phases and are owned by specific source docs.
 
-### A. State migration — `session-state-inventory.md`
+### A. State migration — `policies/session-state-inventory.md`
 All 44 keys (6 groups) get a server-side replacement: dataset/analysis → `api/services/dataset_service.py` session object · GA4 credentials → server session (never React) · Drive Picker transient state → React dialog state + server import-in-progress flag · chat/AI counters → server-side usage ledger · theme preference → localStorage (safe — preference, not data) · test-only keys → dropped. **Gate rule:** during the freeze, any new `st.session_state` key requires a documented replacement (Phase 0).
 
 **State placement (locked 2026-08-05 — refined from review; archive §4.13):** state is placed **by type**, not in a single store:
@@ -318,18 +318,18 @@ Canonical shapes adopted in Phase 1; typed client generated/validated from OpenA
 
 Rename the prototype helper to `modelVisibleMetrics()` / `nonUnavailableMetrics()` (or drop it) — `computableMetrics()` invites misreading provisional rows as validated-quality. **Canonical home:** the policy table above is mirrored as the **"Metric-status consumption policy"** section of `plans/ga4-measurement-contract.md` (the semantic source of truth); this plan links to it — see that section if the two ever drift.
 
-### C. Test strategy — `test-layer-inventory.md`
+### C. Test strategy — `policies/test-layer-inventory.md`
 **742 = 452 utils-facing (61%, transfer as-is) + 290 Streamlit-layer (39%, rewrite/retire) + 40 Playwright E2E.** Per-file transfer paths in the inventory; four-layer matrix in archive §1.13 item 5. DoD per phase includes its test gate.
 
-### D. Security & credentials — `env-rotation-checklist.md` + existing credential guard
+### D. Security & credentials — `policies/env-rotation-checklist.md` + existing credential guard
 `.env` rotation (Phase 0 — **Gate 1 closed 2026-08-06**) · credential guard patterns extended to FastAPI env vars · `.env.example` updated with all new API env vars (session secret, CORS origins) · `__Host-` cookie prefix (needs `Secure` + `Path=/` + no `Domain`) · never log keys or echo tokens in responses.
 
 **Guard allowlist rule (2026-08-06):** prepare FastAPI env-var validation now — **names only**: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. The guard validates variable names, expected presence in deployment, and that **no values are committed** — never treat a secret value as trusted because it matches a broad pattern, and never put permissive wildcard patterns into the allowlist.
 
-### E. CI/CD & deployment — `cloudbuild.yaml` + `.github/workflows/test.yml` + `dockerfile-pattern.md`
+### E. CI/CD & deployment — `cloudbuild.yaml` + `.github/workflows/test.yml` + `policies/dockerfile-pattern.md`
 Both pipelines updated in Phase 6 · frontend build gate (**`npm ci` → typecheck → build** — package manager locked to npm 2026-08-06) added alongside pytest · container deployment to Cloud Run · smoke script reworked for the new stack.
 
-### F. Data retention & AI data boundary — `data-retention-policy.md`
+### F. Data retention & AI data boundary — `policies/data-retention-policy.md`
 Written **before the API exists** (Phase 0/1): upload retention window, whether raw dataframes persist or are session-only, session expiry, exactly what "Clear Data" deletes, what export logging retains, which fields are allowed in Gemini prompts, and which identifiers must be removed/aggregated before an AI call. "Server-owned" is better than browser-owned, but it is not automatically privacy-safe.
 
 ### G. Research discipline — when to invoke the web/docs research agent (2026-08-06)
@@ -391,7 +391,7 @@ insights-explorer/
 │   ├── e2e/                      # Playwright (40 → new baseline)
 │   └── …                          # existing 742 preserved; 290 UI tests retired
 ├── migration/                    # this planning package (source of truth during work)
-├── Dockerfile                    # multi-stage (Phase 6; dockerfile-pattern.md)
+├── Dockerfile                    # multi-stage (Phase 6; policies/dockerfile-pattern.md)
 ├── cloudbuild.yaml               # updated (Phase 6)
 ├── .github/workflows/test.yml    # updated (Phase 6)
 ├── .env.example                  # updated with API env vars
@@ -452,7 +452,7 @@ insights-explorer/
 | OAuth redirect breaks in the new stack | High | FastAPI-owned callback + PKCE + exact `redirect_uri` (Phase 5; archive §3.2) |
 | Chat wire-format mismatch (SSE vs SDK stream) | High | Decide in Phase 1, record in OpenAPI, implement identically in 3/4 (§3.5) |
 | Streamlit-layer test retirement erodes coverage | High | Test-layer inventory (452 keep / 290 rewrite) + per-phase test gates |
-| Whisperer-30 tracked `.env` already exposed | High | Phase 0 rotation gate before any copy-in (`env-rotation-checklist.md`) |
+| Whisperer-30 tracked `.env` already exposed | High | Phase 0 rotation gate before any copy-in (`policies/env-rotation-checklist.md`) |
 | Start/Nitro plumbing silently eats time in the port | Medium | Round-3 strip list, documented (Phase 4; §3.10 item 2) |
 | Recharts × React 19 peer-dep breakage | Medium | Try/override/upgrade path (Phase 4; §3.10 item 5) |
 | GA4 10-concurrent quota throttling undercounts | Medium | Live numbers + `returnPropertyQuota` observability (Phase 5; §3.9) |
@@ -462,7 +462,7 @@ insights-explorer/
 | Cloud Run 32 MiB request cap (HTTP/1) vs 100 MB ingestion | High | 25 MB browser cap; HTTP/2 or signed uploads only if real file evidence justifies (Phase 0/1; §4.12–4.13) |
 | Sync/CPU-heavy work blocks the FastAPI event loop (SSE/chat stalls) | Medium | Sync routes or controlled thread pool; hard caps on rows/columns/decompressed size; streamed exports (Phase 1) |
 | Session affinity ≠ consistency across Cloud Run instances (data loss) | Medium (beta+) | Shared ephemeral session/OAuth store proven before the hosted beta; in-memory acceptable through Phase 5 (local-first posture) |
-| Retention/privacy exposure (client analytics + health/equity context) | Medium | `data-retention-policy.md` + Gemini data-boundary rules before the API exists (Phase 1) |
+| Retention/privacy exposure (client analytics + health/equity context) | Medium | `policies/data-retention-policy.md` + Gemini data-boundary rules before the API exists (Phase 1) |
 | Second measurement contract (`measurement-contract.ts`) | ~~Medium~~ Low | **Resolved 2026-08-06 — verified faithful** transcription of the canonical contract (5/5 rows match); canonical stays the single source of truth; TS types generated from canonical source (cross-cutting B; archive §4.16–4.17) |
 | Drive browse UX drift (slide-out vs Picker iframe) | Low | Explicit Phase 5 browse-UX decision; slide-out path adds `GET /api/v1/drive/list` (server-side Drive metadata); Nitro `/api/drive-files` route non-canonical (Phase 5; archive §4.16) |
 | Drive Import button fakes the download (prototype only sets `loadData("drive · <name>")`) | High | Wire Import → `POST /api/v1/drive/download` → `data_loader` in the port; covered by the Phase 5 Drive E2E (Phase 5; archive §4.17) |
@@ -478,17 +478,17 @@ insights-explorer/
 
 | Source doc | Feeds |
 |---|---|
-| `insights-explorer-migration-ingest.md` | All phases (evidence + research + reconciliation) |
-| `insights-explorer-migration-plan.md` | Phase shapes 1–6, contract draft, metrics, risks |
-| `phase-1-api-react-callback-tests-implementation.md` (F4) | Phase 1 (packet), Phase 5 (OAuth adapters), MSW tests |
-| `freebuff-prompt-wire-react-store.md` (F3) | Phase 4 (13-step store wiring) |
-| `env-rotation-checklist.md` | Phase 0, cross-cutting D |
-| `branch-and-freeze-policy.md` | Phase 0 |
-| `session-state-inventory.md` | Phases 2/4, cross-cutting A |
-| `test-layer-inventory.md` | Phases 2/6, cross-cutting C |
-| `data-retention-policy.md` | Phase 1 (policy before API), cross-cutting F |
-| `dockerfile-pattern.md` | Phase 6, cross-cutting E |
-| `glm-5-2-vs-perplexity-migration-comparison.md` | Audit lens (no phase feed) |
+| `archive/insights-explorer-migration-ingest.md` | All phases (evidence + research + reconciliation) |
+| `archive/insights-explorer-migration-plan.md` | Phase shapes 1–6, contract draft, metrics, risks |
+| `specs/phase-1-api-react-callback-tests-implementation.md` (F4) | Phase 1 (packet), Phase 5 (OAuth adapters), MSW tests |
+| `specs/freebuff-prompt-wire-react-store.md` (F3) | Phase 4 (13-step store wiring) |
+| `policies/env-rotation-checklist.md` | Phase 0, cross-cutting D |
+| `policies/branch-and-freeze-policy.md` | Phase 0 |
+| `policies/session-state-inventory.md` | Phases 2/4, cross-cutting A |
+| `policies/test-layer-inventory.md` | Phases 2/6, cross-cutting C |
+| `policies/data-retention-policy.md` | Phase 1 (policy before API), cross-cutting F |
+| `policies/dockerfile-pattern.md` | Phase 6, cross-cutting E |
+| `archive/glm-5-2-vs-perplexity-migration-comparison.md` | Audit lens (no phase feed) |
 | `whisperer-30-reference/` | Phases 0 (rotation evidence), 4 (source capture), 5 (picker port) |
 | `whisperer-30-reference/LOVABLE-UPDATES-080525.md` | Phases 4–5 (Drive-import UI port), evidence-connector workstream, contract reconciliation (`measurement-contract.ts` — verified faithful) |
 | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` | Phase 5 (drive-list contract shape, Import seam), contract transcription cross-check — **reference evidence only, not default agent context** (doc-role split, archive §4.18) |

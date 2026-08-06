@@ -1,6 +1,6 @@
 # Store Drift Matrix — captured `explorer-store.tsx` vs F3's wiring assumptions
 
-**Source:** `whisperer-30-reference/UI-CAPTURE-8b4b7b9/src/lib/explorer-store.tsx` (243 lines, frozen @ `8b4b7b9`, captured 2026-08-06) vs `migration/freebuff-prompt-wire-react-store.md` (F3, the 13-step store-wiring prompt).
+**Source:** `whisperer-30-reference/UI-CAPTURE-8b4b7b9/src/lib/explorer-store.tsx` (243 lines, frozen @ `8b4b7b9`, captured 2026-08-06) vs `../specs/freebuff-prompt-wire-react-store.md` (F3, the 13-step store-wiring prompt).
 **Purpose:** the precise instruction set for Phase 4 store wiring. F3 was written against the prototype's *documented* contract; the capture reveals the *actual* API. Where they diverge, the canonical migration decision in this matrix wins.
 **Status:** planning reference (not default agent context) — Phase 4 input, per the doc-role split.
 

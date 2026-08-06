@@ -7,7 +7,7 @@ Commit-to-file-change inventory for the new UI features added to the source UI r
 - **Repo:** `griffinkelton/insights-whisperer-30`
 - **Range:** `a71c371` (the frozen capture HEAD, `WHISPERER-30-REFERENCE.md`) → `origin/main` (`8b4b7b9`), fetched 2026-08-06
 - **Commits in range:** **17** (16 feature commits + 1 merge commit), all authored by Lovable bots between **2026-08-06 00:05–00:13 UTC**
-- **Method:** the 9 commits in `migration/lovable-commits.json` were pre-inspected; the 8 `pending_commit_inspection` SHAs were verified locally with `git show --stat --name-status <sha>` after `git fetch origin` (the local clone was stale at `a71c371`).
+- **Method:** the 9 commits in `../archive/lovable-commits.json` were pre-inspected; the 8 `pending_commit_inspection` SHAs were verified locally with `git show --stat --name-status <sha>` after `git fetch origin` (the local clone was stale at `a71c371`).
 - **Two bot streams:** `lovable-dev[bot]` (commits 1–9, Drive-import feature) and `gpt-engineer-app[bot]` (commits 10–17, evidence/GA4/insights panels).
 
 ## 2. Per-commit inventory (17 commits, oldest → newest)
@@ -130,4 +130,4 @@ Raw transcript of what Lovable actually did (build actions + full file dumps): *
 
 ---
 
-*Source data: `migration/lovable-commits.json` + `git show --stat --name-status` runs on `insights-whisperer-30` @ `8b4b7b9` (fetched 2026-08-06); panel semantics verified from `origin/main` source (2026-08-06); implementation transcript `LOVABLE-ACTIONS-080526.txt` (2026-08-06); contract transcription cross-checked against `plans/ga4-measurement-contract.md` (2026-08-06). Compiled 2026-08-05/06.*
+*Source data: `../archive/lovable-commits.json` + `git show --stat --name-status` runs on `insights-whisperer-30` @ `8b4b7b9` (fetched 2026-08-06); panel semantics verified from `origin/main` source (2026-08-06); implementation transcript `LOVABLE-ACTIONS-080526.txt` (2026-08-06); contract transcription cross-checked against `plans/ga4-measurement-contract.md` (2026-08-06). Compiled 2026-08-05/06.*

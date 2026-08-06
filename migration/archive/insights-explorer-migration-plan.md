@@ -22,9 +22,9 @@ Single source of truth for implementation-facing documents. Anything below that 
 | Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
 | Upload policy | Browser cap **25 MB** (`MAX_BROWSER_UPLOAD_BYTES` — margin below Cloud Run's 32 MiB HTTP/1 boundary); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`, subject to memory/MIME/row-count/decompression safeguards) |
 
-Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `master-plan.md` §4–5 and archive §4.12–4.13.
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `../master-plan.md` §4–5 and archive §4.12–4.13.
 
-**Plan-specific supersession:** the draft endpoint table's bare `/api/...` paths are now `/api/v1/...`; Phase 1 upload cap is **25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`) for browser uploads and 100 MB (`MAX_INGEST_BYTES = 100 * 1024 * 1024`) for server-side/Drive (with safeguards); session architecture is decided in Phase 1 as **state placement** (interface + in-memory for the slice; shared ephemeral OAuth/session store proven before Phase 5; object storage only if signed uploads chosen), not deferred to Phase 6. Coordination: `master-plan.md` supersedes this document for *execution order*; this document remains the phase-shape source.
+**Plan-specific supersession:** the draft endpoint table's bare `/api/...` paths are now `/api/v1/...`; Phase 1 upload cap is **25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`) for browser uploads and 100 MB (`MAX_INGEST_BYTES = 100 * 1024 * 1024`) for server-side/Drive (with safeguards); session architecture is decided in Phase 1 as **state placement** (interface + in-memory for the slice; shared ephemeral OAuth/session store proven before Phase 5; object storage only if signed uploads chosen), not deferred to Phase 6. Coordination: `../master-plan.md` supersedes this document for *execution order*; this document remains the phase-shape source.
 
 ## Executive Summary
 
@@ -250,9 +250,9 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
    - Update DNS if needed.
    - Keep Streamlit Community Cloud as fallback for 1 week.
 4. **Update docs:**
-   - `README.md` — new setup instructions
-   - `ARCHITECTURE.md` — new architecture diagram
-   - `CHANGELOG.md` — v0.4.0 entry
+   - `../README.md` — new setup instructions
+   - `../../ARCHITECTURE.md` — new architecture diagram
+   - `../../CHANGELOG.md` — v0.4.0 entry
 5. **Archive `insights-whisperer-30`:**
    - Add note to README: "Folded into insights-explorer as frontend/ directory."
    - Archive repo on GitHub.
@@ -384,7 +384,7 @@ Cross-checked against the repo and the sibling docs (full ledger: `insights-expl
 5. **Response shapes.** The endpoint table shows bare `DataContext` and `{ rows, columns }`; the implementation packet uses `UploadResponse { dataset }` and `{ dataset, rows }`, and adds `GET /api/data/context`. **Adopt the packet's shapes**; the contract table is superseded where it conflicts.
 6. **`ga4/connect` field.** Plan table shows `{ authUrl }`; the packet returns `{ authorization_url }` (snake_case at the API boundary). Adopt `authorization_url`, alias if the store needs camelCase.
 7. **Summary endpoint.** `GET /api/analysis/summary` (plan) vs chat `mode: "summary"` (store prompt). Recommend **chat-mode streaming as canonical**; keep the GET endpoint only as a non-streaming fallback.
-8. **Verified facts unchanged:** 8,461 LOC, 742/32 tests, `plans/ga4-measurement-contract.md` exists, dual CI, Drive Picker standalone TS app.
+8. **Verified facts unchanged:** 8,461 LOC, 742/32 tests, `../../plans/ga4-measurement-contract.md` exists, dual CI, Drive Picker standalone TS app.
 ---
 
 ## Batch 3 Review Addendum (2026-08-05)
@@ -404,7 +404,7 @@ Cross-checked against the repo and the sibling docs (full ledger: `insights-expl
 ### Design disciplines (apply across phases)
 
 3. **Server-owned session model:** browser holds only an opaque `HttpOnly` secure session cookie; FastAPI owns the dataset reference, OAuth credentials, filter/metric/chat state; raw data and provider tokens never reach localStorage / React state persistence / URLs / logs / client-side analytics. Storage abstraction now: in-memory (dev) → Redis/Postgres-compatible (deployed multi-instance).
-4. **Contract discipline:** `plans/ga4-measurement-contract.md` stays the source of truth; Python canonical domain models serialized at one API boundary; **typed React client generated or validated from OpenAPI/JSON Schema**; naming normalized once (API emits snake_case, client translates — never individual components); **version the API early as `/api/v1`** so the evidence connector evolves safely.
+4. **Contract discipline:** `../../plans/ga4-measurement-contract.md` stays the source of truth; Python canonical domain models serialized at one API boundary; **typed React client generated or validated from OpenAPI/JSON Schema**; naming normalized once (API emits snake_case, client translates — never individual components); **version the API early as `/api/v1`** so the evidence connector evolves safely.
 5. **Test by behavior (four-layer matrix):** Python unit (parsing, GA4/Drive, analysis, quality, forecasting, exports, sanitization) · FastAPI contract (auth/session, schema validity, error taxonomy, upload limits, OAuth state) · React unit/component (loading/empty/error/success/a11y/API-client) · Playwright E2E (upload→preview→chart; GA4 OAuth error/success; Drive selection; AI streaming; export). `mock-ga4.ts` / `mock-braintree.ts` become MSW test fixtures only — never product imports.
 6. **Deployment prerequisites before provider choice:** expected file sizes, concurrent users, GA4 query volume, background-task needs, session/data retention, observability (structured logs, request IDs, sanitized error reporting, health/readiness), Gemini rate limits and per-user quotas. Same-origin deployment (React static assets behind the FastAPI container) for cookies/OAuth/CORS/SSE simplicity.
 7. **Phase 1 scope (tight):** Upload CSV → validate via existing Python logic → server session → React preview/quality state → clear-data → regression tests. Then GA4 → Drive → AI streaming → advanced analysis, sequentially.

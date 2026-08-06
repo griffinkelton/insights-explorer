@@ -72,4 +72,4 @@ These target `components/`, `app.py`, or `pages/`. They don't transfer as-is; ea
 
 ---
 
-*Cross-refs: plan Phase 6 (retire Streamlit tests) + risk row · Batch 3 four-layer matrix · F4 §12 test strategy · `migration/README.md`.*
+*Cross-refs: plan Phase 6 (retire Streamlit tests) + risk row · Batch 3 four-layer matrix · F4 §12 test strategy · `../README.md`.*

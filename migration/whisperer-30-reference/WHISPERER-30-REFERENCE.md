@@ -8,7 +8,7 @@
 
 ## Why capture these now?
 
-The migration docs (`migration/insights-explorer-migration-plan.md`, the F3 store-wiring prompt, F4 implementation packet, and the archive) reference the whisperer-30 app's shape, state model, chat behavior, and stack. Until Phase 4, this capture is the **only local record** of that design — and the Batch 3 Review Addendum already flags that the source repo's `.env` must be scrubbed before any copy-in, so a clean reference snapshot is valuable even before the real migration.
+The migration docs (`../archive/insights-explorer-migration-plan.md`, the F3 store-wiring prompt, F4 implementation packet, and the archive) reference the whisperer-30 app's shape, state model, chat behavior, and stack. Until Phase 4, this capture is the **only local record** of that design — and the Batch 3 Review Addendum already flags that the source repo's `.env` must be scrubbed before any copy-in, so a clean reference snapshot is valuable even before the real migration.
 
 ## What was captured (18 files)
 
@@ -52,15 +52,15 @@ The migration docs (`migration/insights-explorer-migration-plan.md`, the F3 stor
 
 ## How this relates to the rest of `migration/`
 
-- **F3 (`freebuff-prompt-wire-react-store.md`)** rewires `explorer-store.tsx` → see the captured `src-lib-explorer-store.tsx` for the exact seams.
-- **F4 (`phase-1-api-react-callback-tests-implementation.md`)** describes the FastAPI backend → the captured `chat.ts` shows the endpoint shape the React side currently expects.
+- **F3 (`../specs/freebuff-prompt-wire-react-store.md`)** rewires `explorer-store.tsx` → see the captured `src-lib-explorer-store.tsx` for the exact seams.
+- **F4 (`../specs/phase-1-api-react-callback-tests-implementation.md`)** describes the FastAPI backend → the captured `chat.ts` shows the endpoint shape the React side currently expects.
 - **Batch 3 Review Addendum** (in the plan + F3/F4) explains *why* the `.env` is excluded and why the gateway/system prompt are reference-only.
-- **`insights-explorer-migration-ingest.md` Part 2** holds the compiled verbatim record of the decision reviews; this folder is the *source-material* capture.
+- **`../archive/insights-explorer-migration-ingest.md` Part 2** holds the compiled verbatim record of the decision reviews; this folder is the *source-material* capture.
 
 *Nothing in this folder is edited code — it is a frozen, dated reference snapshot. If whisperer-30 changes before Phase 4, re-capture deliberately rather than hand-editing these files.*
 ## Drift cross-check: captured `explorer-store.tsx` vs F3's 13 steps (2026-08-05)
 
-Line-by-line read of the captured store against F3 (`freebuff-prompt-wire-react-store.md`) at their capture dates, to catch seams where the wiring prompt's assumptions don't match the actual file before Phase 4 executes it.
+Line-by-line read of the captured store against F3 (`../specs/freebuff-prompt-wire-react-store.md`) at their capture dates, to catch seams where the wiring prompt's assumptions don't match the actual file before Phase 4 executes it.
 
 > **Superseded in depth by [`STORE-DRIFT-MATRIX.md`](STORE-DRIFT-MATRIX.md) (2026-08-06)** — the full matrix (captured store behavior × F3 assumption × canonical migration decision × required change, including filter/metric server-sync, chat timestamps, command routing, `useTheme`, and `streamingId`/reconnect). This table is retained as the compact step-level summary; the matrix is the Phase 4 instruction set.
 

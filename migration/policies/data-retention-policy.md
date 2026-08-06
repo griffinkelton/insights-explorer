@@ -45,7 +45,7 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 7. Gemini prompt allowlist
 
-- Only fields present in the current `DataContext` (per `plans/ga4-measurement-contract.md`) may be sent to Gemini, constructed via `utils/prompt_templates.py` — never the whisperer-30 hardcoded BrainGuide prompt.
+- Only fields present in the current `DataContext` (per `../../plans/ga4-measurement-contract.md`) may be sent to Gemini, constructed via `utils/prompt_templates.py` — never the whisperer-30 hardcoded BrainGuide prompt.
 - Never included: provider tokens, session identifiers, secrets, filenames containing PII, or any field outside the allowlist.
 
 ## 8. Identifier removal / aggregation
@@ -64,7 +64,7 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 11. Decision points requiring approval (gate 6)
 
-This policy was **drafted, not decided** (third-review refinement 2026-08-05) until the **product owner approved all five points on 2026-08-06** (seventh review round — reviewer-endorsed defaults), closing gate 6 in `master-plan.md` Phase 0. Decisions are binding for Phase 1; amendments require a dated addendum.
+This policy was **drafted, not decided** (third-review refinement 2026-08-05) until the **product owner approved all five points on 2026-08-06** (seventh review round — reviewer-endorsed defaults), closing gate 6 in `../master-plan.md` Phase 0. Decisions are binding for Phase 1; amendments require a dated addendum.
 
 | # | Decision | Approved value (2026-08-06) | Status |
 |---|---|---|---|

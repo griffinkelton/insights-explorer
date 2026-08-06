@@ -5,7 +5,7 @@
 **Method:** mechanical extraction across `app.py`, `utils/`, `components/`, `pages/` (15 source files, 44 distinct keys), then hand-classified by owner and lifecycle.
 **Purpose:** Batch 3 Review Addendum identified `st.session_state` as "the largest hidden migration cost." This inventory is the written record that review recommended *before* any code changes: every key, its owner, its lifecycle, and its replacement in the server-owned session model (browser holds only an opaque `HttpOnly` cookie; FastAPI owns dataset refs, OAuth credentials, filter/metric/chat state; React owns only view-model state).
 
-> Companion docs: plan Batch 3 Review Addendum items 3–5 (server session, contract discipline, four-layer tests); `phase-1-api-react-callback-tests-implementation.md` §4 (AppSession fields) and §6 (DatasetStore); `freebuff-prompt-wire-react-store.md` Batch 3 Addendum (view-model only, `credentials: "include"`).
+> Companion docs: plan Batch 3 Review Addendum items 3–5 (server session, contract discipline, four-layer tests); `../specs/phase-1-api-react-callback-tests-implementation.md` §4 (AppSession fields) and §6 (DatasetStore); `../specs/freebuff-prompt-wire-react-store.md` Batch 3 Addendum (view-model only, `credentials: "include"`).
 
 ---
 

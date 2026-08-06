@@ -24,7 +24,7 @@ Single source of truth for implementation-facing documents. Anything below that 
 | Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
 | Upload policy | Browser cap **25 MB** (`MAX_BROWSER_UPLOAD_BYTES` — margin below Cloud Run's 32 MiB HTTP/1 boundary); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`, subject to memory/MIME/row-count/decompression safeguards) |
 
-Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `master-plan.md` §4–5 and archive §4.12–4.13.
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `../master-plan.md` §4–5 and archive §4.12–4.13.
 
 **F4-specific supersession:** §7 `max_upload_bytes = 25 MB` is retained as the browser cap (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`); `MAX_INGEST_BYTES = 100 * 1024 * 1024` applies to server-side/Drive with safeguards; §1 layout gains `api/stores/` (SessionStore/DatasetStore interfaces); the in-memory session in §4 is dev-only — a **shared ephemeral OAuth/session store is proven before Phase 5**; object storage only if the signed-upload architecture is chosen (state placement, archive §4.13–4.14).
 
@@ -1012,7 +1012,7 @@ Replace with MSW response overrides. Delete `mock-ga4.ts` and `mock-braintree.ts
 
 ## Research Addendum (2026-08-05)
 
-Source-backed notes — full citations in `insights-explorer-migration-ingest.md` Part 3:
+Source-backed notes — full citations in `../archive/insights-explorer-migration-ingest.md` Part 3:
 
 1. **PKCE.** RFC 9700 / OAuth 2.1 recommend PKCE for all client types, including confidential web apps. Add an S256 `code_verifier` / `code_challenge` to `begin_oauth()` and exchange it in `exchange_code()`. Keep the existing `state` + `compare_digest` validation (correct per Google's guidance).
 2. **redirect_uri.** Google requires an exact string match against the configured URI — keep `callback_url` construction consistent between `config.py` (`FRONTEND_URL`) and the OAuth adapter.
@@ -1024,7 +1024,7 @@ Source-backed notes — full citations in `insights-explorer-migration-ingest.md
 
 ## Reconciliation Addendum (2026-08-05)
 
-Cross-checked against the plan doc, the store prompt, and the repo (full ledger: `insights-explorer-migration-ingest.md` Part 4). This packet's choices are confirmed as **canonical** where the other docs conflict:
+Cross-checked against the plan doc, the store prompt, and the repo (full ledger: `../archive/insights-explorer-migration-ingest.md` Part 4). This packet's choices are confirmed as **canonical** where the other docs conflict:
 
 1. **`GET /healthz` is canonical.** The plan doc and draft GitHub issue say `GET /health` — apply `/healthz` when creating issues and the smoke script.
 2. **Response shapes are canonical:** `UploadResponse { dataset }`, `DataPreviewResponse { dataset, rows }`, `GA4ConnectResponse { authorization_url }`. The plan's bare/camelCase forms and the store prompt's `authUrl` reads are superseded.
@@ -1049,13 +1049,13 @@ Cross-checked against the plan doc, the store prompt, and the repo (full ledger:
 
 ## Research Fold-In Cross-Check Addendum (2026-08-05)
 
-Cross-checks the 7 research corrections from the plan's Research Fold-In Log against **this implementation packet** (source: `insights-explorer-migration-ingest.md` Part 3 §3.8). Two real drift items were found and are fixed here; the rest confirm existing notes.
+Cross-checks the 7 research corrections from the plan's Research Fold-In Log against **this implementation packet** (source: `../archive/insights-explorer-migration-ingest.md` Part 3 §3.8). Two real drift items were found and are fixed here; the rest confirm existing notes.
 
 1. **PKCE is missing from the §8 code sketch (correction 1).** The Research Addendum item 1 states the requirement, but `begin_oauth()` builds params without `code_challenge`. Update the sketch: generate an S256 `code_verifier`/`code_challenge` before building params, add `"code_challenge": challenge, "code_challenge_method": "S256"`, store `code_verifier` on the session (`AppSession.code_verifier: str | None`, §4), and send it in `exchange_code()`. Keep the existing `state` + `secrets.compare_digest` validation.
 2. **Callback route should use typed search params (correction 6).** §11's `callback.tsx` reads `new URLSearchParams(window.location.search)`. Replace with TanStack Router typed search params: a `validateSearch` schema for `status`/`reason`, read via `Route.useSearch()`. On validation failure the router sets `error.routerCode === "VALIDATE_SEARCH"` and renders the route's `errorComponent` — use that as the invalid-state path instead of manual string parsing. Live-verified: `@tanstack/react-router@1.170.20` (archive §3.6).
 3. **MSW setup is live-verified — keep as-is (no change).** §12's `setup.ts` already sets `onUnhandledRequest: "error"` explicitly. That is correct and now source-backed: `msw@2.15.0`'s default is `"warn"` — not `"bypass"` as an earlier research pass claimed — so the explicit `"error"` is a deliberate choice. Do not remove it.
 4. **Picker project number (correction 2).** Phase 5 forward — this packet's Phase 1 scope defers Drive (see "Do not do in Phase 1"). Recorded so the Phase 5 packet returns `{ token, appId }` from `POST /api/v1/drive/picker-token` (see the F3 cross-check addendum item 1).
-5. **Single-origin hosting (correction 5).** §13's same-origin rule and Research Addendum item 5 already align; the concrete multi-stage Dockerfile pattern is in `migration/dockerfile-pattern.md`.
+5. **Single-origin hosting (correction 5).** §13's same-origin rule and Research Addendum item 5 already align; the concrete multi-stage Dockerfile pattern is in `../policies/dockerfile-pattern.md`.
 6. **No Phase 1 code change for corrections 3, 4, 7.** Chat wire format (3), funnel nuance (4), and GA4 pull pagination/throttling (7) all live in later phases; the plan amendments (Phases 1/3/5) carry the decisions. Funnel note: scope template funnels only when `GET /api/v1/analysis/funnel` is implemented.
 ---
 
@@ -1083,5 +1083,5 @@ Cross-checks the 7 research corrections from the plan's Research Fold-In Log aga
 
 > Source: archive §4.11 (internal reconciliation batch). Apply at Phase 1 implementation.
 
-1. **Single ingestion size policy.** Replace the standalone `max_upload_bytes = 25 MB` default with a shared **`MAX_INGEST_BYTES = 100 MB`** — matching `utils/drive_client.py:48` (`MAX_DRIVE_IMPORT_BYTES`) — env-overridable, applied to both `POST /api/v1/upload` and the Phase-5 `POST /api/v1/drive/download` (Drive downloads happen server-side, so their byte budget applies to parsed content, not the request body). Note platform caps when choosing hosts: Vercel functions ≈4.5 MB body (blocked — archive §3.11); Cloud Run configurable to ~128 MB. The current Streamlit upload path has no explicit guard — this constant becomes the canonical limit. **Superseded 2026-08-06:** the locked policy splits this — **browser uploads cap at 25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`), while the **100 MB `MAX_INGEST_BYTES` applies to Drive/server-side ingestion only** (subject to metadata/streaming/MIME/decompression/row/column/temp-file limits). See the Canonical API Decisions block above and `master-plan.md` §4–5.
-2. **GA4 measurement-contract mapping.** F4's `DatasetContext` is a transport descriptor; `plans/ga4-measurement-contract.md` defines computed metrics (5 rows). Wire the mapping at Phase 5: `POST /api/v1/ga4/pull` returns a `DatasetContext` whose `metrics` entries carry contract provenance (`{"contract_row": "daily_reach", "validation_status": "provisional"}`), and add a future `GET /api/v1/ga4/metrics` (contract rows + status) per the contract's Next-steps item 4 (`ReportContract` objects). Rows 3–5 stay `unavailable` until event-level GA4 access exists (aggregate-only; funnel nuance per archive §3.4).
+1. **Single ingestion size policy.** Replace the standalone `max_upload_bytes = 25 MB` default with a shared **`MAX_INGEST_BYTES = 100 MB`** — matching `utils/drive_client.py:48` (`MAX_DRIVE_IMPORT_BYTES`) — env-overridable, applied to both `POST /api/v1/upload` and the Phase-5 `POST /api/v1/drive/download` (Drive downloads happen server-side, so their byte budget applies to parsed content, not the request body). Note platform caps when choosing hosts: Vercel functions ≈4.5 MB body (blocked — archive §3.11); Cloud Run configurable to ~128 MB. The current Streamlit upload path has no explicit guard — this constant becomes the canonical limit. **Superseded 2026-08-06:** the locked policy splits this — **browser uploads cap at 25 MB** (`MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`), while the **100 MB `MAX_INGEST_BYTES` applies to Drive/server-side ingestion only** (subject to metadata/streaming/MIME/decompression/row/column/temp-file limits). See the Canonical API Decisions block above and `../master-plan.md` §4–5.
+2. **GA4 measurement-contract mapping.** F4's `DatasetContext` is a transport descriptor; `../../plans/ga4-measurement-contract.md` defines computed metrics (5 rows). Wire the mapping at Phase 5: `POST /api/v1/ga4/pull` returns a `DatasetContext` whose `metrics` entries carry contract provenance (`{"contract_row": "daily_reach", "validation_status": "provisional"}`), and add a future `GET /api/v1/ga4/metrics` (contract rows + status) per the contract's Next-steps item 4 (`ReportContract` objects). Rows 3–5 stay `unavailable` until event-level GA4 access exists (aggregate-only; funnel nuance per archive §3.4).

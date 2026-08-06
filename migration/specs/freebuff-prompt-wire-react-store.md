@@ -15,7 +15,7 @@ Single source of truth for implementation-facing documents. Anything below that 
 | Chat transport | [explicit chosen format — default: plain SSE `text/event-stream`, `data: <chunk>\n\n`] |
 | Upload policy | Browser cap **25 MB** (`MAX_BROWSER_UPLOAD_BYTES` — margin below Cloud Run's 32 MiB HTTP/1 boundary); server-side/Drive **100 MB** (`MAX_INGEST_BYTES`, subject to memory/MIME/row-count/decompression safeguards) |
 
-Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `master-plan.md` §4–5 and archive §4.12–4.13.
+Superseded here: all bare `/api/...` paths (now `/api/v1/...`) and any earlier 32 MB upload default. See `../master-plan.md` §4–5 and archive §4.12–4.13.
 
 **F3-specific supersession:** step 2's `API_BASE` default `http://localhost:8000/api` → `http://localhost:8000/api/v1`; step 13's `VITE_API_BASE=/api` → `/api/v1` (same-origin relative).
 
@@ -389,18 +389,18 @@ If you want, I can also write the **FastAPI endpoint implementations** (Phase 1 
 
 ## Research Addendum (2026-08-05)
 
-Verification of the SSE assumption in section 6 above (full detail: `insights-explorer-migration-ingest.md` §3.5):
+Verification of the SSE assumption in section 6 above (full detail: `../archive/insights-explorer-migration-ingest.md` §3.5):
 
 - **`toTextStreamResponse()`** (Vercel AI SDK) returns `text/plain` plain-text chunks — so the plain-text `getReader()` + `TextDecoder` accumulation in `streamAi()` is **correct** for that format.
 - **Caveat:** if the chat UI uses the SDK's `useChat` hook, it expects the SDK's structured data-stream format (from `toDataStreamResponse()` / `toUIMessageStreamResponse()`), not plain text/SSE. Pick **one** wire format for FastAPI and make the reader match — don't mix.
 - If FastAPI emits SSE, use `text/event-stream` with `data: <chunk>\n\n` framing; the reader must strip `data: ` prefixes and blank-line delimiters.
 
-Also: the OAuth flow sketched in section 4 is superseded by the Phase 1 packet's correction — Google redirects to **FastAPI**, not React; React only ever sees `status`/`reason` on the callback page (see `insights-explorer-migration-ingest.md` §1.11 and §3.2).
+Also: the OAuth flow sketched in section 4 is superseded by the Phase 1 packet's correction — Google redirects to **FastAPI**, not React; React only ever sees `status`/`reason` on the callback page (see `../archive/insights-explorer-migration-ingest.md` §1.11 and §3.2).
 ---
 
 ## Reconciliation Addendum (2026-08-05)
 
-The prompt's snippets predate the Phase 1 implementation packet's contract. Apply these adjustments when executing the prompt (full ledger: `insights-explorer-migration-ingest.md` Part 4). The original prompt above is preserved unchanged.
+The prompt's snippets predate the Phase 1 implementation packet's contract. Apply these adjustments when executing the prompt (full ledger: `../archive/insights-explorer-migration-ingest.md` Part 4). The original prompt above is preserved unchanged.
 
 1. **Upload response is wrapped.** `POST /api/v1/upload` returns `{ dataset: DataContext }` — read `const { dataset } = await res.json(); setSource(dataset);` (not the bare object).
 2. **Preview response is wrapped.** `GET /api/v1/data/preview` returns `{ dataset, rows }` — the `loadData()` fallback branch must use `preview.dataset`.
@@ -425,13 +425,13 @@ The prompt's snippets predate the Phase 1 implementation packet's contract. Appl
 
 ## Research Fold-In Cross-Check Addendum (2026-08-05)
 
-Cross-checks the 7 research corrections from the plan's Research Fold-In Log against **this prompt's 13 steps** (source: `insights-explorer-migration-ingest.md` Part 3 §3.8). Additive — the prompt above is unchanged; apply these adjustments when executing it.
+Cross-checks the 7 research corrections from the plan's Research Fold-In Log against **this prompt's 13 steps** (source: `../archive/insights-explorer-migration-ingest.md` Part 3 §3.8). Additive — the prompt above is unchanged; apply these adjustments when executing it.
 
 1. **Picker token returns token **and** project number (correction 2).** Step 5's `connectDrive()` reads `const { token } = await res.json()`. Update it to also read the project number and hand it to the Picker component: `const { token, appId } = await res.json()` → component calls `setAppId(appId)` (Phase 5's `POST /api/v1/drive/picker-token` will return both — plan Phase 5 amendment 2).
 2. **Wire format confirmed (correction 3).** Already covered by this prompt's Research Addendum: the plain-text `getReader()`/`TextDecoder` accumulation in step 6 is correct only for plain text/`toTextStreamResponse()` or plain SSE with `data: `-stripping. Re-confirm the Phase 1 decision recorded in the OpenAPI contract and keep the reader matching — do not mix formats.
 3. **Callback route uses typed search params (correction 6).** Step 4's `handleGA4Callback()` reading `?code=` is already superseded (Reconciliation Addendum item 7). When the `/auth/ga4/callback` **route component** is implemented (not the store), read `status`/`reason` via TanStack Router `validateSearch`/`useSearch` — never `new URLSearchParams(window.location.search)` (F4 §11 cross-check item 2; plan Phase 5 amendment 4).
 4. **Funnel availability is partial (correction 4).** Step 7's `fetchFunnel()` — at Phase 3/6 implementation, scope the funnel to **template funnels** (`runFunnelReport`); user/identifier-level funnel analysis remains blocked by aggregate-only GA4 access. Re-verify the ROADMAP funnel rows at that time.
-5. **Single-origin assumption is consistent (correction 5).** Step 13's `.env.production` `VITE_API_BASE=/api` already assumes same-origin serving — matches the multi-stage Dockerfile pattern in `migration/dockerfile-pattern.md` (Phase 6). No change needed; cite the pattern doc when implementing.
+5. **Single-origin assumption is consistent (correction 5).** Step 13's `.env.production` `VITE_API_BASE=/api` already assumes same-origin serving — matches the multi-stage Dockerfile pattern in `../policies/dockerfile-pattern.md` (Phase 6). No change needed; cite the pattern doc when implementing.
 6. **No store-side change for corrections 1 (PKCE) and 7 (GA4 throttling).** Both are FastAPI-side concerns (see the F4 cross-check addendum items 1 and 6); the store merely consumes the endpoints as written.
 ---
 

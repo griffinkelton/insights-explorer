@@ -68,21 +68,21 @@
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
-| [migration/README.md](migration/README.md) | Entry point — index of the twelve migration docs and how they relate | Decision summary, twelve-doc table, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-05) |
+| [migration/README.md](migration/README.md) | Entry point — index of the migration docs (bucket-organized: policies/ · specs/ · archive/) and how they relate | Decision summary, bucket-organized doc tables, dependency diagram, addenda system, reading paths, pre-implementation action items | 🔵 Planning (2026-08-06) |
 | [migration/master-plan.md](migration/master-plan.md) | **The execution coordinator — START IMPLEMENTATION HERE** | Phases 0–6 with inputs/tasks/exit criteria, 5 cross-cutting workstreams (state, contract, tests, security, CI/CD), target repo file layout, critical path, open decisions, risk register, doc→phase source map | 🔵 Plan — gates 1/2/6 closed (2026-08-06) |
-| [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
-| [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
-| [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 — frontend wiring prompt (AI-agent prompt for `explorer-store.tsx`) | 13-step swap of mocks → real `fetch()`/SSE/GA4/Drive API calls, typed client, `.env` files | 🟡 Reference (2026-08-05) |
-| [migration/phase-1-api-react-callback-tests-implementation.md](migration/phase-1-api-react-callback-tests-implementation.md) | F4 — Phase 1 implementation packet (backend + OAuth callback + test strategy) | FastAPI vertical slice, GA4 OAuth start/callback adapters, React GA4 callback route, MSW-based test migration | 🟡 Reference (2026-08-05) |
-| [migration/glm-5-2-vs-perplexity-migration-comparison.md](migration/glm-5-2-vs-perplexity-migration-comparison.md) | Independent audit lens — how GLM-5.2 would approach the migration vs Perplexity's plan | Approach differences, strengths, combined recommendation; GLM facts verified (1M context, ~1/10th cost, MIT) | ✅ Verified (2026-08-05) |
+| [migration/archive/insights-explorer-migration-ingest.md](migration/archive/insights-explorer-migration-ingest.md) | The compiled archive — master record of everything provided and verified. **Start here.** | Part 1 synthesis · Part 2 verbatim source archive (11 pasted reviews + 4 file copies) · Part 3 external research (hosting, OAuth/PKCE, Drive Picker, GA4 Data API, SSE, MSW/TanStack — live-verified) · Part 4 reconciliation ledger | 🔵 Ingested (2026-08-05) |
+| [migration/archive/insights-explorer-migration-plan.md](migration/archive/insights-explorer-migration-plan.md) | The actionable roadmap — 6 phases from FastAPI skeleton to Streamlit retirement | Phases 1–6, API contract draft, success metrics, open questions + Research/Reconciliation/Batch-3 addenda + Research Fold-In Log | 🔵 Plan (2026-08-05) |
+| [migration/specs/freebuff-prompt-wire-react-store.md](migration/specs/freebuff-prompt-wire-react-store.md) | F3 — frontend wiring prompt (AI-agent prompt for `explorer-store.tsx`) | 13-step swap of mocks → real `fetch()`/SSE/GA4/Drive API calls, typed client, `.env` files | 🟡 Reference (2026-08-05) |
+| [migration/specs/phase-1-api-react-callback-tests-implementation.md](migration/specs/phase-1-api-react-callback-tests-implementation.md) | F4 — Phase 1 implementation packet (backend + OAuth callback + test strategy) | FastAPI vertical slice, GA4 OAuth start/callback adapters, React GA4 callback route, MSW-based test migration | 🟡 Reference (2026-08-05) |
+| [migration/archive/glm-5-2-vs-perplexity-migration-comparison.md](migration/archive/glm-5-2-vs-perplexity-migration-comparison.md) | Independent audit lens — how GLM-5.2 would approach the migration vs Perplexity's plan | Approach differences, strengths, combined recommendation; GLM facts verified (1M context, ~1/10th cost, MIT) | ✅ Verified (2026-08-05) |
 | [migration/whisperer-30-reference/](migration/whisperer-30-reference/WHISPERER-30-REFERENCE.md) | Frozen reference capture of the source UI repo (`insights-whisperer-30` @ `a71c3712`) — design prompt, store contract, chat prompt, mock shapes, stack manifest | See `WHISPERER-30-REFERENCE.md` inside for what was captured, why, and exclusions (incl. the tracked `.env`) | 🔵 Captured (2026-08-05) |
 | [migration/whisperer-30-reference/LOVABLE-UPDATES-080525.md](migration/whisperer-30-reference/LOVABLE-UPDATES-080525.md) | Commit inventory of the 2026-08-06 Lovable feature wave (17 commits) | Per-commit file changes, deduplicated final-state inventory, initial plan implications | 🔵 Inventoried (2026-08-06) |
-| [migration/session-state-inventory.md](migration/session-state-inventory.md) | The `st.session_state` key inventory — written record Batch 3 recommended before code | All 44 keys: key → owner → lifecycle → FastAPI/React replacement | 🔵 Ingested (2026-08-05) |
-| [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern — deliverable sketch | Multi-stage Dockerfile, SPA fallback route, platform notes, verification checklist | 🟡 Reference (2026-08-05) |
-| [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist — Phase 0 security gate for whisperer-30 | Inspect → identify → rotate/revoke → remediate → prevent; verified facts | ✅ Executed — Gate 1 closed (2026-08-06) |
-| [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | Branch model, freeze rules, fix-forward, lift criteria | ✅ Active — branch + freeze (2026-08-06) |
-| [migration/test-layer-inventory.md](migration/test-layer-inventory.md) | 742-test layer inventory: 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths | 🔵 Ingested (2026-08-05) |
-| [migration/data-retention-policy.md](migration/data-retention-policy.md) | Retention & AI data-boundary policy — written before the API exists | Upload retention, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation | ✅ Approved — Gate 6 closed (2026-08-06) |
+| [migration/policies/session-state-inventory.md](migration/policies/session-state-inventory.md) | The `st.session_state` key inventory — written record Batch 3 recommended before code | All 44 keys: key → owner → lifecycle → FastAPI/React replacement | 🔵 Ingested (2026-08-05) |
+| [migration/policies/dockerfile-pattern.md](migration/policies/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern — deliverable sketch | Multi-stage Dockerfile, SPA fallback route, platform notes, verification checklist | 🟡 Reference (2026-08-05) |
+| [migration/policies/env-rotation-checklist.md](migration/policies/env-rotation-checklist.md) | `.env` rotation checklist — Phase 0 security gate for whisperer-30 | Inspect → identify → rotate/revoke → remediate → prevent; verified facts | ✅ Executed — Gate 1 closed (2026-08-06) |
+| [migration/policies/branch-and-freeze-policy.md](migration/policies/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | Branch model, freeze rules, fix-forward, lift criteria | ✅ Active — branch + freeze (2026-08-06) |
+| [migration/policies/test-layer-inventory.md](migration/policies/test-layer-inventory.md) | 742-test layer inventory: 452 utils-facing (keep) + 290 Streamlit-layer (rewrite/retire) + 40 Playwright; per-file transfer paths | 🔵 Ingested (2026-08-05) |
+| [migration/policies/data-retention-policy.md](migration/policies/data-retention-policy.md) | Retention & AI data-boundary policy — written before the API exists | Upload retention, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation | ✅ Approved — Gate 6 closed (2026-08-06) |
 | [migration/whisperer-30-reference/STORE-DRIFT-MATRIX.md](migration/whisperer-30-reference/STORE-DRIFT-MATRIX.md) | Captured `explorer-store.tsx` vs F3 store-wiring — the Phase 4 instruction set | 13-row drift matrix: captured behavior × F3 assumption × canonical decision × required change; server-session rule | 🟡 Reference (2026-08-06) |
 | [migration/whisperer-30-reference/UI-CAPTURE-8b4b7b9/](migration/whisperer-30-reference/UI-CAPTURE-8b4b7b9/MANIFEST.md) | Full UI source capture @ `8b4b7b9` (94 files) with port-classification manifest | Frozen snapshot + MANIFEST (`runtime_dependency` / `initial_mount` columns), exclusions verified (`.env`, lockfiles, gateway creds) | 🔵 Captured (2026-08-06) |
 | [migration/archive/freebuff-conversation-080525.sanitized.md](migration/archive/freebuff-conversation-080525.sanitized.md) | Sanitized Freebuff conversation export — archive/reference only, never implementation authority | 225-message transcript; key-shaped strings redacted; SANITIZED header + CI scan rule | 🔵 Archive (2026-08-06) |
@@ -166,15 +166,12 @@ plans/00-meta/✅ IMPLEMENTATION_PLAN.md
 migration/README.md ─── "Index: what each doc is + how they relate"
         │
         ▼
-insights-explorer-migration-ingest.md ─── "Compiled archive (source of truth)"
+master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + file layout)"
         │
-        ├──► insights-explorer-migration-plan.md ── "THE 6-phase roadmap (Phases 1–6)"
-        ├──► freebuff-prompt-wire-react-store.md (F3) ── "Frontend store wiring prompt"
-        ├──► phase-1-api-react-callback-tests-implementation.md (F4) ── "Phase 1 backend packet"
-        └──► glm-5-2-vs-perplexity-migration-comparison.md ── "GLM vs Perplexity audit lens"
-                │
-                ▼
-        master-plan.md ── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + file layout)"
+        ├──► policies/ ── "Gates & controls" (env-rotation · branch-freeze · data-retention · session-state · test-layer · dockerfile)
+        ├──► specs/ ── "Implementation packets" (F3 store prompt · F4 Phase 1 packet)
+        ├──► archive/ ── "Source of truth" (ingest · 6-phase roadmap · GLM comparison · sanitized transcript · commit evidence)
+        └──► whisperer-30-reference/ ── "Captured UI source + manifest"
 ```
 
 ---
@@ -225,19 +222,19 @@ insights-explorer-migration-ingest.md ─── "Compiled archive (source of tru
 | [plans/🔵 ga4-insights-sketch.md](plans/🔵%20ga4-insights-sketch.md) | Trust-layer design sketch (v3, 662 lines) — aggregate-only reality check, 5-gate phasing, composable labels, measurement contract | 🔵 Sketch — deferred to post-v0.3.0 | 2026-08-02 |
 | [migration/README.md](migration/README.md) | Index of the React/FastAPI migration docs (gates 1/2/6 closed; vertical slice unblocked) | 🔵 Planning → gates 1/2/6 closed | 2026-08-06 |
 | [migration/master-plan.md](migration/master-plan.md) | Master execution plan — phases 0–6, cross-cutting tracks, target file layout (gates 1/2/6 closed) | 🔵 Plan — gates 1/2/6 closed | 2026-08-06 |
-| [migration/data-retention-policy.md](migration/data-retention-policy.md) | Data-retention & AI data-boundary policy (approved 2026-08-06) | ✅ Approved — Gate 6 closed | 2026-08-06 |
-| [migration/insights-explorer-migration-ingest.md](migration/insights-explorer-migration-ingest.md) | Compiled migration archive — synthesis, verbatim sources, research, ledger | 🔵 Ingested | 2026-08-05 |
-| [migration/insights-explorer-migration-plan.md](migration/insights-explorer-migration-plan.md) | 6-phase React/FastAPI migration roadmap (planning) | 🔵 Plan | 2026-08-05 |
-| [migration/freebuff-prompt-wire-react-store.md](migration/freebuff-prompt-wire-react-store.md) | F3 store-wiring prompt (reference) | 🟡 Reference | 2026-08-05 |
-| [migration/phase-1-api-react-callback-tests-implementation.md](migration/phase-1-api-react-callback-tests-implementation.md) | F4 Phase 1 implementation packet (reference) | 🟡 Reference | 2026-08-05 |
-| [migration/glm-5-2-vs-perplexity-migration-comparison.md](migration/glm-5-2-vs-perplexity-migration-comparison.md) | GLM-5.2 vs Perplexity plan comparison (GLM facts verified) | ✅ Verified | 2026-08-05 |
+| [migration/policies/data-retention-policy.md](migration/policies/data-retention-policy.md) | Data-retention & AI data-boundary policy (approved 2026-08-06) | ✅ Approved — Gate 6 closed | 2026-08-06 |
+| [migration/archive/insights-explorer-migration-ingest.md](migration/archive/insights-explorer-migration-ingest.md) | Compiled migration archive — synthesis, verbatim sources, research, ledger | 🔵 Ingested | 2026-08-05 |
+| [migration/archive/insights-explorer-migration-plan.md](migration/archive/insights-explorer-migration-plan.md) | 6-phase React/FastAPI migration roadmap (planning) | 🔵 Plan | 2026-08-05 |
+| [migration/specs/freebuff-prompt-wire-react-store.md](migration/specs/freebuff-prompt-wire-react-store.md) | F3 store-wiring prompt (reference) | 🟡 Reference | 2026-08-05 |
+| [migration/specs/phase-1-api-react-callback-tests-implementation.md](migration/specs/phase-1-api-react-callback-tests-implementation.md) | F4 Phase 1 implementation packet (reference) | 🟡 Reference | 2026-08-05 |
+| [migration/archive/glm-5-2-vs-perplexity-migration-comparison.md](migration/archive/glm-5-2-vs-perplexity-migration-comparison.md) | GLM-5.2 vs Perplexity plan comparison (GLM facts verified) | ✅ Verified | 2026-08-05 |
 | [migration/whisperer-30-reference/](migration/whisperer-30-reference/WHISPERER-30-REFERENCE.md) | Reference capture of the source UI repo (18 files, 2026-08-05) | 🔵 Captured | 2026-08-05 |
 | [migration/whisperer-30-reference/LOVABLE-UPDATES-080525.md](migration/whisperer-30-reference/LOVABLE-UPDATES-080525.md) | 2026-08-06 Lovable commit inventory (17 commits, file-level) | 🔵 Inventoried | 2026-08-06 |
-| [migration/session-state-inventory.md](migration/session-state-inventory.md) | 44-key `st.session_state` inventory (key → owner → lifecycle → replacement) | 🔵 Ingested | 2026-08-05 |
-| [migration/dockerfile-pattern.md](migration/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern sketch | 🟡 Reference | 2026-08-05 |
-| [migration/env-rotation-checklist.md](migration/env-rotation-checklist.md) | `.env` rotation checklist (Phase 0 security gate) | ✅ Executed — Gate 1 closed | 2026-08-06 |
-| [migration/branch-and-freeze-policy.md](migration/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | ✅ Active — branch + freeze | 2026-08-06 |
-| [migration/test-layer-inventory.md](migration/test-layer-inventory.md) | 742-test layer inventory (452 utils / 290 UI / 40 E2E) | 🔵 Ingested | 2026-08-05 |
+| [migration/policies/session-state-inventory.md](migration/policies/session-state-inventory.md) | 44-key `st.session_state` inventory (key → owner → lifecycle → replacement) | 🔵 Ingested | 2026-08-05 |
+| [migration/policies/dockerfile-pattern.md](migration/policies/dockerfile-pattern.md) | Phase 6 single-origin Docker pattern sketch | 🟡 Reference | 2026-08-05 |
+| [migration/policies/env-rotation-checklist.md](migration/policies/env-rotation-checklist.md) | `.env` rotation checklist (Phase 0 security gate) | ✅ Executed — Gate 1 closed | 2026-08-06 |
+| [migration/policies/branch-and-freeze-policy.md](migration/policies/branch-and-freeze-policy.md) | Migration branch + feature-freeze policy | ✅ Active — branch + freeze | 2026-08-06 |
+| [migration/policies/test-layer-inventory.md](migration/policies/test-layer-inventory.md) | 742-test layer inventory (452 utils / 290 UI / 40 E2E) | 🔵 Ingested | 2026-08-05 |
 | [migration/whisperer-30-reference/STORE-DRIFT-MATRIX.md](migration/whisperer-30-reference/STORE-DRIFT-MATRIX.md) | Store-drift matrix (captured store vs F3) | 🟡 Reference | 2026-08-06 |
 | [migration/whisperer-30-reference/UI-CAPTURE-8b4b7b9/](migration/whisperer-30-reference/UI-CAPTURE-8b4b7b9/MANIFEST.md) | Frozen UI source capture + port-classification manifest | 🔵 Captured | 2026-08-06 |
 | [migration/archive/freebuff-conversation-080525.sanitized.md](migration/archive/freebuff-conversation-080525.sanitized.md) | Sanitized conversation export (archive) | 🔵 Archive | 2026-08-06 |

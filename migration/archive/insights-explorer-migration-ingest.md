@@ -7,7 +7,7 @@
 >
 > **Compiled:** 2026-08-05 · **Status:** 🔵 Ingested for later work — **no plan and no code changes made.**
 >
-> **Companion docs on disk** (also copied verbatim into Part 2): `insights-explorer-migration-plan.md` · `glm-5-2-vs-perplexity-migration-comparison.md` · `freebuff-prompt-wire-react-store.md` · `phase-1-api-react-callback-tests-implementation.md`
+> **Companion docs on disk** (also copied verbatim into Part 2): `insights-explorer-migration-plan.md` · `glm-5-2-vs-perplexity-migration-comparison.md` · `../specs/freebuff-prompt-wire-react-store.md` · `../specs/phase-1-api-react-callback-tests-implementation.md`
 
 ---
 
@@ -84,8 +84,8 @@ Two costs the analysis flagged as easy to underweight:
 
 ### 1.8 Ties to the rest of the repo (context for later cross-referencing — not a plan)
 
-- **`ROADMAP.md`** sequences v0.4.0 (Gates 0A/0B) → v0.5.0 (Gate 1) → v0.6.0 (Gate 2) → v0.7.0 (Gate 3) and names the **hard blocker**: `pull_ga4_report()` is aggregate-only — no event-level/session/identifier data.
-- **`braintree-reqs.md` / `BRAINTREE_CHECKLIST.md`** — Top‑25 analysis feasibility: **4 available / 2 partial / 19 unavailable**, most blocked on the event-level GA4 gap.
+- **`../../ROADMAP.md`** sequences v0.4.0 (Gates 0A/0B) → v0.5.0 (Gate 1) → v0.6.0 (Gate 2) → v0.7.0 (Gate 3) and names the **hard blocker**: `pull_ga4_report()` is aggregate-only — no event-level/session/identifier data.
+- **`../../braintree-reqs.md` / `../../BRAINTREE_CHECKLIST.md`** — Top‑25 analysis feasibility: **4 available / 2 partial / 19 unavailable**, most blocked on the event-level GA4 gap.
 - **`plans/🔵 evidence-connector-design.md`** — BrainGuide Evidence dashboard connector: the SPA (S3 + CloudFront) serves the same HTML shell on every path, so parquet files are not directly fetchable; a headless-browser auth+scrape or a direct data export is required.
 - **Interstitial UI polish (v0.3.0 → v0.4.0)** — Workstream A (Picker in `st.dialog`) ✅, Workstream B (light mode) ✅, Workstream C P0 (cancel/toast/copy, PR 3) ✅, C P1 (C4–C7) still open.
 - The React/FastAPI migration discussed here is the container in which much of that roadmap work would eventually land. **Cross-reference only — no plan is drawn in this file.**
@@ -103,11 +103,11 @@ Two costs the analysis flagged as easy to underweight:
 | P7 | Paste 7 (Perplexity) | GitHub issues 1–6 (full text) + FastAPI skeleton prompt for Freebuff. |
 | F1 | `insights-explorer-migration-plan.md` (file) | Full 6-phase plan with API contract draft, success metrics, open questions. |
 | F2 | `glm-5-2-vs-perplexity-migration-comparison.md` (file) | Full comparison doc with simulated GLM plan outline. |
-| P8 | Paste 8 (Perplexity) | Cover note for `freebuff-prompt-wire-react-store.md`: the 13 store changes, key design decisions, gaps. |
+| P8 | Paste 8 (Perplexity) | Cover note for `../specs/freebuff-prompt-wire-react-store.md`: the 13 store changes, key design decisions, gaps. |
 | P9 | Paste 9 (Perplexity) | Deeper repo inspection: 8 findings + updated 10-item checklist (plans convention, GA4 contract, dual CI, evidence connector, credentials, smoke script, Braintree, npm/bun). |
-| P10 | Paste 10 (Perplexity) | Cover note for `phase-1-api-react-callback-tests-implementation.md`: vertical slice, OAuth correction, MSW tests, suggested order. |
-| F3 | `freebuff-prompt-wire-react-store.md` (file) | Ready-to-paste Freebuff prompt wiring `explorer-store.tsx` to FastAPI (frontend half of Phase 4). |
-| F4 | `phase-1-api-react-callback-tests-implementation.md` (file) | Phase 1 implementation packet: FastAPI vertical slice, GA4 OAuth callback, MSW test migration, DoD. |
+| P10 | Paste 10 (Perplexity) | Cover note for `../specs/phase-1-api-react-callback-tests-implementation.md`: vertical slice, OAuth correction, MSW tests, suggested order. |
+| F3 | `../specs/freebuff-prompt-wire-react-store.md` (file) | Ready-to-paste Freebuff prompt wiring `explorer-store.tsx` to FastAPI (frontend half of Phase 4). |
+| F4 | `../specs/phase-1-api-react-callback-tests-implementation.md` (file) | Phase 1 implementation packet: FastAPI vertical slice, GA4 OAuth callback, MSW test migration, DoD. |
 
 **Verbatim note:** the pasted records contained long expiring S3 attachment URLs (Perplexity file-upload links, one repeated ~9× in P1 and ~7× in P4). To keep the archive clean and transcription-safe they are collapsed inline to **[URL1]** / **[URL2]** / **[URL3]** / **[URL4]** / **[URL5]** markers; the full URLs are preserved once each (URL1–URL2 below, URL3–URL5 in §1.10).
 
@@ -120,17 +120,17 @@ Two costs the analysis flagged as easy to underweight:
 
 Three new artifacts arrived after Batch 1, moving the migration from *decision + plan* toward *concrete handoffs*:
 
-1. **`freebuff-prompt-wire-react-store.md` (F3)** — a ready-to-paste prompt for the **frontend half of Phase 4**: 13 specific changes to `explorer-store.tsx` (drop `mock-ga4` / `mock-braintree` imports, `API_BASE` constant, real `loadData()` via `POST /api/upload`, GA4 OAuth + Drive functions, `streamAi()` pointed at the FastAPI SSE endpoint, quality/charts/forecast/funnel/summary fetchers, export, expanded `ExplorerValue` interface, `api-types.ts`, `.env` files). Constraints: preserve the context-provider API, no new state library, never silently fail, keep SSE streaming, don't touch the Python backend. It explicitly does **not** cover FastAPI code, the React OAuth route, the Picker UI, or test rewrites.
+1. **`../specs/freebuff-prompt-wire-react-store.md` (F3)** — a ready-to-paste prompt for the **frontend half of Phase 4**: 13 specific changes to `explorer-store.tsx` (drop `mock-ga4` / `mock-braintree` imports, `API_BASE` constant, real `loadData()` via `POST /api/upload`, GA4 OAuth + Drive functions, `streamAi()` pointed at the FastAPI SSE endpoint, quality/charts/forecast/funnel/summary fetchers, export, expanded `ExplorerValue` interface, `api-types.ts`, `.env` files). Constraints: preserve the context-provider API, no new state library, never silently fail, keep SSE streaming, don't touch the Python backend. It explicitly does **not** cover FastAPI code, the React OAuth route, the Picker UI, or test rewrites.
 2. **Deeper repo inspection (P9)** — 8 findings that harden the plan's assumptions, plus a 10-item checklist of amendments:
    - The `plans/` directory already has a structure convention (`00-meta/`, `00-sprints/`, `p1-p2/`…`p5-p6/`, `audit/`, `maintenance/`) — the migration plan should land as e.g. `plans/🔴 v0.4.0-react-migration.md`. (These claims check out against the actual directory, including `ga4-measurement-contract.md`, which **already defines the GA4 data contract** the API should align with.)
    - The Drive Picker is already a standalone Vite/TS app embedded in the Python repo — a proven precedent for embedding TS apps — but it uses **npm** while whisperer-30 uses **bun** → pick one package manager.
    - Two CI/CD pipelines exist (`.github/workflows/test.yml` **and** `cloudbuild.yaml`) — both must be updated, not "CI" generically.
    - The evidence connector is a major planned workstream (44KB design doc + whisperer-30's `src/lib/research/`) → design a `/api/research/` route namespace + pluggable source registry up front.
-   - Credential security infra exists (`scripts/check_credentials.py`, `SECURITY.md`, `.pre-commit-config.yaml`, the credential-guard pattern) → FastAPI must maintain the same hygiene; update `.env.example` with new FastAPI vars.
+   - Credential security infra exists (`scripts/check_credentials.py`, `../../SECURITY.md`, `.pre-commit-config.yaml`, the credential-guard pattern) → FastAPI must maintain the same hygiene; update `.env.example` with new FastAPI vars.
    - `scripts/smoke_test.sh` exists → needs a React + FastAPI sibling that boots both services and exercises health / upload / chat-stream.
    - BrainGuide/Braintree client context (public-health product; equity/language/device metrics) → the Gemini system prompt must come from `utils/prompt_templates.py`, not whisperer-30's hardcoded copy.
    - npm vs bun standardization.
-3. **`phase-1-api-react-callback-tests-implementation.md` (F4)** — the **backend half of Phase 1** as an implementation packet: target layout (`api/` + `frontend/`), Python deps, `config.py` / `dependencies.py` / `schemas.py`, a `dataset_service.py` adapter with explicit **adapter boundaries** to `utils/data_loader.py` and `utils/data_context.py`, upload/preview/health routes, GA4 OAuth start/callback, `main.py`, the React `api.ts` / `api-types.ts` client, the `/auth/ga4/callback` route, and an **MSW-based test migration** that replaces `mock-ga4` / `mock-braintree` fixtures at the network boundary.
+3. **`../specs/phase-1-api-react-callback-tests-implementation.md` (F4)** — the **backend half of Phase 1** as an implementation packet: target layout (`api/` + `frontend/`), Python deps, `config.py` / `dependencies.py` / `schemas.py`, a `dataset_service.py` adapter with explicit **adapter boundaries** to `utils/data_loader.py` and `utils/data_context.py`, upload/preview/health routes, GA4 OAuth start/callback, `main.py`, the React `api.ts` / `api-types.ts` client, the `/auth/ga4/callback` route, and an **MSW-based test migration** that replaces `mock-ga4` / `mock-braintree` fixtures at the network boundary.
 
 **URL markers for batch 2** (full values preserved; collapsed inline to keep the record clean):
 
@@ -141,7 +141,7 @@ Three new artifacts arrived after Batch 1, moving the migration from *decision +
 ### 1.11 How batch 2 changes the picture — key deltas vs. batch 1
 
 - **The OAuth design was corrected.** Batch 1's plan table already had FastAPI as the callback owner, but F3's `handleGA4Callback()` snippet read `?code=` inside React. F4 makes the boundary explicit and adds hard rules: Google redirects to **FastAPI** (`/api/ga4/callback`); FastAPI validates `state`, exchanges the code, stores credentials server-side, then redirects the browser to React's `/auth/ga4/callback` with only `status=success` or a safe `reason`. **Provider tokens never reach React** — treat F3's section-4 snippet as superseded by F4's design. Corollary rules: no secrets in `VITE_*` variables; same-origin deployment preferred (avoids cross-site cookie fragility); `credentials: "include"` on every fetch.
-- **The API contract gains an existing anchor.** The API should align with `plans/ga4-measurement-contract.md` rather than inventing a new GA4 shape. The packet's `schemas.py` / `api-types.ts` are snake_case-first, with a single normalization boundary (`setSourceFromApi`) for camelCase React state.
+- **The API contract gains an existing anchor.** The API should align with `../../plans/ga4-measurement-contract.md` rather than inventing a new GA4 shape. The packet's `schemas.py` / `api-types.ts` are snake_case-first, with a single normalization boundary (`setSourceFromApi`) for camelCase React state.
 - **Adapters, not blind rewraps.** F4's `parse_uploaded_file()` and `ga4_service` are explicitly marked *adapter boundaries* to replace with the existing `utils/data_loader.py`, `utils/ga4_client.py`, and `utils/data_context.py` rules once their Streamlit coupling is extracted — operationalizing batch 1's "boundary-refactor, not blind wrap" correction.
 - **Frontend test strategy is set:** replace mock-module imports with MSW network handlers (unit/store/component tests) and use Playwright against FastAPI test mode for E2E; delete `mock-ga4.ts` / `mock-braintree.ts` only after no production imports remain; move fixtures to `src/test/fixtures/`.
 - **The constraint set for any future plan grew:** the 10-item checklist from P9 plus F4's "Do not do in Phase 1" list (no Drive/Picker/Gemini/forecast/export yet; no `VITE_*` secrets; no direct Google→React redirect; no separate production origins without need; don't delete Streamlit or archive the Lovable repo until parity).
@@ -150,9 +150,9 @@ Three new artifacts arrived after Batch 1, moving the migration from *decision +
 
 | Artifact | Phase | Layer | Role |
 |---|---|---|---|
-| `freebuff-prompt-wire-react-store.md` (F3) | Phase 4 | Layer 3 | Frontend half: store-wiring prompt |
+| `../specs/freebuff-prompt-wire-react-store.md` (F3) | Phase 4 | Layer 3 | Frontend half: store-wiring prompt |
 | Deeper-inspection checklist (P9) | All phases | 0–3 | Constraint amendments to the plan (CI, package manager, contract, research namespace) |
-| `phase-1-api-react-callback-tests-implementation.md` (F4) | Phase 1 (+ Phase 2/3 adapters) | 0–1 | Backend half: vertical slice + OAuth correction + MSW tests |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` (F4) | Phase 1 (+ Phase 2/3 adapters) | 0–1 | Backend half: vertical slice + OAuth correction + MSW tests |
 
 The picture is now: **decide (batch 1) → constrain (P9) → build the Phase 1 backend (F4) → wire the store (F3) → test via MSW/Playwright (F4) → solve OAuth/Drive properly (Phase 5, OAuth design now settled) → cutover (Phase 6).** As before: this file remains ingest + synthesis only — no plan has been drawn.
 
@@ -169,7 +169,7 @@ The picture is now: **decide (batch 1) → constrain (P9) → build the Phase 1 
 | `.env` (not `.env.example`) is tracked in whisperer-30 | ✅ **CONFIRMED — worse than stated** | Real `.env` at repo root (62 B, committed `9059739`); **no `.env.example`** (HTTP 404); `.gitignore` has **no `.env` entry**. Contents deliberately not decoded during ingest — rotate/revoke before copying the repo in. |
 | `st.session_state` spread across app.py, utils/session.py, data loading, Gemini, GA4, and multiple UI components | ✅ Confirmed | 15 source files: app.py, 5 utils modules (`data_loader`, `session`, `ga4_client`, `data_context`, `gemini_client`), 8 components files (incl. `__init__.py`), `pages/learn.py`. `utils/session.py` centralizes `clear_data()` only. ~50 distinct keys incl. `ga4_creds`, `data_context`, `drive_picker_*`, `theme`, `chat_history`, `forecast_*`, `funnel_*`, `api_*` counters. |
 | npm (Drive Picker) vs bun (Lovable app) | ✅ Confirmed | `bun.lock` at whisperer root; Drive Picker uses `package-lock.json` (batch 1). |
-| GA4 measurement contract exists; make it the API source of truth | ✅ Confirmed / already adopted | `plans/ga4-measurement-contract.md` present; Part 4 §4.2 already made it canonical. |
+| GA4 measurement contract exists; make it the API source of truth | ✅ Confirmed / already adopted | `../../plans/ga4-measurement-contract.md` present; Part 4 §4.2 already made it canonical. |
 | Lovable AI gateway must not become the permanent AI path | ✅ Confirmed | Whisperer's only live call is the gateway proxy over mocks (batch 1 §1.3–1.4). |
 | GitHub Actions **and** Cloud Build both need updating | ✅ Confirmed | Both exist in the repo (batch 2 checklist, P9). |
 | Current test count won't transfer one-to-one | ✅ Agreed (judgment) | Consistent with Part 4 §4.3/§4.4 — Streamlit component tests retire or move boundaries; batch 3 supplies the replacement matrix below. |
@@ -205,11 +205,11 @@ The picture is now: **decide (batch 1) → constrain (P9) → build the Phase 1 
 | 2.7 | [PASTE 7] — Perplexity: "You can copy-paste the sections below…" (issues + prompt) |
 | 2.8 | [FILE] — `insights-explorer-migration-plan.md` (verbatim copy) |
 | 2.9 | [FILE] — `glm-5-2-vs-perplexity-migration-comparison.md` (verbatim copy) |
-| 2.10 | [PASTE 8] — Perplexity: "The Freebuff prompt is saved as freebuff-prompt-wire-react-store.md…" |
+| 2.10 | [PASTE 8] — Perplexity: "The Freebuff prompt is saved as ../specs/freebuff-prompt-wire-react-store.md…" |
 | 2.11 | [PASTE 9] — Perplexity: "Based on inspecting both repos more deeply…" (8 findings + checklist) |
 | 2.12 | [PASTE 10] — Perplexity: "I prepared an implementation packet…" |
-| 2.13 | [FILE] — `freebuff-prompt-wire-react-store.md` (verbatim copy) |
-| 2.14 | [FILE] — `phase-1-api-react-callback-tests-implementation.md` (verbatim copy) |
+| 2.13 | [FILE] — `../specs/freebuff-prompt-wire-react-store.md` (verbatim copy) |
+| 2.14 | [FILE] — `../specs/phase-1-api-react-callback-tests-implementation.md` (verbatim copy) |
 | 2.15 | [PASTE 11] — Perplexity: “product-platform migration” review (security, session model, contracts, testing, deployment) |
 ### 2.1 [PASTE 1] — Perplexity: "I read through the attached Freebuff conversation…"
 
@@ -666,7 +666,7 @@ Goal: Achieve feature parity, migrate hosting off Streamlit Community Cloud, and
 - [ ] Decommission or archive the Streamlit UI:
   - [ ] Mark it as legacy in docs.
   - [ ] Optionally keep a maintenance branch.
-- [ ] Update `README.md`, `ARCHITECTURE.md`, `CHANGELOG.md` to reflect the new architecture.
+- [ ] Update `../README.md`, `../../ARCHITECTURE.md`, `../../CHANGELOG.md` to reflect the new architecture.
 
 **Acceptance criteria:**
 
@@ -969,9 +969,9 @@ This preserves the 742-test safety net, GA4/Drive/Gemini integration logic, and 
    - Update DNS if needed.
    - Keep Streamlit Community Cloud as fallback for 1 week.
 4. **Update docs:**
-   - `README.md` — new setup instructions
-   - `ARCHITECTURE.md` — new architecture diagram
-   - `CHANGELOG.md` — v0.4.0 entry
+   - `../README.md` — new setup instructions
+   - `../../ARCHITECTURE.md` — new architecture diagram
+   - `../../CHANGELOG.md` — v0.4.0 entry
 5. **Archive `insights-whisperer-30`:**
    - Add note to README: "Folded into insights-explorer as frontend/ directory."
    - Archive repo on GitHub.
@@ -1268,9 +1268,9 @@ The two approaches are **complementary, not redundant** — exactly the pattern 
 
 ---
 
-### 2.10 [PASTE 8] — Perplexity: "The Freebuff prompt is saved as freebuff-prompt-wire-react-store.md…"
+### 2.10 [PASTE 8] — Perplexity: "The Freebuff prompt is saved as ../specs/freebuff-prompt-wire-react-store.md…"
 
-The Freebuff prompt is saved as **`freebuff-prompt-wire-react-store.md`**. Here's what it covers:
+The Freebuff prompt is saved as **`../specs/freebuff-prompt-wire-react-store.md`**. Here's what it covers:
 
 ## What the prompt does
 
@@ -1349,7 +1349,7 @@ The 44KB `evidence-connector-design.md` plan doc and the whisperer-30's existing
 
 The repo has dedicated security tooling:
 - `scripts/check_credentials.py` — validates credentials [URL3]
-- `SECURITY.md` — security policy [URL3]
+- `../../SECURITY.md` — security policy [URL3]
 - `.pre-commit-config.yaml` — pre-commit hooks [URL3]
 - The Freebuff conversation mentioned a "credential guard" pattern [URL3]
 
@@ -1363,7 +1363,7 @@ The repo has dedicated security tooling:
 
 ## 7. BrainGuide/Braintree Client Context
 
-The Freebuff conversation and the whisperer-30's chat route both reference a **BrainGuide** client — a public health product with equity analysis, language access, and device access metrics. There's also `BRAINTREE_CHECKLIST.md` (6.5KB) and `braintree-reqs.md` (49KB). [URL3]
+The Freebuff conversation and the whisperer-30's chat route both reference a **BrainGuide** client — a public health product with equity analysis, language access, and device access metrics. There's also `../../BRAINTREE_CHECKLIST.md` (6.5KB) and `../../braintree-reqs.md` (49KB). [URL3]
 
 **What this means:** The system prompt in the whisperer-30's `chat.ts` is already tuned for this client. When wiring the React store to FastAPI, make sure the Gemini system prompt (currently in `utils/prompt_templates.py`) is the one that gets used — not the whisperer-30's hardcoded version.
 
@@ -1381,7 +1381,7 @@ The Freebuff conversation and the whisperer-30's chat route both reference a **B
 Based on all of this, add these items to the migration plan:
 
 - [ ] Add migration plan as `plans/🔴 v0.4.0-react-migration.md` following existing naming convention
-- [ ] Align FastAPI endpoints with existing `plans/ga4-measurement-contract.md`
+- [ ] Align FastAPI endpoints with existing `../../plans/ga4-measurement-contract.md`
 - [ ] Design `/api/research/` route namespace for the evidence connector (per `evidence-connector-design.md`)
 - [ ] Update both `.github/workflows/test.yml` AND `cloudbuild.yaml`
 - [ ] Standardize on one package manager (bun or npm) across Drive Picker + React frontend
@@ -1394,7 +1394,7 @@ Based on all of this, add these items to the migration plan:
 Want me to update the migration plan file with these additions, or create GitHub issues for each?
 ### 2.12 [PASTE 10] — Perplexity: "I prepared an implementation packet…"
 
-I prepared an implementation packet covering all three requested areas in **`phase-1-api-react-callback-tests-implementation.md`**.
+I prepared an implementation packet covering all three requested areas in **`../specs/phase-1-api-react-callback-tests-implementation.md`**.
 
 ## Included
 
@@ -1412,13 +1412,13 @@ The original Freebuff prompt described React as the OAuth callback target. The i
 2. Add MSW-based React-store tests and remove production imports of mock files.
 3. Add the OAuth start/callback flow, backed by the existing `utils/ga4_client.py`.
 4. Only then move to Drive, Gemini streaming chat, analysis, and exports.
-### 2.13 [FILE] — `freebuff-prompt-wire-react-store.md` (verbatim copy)
+### 2.13 [FILE] — `../specs/freebuff-prompt-wire-react-store.md` (verbatim copy)
 
 > Appended by direct copy of the file on disk; nothing edited.
 
 ---
 
-### 2.14 [FILE] — `phase-1-api-react-callback-tests-implementation.md` (verbatim copy)
+### 2.14 [FILE] — `../specs/phase-1-api-react-callback-tests-implementation.md` (verbatim copy)
 
 > Appended by direct copy of the file on disk; nothing edited.
 
@@ -2807,7 +2807,7 @@ Use a server-owned session model:
 
 ## Keep contracts stable
 
-You already have a GA4 measurement contract in `plans/ga4-measurement-contract.md`; make it the source of truth for API request/response schemas. Do not let the React mock types become a competing domain model. [URL5]
+You already have a GA4 measurement contract in `../../plans/ga4-measurement-contract.md`; make it the source of truth for API request/response schemas. Do not let the React mock types become a competing domain model. [URL5]
 
 Also establish these rules before implementation:
 
@@ -3084,7 +3084,7 @@ Research-discipline policy adopted from the sixth review round. **Invoke the web
 
 ## Part 4 — Cross-check & reconciliation ledger (added 2026-08-05)
 
-> Method: repo-level claims were verified against the actual codebase on 2026-08-05 (file listing, `grep` for Streamlit imports, `wc -l`, `pytest --collect-only`); API-contract claims were cross-referenced across `insights-explorer-migration-plan.md` (the plan), `freebuff-prompt-wire-react-store.md` (F3), and `phase-1-api-react-callback-tests-implementation.md` (F4). **Rule applied: original content is preserved everywhere; corrections are recorded here and in per-doc addenda, never by rewriting the source text.**
+> Method: repo-level claims were verified against the actual codebase on 2026-08-05 (file listing, `grep` for Streamlit imports, `wc -l`, `pytest --collect-only`); API-contract claims were cross-referenced across `insights-explorer-migration-plan.md` (the plan), `../specs/freebuff-prompt-wire-react-store.md` (F3), and `../specs/phase-1-api-react-callback-tests-implementation.md` (F4). **Rule applied: original content is preserved everywhere; corrections are recorded here and in per-doc addenda, never by rewriting the source text.**
 
 ### 4.1 Repo-fact claims — verified against the codebase
 
@@ -3095,7 +3095,7 @@ Research-discipline policy adopted from the sixth review round. **Invoke the web
 | "10 Streamlit UI components" | plan · P5 | 8 Python component modules (`chat`, `data_preview`, `drive_picker_component`, `hero`, `learning_challenge`, `onboarding_tour`, `sidebar`, `summary`) + `__init__.py` + `drive_picker_component_frontend/` TS app | ⚠️ **Corrected → 8** (the other two entries are `__init__.py` and the TS picker app) |
 | "~8,461 LOC" | plan · archive | `wc -l utils components pages app` = 8,461 | ✅ Confirmed exactly |
 | "742 unit tests + 32 Playwright smoke" | plan · archive · F3 · F4 | `pytest --collect-only` = 742 unit (excl. smoke/e2e) + 32 smoke | ✅ Confirmed exactly |
-| "`plans/ga4-measurement-contract.md` exists" | P9 · §1.10 | present | ✅ Confirmed |
+| "`../../plans/ga4-measurement-contract.md` exists" | P9 · §1.10 | present | ✅ Confirmed |
 | "Drive Picker is a standalone TS app (npm)" | P9 | `components/drive_picker_component_frontend/` with own `package.json` / `package-lock.json` | ✅ Confirmed |
 | "dual CI: GitHub Actions + Cloud Build" | P9 | `.github/workflows/test.yml` + `cloudbuild.yaml` | ✅ Confirmed |
 
@@ -3136,8 +3136,8 @@ Research-discipline policy adopted from the sixth review round. **Invoke the web
 |---|---|
 | `insights-explorer-migration-ingest.md` | Part 4 ledger appended; front-matter note updated |
 | `insights-explorer-migration-plan.md` | Reconciliation Addendum appended (see its tail) |
-| `freebuff-prompt-wire-react-store.md` | Reconciliation Addendum appended (execution-time corrections for the prompt) |
-| `phase-1-api-react-callback-tests-implementation.md` | Reconciliation Addendum appended (canonical choices confirmed) |
+| `../specs/freebuff-prompt-wire-react-store.md` | Reconciliation Addendum appended (execution-time corrections for the prompt) |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` | Reconciliation Addendum appended (canonical choices confirmed) |
 | `glm-5-2-vs-perplexity-migration-comparison.md` | Verification Addendum appended (GLM-5.2 facts checked) |
 
 ---
@@ -3165,8 +3165,8 @@ Verification of [PASTE 11]'s claims against both repos and this codebase (see §
 |---|---|
 | `insights-explorer-migration-ingest.md` | §1.13 synthesis + §2.15 verbatim PASTE 11 + §4.6 ledger + URL5 register entry + front-matter/provenance/index updates |
 | `insights-explorer-migration-plan.md` | Batch 3 Review Addendum appended |
-| `freebuff-prompt-wire-react-store.md` | Batch 3 Addendum appended (session model, typed client, /api/v1) |
-| `phase-1-api-react-callback-tests-implementation.md` | Batch 3 Addendum appended (server session + storage abstraction, /api/v1, test matrix, pre-copy security gate) |
+| `../specs/freebuff-prompt-wire-react-store.md` | Batch 3 Addendum appended (session model, typed client, /api/v1) |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` | Batch 3 Addendum appended (server session + storage abstraction, /api/v1, test matrix, pre-copy security gate) |
 | `glm-5-2-vs-perplexity-migration-comparison.md` | Not affected (no batch-3 claims about GLM/Perplexity) |
 ---
 
@@ -3182,13 +3182,13 @@ Records the three passes after the §4.6 ledger: the research fold-in, the §3.6
 
 | File | Change |
 |---|---|
-| `migration/session-state-inventory.md` | **New** — 44-key `st.session_state` inventory (key → owner → lifecycle → replacement), per Batch 3 recommendation |
-| `migration/dockerfile-pattern.md` | **New** — multi-stage single-origin Dockerfile sketch (Phase 6 deliverable, correction 5) |
-| `freebuff-prompt-wire-react-store.md` | Research Fold-In Cross-Check Addendum appended (picker `{token, appId}`, wire-format confirm, typed-search callback, funnel scope, single-origin) |
-| `phase-1-api-react-callback-tests-implementation.md` | Research Fold-In Cross-Check Addendum appended (**PKCE added to §8 sketch**, **`validateSearch`/`errorComponent` for §11 callback**, MSW `onUnhandledRequest: "error"` live-confirmed) |
+| `../policies/session-state-inventory.md` | **New** — 44-key `st.session_state` inventory (key → owner → lifecycle → replacement), per Batch 3 recommendation |
+| `../policies/dockerfile-pattern.md` | **New** — multi-stage single-origin Dockerfile sketch (Phase 6 deliverable, correction 5) |
+| `../specs/freebuff-prompt-wire-react-store.md` | Research Fold-In Cross-Check Addendum appended (picker `{token, appId}`, wire-format confirm, typed-search callback, funnel scope, single-origin) |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` | Research Fold-In Cross-Check Addendum appended (**PKCE added to §8 sketch**, **`validateSearch`/`errorComponent` for §11 callback**, MSW `onUnhandledRequest: "error"` live-confirmed) |
 | `insights-explorer-migration-plan.md` | Phase 5 amendment extended with the `VALIDATE_SEARCH`/`errorComponent` pattern (live-verified) |
-| `whisperer-30-reference/WHISPERER-30-REFERENCE.md` | Drift cross-check section added — captured `explorer-store.tsx` vs F3's 13 steps |
-| `migration/README.md` | Document table + addenda table updated (7 docs) |
+| `../whisperer-30-reference/WHISPERER-30-REFERENCE.md` | Drift cross-check section added — captured `explorer-store.tsx` vs F3's 13 steps |
+| `../README.md` | Document table + addenda table updated (7 docs) |
 
 **Non-changes:** all verbatim pastes (Part 2) untouched; `glm-5-2-vs-perplexity-migration-comparison.md` unaffected; no captured reference file edited.
 
@@ -3196,13 +3196,13 @@ Records the three passes after the §4.6 ledger: the research fold-in, the §3.6
 
 | File | Change |
 |---|---|
-| `migration/env-rotation-checklist.md` | **New** — `.env` rotation checklist (Phase 0 security gate; inspect → identify → rotate/revoke → remediate → prevent) |
-| `migration/branch-and-freeze-policy.md` | **New** — `feat/react-fastapi-migration` branch + feature-freeze policy (Batch 3 process decision 1, written down; branch not created — commits land on `main`) |
-| `migration/README.md` | Nine-doc table + addenda row + action-item pointers to the two new docs |
-| `DOCUMENTATION_INDEX.md` | Migration section + status table gain the four support docs (incl. the two from §4.7's batch that were missing from the index) |
-| repo (git) | **First commit of the migration package** — `migration/`, `README.md`, `DOCUMENTATION_INDEX.md` land on `main` (docs only) |
+| `../policies/env-rotation-checklist.md` | **New** — `.env` rotation checklist (Phase 0 security gate; inspect → identify → rotate/revoke → remediate → prevent) |
+| `../policies/branch-and-freeze-policy.md` | **New** — `feat/react-fastapi-migration` branch + feature-freeze policy (Batch 3 process decision 1, written down; branch not created — commits land on `main`) |
+| `../README.md` | Nine-doc table + addenda row + action-item pointers to the two new docs |
+| `../../DOCUMENTATION_INDEX.md` | Migration section + status table gain the four support docs (incl. the two from §4.7's batch that were missing from the index) |
+| repo (git) | **First commit of the migration package** — `migration/`, `../README.md`, `../../DOCUMENTATION_INDEX.md` land on `main` (docs only) |
 
-**Non-changes:** no application code; the branch `feat/react-fastapi-migration` is **documented, not created** — per this pass, the docs package commits to `main` and the branch is cut when Phase 1 work starts (`branch-and-freeze-policy.md` §4).
+**Non-changes:** no application code; the branch `feat/react-fastapi-migration` is **documented, not created** — per this pass, the docs package commits to `main` and the branch is cut when Phase 1 work starts (`../policies/branch-and-freeze-policy.md` §4).
 
 ### 4.9 Change log — round-2 research pass (added 2026-08-05)
 
@@ -3210,10 +3210,10 @@ Records the three passes after the §4.6 ledger: the research fold-in, the §3.6
 |---|---|
 | this archive | §3.9 round-2 research (live-verified) added; §3.8 delta list extended with items 8–12 |
 | `insights-explorer-migration-plan.md` | Research amendments extended: Phase 1 (`ai@^7.0.48` pin), Phase 3 (Gemini `google-genai` SDK + thought tokens), Phase 4 (bun-in-CI + captured stack pins), Phase 5 (GA4 live quota/pagination numbers, item 7) |
-| `freebuff-prompt-wire-react-store.md` | Round 2 Research Addendum appended (`ai@^7` + `useChat` protocol, Gemini thought tokens, stack pins) |
-| `phase-1-api-react-callback-tests-implementation.md` | Round 2 Research Addendum appended (GA4 client names, GA4 numbers for the Phase-5-forward pull, Gemini SDK, AI SDK pin) |
-| `dockerfile-pattern.md` | CI note added: `oven-sh/setup-bun@v2` for GitHub Actions |
-| `README.md` | Addenda table row for the round-2 pass |
+| `../specs/freebuff-prompt-wire-react-store.md` | Round 2 Research Addendum appended (`ai@^7` + `useChat` protocol, Gemini thought tokens, stack pins) |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` | Round 2 Research Addendum appended (GA4 client names, GA4 numbers for the Phase-5-forward pull, Gemini SDK, AI SDK pin) |
+| `../policies/dockerfile-pattern.md` | CI note added: `oven-sh/setup-bun@v2` for GitHub Actions |
+| `../README.md` | Addenda table row for the round-2 pass |
 
 **Corrections this pass (both recorded in §3.9):** AI SDK version — research agent said "v4", actual pin is `ai@^7.0.48`; GA4 max rows/request — research agent said 100,000, live reference says 250,000.
 
@@ -3223,10 +3223,10 @@ Records the three passes after the §4.6 ledger: the research fold-in, the §3.6
 |---|---|
 | this archive | §3.10 round-3 research (live-verified) added; §3.5 `[tool-knowledge]` flag cleared with a verification note; §3.8 delta list extended with items 13–19 |
 | `insights-explorer-migration-plan.md` | Amendments extended: Phase 1 (AI SDK v7 verified), Phase 3 (Gemini model hygiene — 2.0-flash shut down; thought-token counters confirmed), Phase 4 (Start/Lovable strip list, Recharts×React 19), Phase 6 (Cloud Run as the GCP path) |
-| `freebuff-prompt-wire-react-store.md` | Round 3 Research Addendum appended (`toTextStreamResponse` confirmed in captured chat.ts; Nitro server routes removed; MSW chat-stream tests) |
-| `phase-1-api-react-callback-tests-implementation.md` | Round 3 Research Addendum appended (MSW streaming pattern + jsdom `EventSource` caveat, Python 3.14 floors, GA4 client naming, `__Host-` cookie verification) |
-| `dockerfile-pattern.md` | GCP row replaced with the Cloud Run path; Python-3.14 dependency floors note added |
-| `README.md` | Addenda table row for the round-3 pass |
+| `../specs/freebuff-prompt-wire-react-store.md` | Round 3 Research Addendum appended (`toTextStreamResponse` confirmed in captured chat.ts; Nitro server routes removed; MSW chat-stream tests) |
+| `../specs/phase-1-api-react-callback-tests-implementation.md` | Round 3 Research Addendum appended (MSW streaming pattern + jsdom `EventSource` caveat, Python 3.14 floors, GA4 client naming, `__Host-` cookie verification) |
+| `../policies/dockerfile-pattern.md` | GCP row replaced with the Cloud Run path; Python-3.14 dependency floors note added |
+| `../README.md` | Addenda table row for the round-3 pass |
 
 **Corrections/new facts this pass:** `gemini-2.0-flash` is shut down (repo model list still offers it); pandas floor must be ≥2.3.3 on Python 3.14; recharts 2.15.x lacks React 19 peer deps; AI SDK v7 is the current docs line and the captured chat route uses `toTextStreamResponse()`.
 
@@ -3237,15 +3237,15 @@ Closes the three internal gaps identified after round-3 research, plus the Verce
 | Item | Resolution | Where recorded |
 |---|---|---|
 | 1. **Size-policy mismatch** — Drive guards at 100 MB (`utils/drive_client.py:48`, `MAX_DRIVE_IMPORT_BYTES`); F4's upload defaults to 25 MB; the Streamlit upload path has **no** explicit guard | Single ingestion policy: **`MAX_INGEST_BYTES = 100 MB`** for both upload and Drive in the API (env-overridable). Note platform body caps: Vercel functions ≈4.5 MB (blocked — §3.11); Cloud Run configurable to ~128 MB; Drive downloads are server-side so unaffected by browser/request-body caps | F4 Reconciliation Addendum 2 · plan Phase 1 amendment · this ledger |
-| 2. **F4 schemas vs `plans/ga4-measurement-contract.md`** — declared canonical but never field-checked | Field-level check: **no conflict** — the contract defines *computed metrics* (5 rows: numerator/denominator/grain/event mapping/validation status); F4's `DatasetContext` is a *transport* descriptor. Documented the mapping: contract rows → `/api/ga4/pull` `DatasetContext.metrics` entries with `provenance` carrying `contract_row` + `validation_status`; future `ReportContract` objects per the contract's Next-steps item 4. Rows 3–5 stay `unavailable` — consistent with aggregate-only GA4 access + the funnel nuance (§3.4) | F4 Reconciliation Addendum 2 · this ledger |
-| 3. **No 742-test layer inventory** | New doc `migration/test-layer-inventory.md`: **742 = 452 utils-facing (61%, keep as-is) + 290 components-facing (39%, rewrite/retire)**; plus 32 Playwright smoke + 8 E2E stay | new doc · README · this ledger |
+| 2. **F4 schemas vs `../../plans/ga4-measurement-contract.md`** — declared canonical but never field-checked | Field-level check: **no conflict** — the contract defines *computed metrics* (5 rows: numerator/denominator/grain/event mapping/validation status); F4's `DatasetContext` is a *transport* descriptor. Documented the mapping: contract rows → `/api/ga4/pull` `DatasetContext.metrics` entries with `provenance` carrying `contract_row` + `validation_status`; future `ReportContract` objects per the contract's Next-steps item 4. Rows 3–5 stay `unavailable` — consistent with aggregate-only GA4 access + the funnel nuance (§3.4) | F4 Reconciliation Addendum 2 · this ledger |
+| 3. **No 742-test layer inventory** | New doc `../policies/test-layer-inventory.md`: **742 = 452 utils-facing (61%, keep as-is) + 290 components-facing (39%, rewrite/retire)**; plus 32 Playwright smoke + 8 E2E stay | new doc · README · this ledger |
 | 4. **Vercel hosting question** | Evaluated: SPA yes, FastAPI no (≈4.5 MB body cap vs 100 MB policy; function duration vs SSE; stateless sessions). Container path (Cloud Run) stays the recommendation | archive §3.11 · plan Phase 6 · dockerfile-pattern §4 |
 
 **Non-changes:** no code touched. `requirements/base.txt` floors remain a Phase-1 implementation item (raise `pandas>=2.3.3` per §3.10 item 6; introduce the shared `MAX_INGEST_BYTES` constant per item 1).
 
 ### 4.12 Master-plan revision (2026-08-05)
 
-Peer review of the migration package ("tighten before Phase 1") produced this revision pass — folded into `master-plan.md`, F3/F4/plan (canonical API decisions), and a new policy doc. **Nothing executed.**
+Peer review of the migration package ("tighten before Phase 1") produced this revision pass — folded into `../master-plan.md`, F3/F4/plan (canonical API decisions), and a new policy doc. **Nothing executed.**
 
 | Change | Where | What |
 |---|---|---|
@@ -3253,7 +3253,7 @@ Peer review of the migration package ("tighten before Phase 1") produced this re
 | Browser-upload architecture decision | master-plan §4–5, §13; F4 supersession | Cloud Run HTTP/1 caps requests at **32 MiB**; options (32 MB browser cap — recommended / tested end-to-end HTTP/2 / signed Cloud Storage); two-tier policy `MAX_BROWSER_UPLOAD_BYTES = 32 MB` + `MAX_INGEST_BYTES = 100 MB` |
 | Canonical API decisions record | F3, F4, plan (new top sections) | `/api/v1` · `/healthz` · `{ dataset }` · HttpOnly cookie + `credentials: "include"` · snake_case boundary · `api.ts` camelCase · chat transport · upload policy; old `/api` and 25 MB references marked superseded |
 | Blocking-work guidance | master-plan §5, §15 | CPU-heavy routes synchronous or in a controlled thread pool; hard caps on rows/columns/**decompressed** size; reject password-protected sheets, MIME mismatches, compression bombs; streamed/temp-store exports; job model later if needed |
-| Data retention + AI data boundary | new `data-retention-policy.md`; master-plan cross-cutting F | Policy before the API exists: retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation |
+| Data retention + AI data boundary | new `../policies/data-retention-policy.md`; master-plan cross-cutting F | Policy before the API exists: retention window, raw-frame persistence, session expiry, Clear Data semantics, export-logging retention, Gemini prompt allowlist, identifier removal/aggregation |
 | OAuth production-real | master-plan §5 | Persist `state`/PKCE verifier/creation time/return path with short expiry + one-time use; per-env redirect URIs from an allowed-host config |
 | Chat reconnect | master-plan §4/§8, §14 | Client retains message, partial output safe, retry without duplicate assistant messages; Cloud Run timeout is a ceiling, not a guarantee |
 | Three release gates | master-plan §14 | No-regression · Contract · User-flow |
@@ -3279,7 +3279,7 @@ Third review pass tightened the priority gates and removed decision ambiguity. *
 | Gate 5 split | master-plan Phase 0 checklist | **5a: lock state contracts** (before Phase 1 — done) vs **5b: implement/test local stores** (Phase 1 work — part of the vertical slice); slice now blocked only by 1, 2, 3, 4, 5a, 6 |
 | Upload-cap ambiguity removed | master-plan §4–5, §13; F4 supersession | 25 MB is a **locked decision, not optional**: `MAX_BROWSER_UPLOAD_BYTES = 25 * 1024 * 1024`, `MAX_INGEST_BYTES = 100 * 1024 * 1024`; revisit only after production evidence shows legit uploads > 25 MB |
 | Staging requirement precision | master-plan §3–5, risk register; F4/plan supersessions | Shared OAuth/session store proven **before Phase 5**; object storage proven **only if signed-upload architecture is chosen**; in-memory local stores are sufficient for the Phase 1 vertical slice if they follow the final interfaces |
-| Gate-6 evidence | master-plan checklist; `data-retention-policy.md` §11 | The five retention/clear-data/Gemini decision points enumerated as an approval checklist — gate 6 closes on approval |
+| Gate-6 evidence | master-plan checklist; `../policies/data-retention-policy.md` §11 | The five retention/clear-data/Gemini decision points enumerated as an approval checklist — gate 6 closes on approval |
 
 ### 4.15 Lovable update inventory + local-first posture (2026-08-06)
 
@@ -3287,11 +3287,11 @@ User feedback round 4 (3 user notes + reviewer items). **Nothing executed.**
 
 | Change | Where | What |
 |---|---|---|
-| Lovable commit inventory | new `whisperer-30-reference/LOVABLE-UPDATES-080525.md` (+ `migration/lovable-commits.json` captured) | 17 new commits (08-06 00:05–00:13 UTC) inventoried via `git show --stat --name-status` after `git fetch origin`: Drive-import UI (`DriveImportSheet.tsx`, `Sidebar.tsx`, `drive-browse.server.ts`, `api/drive-files.ts`), `measurement-contract.ts`, evidence/GA4/insights panels (`insights/engine.ts`, `EvidenceConnectorPanel.tsx`, `InsightCandidates.tsx`, `MeasurementContractPanel.tsx`, `mock-evidence.ts`, research sources/types/api changes), merge `8b4b7b9`; `routeTree.gen.ts` generated (do not port) |
+| Lovable commit inventory | new `../whisperer-30-reference/LOVABLE-UPDATES-080525.md` (+ `lovable-commits.json` captured) | 17 new commits (08-06 00:05–00:13 UTC) inventoried via `git show --stat --name-status` after `git fetch origin`: Drive-import UI (`DriveImportSheet.tsx`, `Sidebar.tsx`, `drive-browse.server.ts`, `api/drive-files.ts`), `measurement-contract.ts`, evidence/GA4/insights panels (`insights/engine.ts`, `EvidenceConnectorPanel.tsx`, `InsightCandidates.tsx`, `MeasurementContractPanel.tsx`, `mock-evidence.ts`, research sources/types/api changes), merge `8b4b7b9`; `routeTree.gen.ts` generated (do not port) |
 | Local-first posture | master-plan principles §2.9, §3, §4–5, §13, risk register | Product runs locally first, hosted beta later — in-memory `SessionStore`/`DatasetStore` acceptable through Phase 5; shared ephemeral OAuth/session store + object storage + Cloud Run are beta/hosting-time work |
 | API surface confirmed | master-plan §2.10 | No new external APIs for the migration — still Google OAuth, GA4 Data API, Drive, Picker, Gemini; Cloud Resource Manager is the only enablement item |
 | Gate-closure evidence rule | master-plan Phase 0 | "A gate closes only when its stated evidence is present — not because its document exists"; Gate 1 evidence gains a **history-wide secret scan** step (env-rotation Phase E step 3) |
-| Conversation export relocated | `migration/archive/freebuff-conversation-080525.sanitized.md` | Moved out of the repo root (reviewer feedback — large-file noise); marked **SANITIZED — INTERNAL — DO NOT SEND TO EXTERNAL MODELS**; credential guard re-verified clean |
+| Conversation export relocated | `freebuff-conversation-080525.sanitized.md` | Moved out of the repo root (reviewer feedback — large-file noise); marked **SANITIZED — INTERNAL — DO NOT SEND TO EXTERNAL MODELS**; credential guard re-verified clean |
 
 ### 4.16 Lovable semantic-layer fold-in (2026-08-06)
 
@@ -3299,9 +3299,9 @@ User provided the Lovable prompts behind the 17-commit update (Drive slide-out +
 
 | Change | Where | What |
 |---|---|---|
-| Semantic layer documented | `whisperer-30-reference/LOVABLE-UPDATES-080525.md` §5 | User-verbatim Lovable prompts (Drive import slide-out; evidence-connector/GA4/insights panels on realistic mock data) + code-verified semantics: slide-out browse (`/api/drive-files?q|folderId`, Nitro, non-canonical), `SyncRecord`/`evidenceGates`/`linkageCoverage`, uncertainty/caveats/provenance incl. `metricStatus: "unavailable"`, Numerator/Denominator + grain + "Unavailable rows are never presented as measured" |
+| Semantic layer documented | `../whisperer-30-reference/LOVABLE-UPDATES-080525.md` §5 | User-verbatim Lovable prompts (Drive import slide-out; evidence-connector/GA4/insights panels on realistic mock data) + code-verified semantics: slide-out browse (`/api/drive-files?q|folderId`, Nitro, non-canonical), `SyncRecord`/`evidenceGates`/`linkageCoverage`, uncertainty/caveats/provenance incl. `metricStatus: "unavailable"`, Numerator/Denominator + grain + "Unavailable rows are never presented as measured" |
 | Drive browse-UX decision | master-plan §9 (Phase 5) + principles §2.10 | Picker iframe (existing) **vs** Lovable slide-out browse; slide-out path requires `GET /api/v1/drive/list?q=&folder_id=` backed by `utils/drive_client.py` metadata calls; Nitro `/api/drive-files` route is non-canonical (same treatment as `ai-gateway.server.ts`); picker-token endpoint only needed for the iframe option |
-| Second-contract guard | master-plan cross-cutting B + risk register | `measurement-contract.ts` (110 lines) must be diffed against the canonical `plans/ga4-measurement-contract.md`; TS types generated from the canonical Python/OpenAPI source, never from the prototype file |
+| Second-contract guard | master-plan cross-cutting B + risk register | `measurement-contract.ts` (110 lines) must be diffed against the canonical `../../plans/ga4-measurement-contract.md`; TS types generated from the canonical Python/OpenAPI source, never from the prototype file |
 | Evidence-panel deferral | master-plan §8 (Phase 4) + gate 8 | `EvidenceConnectorPanel`/`InsightCandidates`/`MeasurementContractPanel`/`insights/engine.ts`/research-source changes are mock-driven prototypes of the deferred evidence-connector workstream — out of the first vertical slice; `mock-evidence.ts` → MSW fixture material only |
 | Gemini-role alignment | LOVABLE-UPDATES §5.3 | "Gemini only prioritizes and explains, never calculates" matches the plan's stance: deterministic trust-layer logic lives in Python; Gemini stays advisory |
 
@@ -3314,7 +3314,7 @@ User provided Lovable's raw build transcript (what it actually did, with full fi
 | Transcript captured | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` (new) | Raw Lovable build actions + full dumps: `drive-browse.server.ts`, `api/drive-files.ts`, `DriveImportSheet.tsx`, `Sidebar.tsx` wiring, `measurement-contract.ts`, `mock-evidence.ts`, `insights/engine.ts`, three panels, `sources.server.ts`/`types.ts`/`index.tsx` wiring |
 | Drive list contract fully specified | master-plan Phase 5 | `GET /api/v1/drive/list?q=&folder_id=` — `trashed = false AND (name contains | '<folder_id>' in parents)`, `pageSize: 50`, `orderBy: folder,modifiedTime desc`, fields `id,name,mimeType,modifiedTime,size,webViewLink,iconLink`; response `{ state, message?, setupHint?, files }` with `ready|not_configured|permission|error`; 401/403 → permission → reconnect + `drive.readonly` |
 | **Import gotcha** | master-plan Phase 5 + risk register | The prototype's Import button only calls `loadData("drive · <name>")` — **it does not download or ingest**. The port must wire Import → `POST /api/v1/drive/download` → `data_loader`; new High risk row |
-| Contract transcription verified | master-plan cross-cutting B + risk register; inventory §6.2 | `measurement-contract.ts` cross-checked field-by-field vs canonical `plans/ga4-measurement-contract.md` — **faithful** (5/5 metric IDs, statuses provisional ×2 / unavailable ×3, numerators/denominators, grain, event mapping, blockers, limitations). Second-contract guard RESOLVED; risk severity Medium → Low |
+| Contract transcription verified | master-plan cross-cutting B + risk register; inventory §6.2 | `measurement-contract.ts` cross-checked field-by-field vs canonical `../../plans/ga4-measurement-contract.md` — **faithful** (5/5 metric IDs, statuses provisional ×2 / unavailable ×3, numerators/denominators, grain, event mapping, blockers, limitations). Second-contract guard RESOLVED; risk severity Medium → Low |
 | AI-boundary pattern | inventory §6.3 | `contractContext()`/`evidenceContext()`/`insightContext()` — deterministic text assembled from a single source of truth, model never recalculates; maps to `utils/prompt_templates.py` in the port |
 | Evidence-connector design reference | inventory §6.2 | Mock details (allowlist, SyncRecord, 78% linkage, small-cell min 50, gate states) are reference material for the deferred evidence-connector workstream — stays out of the first slice (gate 8) |
 
@@ -3349,7 +3349,7 @@ Review of the 4.18–4.19 refinements. **Nothing executed.**
 | Change | Where | What |
 |---|---|---|
 | Versioned-route drift fixed | master-plan §5, §7, §9 | All bare `/api/...` route references in the master plan (the execution doc) corrected to `/api/v1/...`: `upload`, `data/context`, `data/preview`, `data/quality`, `analysis/funnel`, `ga4/connect`, `ga4/callback`, `ga4/pull`, `drive/picker-token`, `drive/download`, `drive/list`. F3/F4/plan already carry Canonical API Decisions supersession blocks; the archive preserves verbatim original content (reconciled via addenda) — both intentionally unchanged |
-| Metric-status policy synced to canonical contract | `plans/ga4-measurement-contract.md` new **"Metric-status consumption policy"** section | validated / provisional / unavailable → what each permits downstream (display, deterministic insights, Gemini); master-plan cross-cutting B links there as the semantic source of truth; prototype `computableMetrics()` hygiene note recorded |
+| Metric-status policy synced to canonical contract | `../../plans/ga4-measurement-contract.md` new **"Metric-status consumption policy"** section | validated / provisional / unavailable → what each permits downstream (display, deterministic insights, Gemini); master-plan cross-cutting B links there as the semantic source of truth; prototype `computableMetrics()` hygiene note recorded |
 | Quarantine layout added | master-plan §12 (target layout + rules) | `frontend/src/test/fixtures/` (mock-ga4/braintree/evidence — test-only) · `test/handlers/` (MSW) · `prototype/` (demo panels, non-production); rules: runtime never imports from `test/`, prod source registry never registers mock sources, prototype panels excluded/flagged, "Demo / mock data" label required |
 | Paginated-OpenAPI deferral | master-plan open decision #9 | Formal `GET /api/v1/drive/list` OpenAPI/Pydantic schema deferred until the slide-out browser is chosen in Phase 5; §9's prose contract is the design artifact until then — no premature Phase 1 schema work |
 
@@ -3364,7 +3364,7 @@ Review round covering capture mechanics, conversation-export handling, and route
 | Three-way doc status | master-plan §1 | `ga4-measurement-contract.md` = **in-migration canonical** · `ga4-insights-sketch.md` = **deferred workstream** (prototypes quarantined) · `evidence-connector-design.md` = **deferred workstream** (panels quarantined; migration only accommodates via `/api/v1`) |
 | Route-drift cleanup | F3 (6 fixes), F4 (1 fix), allowlist | Active instruction text versioned: F3 `streamAi` → `/api/v1/chat`, proxy target → `/api/v1/chat`, `POST /api/v1/upload`, `GET /api/v1/data/preview`, `POST /api/v1/ga4/connect`, `POST /api/v1/drive/picker-token`; F4 router prefix → `/api/v1/ga4`. **Allowlisted (kept):** prototype source captures (Nitro `/api/drive-files`, `/api/chat`), archive transcripts, canonical supersession blocks |
 | Metric policy cross-ref | `plans/ga4-insights-sketch.md` | Header note: sketch is the deferred insights-engine workstream; metric-status policy lives in the canonical contract — consult before implementing any engine calculation |
-| Conversation-export header | `migration/archive/freebuff-conversation-080525.sanitized.md` | Banner upgraded per review: **INTERNAL REFERENCE — SANITIZED TRANSCRIPT — DO NOT SEND TO EXTERNAL MODELS / NOT IN DEFAULT AGENT CONTEXT**; source + sanitization dates + latest SHA (`2d04442`); **re-sanitize before every commit; credential guard runs in CI, not only pre-commit**; archive-only status explicit |
+| Conversation-export header | `freebuff-conversation-080525.sanitized.md` | Banner upgraded per review: **INTERNAL REFERENCE — SANITIZED TRANSCRIPT — DO NOT SEND TO EXTERNAL MODELS / NOT IN DEFAULT AGENT CONTEXT**; source + sanitization dates + latest SHA (`2d04442`); **re-sanitize before every commit; credential guard runs in CI, not only pre-commit**; archive-only status explicit |
 
 ### 4.22 Review — store-drift matrix, manifest refinement, npm lock, E2E matrix (2026-08-06)
 
@@ -3374,7 +3374,7 @@ Fourth review round on the captured UI snapshot (planning only — no migration 
 |---|---|---|
 | Manifest refinement | `UI-CAPTURE-8b4b7b9/MANIFEST.md` | Two columns added: `runtime_dependency` (`none` / `mock` / `Lovable/Nitro` / `Python/FastAPI`) and `initial_slice` (`yes` / `no`). Reclassifications: `ChartsRow` / `DataPreview` / `Chat` / `EmptyHero` = **UI-shell ports** (shell copied; data source and commands replaced by FastAPI endpoints — mock imports never survive into runtime); `EquityPanel` = **prototype/reference unless a real equity API exists** (mock-braintree data); `ResearchPanel` = **reference only / deferred evidence workstream** (Lovable `/api/research` + gateway + mock evidence); `DriveImportSheet` = **Phase 5 UI candidate only**, not a first-slice port |
 | Proxy removal | F3 step 10 | The optional `POST /api/chat → proxy to http://localhost:8000/api/v1/chat` model is **deleted**. Target deployment is same-origin (FastAPI serves the built SPA), so the store calls `POST /api/v1/chat` directly with `credentials: "include"` — no second routing model for an agent to follow |
-| Store-drift matrix | new `whisperer-30-reference/STORE-DRIFT-MATRIX.md` | Full matrix (captured store × F3 assumption × canonical decision × required change): `ExplorerValue` §9 must **union** (it omits filter/metric/`sendMessage`/`clearChat` members); hardcoded `initialFilters`/`initialMetrics` seeds removed (hydrate from `GET /api/v1/data/context`); `clearData` extended to filters/metrics + server clear; client-side command router moves to `utils/commands.py` (never hardcoded BrainGuide prompts); `ChatMessage.timestamp` retained; `streamingId` retained for the chat-reconnect rule; `useTheme` parity check; store types extracted to `api-types.ts` |
+| Store-drift matrix | new `../whisperer-30-reference/STORE-DRIFT-MATRIX.md` | Full matrix (captured store × F3 assumption × canonical decision × required change): `ExplorerValue` §9 must **union** (it omits filter/metric/`sendMessage`/`clearChat` members); hardcoded `initialFilters`/`initialMetrics` seeds removed (hydrate from `GET /api/v1/data/context`); `clearData` extended to filters/metrics + server clear; client-side command router moves to `utils/commands.py` (never hardcoded BrainGuide prompts); `ChatMessage.timestamp` retained; `streamingId` retained for the chat-reconnect rule; `useTheme` parity check; store types extracted to `api-types.ts` |
 | Package manager locked | master-plan Phase 4 + open decision #3 + cross-cutting E | **npm** — the Drive Picker frontend already uses npm (`package-lock.json`); GitHub Actions, Cloud Build, and hosting tools support npm by default; the captured `bun.lock` was deliberately excluded so npm gives a clean reproducible start. Record: `frontend/package-lock.json` · `npm ci` in CI · `npm run dev/build/test` locally |
 | Drive E2E acceptance matrix | master-plan Phase 5 | 12-case Playwright matrix: OAuth cancel, not-configured, expired permission, unsupported file, forged metadata rejected, server metadata authority, binary CSV/XLSX, Sheets export + 10 MB export cap, server size enforcement, download → preview/quality, Clear Data, token containment |
 | Doc-role note | `WHISPERER-30-REFERENCE.md` + master-plan §8/§16 | The drift matrix is a reference artifact (Phase 4 input), not default agent context; the compact step-level drift table in `WHISPERER-30-REFERENCE.md` now points to the matrix as the superseding instruction set |
@@ -3397,7 +3397,7 @@ Sixth review round (planning only — no migration product code). Source: review
 
 | Change | Where | What |
 |---|---|---|
-| OAuth status vocabulary — locally verified | all active docs vs archive | Ran the reviewer's exact grep (`git grep -nE 'provider_denied\|invalid_oauth_state\|status=cancelled\|invalid_state' -- migration/`). **Confirmed:** `status=cancelled` and `invalid_state` are the only forms in active implementation docs — F4's redirect code (`status=cancelled`, `status=error&reason=invalid_state`), its `readableReason` switch and callback test list, master-plan §9's contract, and the Phase 5 E2E matrix. `provider_denied` / `invalid_oauth_state` appear **only** in archive/verbatim material (`insights-explorer-migration-ingest.md` Parts 2–3, `archive/freebuff-conversation-080525.sanitized.md`) and as deliberate supersession notes (F4 "are superseded spellings"; master-plan "no legacy spellings in new code"). The reviewer's GitHub code-search finding was a stale index, not real drift |
+| OAuth status vocabulary — locally verified | all active docs vs archive | Ran the reviewer's exact grep (`git grep -nE 'provider_denied\|invalid_oauth_state\|status=cancelled\|invalid_state' -- migration/`). **Confirmed:** `status=cancelled` and `invalid_state` are the only forms in active implementation docs — F4's redirect code (`status=cancelled`, `status=error&reason=invalid_state`), its `readableReason` switch and callback test list, master-plan §9's contract, and the Phase 5 E2E matrix. `provider_denied` / `invalid_oauth_state` appear **only** in archive/verbatim material (`insights-explorer-migration-ingest.md` Parts 2–3, `freebuff-conversation-080525.sanitized.md`) and as deliberate supersession notes (F4 "are superseded spellings"; master-plan "no legacy spellings in new code"). The reviewer's GitHub code-search finding was a stale index, not real drift |
 | Trust-boundary wording | STORE-DRIFT-MATRIX | Rewrote the **Server-session rule** preamble to the reviewer's exact formulation: the client sends `credentials: "include"` — the HttpOnly session cookie is the only browser-held identifier; **no session ID, dataset reference, raw data, provider token, or client-authoritative dataset reference ever travels as request data**; FastAPI resolves the authenticated session and active dataset server-side; filters/metrics sync through explicit API mutations; chat and summary requests contain only `{ messages, mode }` plus an optional non-authoritative client state/version for stale-write detection, which the server reconciles or rejects |
 
 ### 4.25 Research-gating policy fold-in (2026-08-06)
@@ -3416,7 +3416,7 @@ Seventh review round. The reviewer confirmed the migration package is **executio
 
 | Change | Where | What |
 |---|---|---|
-| Gate 6 approval | data-retention-policy.md | All five §11 decisions marked **✅ Approved 2026-08-06** (product owner): **24 h** session-scoped upload retention (auto-removed within 24 h; lengthen only with a user-visible retention notice) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence (synced to the metric-state policy). ⚠️ flags cleared; §2/§4 confirm markers removed |
+| Gate 6 approval | ../policies/data-retention-policy.md | All five §11 decisions marked **✅ Approved 2026-08-06** (product owner): **24 h** session-scoped upload retention (auto-removed within 24 h; lengthen only with a user-visible retention notice) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence (synced to the metric-state policy). ⚠️ flags cleared; §2/§4 confirm markers removed |
 | Master plan | master-plan §4 gate table | Gate 6 row: **Open — product decision** → **APPROVED (2026-08-06)** with the approved values recorded; §4 task line updated to note defaults approved, gate closed. The vertical slice is now blocked only by **Gates 1 (credential rotation)** and **2 (branch + freeze)** — both manual product-owner actions |
 | Reviewer verdict | — | "At this point, more migration planning would have diminishing returns. Close Gates 1, 2, and 6, then let the first implementation PR validate the architecture." Recorded for the record — remaining work is manual git/provider-console work, not documentation |
 
@@ -3427,7 +3427,7 @@ Eighth review round (planning only — no migration product code). Sources: four
 | Change | Where | What |
 |---|---|---|
 | GA4 probe distinction | archive §3.12 Prompt 1 + master-plan §11-G | Added the reviewer's sentence: separate official-documentation findings from property-specific facts requiring a post-OAuth compatibility probe; documentation-only research is never proof a target property supports a report. Research queue recorded with exit artifacts (Gemini → model ID/fallback/SDK/rate-limit · React 19+Recharts → locked versions · GA4 → constraints + probe checklist · Drive/Picker → only selected UX · Cloud Run → deploy checklist). Boundary rule added: external research never alters canonical internal contract decisions without an explicit reconciliation step. First dispatch is **Gemini before Phase 3**, not GA4 now |
-| Retention wording corrected | data-retention-policy.md §2 + §11 row 1, master-plan gate 6 row | **Effective Phase 1 retention is ≤ 12 h**, not 24 h: raw uploads are deleted on Clear Data, idle timeout, absolute session expiry, or process restart; effective retention = earlier of session expiry and `RETENTION_HOURS`; `RETENTION_HOURS` 24 h is an upper bound for a future persisted store, not a 24 h availability guarantee. Prevents assuming a user can return 18–24 h later and still access a dataset. 24 h remains the right decision without authenticated persistent workspaces |
+| Retention wording corrected | ../policies/data-retention-policy.md §2 + §11 row 1, master-plan gate 6 row | **Effective Phase 1 retention is ≤ 12 h**, not 24 h: raw uploads are deleted on Clear Data, idle timeout, absolute session expiry, or process restart; effective retention = earlier of session expiry and `RETENTION_HOURS`; `RETENTION_HOURS` 24 h is an upper bound for a future persisted store, not a 24 h availability guarantee. Prevents assuming a user can return 18–24 h later and still access a dataset. 24 h remains the right decision without authenticated persistent workspaces |
 | Gate 7 status corrected | master-plan §4 gate table | **Blocked by 1, 2, and 6 → blocked by 1 and 2; includes 5b** (Gate 6 approved 2026-08-06). Gate 7 is the actual implementation authorization — status matters |
 | Operational readiness | master-plan §17 (new) | Single deferred-gates section: product-modes table (local/private beta/public demo) + five deferred checkboxes (product-mode decision · auth/workspace isolation · logging/backup/error-reporting scrubbing · AI quota/rate-limit/kill-switch · rollback + accessibility/performance release checks) + recorded security-posture preference (Workload Identity Federation, managed secrets, least-privilege scopes) + explicit out-of-scope list (SOC 2, billing, RBAC, warehouse schema, slide-out API, evidence connector). Applies only before hosted beta, not Phase 1 — deliberately not a new spec package |
 
@@ -3437,8 +3437,8 @@ Gate-1 and gate-2 closure records — the reviewer's "two manual gates" are now 
 
 | Gate | Evidence |
 |---|---|
-| **Gate 1 — credential remediation** | Both exposed `AIzaSy…` keys (`AIzaSyC4mri…` / `AIzaSyDaGmW…`) classified as **owned by the product owner's insights-explorer GCP setup** — verified NOT in the whisperer-30 `.env` (which contains only `VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY`, a Lovable connector key, non-AIza) and not in either repo's git history. Rotated/revoked + old keys confirmed invalid (**user-confirmed ~2026-08-03**). whisperer-30 tracked `.env` **untracked** in commit `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`): `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created placeholder-only; `.env` remains on disk for local dev. **History-wide secret scans clean in both repos** (`git rev-list --all` × `git grep` for full-length keys → no hits) + `scripts/check_credentials.py` exit 0. Recorded per the reviewer's closure list (provider, type, owner, rotation date, invalidation, scan reference — no key values) in `env-rotation-checklist.md` — Gate 1 closure record |
-| **Gate 2 — migration branch + freeze** | `feat/react-fastapi-migration` created from `main` @ `3769575` and pushed to `origin` (2026-08-06). **Streamlit feature freeze ACTIVE:** `main` accepts only production/security fixes, CI/deploy fixes, and docs; feature requests park in `IDEAS.md` as `post-migration`; migration-impact test + fix-forward rule active. Recorded in `branch-and-freeze-policy.md` §4 and the master-plan gate table |
+| **Gate 1 — credential remediation** | Both exposed `AIzaSy…` keys (`AIzaSyC4mri…` / `AIzaSyDaGmW…`) classified as **owned by the product owner's insights-explorer GCP setup** — verified NOT in the whisperer-30 `.env` (which contains only `VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY`, a Lovable connector key, non-AIza) and not in either repo's git history. Rotated/revoked + old keys confirmed invalid (**user-confirmed ~2026-08-03**). whisperer-30 tracked `.env` **untracked** in commit `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`): `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created placeholder-only; `.env` remains on disk for local dev. **History-wide secret scans clean in both repos** (`git rev-list --all` × `git grep` for full-length keys → no hits) + `scripts/check_credentials.py` exit 0. Recorded per the reviewer's closure list (provider, type, owner, rotation date, invalidation, scan reference — no key values) in `../policies/env-rotation-checklist.md` — Gate 1 closure record |
+| **Gate 2 — migration branch + freeze** | `feat/react-fastapi-migration` created from `main` @ `3769575` and pushed to `origin` (2026-08-06). **Streamlit feature freeze ACTIVE:** `main` accepts only production/security fixes, CI/deploy fixes, and docs; feature requests park in `../../IDEAS.md` as `post-migration`; migration-impact test + fix-forward rule active. Recorded in `../policies/branch-and-freeze-policy.md` §4 and the master-plan gate table |
 
 **Post-closure status:** gates 1, 2, and 6 are closed; **gate 7 (vertical slice) is unblocked** — the upload → preview → quality → clear implementation PR may begin. Follow-ups that remain non-blocking: merge `fix/remove-tracked-env` into whisperer-30 `main`; optional history scrub; Phase 1 guard-allowlist additions.
 
@@ -3452,5 +3452,16 @@ The reviewer's unblock message was folded in (no product code yet — this round
 | Phase 1 authorization + PR scope | master-plan §5 | Recorded the reviewer's first-PR boundary (FastAPI bootstrap · `/healthz` · config + safe env handling · `SessionStore`/`DatasetStore` interfaces + in-memory impls · `POST /api/v1/upload` 25 MB · `data/context` · `data/preview` · `data/quality` · **`data/clear`** · contract tests) and the keep-out list (React, GA4, Drive, Gemini/chat, charts/forecast/funnels/exports, evidence panels). **Added the previously-omitted `POST /api/v1/data/clear`** to the §5 vertical-slice task and exit criteria |
 | Guard allowlist caution | master-plan §11-D + env-rotation-checklist Phase E | FastAPI env-var validation now — **names only**: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. Guard validates names / expected presence in deployment / no committed values — never permissive wildcards, never trust a value for matching a broad shape |
 | Lovable `.env` merge (housekeeping) | whisperer-30 | `fix/remove-tracked-env` → merge into whisperer-30 `main` recommended before reusing/archiving the frontend source (does **not** block the Phase 1 FastAPI slice). Result: `.env` untracked but local, `.env`/`.env.*` ignored, `.env.example` committed with placeholders |
+
+### 4.30 migration/ reorganization — functional buckets (2026-08-06)
+
+The `migration/` folder was reorganized into functional buckets so the doc graph matches the lifecycle classification (Active → `policies/`, Reference → `specs/`, Archive → `archive/`). No content changes — pure moves + reference rewrites.
+
+| Change | Where | What |
+|---|---|---|
+| File moves | `migration/` | 12 files moved via `git mv` (rename history preserved): **`policies/`** — env-rotation-checklist, branch-and-freeze-policy, data-retention-policy, session-state-inventory, test-layer-inventory, dockerfile-pattern; **`specs/`** — phase-1-api-react-callback-tests-implementation (F4), freebuff-prompt-wire-react-store (F3); **`archive/`** — insights-explorer-migration-ingest, insights-explorer-migration-plan, glm-5-2-vs-perplexity-migration-comparison, lovable-commits.json. `master-plan.md` + `README.md` stay at the root; `whisperer-30-reference/` unchanged |
+| Link rewrite | 16 files | Location-aware script rewrote every path reference that resolves to a moved file (or lives in a moved file) — covering relative-, root-, and bare-style tokens; the **verbatim sanitized transcript and captured Lovable docs (`AGENTS.md`, `routes-README.md`, `lovable-plan-…`) verified byte-identical/untouched**; hand fixes applied to the DOCIDX diagram, README bucket tables, and WHISPERER-30-REFERENCE prose |
+| Index restructure | `migration/README.md`, DOCUMENTATION_INDEX.md | README doc tables regrouped by bucket (Execution / Policies & controls / Implementation packets / Archive); "how they relate" diagram redrawn for the bucket layout; lifecycle table notes the folder mirrors the classes; DOCIDX migration diagram + README row updated |
+| Verification | repo-wide | Link check 359/359 resolving (same tooling as the once-over, verbatim archive excluded); credential guard exit 0; no temp files left behind |
 
 *— End of compiled archive —*

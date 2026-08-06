@@ -136,4 +136,4 @@ Closed per the reviewer's closure-evidence list (provider, type, owner, rotation
 
 ---
 
-*Cross-refs: plan Batch 3 Review Addendum (Security — "do this before anything else"); `migration/README.md` action item 1; archive §4.6 (`.env` claim verification); master-plan gate 1; archive §4.28.*
+*Cross-refs: plan Batch 3 Review Addendum (Security — "do this before anything else"); `../README.md` action item 1; archive §4.6 (`.env` claim verification); master-plan gate 1; archive §4.28.*

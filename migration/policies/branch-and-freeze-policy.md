@@ -44,9 +44,9 @@ cutover (Phase 6): merge back to main when feature parity is reached
 - Documentation (this package is the proof)
 - Dependency bumps that are security-driven
 
-**What happens to new feature requests:** park them in `IDEAS.md` / the roadmap tagged `post-migration`; do not let them sneak into `main` "while we're here."
+**What happens to new feature requests:** park them in `../../IDEAS.md` / the roadmap tagged `post-migration`; do not let them sneak into `main` "while we're here."
 
-**The migration-impact test for any `main` change:** does this touch `st.session_state`, `components/`, or `app.py` in a way that grows the porting surface? If yes and it's not a security/production fix → it waits. Use `migration/session-state-inventory.md` as the checklist — any *new* key that appears during the freeze needs a documented replacement before landing.
+**The migration-impact test for any `main` change:** does this touch `st.session_state`, `components/`, or `app.py` in a way that grows the porting surface? If yes and it's not a security/production fix → it waits. Use `session-state-inventory.md` as the checklist — any *new* key that appears during the freeze needs a documented replacement before landing.
 
 ## 4. Creating the branch (when you're ready — not part of this commit)
 
@@ -56,7 +56,7 @@ git checkout -b feat/react-fastapi-migration
 # confirm: git branch --show-current  →  feat/react-fastapi-migration
 ```
 
-**DONE — branch created + pushed 2026-08-06 (gate 2 closed):** `feat/react-fastapi-migration` was cut from `main` @ `3769575` and pushed to `origin` (`origin/feat/react-fastapi-migration`). **The Streamlit feature freeze is now ACTIVE (2026-08-06):** `main` accepts only **production/security fixes, CI/deploy fixes, and docs**; new feature requests park in `IDEAS.md` tagged `post-migration`; the migration-impact test (§3) applies to every `main` change; fix-forward rule active (merge `main` → migration branch promptly after any `main` fix).
+**DONE — branch created + pushed 2026-08-06 (gate 2 closed):** `feat/react-fastapi-migration` was cut from `main` @ `3769575` and pushed to `origin` (`origin/feat/react-fastapi-migration`). **The Streamlit feature freeze is now ACTIVE (2026-08-06):** `main` accepts only **production/security fixes, CI/deploy fixes, and docs**; new feature requests park in `../../IDEAS.md` tagged `post-migration`; the migration-impact test (§3) applies to every `main` change; fix-forward rule active (merge `main` → migration branch promptly after any `main` fix).
 
 ## 5. Lift criteria
 
@@ -68,8 +68,8 @@ Until Phase 1 DoD, treat the freeze as strict.
 ## 6. Related rules carried alongside
 
 - **Living design reference:** `insights-whisperer-30` stays as a reference/fallback until the `frontend/` build is reproducible (Batch 3 Process decision 2) — do not archive it early.
-- **Security gate stays ahead of the branch:** run `migration/env-rotation-checklist.md` (`.env` rotation) before Phase 4 copies whisperer-30 code in.
+- **Security gate stays ahead of the branch:** run `env-rotation-checklist.md` (`.env` rotation) before Phase 4 copies whisperer-30 code in.
 
 ---
 
-*Cross-refs: plan Batch 3 Review Addendum (Process decisions 1–2); `migration/README.md` action items 1–2; `migration/session-state-inventory.md`; `migration/env-rotation-checklist.md`.*
+*Cross-refs: plan Batch 3 Review Addendum (Process decisions 1–2); `../README.md` action items 1–2; `session-state-inventory.md`; `env-rotation-checklist.md`.*
