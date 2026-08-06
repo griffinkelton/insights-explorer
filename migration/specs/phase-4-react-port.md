@@ -86,9 +86,110 @@ msw                  ^2.15.0          @testing-library/react (add; see Task 6)
 
 ---
 
-## Task 1 — Scaffold `frontend/`Create `frontend/` as a **sibling of `api/`** (master-plan §13 decision #6; owner decision 2026-08-06), npm-based, from the strip-list-derived stack. **Do not port `routeTree.gen.ts`** — regenerate via the router plugin (captured copy is reference only).
+## Task 1 — Scaffold `frontend/`
 
-**Dev serving — owner decision 2026-08-06: Vite proxy to FastAPI.** `vite.config.ts` proxies `/api` → `http://localhost:8000` in dev, so the frontend uses **relative `/api/v1`** everywhere and no `VITE_API_BASE` is needed for local work (CORS still configured for `http://localhost:5173`). Phase 6 makes the deploy same-origin.
+Create `frontend/` as a **sibling of `api/`** (master-plan §13 decision #6; owner decision 2026-08-06), npm-based, from the strip-list-derived stack. **Do not port `routeTree.gen.ts`** — regenerate via the router plugin (captured copy is reference only).
+
+**Dev topology — owner decision 2026-08-06: plain Vite SPA + TanStack Router, Vite proxy to FastAPI.** Two dev processes, one browser-facing origin. Do NOT use TanStack Start (its SPA mode still carries Start build/runtime machinery — unnecessary when FastAPI owns the server).
+
+```text
+Terminal 1:  uvicorn api.main:app --reload --port 8000
+Terminal 2:  cd frontend && npm run dev
+Browser:     http://localhost:5173  (Vite proxies /api → http://127.0.0.1:8000)
+```
+
+```bash
+# Scaffold (from repo root)
+npm create vite@latest frontend -- --template react-ts
+cd frontend
+npm install @tanstack/react-router
+npm install -D @tanstack/router-plugin
+npm install -D tailwindcss @tailwindcss/vite
+npm install clsx tailwind-merge class-variance-authority
+npx shadcn@latest init          # after Tailwind + aliases are configured
+```
+
+```ts
+// frontend/vite.config.ts
+import path from "node:path";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    strictPort: true,
+    proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: true } },
+  },
+});
+```
+
+```jsonc
+// frontend/tsconfig.app.json
+{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["./src/*"] } } }
+
+// frontend/package.json scripts
+{ "dev": "vite", "build": "tsc -b && vite build", "check": "tsc --noEmit" }
+```
+
+```tsx
+// frontend/src/main.tsx  — RouterProvider entry
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { RouterProvider } from "@tanstack/react-router";
+import { router } from "./router";
+import "./index.css";
+declare module "@tanstack/react-router" { interface Register { router: typeof router; } }
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode><RouterProvider router={router} /></React.StrictMode>,
+);
+
+// frontend/src/router.tsx
+import { createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+export const router = createRouter({ routeTree, defaultPreload: "intent" });
+
+// frontend/src/routes/__root.tsx
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+export const Route = createRootRoute({ component: () => (<main><Outlet /></main>) });
+```
+
+**CORS note:** the Vite proxy means ordinary browser traffic never hits FastAPI cross-origin —
+CORS is a **dev/direct-access fallback only**, never the normal production path (Phase 6 is
+same-origin). Keep `API_CORS_ORIGINS=http://localhost:5173` for direct integration checks.
+
+**Typed search params — GA4 callback pattern (parked from F4 §11; Task 0 validates it):**
+
+```tsx
+// frontend/src/routes/auth/ga4/callback.tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+
+const callbackSearch = z.object({
+  status: z.enum(["success", "cancelled", "error"]).optional(),
+  reason: z.string().optional(),
+});
+
+export const Route = createFileRoute("/auth/ga4/callback")({
+  validateSearch: callbackSearch,
+  component: Ga4CallbackPage,
+});
+
+function Ga4CallbackPage() {
+  const { status, reason } = Route.useSearch();
+  return status === "success"
+    ? <section>Google Analytics connected.</section>
+    : <section>{reason ?? "Connection failed."}</section>;
+}
+```
+
+`validateSearch` is TanStack Router's supported typed search-param entry point; on validation
+failure the router renders the route's `errorComponent` (`error.routerCode === "VALIDATE_SEARCH"`).
 
 **Layout target (master-plan §12):**
 
@@ -104,7 +205,8 @@ frontend/
 │   ├── router.tsx             # TanStack Router config (ported infra)
 │   ├── routeTree.gen.ts       # REGENERATED — never hand-edited
 │   ├── styles.css             # Tailwind v4 entry (captured, strip Lovable-only blocks)
-│   ├── routes/                # __root.tsx, index.tsx (functional); learn.tsx (deferred)
+│   ├── routes/                # __root.tsx, index.tsx (functional); learn.tsx (deferred);
+│   │                          #   auth/ga4/callback.tsx (Phase 5, validateSearch spike now)
 │   ├── components/
 │   │   ├── explorer/          # ported shell components (Task 2)
 │   │   └── ui/                # shadcn primitives — regenerate ONLY the subset actually
@@ -179,12 +281,45 @@ Reference only:
   lib/measurement-contract.ts — verified-faithful transcription; TS types are generated
     from plans/ga4-measurement-contract.md, never from this file.
   routeTree.gen.ts — regenerate.
-  components/ui/* (46 files) — re-add via shadcn, not manual copy.
+  components/ui/* (46 files) — selective shadcn regeneration (below), not manual copy.
 
-Do-not-port (deleted / never copied):
-  routes/api/* (Nitro server routes — incl. src/routes/api/chat.ts) · server.ts · start.ts
-  ai-gateway.server.ts · research/* · insights/* · evidence/* · lovable-error-reporting.ts
+Do-not-port (deleted / never copied) — the full removal list (owner guidance 2026-08-06):
+  @tanstack/react-start/plugin/vite · tanstackStart(...) vite config · Nitro/server config
+  src/routes/api/* (incl. src/routes/api/chat.ts) · server.ts · start.ts
+  createServerFileRoute(...) · createServerFn(...) · ai-gateway.server.ts
+  server-only secrets/env reads · any server-side Gemini/OpenAI/GA4/Drive call
+  Start middleware duplicating FastAPI auth/session ownership
+  research/* · insights/* · evidence/* · lovable-error-reporting.ts
 ```
+
+### shadcn/ui primitives — selective regeneration (owner decision 2026-08-06)
+
+Initialize shadcn for Vite (lock the resulting deps), then add **only the primitives the
+first-slice shells actually import** — the capture is a visual/behavioral reference, not a
+vendored dependency tree. Do not add all 46, and do not add unused registry components.
+
+```text
+First-slice primitives (only):
+  button · card · dialog · input · label · tooltip · skeleton · dropdown-menu
+  separator · scroll-area · badge · sonner/toast
+```
+
+### First-slice scope — mounted vs deferred (owner decision 2026-08-06)
+
+```text
+Included (first PR):
+  app shell + theme tokens · sidebar/navigation shell · upload form · upload progress/error
+  states · GET /data/context hydration · preview + quality display · Clear Data action
+  · ChartsRow placeholder/empty state · MSW/API contract tests · a11y smoke coverage
+
+Deferred (owned by later PRs/phases):
+  mounted chat UI · summary UI · live charts + chart API · Drive UI · GA4 OAuth UI
+  · exports · evidence/prototype panels · client-side analytics calculations
+```
+
+ChartsRow renders an explicit empty state, e.g. **"Charts will appear when the chart-analysis
+API is available."** — never derive charts from preview data client-side (that would create an
+undocumented second charting/analytics contract).
 
 ### Prototype quarantine (master-plan §12 rules — enforced, not aspirational)
 
@@ -242,17 +377,23 @@ export interface ApiError { detail: string; }
 ### Client (`api.ts`)
 
 ```ts
-// F4 §10 parked pattern, adapted to the Phase 1–3 contract.
-// Dev: the Vite proxy (Task 1) forwards /api → FastAPI, so the relative path
-// is correct for local AND same-origin Phase 6 deploys.
-const API_BASE = "/api/v1";
+// F4 §10 parked pattern, adapted to the Phase 1–3 contract (owner guidance 2026-08-06).
+// Single API-base module; all calls deployment-neutral (dev proxy + Phase 6 same-origin).
+export const API_BASE = "/api/v1";
+
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
+    credentials: "include", // HttpOnly session cookie — the ONLY client credential (track A)
+    ...init,
+  });
+}
+
+export class ApiRequestError extends Error {
+  constructor(readonly status: number, detail: string) { super(detail); }
+}
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    credentials: "include", // HttpOnly session cookie — the ONLY client credential (track A)
-    headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
-  });
+  const res = await apiFetch(path, init);
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Request failed" }));
     throw new ApiRequestError(res.status, (body as ApiError).detail ?? "Request failed");
@@ -260,22 +401,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export class ApiRequestError extends Error {
-  constructor(readonly status: number, detail: string) { super(detail); }
-}
-
 export const api = {
   upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<UploadResponse>("/upload", { method: "POST", body: form,
-      headers: {} /* let the browser set multipart boundary */ });
+    return request<UploadResponse>("/upload", { method: "POST", body: form });
   },
   context: () => request<DatasetContext>("/data/context"),
   preview: () => request<DataPreviewResponse>("/data/preview"),
   quality: () => request<QualityReport>("/data/quality"),
   clear: () => request<{ status: string }>("/data/clear", { method: "POST" }),
-  chat: (body: ChatRequest) => request<ReadableStream>("/chat", { method: "POST", body: JSON.stringify(body) }),
+  chatStream: (body: ChatRequest, signal?: AbortSignal) =>
+    apiFetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body), signal }),
   summary: () => request<SummaryResponse>("/analysis/summary", { method: "POST", body: JSON.stringify({ mode: "summary" }) }),
   forecast: (metricCol: string, periods = 30) =>
     request<ForecastResponse>("/analysis/forecast", { method: "POST", body: JSON.stringify({ metric_col: metricCol, periods }) }),
@@ -300,6 +438,9 @@ export function setSourceFromApi(payload: UploadResponse | DataPreviewResponse) 
   };
 }
 ```
+
+Do **not** put `http://localhost:8000` into ordinary components or stores — the proxy is
+development-only; components call `apiFetch("/data/context")` style relative paths.
 
 **Error mapping (drift row 2):** `failLoad()` must map **server typed error codes** to messages —
 never a hardcoded string. Code → message table (matches the upload taxonomy):
@@ -395,14 +536,22 @@ Phase 3 decision D3 + C5 lock the wire format: **named SSE events with JSON payl
 `event: text / usage / done / error` (+ optional `event: warning`), never raw text + `[DONE]`.
 The captured store's plain-text `getReader()` accumulation (drift row 10) must be replaced.
 
+> **Backend status (accuracy correction, 2026-08-06):** Phase 3 IS implemented and closed
+> (`bb6f564`, 859 tests) — `POST /api/v1/chat` exists and its SSE contract is covered by
+> `tests/api/test_chat.py` (text→done, error→done, ai_busy, warning events). The decision to
+> **defer the mounted chat panel** is therefore scope discipline (smallest honest vertical
+> slice), NOT backend unavailability. The wire fields below are snake_case to match the
+> backend's `TypedAiError.public_payload()` and usage payloads exactly.
+
 ### Reader
 
 ```ts
+// Wire shape — matches the FastAPI backend byte-for-byte (snake_case).
 export type ChatStreamEvent =
   | { type: "text"; content: string }
-  | { type: "usage"; inputTokens?: number; outputTokens?: number }
-  | { type: "warning"; code: string; message: string; removedColumns?: string[] }
-  | { type: "error"; code: string; retryable: boolean; message: string; retryAfterSeconds?: number }
+  | { type: "usage"; input_tokens?: number; output_tokens?: number }
+  | { type: "warning"; code: string; message: string; removed_columns?: string[] }
+  | { type: "error"; code: string; retryable: boolean; message: string; retry_after_seconds?: number }
   | { type: "done" };
 
 /** Parse the Phase 3 named-SSE wire format. Throws on a malformed frame. */
@@ -421,6 +570,7 @@ function parseSseFrame(frame: string): { event: string; data: unknown } {
 export async function readChatStream(
   res: Response,
   onEvent: (e: ChatStreamEvent) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   if (!res.ok || !res.body) throw new ApiRequestError(res.status, "AI request failed");
   const reader = res.body.getReader();
@@ -428,6 +578,7 @@ export async function readChatStream(
   let buffer = "";
   let terminal = false;
   for (;;) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -447,6 +598,10 @@ export async function readChatStream(
   if (!terminal) onEvent({ type: "error", code: "connection_closed", retryable: true, message: "Stream ended without a terminal event." });
 }
 ```
+
+The store calls `api.chatStream(body, signal)` and passes the `Response` to
+`readChatStream(res, onEvent, signal)` — `AbortSignal` powers the client-disconnect /
+retry-cancel path in the `streamingId` rule below.
 
 ### Client rules (C5 terminal behavior — enforced in the UI)
 
@@ -620,10 +775,11 @@ together; MSW is for component tests, not this gate):
 
 - **F3's 13-step store wiring** → `STORE-DRIFT-MATRIX.md` supersedes it in depth; the matrix
   is the instruction set (Task 4).
-- **F4 §10** `api-types.ts` + `api.ts` → absorbed as Task 3; `API_BASE` from `VITE_API_BASE`
-  or `/api/v1` (Phase 6 makes it same-origin).
+- **F4 §10** `api-types.ts` + `api.ts` → absorbed as Task 3; `API_BASE = "/api/v1"` relative
+  everywhere (dev Vite proxy + Phase 6 same-origin — no `VITE_API_BASE`).
 - **F4 §11** React GA4 callback route (`/auth/ga4/callback`) — typed `validateSearch` for
-  `status`/`reason`; store `setSourceFromApi`. **Lands Phase 5** (with the OAuth endpoints);
+  `status`/`reason` (pattern + code in Task 1; canonical status values `success|cancelled|error`
+  per master-plan §9); store `setSourceFromApi`. **Lands Phase 5** (with the OAuth endpoints);
   Task 0 runs the router-validation spike now.
 - **F4 §12** MSW test dependencies + patterns → absorbed as Task 6.
 - **Export endpoints + React download flow** → deferred to Phase 4/5 (Phase 3 decision D6):

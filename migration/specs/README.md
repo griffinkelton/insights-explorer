@@ -16,7 +16,7 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 
 ## Why a suite, not a monolith
 
-A single "master implementation spec" would go stale: later phases depend on fresh external research (GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–3 (done); Phase 4 (React port) is expanded to ACTIVE — execution-ready pending its Task 0 version-pin + Recharts probes.
+A single "master implementation spec" would go stale: later phases depend on fresh external research (GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–3 (done); Phase 4 (React port) and Phase 6 (cutover/hosting) are expanded to ACTIVE — execution-ready pending their Task 0 research probes.
 
 ## Phase/spec status table
 
@@ -27,7 +27,7 @@ A single "master implementation spec" would go stale: later phases depend on fre
 | Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | ✅ **DONE** | Closed 2026-08-06 — `bb6f564` on `feat/react-fastapi-migration`, 859 passed (incl. 73 API contract tests), guard exit 0, hooks green. Task 0 countTokens probe verified `google-genai` 2.14.0 `client.models.count_tokens` |
 | Phase 4 — React port (`phase-4-react-port.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: Task 0–9 (scaffold, manifest port, api client, drift-matrix store wiring, named-SSE chat reader, MSW tests, a11y/perf, CI gate, Playwright); pending Task 0 version-pin + Recharts×React 19 probe |
 | Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | ⚪ STUB | GA4 + selected Drive UX research |
-| Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | ⚪ STUB | Cloud Run readiness gate |
+| Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: single-origin FastAPI-serves-Vite, one worker/container, multi-stage Docker, SPA fallback + cache headers, `__Host-` cookies, Redis sessions/locks for multi-instance, Cloud Run deploy, SSE serving, CI pipeline; pending Task 0 Cloud Run readiness probe |
 
 > **Branch-state note (2026-08-06):** Phase 1 + Phase 2 + Phase 3 implementations are
 > complete on `feat/react-fastapi-migration`; `main` carries the reconciled
