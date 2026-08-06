@@ -1,7 +1,10 @@
 # Phase 2 — Decouple `utils/` from Streamlit (executable)
 
 > 🔵 **DRAFT — expanded from stub 2026-08-06** after Phase 1 closed (commit `eaa6ac5`).
-> **Product-owner Q&A answered 2026-08-06** — all four open decisions confirmed (see
+> **Product-owner Q&A answered 2026-08-06**, then **refined 2026-08-06 (review round)** —
+> all four decisions confirmed with upgrades: thread-safe fingerprint memo, structured
+> `UsageEvent` (safe fields only, best-effort sinks), structured `DatasetWarning`, and a
+> standard quarantine banner + explicit boundary guard (see
 > [Confirmed decisions](#confirmed-decisions-2026-08-06-product-owner)). Owner chose
 > **planning-only for now**: this spec is ready to execute but implementation is **not
 > yet authorized**. It becomes **ACTIVE** when the owner greenlights Phase 2 and
@@ -130,6 +133,10 @@ SHARED_MODULES = [
 QUARANTINED = {"styles", "error_boundary", "session"}
 
 
+QUARANTINED_NAMES = {"styles", "error_boundary", "session"}
+QUARANTINED_PATHS = {"utils.styles", "utils.error_boundary", "utils.session"}
+
+
 def _imports_streamlit(tree: ast.AST) -> bool:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import) and any(
@@ -139,6 +146,29 @@ def _imports_streamlit(tree: ast.AST) -> bool:
         if isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[0] == "streamlit":
             return True
     return False
+
+
+def _imports_quarantined(tree: ast.AST) -> bool:
+    """True if the tree imports a quarantined module (utils.styles / error_boundary / session).
+
+    Refined 2026-08-06: api/** and framework-neutral utils/** must not import the
+    quarantined trio, in any import form.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            a.name in QUARANTINED_PATHS or a.name in QUARANTINED_NAMES for a in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and node.module in {"utils", *QUARANTINED_PATHS}:
+            if any(a.name in QUARANTINED_NAMES for a in node.names):
+                return True
+    return False
+
+
+def _api_and_shared_paths():
+    yield from Path("api").rglob("*.py")
+    for name in SHARED_MODULES:
+        yield Path("utils") / f"{name}.py"
 
 
 def test_no_streamlit_in_shared_utils() -> None:
@@ -153,6 +183,16 @@ def test_no_streamlit_in_api() -> None:
     for path in Path("api").rglob("*.py"):
         tree = ast.parse(path.read_text())
         assert not _imports_streamlit(tree), f"{path} must not import streamlit"
+
+
+def test_no_quarantined_imports_in_api_or_shared() -> None:
+    """api/** and framework-neutral utils/** must not import the quarantined trio.
+    Streamlit may import them; the API boundary may not (refined 2026-08-06)."""
+    for path in _api_and_shared_paths():
+        tree = ast.parse(path.read_text())
+        assert not _imports_quarantined(tree), (
+            f"{path} must not import a STREAMLIT-ONLY module"
+        )
 
 
 def test_quarantine_banners_present() -> None:
@@ -212,42 +252,73 @@ small framework-neutral fingerprint-keyed memo (new `utils/caching.py`) and appl
 
 ```python
 # utils/caching.py (new)
-"""Framework-neutral memoization keyed on DataFrame content fingerprint.
+"""Framework-neutral, thread-safe memoization keyed on DataFrame content fingerprint.
 
-The API layer must not cache implicitly (spec rule); this memo is opt-in per
-function and keyed on a content fingerprint so DataFrame identity changes
-invalidate it correctly. Bounded LRU — no unbounded growth in server processes.
+Design rules (confirmed + refined P0, 2026-08-06):
+- Key: (fingerprint(df), rest args, sorted kwargs) — content identity, not object id.
+- Value: immutable computed result only — never a mutable DataFrame reference.
+- Bounded: max entries AND optional byte budget; no unbounded dataframe retention.
+- Thread-safe: RLock guards every cache mutation (FastAPI worker threads).
+- cache_clear() exposed for tests; no session-state dependency; no Streamlit import.
 """
 from __future__ import annotations
 
+import sys
 from collections import OrderedDict
+from threading import RLock
 from typing import Any, Callable
 
 from utils.data_context import fingerprint_frame
 
 
-def memoize_fingerprint(maxsize: int = 128):
+def memoize_fingerprint(maxsize: int = 128, byte_budget: int | None = None):
     """Memoize a function whose first argument is a DataFrame.
 
-    Key = (fingerprint(df), *rest_args). Rest args must be hashable.
+    Key = (fingerprint(df), args, sorted-kwargs); rest args must be hashable.
+    When byte_budget is set, least-recently-used entries are evicted while the
+    estimated retained bytes exceed the budget.
     """
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         cache: OrderedDict[tuple, Any] = OrderedDict()
+        retained_bytes: dict[tuple, int] = {}
+        lock = RLock()
+
+        def _evict(count: int = 1) -> None:
+            for _ in range(count):
+                if not cache:
+                    return
+                oldest = next(iter(cache))
+                cache.pop(oldest)
+                retained_bytes.pop(oldest, None)
 
         def wrapper(df, *args, **kwargs):
             key = (fingerprint_frame(df), args, tuple(sorted(kwargs.items())))
-            if key in cache:
+            with lock:
+                if key in cache:
+                    cache.move_to_end(key)
+                    return cache[key]
+            result = fn(df, *args, **kwargs)  # compute outside the lock
+            with lock:
+                if key in cache:  # another thread won the race
+                    return cache[key]
+                cache[key] = result
                 cache.move_to_end(key)
-                return cache[key]
-            result = fn(df, *args, **kwargs)
-            cache[key] = result
-            cache.move_to_end(key)
-            if len(cache) > maxsize:
-                cache.popitem(last=False)
+                if byte_budget is not None:
+                    retained_bytes[key] = sys.getsizeof(result)
+                if len(cache) > maxsize:
+                    _evict(len(cache) - maxsize)
+                if byte_budget is not None:
+                    while sum(retained_bytes.values()) > byte_budget and len(cache) > 1:
+                        _evict(1)
             return result
 
-        wrapper.cache_clear = cache.clear  # type: ignore[attr-defined]
+        def clear() -> None:
+            with lock:
+                cache.clear()
+                retained_bytes.clear()
+
+        wrapper.cache_clear = clear  # type: ignore[attr-defined]
         return wrapper
 
     return decorator
@@ -263,9 +334,10 @@ def forecast_metric(df: pd.DataFrame, ...) -> ForecastResult:
     ...  # body unchanged
 ```
 
-**Confirmed (P0, 2026-08-06):** keep the fingerprint memo — it is cheap, bounded, and
-the `cache_key`/`fingerprint_frame` convention already exists in `data_context.py`.
-(Rejected alternative: plain function + Phase 3 server cache.)
+**Confirmed + refined (P0, 2026-08-06):** keep the fingerprint memo — bounded,
+**thread-safe** (`RLock`), optional byte budget, `cache_clear()` for tests, and no
+session-state dependency (review-round refinement). Rejected alternative: plain
+function + Phase 3 server cache.
 
 **Acceptance:** `grep -n streamlit utils/forecasting.py` → empty;
 `pytest tests/test_forecasting.py -q` green (31 tests); a new
@@ -293,31 +365,62 @@ injection — the API layer passes `None` or a server-side ledger later; Streaml
 passes a session-state writer, preserving identical behavior):
 
 ```python
-def _track_usage(
-    response,
-    usage_sink: Callable[[dict], None] | None = None,
-) -> dict | None:
-    """Extract provider-reported usage metadata.
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 
-    Returns per-request token counts, or None if unavailable.
-    ``usage_sink`` (if given) receives the per-request dict once — the
-    Streamlit layer passes a session-state accumulator; the API layer will
-    pass a server-side usage ledger in Phase 3. No implicit framework import.
+
+@dataclass(frozen=True)
+class UsageEvent:
+    """Structured, safe Gemini usage event (confirmed + refined P1, 2026-08-06).
+
+    Contains operational metadata ONLY — NEVER prompt content, raw rows, user
+    messages, or model output (Gemini boundary, data-retention-policy §AI).
+    Sink failures are best-effort/logged, never fatal.
+    """
+
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    model: str = ""
+    request_type: str = ""   # e.g. "summary" | "chat" | "chart" (Phase 3 uses it)
+    input_tokens: int = 0
+    output_tokens: int = 0
+    thoughts_token_count: int = 0
+    cached_token_count: int = 0  # preserved for the legacy total_cached_tokens counter
+    success: bool = True
+    sanitized_error_class: str | None = None
+
+
+def _emit_usage(
+    response,
+    model: str,
+    request_type: str = "",
+    success: bool = True,
+    error_class: str | None = None,
+    usage_sink: Callable[[UsageEvent], None] | None = None,
+) -> UsageEvent | None:
+    """Build a safe UsageEvent from provider metadata and hand it to the sink.
+
+    Best-effort: a failing sink is logged and never raises — telemetry must not
+    break a user request (confirmed P1).
     """
     usage = getattr(response, "usage_metadata", None)
-    if usage is None:
+    if usage is None and success:
         return None
-    per_request = {
-        "prompt_tokens": getattr(usage, "prompt_token_count", 0) or 0,
-        "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
-        "thought_tokens": getattr(usage, "thoughts_token_count", 0) or 0,
-        "cached_tokens": getattr(usage, "cached_content_token_count", 0) or 0,
-        "tool_tokens": getattr(usage, "tool_use_token_count", 0) or 0,
-        "total_tokens": getattr(usage, "total_token_count", 0) or 0,
-    }
+    event = UsageEvent(
+        model=model,
+        request_type=request_type,
+        input_tokens=getattr(usage, "prompt_token_count", 0) or 0,
+        output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
+        thoughts_token_count=getattr(usage, "thoughts_token_count", 0) or 0,
+        cached_token_count=getattr(usage, "cached_content_token_count", 0) or 0,
+        success=success,
+        sanitized_error_class=error_class,
+    )
     if usage_sink is not None:
-        usage_sink(per_request)
-    return per_request
+        try:
+            usage_sink(event)
+        except Exception:  # best-effort — telemetry never breaks a request
+            logger.warning("usage_sink failed", exc_info=True)
+    return event
 ```
 
 Thread the sink through the public entry points:
@@ -326,16 +429,18 @@ Thread the sink through the public entry points:
 def generate_response(
     prompt: str,
     model: str = DEFAULT_MODEL,
-    usage_sink: Callable[[dict], None] | None = None,
+    request_type: str = "",
+    usage_sink: Callable[[UsageEvent], None] | None = None,
 ) -> str:
     ...
-    _track_usage(response, usage_sink=usage_sink)
+    _emit_usage(response, model, request_type=request_type, usage_sink=usage_sink)
     ...
 
 def generate_response_stream(
     prompt: str,
     model: str = DEFAULT_MODEL,
-    usage_sink: Callable[[dict], None] | None = None,
+    request_type: str = "",
+    usage_sink: Callable[[UsageEvent], None] | None = None,
 ) -> Iterator[str]:
     ...
 ```
@@ -344,34 +449,35 @@ Then move the Streamlit accumulation **out of `utils/`** into the Streamlit laye
 sink, e.g. `utils/session.py` (quarantined, Task 6) gains:
 
 ```python
-def _streamlit_usage_sink(per_request: dict) -> None:
+def _streamlit_usage_sink(event: UsageEvent) -> None:
     """STREAMLIT-ONLY sink — preserves pre-refactor session accounting."""
-    for key, field in [
-        ("total_input_tokens", "prompt_tokens"),
-        ("total_output_tokens", "output_tokens"),
-        ("total_thought_tokens", "thought_tokens"),
-        ("total_cached_tokens", "cached_tokens"),
-        ("total_tokens_used", "total_tokens"),
+    for key, value in [
+        ("total_input_tokens", event.input_tokens),
+        ("total_output_tokens", event.output_tokens),
+        ("total_thought_tokens", event.thoughts_token_count),
+        ("total_cached_tokens", event.cached_token_count),
+        ("total_tokens_used", event.input_tokens + event.output_tokens),
     ]:
         if key not in st.session_state:
             st.session_state[key] = 0
-        st.session_state[key] += per_request[field]
+        st.session_state[key] += value
     if "api_success_count" not in st.session_state:
         st.session_state.api_success_count = 0
     st.session_state.api_success_count += 1
     history = st.session_state.get("chat_history", [])
     if history and "usage" not in history[-1]:
-        history[-1]["usage"] = per_request
+        history[-1]["usage"] = asdict(event)
 ```
 
 Update Streamlit call sites (`components/chat.py`, `components/summary.py`,
 `components/data_preview.py`) to pass `usage_sink=_streamlit_usage_sink` where they
 call `generate_response`/`generate_response_stream`. Net behavior identical.
 
-**Confirmed (P1, 2026-08-06):** sink threading — keeps the accounting decision at the
-call site and matches the server-owns-observability direction
-(session-state-inventory §4). (Rejected alternative: callers accumulate the returned
-dict.)
+**Confirmed + refined (P1, 2026-08-06):** sink threading with a structured
+**`UsageEvent`** — safe operational fields only (never prompt content, raw rows, user
+messages, or model output); sink failures are **best-effort/logged**, never fatal.
+Rejected alternatives: callers accumulate a returned dict; usage events carrying
+prompt/response content.
 
 **Acceptance:** `grep -n streamlit utils/gemini_client.py` → empty;
 `pytest tests/test_gemini_client.py -q` green (14 tests); chat usage-accounting tests
@@ -382,10 +488,13 @@ dict.)
 Add a **STREAMLIT-ONLY** banner to the module docstring of each of the three:
 
 ```python
-"""STREAMLIT-ONLY — retired with the Streamlit presentation layer (Phase 6).
+"""
+STREAMLIT-ONLY MODULE.
 
-Do NOT import from api/ or any shared utils module. No new feature work here
-(feature freeze). The Phase 2 import-boundary guard enforces this.
+This module is part of the legacy Streamlit presentation layer.
+FastAPI services and framework-neutral utils must not import it.
+
+Migration owner: Phase 6 retirement.
 """
 ```
 
@@ -412,10 +521,13 @@ taxonomy **exactly** (spec §8 table: 400 empty · 409 no dataset · 410 expired
 
 ```python
 # api/services/dataset_service.py — replacement
+import re
 from io import BytesIO
 from pathlib import Path
 
 from utils.data_loader import load_file
+
+from api.schemas import DatasetWarning
 
 
 class _NamedBytesIO(BytesIO):
@@ -435,18 +547,34 @@ class UploadError(Exception):
         self.detail = detail
 
 
-def parse_uploaded_file(filename: str, content: bytes) -> tuple[pd.DataFrame, str | None]:
+def parse_uploaded_file(
+    filename: str, content: bytes,
+) -> tuple[pd.DataFrame, DatasetWarning | None]:
     """Adapter over utils/data_loader.load_file() — single parser, one taxonomy.
 
-    Returns (df, warning) where warning is the non-fatal row-truncation notice
-    (or None). The route surfaces warning via DatasetContext.warnings (confirmed
-    P2). Errors raise UploadError with the Phase 1 status-code mapping.
+    Returns (df, warning) where warning is a structured DatasetWarning when rows
+    were truncated (confirmed P2), or None. Errors raise UploadError with the
+    Phase 1 status-code mapping.
     """
     df, error, warning = load_file(_NamedBytesIO(content, filename))
     if error is not None:
         status = _error_status(error, filename)
         raise UploadError(status, error)
-    return df, warning
+    structured = None
+    if warning is not None:
+        structured = DatasetWarning(
+            code="rows_truncated",
+            message=warning,
+            original_row_count=_extract_original_row_count(warning),
+            loaded_row_count=len(df),
+        )
+    return df, structured
+
+
+def _extract_original_row_count(warning: str) -> int | None:
+    """Best-effort parse of the loader's truncation notice; None if format changes."""
+    match = re.search(r"Dataset has ([0-9,]+) rows", warning)
+    return int(match.group(1).replace(",", "")) if match else None
 
 
 def _error_status(error: str, filename: str) -> int:
@@ -460,10 +588,25 @@ def _error_status(error: str, filename: str) -> int:
     return 422  # "We couldn't read this file…"
 ```
 
-Schema change (**confirmed P2**): add a warnings field to `api/schemas.py`'s
-`DatasetContext` so truncation notices travel end-to-end now, not in Phase 2b/4:
+Schema change (**confirmed + refined P2**): add a **structured** warnings field to
+`api/schemas.py`'s `DatasetContext` so truncation notices travel end-to-end now, not
+in Phase 2b/4. Structured warnings (not free text) so the UI can render code +
+counts deterministically:
 
 ```python
+from typing import Literal
+from pydantic import BaseModel, Field
+
+
+class DatasetWarning(BaseModel):
+    """Structured non-fatal data warning (confirmed + refined P2, 2026-08-06)."""
+
+    code: Literal["rows_truncated"]
+    message: str
+    original_row_count: int | None = None
+    loaded_row_count: int = 0
+
+
 class DatasetContext(BaseModel):
     source: str
     filename: str
@@ -471,7 +614,7 @@ class DatasetContext(BaseModel):
     date_range: DateRange | None = None
     columns: list[Column] = []
     provenance: dict[str, Any] = {}
-    warnings: list[str] = []  # non-fatal notices (e.g. row truncation)
+    warnings: list[DatasetWarning] = Field(default_factory=list)
 ```
 
 `make_context` gains a `warnings` parameter (default `[]`) and the route passes the
@@ -484,6 +627,8 @@ context = make_context(
     df, source="upload", filename=filename,
     warnings=[warning] if warning else [],
 )
+# context.warnings is now list[DatasetWarning]; preview/context responses serialize
+# it as structured objects, and server logs record the message too (P2 refined).
 ```
 
 Route changes in `api/routes/upload.py`: catch `UploadError` and raise the matching
@@ -496,8 +641,9 @@ browser path but stays for Drive (Phase 5).
 status-code tests 400/409/410/413/415/422 assert identical behavior through the new
 adapter); `tests/test_data_loader.py` (20) green; `grep -rn parse_uploaded_file api/`
 shows the single definition. **New contract test:** a >50k-row CSV upload returns a
-non-413 response whose `GET /api/v1/data/context` includes the truncation warning in
-`warnings` (confirmed P2).
+non-413 response whose `GET /api/v1/data/context` includes a **structured
+`DatasetWarning`** (code `rows_truncated`, `loaded_row_count` set) in `warnings`
+(confirmed + refined P2).
 
 ### 8. Verify remaining clean modules + quality adapter
 
@@ -549,10 +695,10 @@ pre-commit hooks (ruff, black, guard, detect-private-key) green on all touched f
 
 | # | Decision | Chosen | Notes |
 |---|---|---|---|
-| P0 | `forecast_metric` caching | **Fingerprint memo** (`utils/caching.py`) | Bounded LRU keyed on `fingerprint_frame`; opt-in per function; `cache_clear` exposed for tests |
-| P1 | Gemini usage accounting | **`usage_sink` param threading** | Streamlit call sites pass a session-state writer; API passes a server ledger in Phase 3 |
-| P2 | `load_file` truncation warning | **`DatasetContext.warnings` field now** | End-to-end surfacing in the upload → context flow; new contract test required |
-| Q4 | Quarantined trio (`styles`/`error_boundary`/`session`) | **Banners in place** | STREAMLIT-ONLY docstring + import-boundary guard; no physical move until Phase 6 |
+| P0 | `forecast_metric` caching | **Fingerprint memo** (`utils/caching.py`) | Bounded LRU keyed on `fingerprint_frame`; **thread-safe (`RLock`)**, optional byte budget, `cache_clear()` for tests; no session-state dependency (refined) |
+| P1 | Gemini usage accounting | **`usage_sink` threading + structured `UsageEvent`** | Safe operational fields only (never prompt/body content); **best-effort/logged sink failures**; Streamlit writes legacy counters, API writes a server ledger in Phase 3 (refined) |
+| P2 | `load_file` truncation warning | **`DatasetContext.warnings` with structured `DatasetWarning`** | `code: "rows_truncated"` + message + loaded/original row counts; surfaced end-to-end now; new contract test required (refined) |
+| Q4 | Quarantined trio (`styles`/`error_boundary`/`session`) | **Standard banner in place** | `STREAMLIT-ONLY MODULE` banner + boundary guard forbidding `api/**` and shared utils from importing the trio or streamlit (refined) |
 
 **Authorization status (2026-08-06):** planning-only. Owner confirmed the four
 spec decisions but has **not** authorized Phase 2 implementation yet. Flip this spec to
