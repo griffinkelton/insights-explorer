@@ -1,0 +1,1619 @@
+Thought for 3s
+Looking at the sidebar and existing components to set up a Drive import selector, then I'll need to create a server route that can list the available Drive files.
+Reviewing sidebar and research code
+cd /dev-server &&
+cat src/components/explorer/Sidebar.tsx &&
+cat
+src/routes/api/research.ts &&
+cat src/lib/research/types.ts
+Reading research API and Ul components
+cd /dev-server && cat src/routes/api/research.ts &&
+cat src/lib/research/types.ts && ls src/components/ui | head
+-50
+Thought for 6s
+I'm planning to build a Drive file picker with a server route that handles file browsing and search, plus a dialog component for importing files. l'Il need to create a new server utility file to expose the Drive API helpers since the existing sources file keeps them private, then wire up the API endpoint and the Ul component that calls it.
+The import action will set the source name based on the selected file name through the loadData function.
+Checking research panel styling
+cd /dev-server &&
+sed -n 1,60p src/components/explorer/ResearchPanel.tsx
+Thought for 17s
+I'm setting up the file structure for the Drive integration: a server utility to query files with search and folder filtering, an API endpoint to expose that functionality, a sheet component for browsing and selecting files with search and navigation, and wiring it into the sidebar. When a file is imported, it'll trigger the data loading with the file name as the identifier.
+
+Adding Drive browsing endpoint
+mkdir -p /dev-server/src/lib/research && cat > /dev-server/src/lib/research/drive-browse.server.ts <<'EOF'
+const GATEWAY = "https://connector-gateway.lovable.dev";
+
+export interface DriveEntry {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime?: string;
+  size?: string;
+  webViewLink?: string;
+  iconLink?: string;
+}
+
+export type BrowseState = "ready" | "not_configured" | "permission" | "error";
+
+export interface BrowseResult {
+  state: BrowseState;
+  message?: string;
+  setupHint?: string;
+  files: DriveEntry[];
+}
+
+const SETUP_HINT =
+  "Connect the Google Drive connector in Lovable settings with your Google account and grant read access to the folder holding your exports.";
+
+function driveHeaders() {
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  const driveKey = process.env["GOOGLE_DRIVE_API_KEY"];
+  if (!lovableKey || !driveKey) return null;
+  return {
+    Authorization: `Bearer ${lovableKey}`,
+    "X-Connection-Api-Key": driveKey,
+  };
+}
+
+function escapeTerm(term: string) {
+  return term.replace(/['\\]/g, "\\$&");
+}
+
+export async function browseDrive(opts: {
+  search?: string;
+  folderId?: string;
+}): Promise<BrowseResult> {
+  const headers = driveHeaders();
+  if (!headers) {
+    return {
+      state: "not_configured",
+      message: "No Google Drive connection is linked to this project.",
+      setupHint: SETUP_HINT,
+      files: [],
+    };
+  }
+
+  const search = (opts.search ?? "").trim();
+  const clauses = ["trashed = false"];
+  if (search) clauses.push(`name contains '${escapeTerm(search)}'`);
+  else clauses.push(`'${escapeTerm(opts.folderId || "root")}' in parents`);
+
+  const params = new URLSearchParams({
+    pageSize: "50",
+    orderBy: "folder,modifiedTime desc",
+    fields: "files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)",
+    q: clauses.join(" and "),
+  });
+
+  try {
+    const res = await fetch(`${GATEWAY}/google_drive/drive/v3/files?${params}`, { headers });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (res.status === 401 || res.status === 403) {
+        return {
+          state: "permission",
+          message: "Drive rejected the request — the connection lacks read permission or its access expired.",
+          setupHint: "Reconnect Google Drive in Lovable settings and include the drive.readonly scope.",
+          files: [],
+        };
+      }
+      return { state: "error", message: `Drive request failed [${res.status}]: ${body}`, files: [] };
+    }
+    const files = ((await res.json()) as { files?: DriveEntry[] }).files ?? [];
+    return { state: "ready", files };
+  } catch (err) {
+    return {
+      state: "error",
+      message: err instanceof Error ? err.message : "Unknown Drive error",
+      files: [],
+    };
+  }
+}
+EOF
+cat > /dev-server/src/routes/api/drive-files.ts <<'EOF'
+import { createFileRoute } from "@tanstack/react-router";
+import { browseDrive } from "@/lib/research/drive-browse.server";
+
+export const Route = createFileRoute("/api/drive-files")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        const url = new URL(request.url);
+        const result = await browseDrive({
+          search: url.searchParams.get("q") ?? "",
+          folderId: url.searchParams.get("folderId") ?? "",
+        });
+        return Response.json(result, { status: result.state === "error" ? 502 : 200 });
+      },
+    },
+  },
+});
+EOF
+
+Now the slide-out picker UI and sidebar wiring.
+Building the Drive import slide-out
+
+cat > /dev-server/src/components/explorer/DriveImportSheet.tsx <<'EOF'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChevronRight,
+  ExternalLink,
+  FileSpreadsheet,
+  FileText,
+  Folder,
+  Loader2,
+  Lock,
+  RefreshCw,
+  Search,
+  TriangleAlert,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { useExplorer } from "@/lib/explorer-store";
+
+interface DriveEntry {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime?: string;
+  size?: string;
+  webViewLink?: string;
+}
+
+interface BrowseResult {
+  state: "ready" | "not_configured" | "permission" | "error";
+  message?: string;
+  setupHint?: string;
+  files: DriveEntry[];
+}
+
+const FOLDER = "application/vnd.google-apps.folder";
+
+function isFolder(f: DriveEntry) {
+  return f.mimeType === FOLDER;
+}
+
+function isTabular(f: DriveEntry) {
+  return (
+    f.mimeType === "application/vnd.google-apps.spreadsheet" ||
+    f.mimeType.includes("spreadsheetml") ||
+    f.mimeType === "text/csv" ||
+    /\.(csv|xlsx?|tsv)$/i.test(f.name)
+  );
+}
+
+function fileIcon(f: DriveEntry) {
+  if (isFolder(f)) return Folder;
+  if (isTabular(f)) return FileSpreadsheet;
+  return FileText;
+}
+
+function formatSize(bytes?: string) {
+  if (!bytes) return null;
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v < 10 && i > 0 ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
+}
+
+function formatDate(iso?: string) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
+export function DriveImportSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { loadData } = useExplorer();
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [path, setPath] = useState<{ id: string; name: string }[]>([{ id: "root", name: "My Drive" }]);
+  const [data, setData] = useState<BrowseResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<DriveEntry | null>(null);
+
+  const folderId = path[path.length - 1]?.id ?? "root";
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(search.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams(debounced ? { q: debounced } : { folderId });
+    fetch(`/api/drive-files?${params}`)
+      .then((r) => r.json() as Promise<BrowseResult>)
+      .then(setData)
+      .catch(() =>
+        setData({ state: "error", message: "Could not reach the Drive endpoint.", files: [] }),
+      )
+      .finally(() => setLoading(false));
+  }, [debounced, folderId]);
+
+  useEffect(() => {
+    if (!open) return;
+    setSelected(null);
+    load();
+  }, [open, load]);
+
+  const files = useMemo(() => data?.files ?? [], [data]);
+
+  const importFile = (file: DriveEntry) => {
+    loadData(`drive · ${file.name}`);
+    onOpenChange(false);
+    toast.success("Importing from Drive", { description: file.name });
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+        <SheetHeader className="gap-1 border-b border-border px-5 py-4">
+          <SheetTitle className="text-base">Import from Drive</SheetTitle>
+          <SheetDescription className="text-xs">
+            Browse your connected Google Drive and pick an export to load into the workspace.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-2 border-b border-border px-5 py-3">
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search files by name…"
+              aria-label="Search Drive files"
+              className="h-9 pl-8 text-sm"
+            />
+          </div>
+          {!debounced && (
+            <nav aria-label="Drive folder path" className="flex flex-wrap items-center gap-0.5 text-[11px]">
+              {path.map((crumb, i) => (
+                <span key={crumb.id} className="flex items-center gap-0.5">
+                  {i > 0 && <ChevronRight className="size-3 text-muted-foreground" aria-hidden />}
+                  <button
+                    onClick={() => setPath((p) => p.slice(0, i + 1))}
+                    disabled={i === path.length - 1}
+                    className={cn(
+                      "max-w-[10rem] truncate rounded-xs px-1 py-0.5",
+                      i === path.length - 1
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                  >
+                    {crumb.name}
+                  </button>
+                </span>
+              ))}
+            </nav>
+          )}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          {loading ? (
+            <div className="space-y-2 px-2" role="status" aria-label="Loading Drive files">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : data && data.state !== "ready" ? (
+            <div className="mx-2 rounded-md border border-border bg-surface p-4 text-sm">
+              <p className="flex items-center gap-2 font-medium">
+                {data.state === "permission" ? (
+                  <Lock className="size-4 text-warning" aria-hidden />
+                ) : (
+                  <TriangleAlert
+                    className={cn(
+                      "size-4",
+                      data.state === "error" ? "text-destructive" : "text-muted-foreground",
+                    )}
+                    aria-hidden
+                  />
+                )}
+                {data.state === "not_configured"
+                  ? "Google Drive isn’t connected"
+                  : data.state === "permission"
+                    ? "Drive access denied"
+                    : "Drive request failed"}
+              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground">{data.message}</p>
+              {data.setupHint && (
+                <p className="mt-2 rounded-sm border border-dashed border-border p-2 text-xs text-muted-foreground">
+                  {data.setupHint}
+                </p>
+              )}
+              <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={load}>
+                <RefreshCw className="size-3.5" aria-hidden />
+                Retry
+              </Button>
+            </div>
+          ) : files.length === 0 ? (
+            <div className="mx-2 rounded-md border border-dashed border-border p-6 text-center">
+              <p className="text-sm font-medium">
+                {debounced ? "No files match that search" : "This folder is empty"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {debounced
+                  ? "Try a shorter term, or clear the search to browse folders."
+                  : "Open another folder or search across your whole Drive."}
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-0.5">
+              {files.map((f) => {
+                const Icon = fileIcon(f);
+                const folder = isFolder(f);
+                const active = selected?.id === f.id;
+                return (
+                  <li key={f.id}>
+                    <div
+                      className={cn(
+                        "group flex items-center gap-2 rounded-md px-2 py-2",
+                        active ? "bg-primary/10" : "hover:bg-accent",
+                      )}
+                    >
+                      <button
+                        onClick={() =>
+                          folder
+                            ? (setPath((p) => [...p, { id: f.id, name: f.name }]), setSelected(null))
+                            : setSelected(f)
+                        }
+                        onDoubleClick={() => !folder && importFile(f)}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      >
+                        <Icon
+                          className={cn(
+                            "size-4 shrink-0",
+                            folder ? "text-primary" : "text-muted-foreground",
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm">{f.name}</span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {[folder ? "Folder" : null, formatDate(f.modifiedTime), formatSize(f.size)]
+                              .filter(Boolean)
+                              .join(" · ") || "—"}
+                          </span>
+                        </span>
+                      </button>
+                      {f.webViewLink && (
+                        <a
+                          href={f.webViewLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`Open ${f.name} in Google Drive`}
+                          className="hidden size-7 place-items-center rounded-sm text-muted-foreground hover:text-foreground group-hover:grid"
+                        >
+                          <ExternalLink className="size-3.5" aria-hidden />
+                        </a>
+                      )}
+                      {folder && <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-border px-5 py-3">
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {selected ? `Selected: ${selected.name}` : "Select a file to import"}
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button size="sm" disabled={!selected} onClick={() => selected && importFile(selected)}>
+            {loading && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+            Import
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+EOF
+
+Now wire it into the sidebar.
+Edited Sidebar.tsx
+src/components/explorer/Sidebar.tsx
+
+import { Separator } from "@/components/ui/separator";
+ import { useExplorer } from "@/lib/explorer-store";
+ import { UploadZone } from "./UploadZone";
++import { DriveImportSheet } from "./DriveImportSheet";
+
+ function SectionLabel({ children }: { children: React.ReactNode }) {
+   return (
+     loadData,
+   } = useExplorer();
+   const [confirmClear, setConfirmClear] = useState(false);
++  const [driveOpen, setDriveOpen] = useState(false);
+
+   if (collapsed) {
+     return (
+               variant="outline"
+               size="sm"
+               className="justify-start gap-2"
+-              onClick={() => loadData("drive · ga4_q1_export.xlsx")}
++              onClick={() => setDriveOpen(true)}
+             >
+               <FolderInput className="size-3.5 text-muted-foreground" aria-hidden />
+               Import from Drive
+             </Button>
+           </div>
++          <DriveImportSheet open={driveOpen} onOpenChange={setDriveOpen} />
+         </section>
+
+         {source && (
+
+            Thought for 5s
+The loadData function is still being used by the GA4 button so that's fine. The collapsed sidebar has an early return before driveopen is referenced, so no issues there. The mobile drawer also renders SidebarContent, which means there are duplicate sheet instances, but they maintain independent state so that works.
+Typechecking and testing the Drive endpoint
+cd /dev-server && bunx tsgo --noEmit 2>&1 | tail -20 && curl -s "http://localhost:8080/api/drive-files?folderId=root" | head -c 600
+Live Drive browsing works - "Import from Drive" now opens a right-side slide-out with search, folder breadcrumbs, file metadata, open-in-Drive links, and connected/empty/permission/error states.
+
+Thought for 10s
+The user's request is vague about what they need—whether they want me to incorporate the design docs into the app, create something new, or handle the GA4 integration separately. I should ask a couple of clarifying questions to understand their priorities and what exactly they're looking for.
+Questions answered
+What should I build from these three design docs?
+• Both, wired into the existing dashboard
+For the Evidence dashboard and GA4 metrics, what data should back it now?
+• Realistic mock data
+Thought for 3s
+I'm examining the existing code structure to understand how to integrate the new pieces.
+Reviewing the project layout
+1s src/lib src/lib/research src/components/explorer
+src/ routes src/routes/api 2>/dev/null; wc -1 src/routes/index.tsx src/lib/mock-braintree.ts sr
+c/lib/research/*.ts
+Reading the design docs
+sed -n 1,60p/mnt/user-uploads/ga4-measurement-contract.md;
+echo ====; sed
+-n 53,200p"/mnt/user-uploads/_evidence-connector-design.md"
+Thought for 8s
+I'm reviewing the key files I'll need to modify, then building out the measurement contract with five metric rows and their status indicators, along with mock Evidence datasets including the manifest, datasets, and sync records.
+Read
+sources.server.ts
+은
+Read index.tsx
+
+CP
+Read
+types.ts
+Read
+research.ts
+Read
+ResearchPanel.tsx
+Thought for 2s
+I'm checking the mock-braintree.ts file to see what data structures I can reuse.
+Read
+mock-braintree.ts
+Thought for 8s
+I'm setting up three core files: a measurement contract with metric definitions and types, a mock evidence dataset for the dashboard including manifests and sync records, and an insights engine that generates deterministic candidates with evidence tracking, uncertainty quantification, and provenance information built from the mock Braintree data.
+For the components, I'll create three Ul pieces to display the measurement contract, insight candidates, and evidence connections, then wire them into the main index. I'm marking daily_reach and page_device_engagement as provisional status, questionnaire_start and completion as unavailable, and I need to determine the fifth metric from the documentation.
+Reading remaining contract rows and Evidence dataset names
+Thought for 7s
+Now I'm setting up the core files for the measurement contract system, evidence handling, and insights engine, along with the Ul components to explore and visualize these relationships.
+Building the Evidence connector, GA4 measurement contract, and trust-layer insight engine.
+
+Edited measurement-contract.ts
+src/lib/measurement-contract ts
+// GA4 Measurement Contract (v0.1 draft) — Gate 0A artifact.
+// No metric may be consumed by the insights layer or referenced by the model
+// until it has a row here with status `validated`.
+
+export type MetricStatus = "validated" | "provisional" | "unavailable";
+
+export interface MetricRow {
+  id: string;
+  name: string;
+  numerator: string;
+  denominator: string;
+  grain: string;
+  source: string;
+  eventMapping: string;
+  status: MetricStatus;
+  blockedBy?: string;
+  limitations: string[];
+}
+
+export const MEASUREMENT_CONTRACT_VERSION = "v0.1 draft";
+
+export const measurementContract: MetricRow[] = [
+  {
+    id: "daily_reach",
+    name: "Daily reach",
+    numerator: "distinct totalUsers per day",
+    denominator: "n/a (raw count)",
+    grain: "daily, property-wide",
+    source: "pull_ga4_report() aggregate report, dimensions [date]",
+    eventMapping: "none required (session/user-level GA4 aggregate)",
+    status: "provisional",
+    limitations: [
+      "No bot/crawler filtering yet.",
+      "Excludes incomplete current day/week.",
+    ],
+  },
+  {
+    id: "page_device_engagement_rate",
+    name: "Page/device engagement",
+    numerator: "engagementRate (engaged sessions) per pagePath × deviceCategory",
+    denominator: "total sessions for that page/device slice",
+    grain: "daily, page path × device category",
+    source: "pull_ga4_report(), dimensions [date, pagePath, deviceCategory]",
+    eventMapping: "none required",
+    status: "provisional",
+    limitations: [
+      "No session identifier.",
+      "Asset/malformed URLs not yet filtered.",
+      "Small-cell suppression not yet applied.",
+    ],
+  },
+  {
+    id: "questionnaire_start_count",
+    name: "Questionnaire start",
+    numerator: "count of canonical questionnaire_started event",
+    denominator: "n/a (raw count), or daily_reach if reported as a rate",
+    grain: "daily, event-level",
+    source: "requires event-level GA4 query (not in the current aggregate report)",
+    eventMapping: "questionnaire_started → property-specific event name (TBD)",
+    status: "unavailable",
+    blockedBy: "Event-level query design",
+    limitations: ["Cannot be computed from pull_ga4_report(); needs a new report contract."],
+  },
+  {
+    id: "questionnaire_completion_rate",
+    name: "Questionnaire completion",
+    numerator: "questionnaire_finished, same session, within 24h of start (window TBD)",
+    denominator: "questionnaire_start_count for the same cohort/window",
+    grain: "daily or period, event-level, per-session",
+    source: "requires event-level GA4 query with a session/user identifier",
+    eventMapping: "questionnaire_finished → property-specific event name (TBD)",
+    status: "unavailable",
+    blockedBy: "Event-level query design + funnel specification sign-off",
+    limitations: [
+      "\u201cCompletion\u201d must not be conflated with generic key-event counts until the taxonomy is validated.",
+    ],
+  },
+  {
+    id: "post_questionnaire_action_rate",
+    name: "Meaningful post-questionnaire action",
+    numerator: "approved action-taxonomy event after questionnaire completion",
+    denominator: "questionnaire_completion_count for the same cohort/window",
+    grain: "daily or period, event-level, per-session/user",
+    source: "requires event-level GA4 query + action taxonomy sign-off",
+    eventMapping: "TBD — action taxonomy must be defined and approved",
+    status: "unavailable",
+    blockedBy: "Action taxonomy definition + event-level data",
+    limitations: ["Risk of conflating routine clicks with meaningful outcomes."],
+  },
+];
+
+export function metricById(id: string) {
+  return measurementContract.find((m) => m.id === id) ?? null;
+}
+
+/** Metrics the insights layer is allowed to compute from today. */
+export function computableMetrics() {
+  return measurementContract.filter((m) => m.status !== "unavailable");
+}
+
+export function contractContext(): string {
+  return [
+    `GA4 MEASUREMENT CONTRACT (${MEASUREMENT_CONTRACT_VERSION}) — metric governance:`,
+    ...measurementContract.map(
+      (m) =>
+        `  ${m.id} [${m.status}${m.blockedBy ? `: blocked on ${m.blockedBy}` : ""}] — ${m.numerator} / ${m.denominator}; grain ${m.grain}. Limits: ${m.limitations.join(" ")}`,
+    ),
+    "  RULE: never present an `unavailable` metric as measured. Label `provisional` metrics as unvalidated.",
+  ].join("\n");
+}
+
+Thought for 32s
+I'm setting up mock evidence data and tracking the connector state.
+
+Edited mock-evidence.ts
+src/lib/evidence/mock-evidence.ts
+
+// Mock BrainGuide Evidence dashboard connector data.
+// Mirrors the v0.4 connector design: manifest discovery -> allowlisted dataset
+// catalog -> Playwright DOM extraction -> immutable SyncRecord metadata.
+
+export const SMALL_CELL_MIN = 50;
+
+export const EVIDENCE_SOURCE = {
+  id: "evidence-braintree",
+  label: "BrainGuide Evidence dashboard",
+  baseUrl: "https://dashboard.dev2.mybrainguide.org",
+  transport: "Playwright DOM extraction (Parquet paths return the SPA shell)",
+  mode: "Phase A — manual sync, session-only, no retained raw extracts",
+} as const;
+
+export interface DatasetDescriptor {
+  id: string;
+  engine: "bigquery";
+  description: string;
+  allowlisted: boolean;
+  rows: number;
+  columns: string[];
+  /** Rendered-table extraction is only feasible for aggregate datasets. */
+  feasible: boolean;
+  note?: string;
+}
+
+export const evidenceCatalog: DatasetDescriptor[] = [
+  {
+    id: "questionnaire_funnel",
+    engine: "bigquery",
+    description: "Funnel starts/completions by date",
+    allowlisted: true,
+    rows: 90,
+    columns: ["date", "starts", "section_1", "section_2", "section_3", "finishes"],
+    feasible: true,
+  },
+  {
+    id: "questionnaire_agg",
+    engine: "bigquery",
+    description: "Aggregate questionnaire metrics by demographic cohort",
+    allowlisted: true,
+    rows: 412,
+    columns: ["cohort_dimension", "cohort_value", "users", "starts", "finishes", "actions"],
+    feasible: true,
+  },
+  {
+    id: "questionnaire_trend",
+    engine: "bigquery",
+    description: "Trend data over time",
+    allowlisted: true,
+    rows: 26,
+    columns: ["week", "starts", "finishes", "completion_rate"],
+    feasible: true,
+  },
+  {
+    id: "top_content_by_demographic",
+    engine: "bigquery",
+    description: "Content × demographic segments",
+    allowlisted: true,
+    rows: 640,
+    columns: ["page_path", "cohort_dimension", "cohort_value", "views", "engaged_views"],
+    feasible: true,
+  },
+  {
+    id: "traffic_attribution",
+    engine: "bigquery",
+    description: "Traffic source attribution",
+    allowlisted: true,
+    rows: 148,
+    columns: ["channel", "source_medium", "users", "starts", "finishes"],
+    feasible: true,
+  },
+  {
+    id: "questionnaire_responses",
+    engine: "bigquery",
+    description: "Individual response data",
+    allowlisted: false,
+    rows: 12988,
+    columns: ["response_id", "…"],
+    feasible: false,
+    note: "Person-level — outside the aggregate-only allowlist. Never synced.",
+  },
+  {
+    id: "questionnaire_journey_events",
+    engine: "bigquery",
+    description: "Individual journey events",
+    allowlisted: false,
+    rows: 214300,
+    columns: ["session_id", "event", "ts"],
+    feasible: false,
+    note: "Event-level — requires the Gate 0B linkage decision.",
+  },
+  {
+    id: "questionnaire_journey_monthly",
+    engine: "bigquery",
+    description: "Monthly journey aggregates",
+    allowlisted: false,
+    rows: 3,
+    columns: ["month", "…"],
+    feasible: true,
+    note: "Aggregate but not yet on the approved allowlist.",
+  },
+];
+
+export interface SyncRecord {
+  datasetId: string;
+  syncedAt: string;
+  rowCount: number;
+  manifestHash: string;
+  schemaFingerprint: string;
+  checksum: string;
+  outcome: "synced" | "skipped" | "quarantined";
+  reason?: string;
+}
+
+export const MANIFEST_HASH = "948fc2226955b507e5678a7ca158fb34";
+
+export const lastSync: { at: string; manifestHash: string; records: SyncRecord[] } = {
+  at: "2026-04-02T09:14:00Z",
+  manifestHash: MANIFEST_HASH,
+  records: [
+    rec("questionnaire_funnel", 90, "synced"),
+    rec("questionnaire_agg", 412, "synced"),
+    rec("questionnaire_trend", 26, "synced"),
+    rec("top_content_by_demographic", 640, "synced"),
+    rec("traffic_attribution", 148, "synced"),
+    {
+      ...rec("questionnaire_journey_monthly", 0, "skipped"),
+      reason: "Not on the approved dataset allowlist.",
+    },
+  ],
+};
+
+function rec(datasetId: string, rowCount: number, outcome: SyncRecord["outcome"]): SyncRecord {
+  return {
+    datasetId,
+    syncedAt: "2026-04-02T09:14:00Z",
+    rowCount,
+    manifestHash: MANIFEST_HASH,
+    schemaFingerprint: `sha256:${datasetId.slice(0, 6)}9f2c…`,
+    checksum: `sha256:${datasetId.slice(-6)}c41a…`,
+    outcome,
+  };
+}
+
+/** Gate 2.2 — linkage coverage / feasibility report. */
+export const linkageCoverage = {
+  joinKey: "de-identified questionnaire session hash",
+  ga4SessionsMatched: 0.78,
+  cohortsBelowThreshold: ["Language: Spanish (finishes n=42)"],
+  note: "78% of questionnaire completers join to a GA4 session ID. Un-joined completers skew mobile and paid social, so joined-only rates overstate desktop performance.",
+};
+
+export const evidenceGates = [
+  { id: "2.1", label: "Evidence connector", state: "unlocked" as const },
+  { id: "2.2", label: "Linkage coverage report", state: "unlocked" as const },
+  { id: "2.3–2.6", label: "Equity reach, funnel, pathway, language access", state: "unlocked" as const },
+  { id: "2.7–2.8", label: "Small-cell suppression, difference-attack protection", state: "phase-b" as const },
+  { id: "3.1", label: "Survey cohort reporting", state: "phase-b" as const },
+  { id: "1.6", label: "Retention", state: "blocked" as const },
+  { id: "1.7", label: "Session funnel", state: "blocked" as const },
+];
+
+export function evidenceContext(): string {
+  const synced = lastSync.records.filter((r) => r.outcome === "synced");
+  return [
+    `EVIDENCE SOURCE: ${EVIDENCE_SOURCE.label} (${EVIDENCE_SOURCE.baseUrl}) — ${EVIDENCE_SOURCE.mode}.`,
+    `  Last manual sync ${lastSync.at}, manifest ${lastSync.manifestHash}.`,
+    `  Datasets synced: ${synced.map((r) => `${r.datasetId} (${r.rowCount} rows)`).join(", ")}.`,
+    `  Person-level and event-level datasets are NOT synced (aggregate-only allowlist).`,
+    `  Linkage coverage: ${(linkageCoverage.ga4SessionsMatched * 100).toFixed(0)}% via ${linkageCoverage.joinKey}. ${linkageCoverage.note}`,
+    `  Small-cell rule: cohorts under ${SMALL_CELL_MIN} are descriptive only and must not be reported as rates.`,
+  ].join("\n");
+}
+
+Now the deterministic insight engine and UI panels.
+Edited engine.ts
+src/lib/insights/engine.ts
+
+        "Demographics are self-reported in the questionnaire, not GA4 inferred demographics.",
+        `Linkage coverage is ${(linkageCoverage.ga4SessionsMatched * 100).toFixed(0)}% — un-joined completers are excluded.`,
+        ...(small ? [`Cell below the ${SMALL_CELL_THRESHOLD}-person reporting minimum — descriptive only.`] : []),
+      ],
+      provenance: provenance(
+        "questionnaire_start_count",
+        `${EVIDENCE_SOURCE.label} · questionnaire_agg`,
+        "cohort × period",
+      ),
+      suppressed: small,
+      priority: Math.min(95, 55 + Math.round(Math.abs(worst.gap) * 300)),
+    });
+  }
+
+  // 3. Language access — explicit small-cell suppression case.
+  const spanish = byLanguage.find((r) => r.segment === "Spanish");
+  if (spanish) {
+    const suppressed = spanish.qFinishes < SMALL_CELL_THRESHOLD;
+    out.push({
+      id: "language-access",
+      title: "Spanish-language pathway is measurable but not reportable as a rate",
+      category: "access",
+      finding: `Spanish sessions: ${spanish.users.toLocaleString()} users, ${spanish.qStarts} starts, ${spanish.qFinishes} finishes. The completion cell (n=${spanish.qFinishes}) sits under the ${SMALL_CELL_THRESHOLD}-person minimum.`,
+      evidence: [
+        `Spanish is ${fmtPct(pct(spanish.users, overallCohort.users))} of all users.`,
+        `English finishes: ${(byLanguage.find((r) => r.segment === "English")?.qFinishes ?? 0).toLocaleString()}.`,
+      ],
+      uncertainty: "descriptive-only",
+      caveats: [
+        "Rate reporting is suppressed; counts are shown for operational awareness only.",
+        "Difference-attack protection: do not publish this cell alongside a total that allows back-calculation.",
+      ],
+      provenance: provenance(
+        "questionnaire_completion_rate",
+        `${EVIDENCE_SOURCE.label} · questionnaire_agg`,
+        "cohort × period",
+      ),
+      suppressed,
+      priority: 88,
+    });
+  }
+
+  // 4. Funnel drop — largest step-to-step loss.
+  let worstStep = { from: "", to: "", loss: 0, rate: 0 };
+  for (let i = 1; i < questionnaireSteps.length; i++) {
+    const prev = questionnaireSteps[i - 1]!;
+    const cur = questionnaireSteps[i]!;
+    const loss = prev.value - cur.value;
+    if (loss > worstStep.loss) {
+      worstStep = { from: prev.step, to: cur.step, loss, rate: pct(loss, prev.value) };
+    }
+  }
+  out.push({
+    id: "funnel-drop",
+    title: `Largest questionnaire drop-off: ${worstStep.from} → ${worstStep.to}`,
+    category: "funnel",
+    finding: `${worstStep.loss.toLocaleString()} users are lost between ${worstStep.from} and ${worstStep.to} (${fmtPct(worstStep.rate)} of the prior step).`,
+    evidence: questionnaireSteps.map((s) => `${s.step}: ${s.value.toLocaleString()}`),
+    uncertainty: "directional",
+    caveats: [
+      "Computed from Evidence step aggregates, not a GA4 event sequence — re-entry and multi-session journeys are not modelled.",
+      "Gate 1.7 (session funnel) remains blocked on event-level data.",
+    ],
+    provenance: provenance(
+      "questionnaire_completion_rate",
+      `${EVIDENCE_SOURCE.label} · questionnaire_funnel`,
+      "step aggregate",
+    ),
+    suppressed: false,
+    priority: 72,
+  });
+
+  // 5. Device-mediated completion barrier.
+  const mobile = byDevice.find((r) => r.segment === "Mobile");
+  const desktop = byDevice.find((r) => r.segment === "Desktop");
+  if (mobile && desktop) {
+    const m = pct(mobile.qFinishes, mobile.qStarts);
+    const d = pct(desktop.qFinishes, desktop.qStarts);
+    out.push({
+      id: "device-gap",
+      title: "Mobile completion trails desktop",
+      category: "funnel",
+      finding: `Mobile starters finish at ${fmtPct(m)} versus ${fmtPct(d)} on desktop — a gap of ${pp(m, d)} on ${mobile.qStarts.toLocaleString()} mobile starts.`,
+      evidence: [
+        `Mobile: ${mobile.qFinishes.toLocaleString()} / ${mobile.qStarts.toLocaleString()} starts.`,
+        `Desktop: ${desktop.qFinishes.toLocaleString()} / ${desktop.qStarts.toLocaleString()} starts.`,
+      ],
+      uncertainty: "directional",
+      caveats: [
+        "page_device_engagement_rate is provisional — asset/malformed URLs are not yet filtered.",
+        "Device is a proxy for context, not a cause; age and device are correlated in this dataset.",
+      ],
+      provenance: provenance("page_device_engagement_rate", "GA4 aggregate report", "page × device"),
+      suppressed: false,
+      priority: 68,
+    });
+  }
+
+  // 6. Channel quality — volume vs meaningful action.
+  const ranked = byChannel
+    .map((c) => ({ c, action: pct(c.actionTakers, c.users) }))
+    .sort((a, b) => b.action - a.action);
+  const best = ranked[0];
+  const worst = ranked[ranked.length - 1];
+  if (best && worst) {
+    out.push({
+      id: "channel-quality",
+      title: "Acquisition volume and downstream action diverge",
+      category: "quality",
+      finding: `${best.c.segment} converts ${fmtPct(best.action)} of users into a post-questionnaire action versus ${fmtPct(worst.action)} for ${worst.c.segment} — ${pp(best.action, worst.action)}.`,
+      evidence: byChannel.map(
+        (c) => `${c.segment}: ${c.users.toLocaleString()} users → ${c.actionTakers.toLocaleString()} actions.`,
+      ),
+      uncertainty: "directional",
+      caveats: [
+        "post_questionnaire_action_rate is `unavailable` in the contract — the action taxonomy is unapproved, so these are proxy counts.",
+        "No causal claim: channel mix confounds with campaign targeting.",
+      ],
+      provenance: provenance(
+        "post_questionnaire_action_rate",
+        `${EVIDENCE_SOURCE.label} · traffic_attribution`,
+        "channel × period",
+      ),
+      suppressed: false,
+      priority: 60,
+    });
+  }
+
+  // 7. Relaunch change detection.
+  const completion = relaunchPrePost.find((r) => r.metric === "Questionnaire completion rate");
+  if (completion) {
+    out.push({
+      id: "relaunch",
+      title: "Post-relaunch completion improved property-wide",
+      category: "change",
+      finding: `Completion moved from ${fmtPct(completion.pre)} to ${fmtPct(completion.post)} (${pp(completion.post, completion.pre)}) across the March 2026 relaunch.`,
+      evidence: relaunchPrePost.map(
+        (r) =>
+          `${r.metric}: ${r.pre < 1 ? fmtPct(r.pre) : r.pre.toLocaleString()} → ${r.post < 1 ? fmtPct(r.post) : r.post.toLocaleString()}`,
+      ),
+      uncertainty: "directional",
+      caveats: [
+        "Pre/post comparison without a control period — seasonality and campaign timing are not separated.",
+        "Not a statistical test; no confidence interval is computed.",
+      ],
+      provenance: provenance("questionnaire_completion_rate", `${EVIDENCE_SOURCE.label} · questionnaire_trend`, "period"),
+      suppressed: false,
+      priority: 52,
+    });
+  }
+
+  // 8. Race/ethnicity completion equity.
+  const raceRanked = gapRows(byRaceEthnicity, (r) => pct(r.qFinishes, r.qStarts), baseFinish);
+  const raceWorst = raceRanked[0];
+  if (raceWorst) {
+    out.push({
+      id: "equity-race-completion",
+      title: `Completion equity: ${raceWorst.row.segment}`,
+      category: "equity",
+      finding: `${raceWorst.row.segment} starters finish at ${fmtPct(raceWorst.rate)} versus ${fmtPct(baseFinish)} overall (${pp(raceWorst.rate, baseFinish)}).`,
+      evidence: byRaceEthnicity.map(
+        (r) => `${r.segment}: ${r.qFinishes.toLocaleString()} / ${r.qStarts.toLocaleString()} starts.`,
+      ),
+      uncertainty: "directional",
+      caveats: [
+        "Self-reported demographics with partial response — cohort sizes are not census-representative.",
+        `Linkage coverage ${(linkageCoverage.ga4SessionsMatched * 100).toFixed(0)}%.`,
+      ],
+      provenance: provenance(
+        "questionnaire_completion_rate",
+        `${EVIDENCE_SOURCE.label} · questionnaire_agg`,
+        "cohort × period",
+      ),
+      suppressed: raceWorst.row.qFinishes < SMALL_CELL_THRESHOLD,
+      priority: 80,
+    });
+  }
+
+  return out.sort((a, b) => b.priority - a.priority);
+}
+
+/** Compact serialization handed to the model as the ONLY numeric input. */
+export function insightContext(): string {
+  const candidates = buildInsightCandidates();
+  return [
+    "PRECOMPUTED INSIGHT CANDIDATES (deterministic — do not recalculate, reprioritize and explain only):",
+    ...candidates.map((c) =>
+      [
+        `  [${c.id}] (${c.category}, priority ${c.priority}, ${c.uncertainty}${c.suppressed ? ", SUPPRESSED cell" : ""})`,
+        `    finding: ${c.finding}`,
+        `    evidence: ${c.evidence.join(" | ")}`,
+        `    caveats: ${c.caveats.join(" ")}`,
+        `    provenance: ${c.provenance.source}, metric ${c.provenance.metric} [${c.provenance.metricStatus}], grain ${c.provenance.grain}`,
+      ].join("\n"),
+    ),
+  ].join("\n");
+}
+
+Now the UI panels and wiring.
+Edited InsightCandidates.tsx
+src/components/explorer/InsightCandidates.tsx
+
+import { useMemo, useState } from "react";
+import { ChevronDown, EyeOff, FlaskConical, ShieldCheck } from "lucide-react";
+import { buildInsightCandidates, type InsightCandidate } from "@/lib/insights/engine";
+import { cn } from "@/lib/utils";
+
+const uncertaintyTone: Record<InsightCandidate["uncertainty"], string> = {
+  "high-confidence": "border-success/40 text-success",
+  directional: "border-warning/40 text-warning",
+  "descriptive-only": "border-border text-muted-foreground",
+};
+
+const categories = ["all", "equity", "funnel", "access", "reach", "quality", "change"] as const;
+
+function Card({ c }: { c: InsightCandidate }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className="rounded-md border border-border bg-background/40">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-start gap-3 p-3 text-left"
+      >
+        <span className="mt-0.5 w-9 shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-center font-mono text-xs text-primary">
+          {c.priority}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{c.title}</span>
+            <span
+              className={cn("rounded-full border px-2 py-0.5 text-[11px]", uncertaintyTone[c.uncertainty])}
+            >
+              {c.uncertainty}
+            </span>
+            {c.suppressed && (
+              <span className="flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] text-destructive">
+                <EyeOff className="size-3" aria-hidden />
+                small cell suppressed
+              </span>
+            )}
+          </span>
+          <span className="mt-1 block text-sm text-muted-foreground">{c.finding}</span>
+        </span>
+        <ChevronDown
+          className={cn("mt-1 size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+
+      {open && (
+        <div className="space-y-3 border-t border-border px-3 py-3 text-xs">
+          <div>
+            <p className="mb-1 font-medium uppercase tracking-wide text-muted-foreground">Evidence</p>
+            <ul className="space-y-0.5 font-mono text-[11px] text-foreground/90">
+              {c.evidence.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-1 font-medium uppercase tracking-wide text-muted-foreground">Caveats</p>
+            <ul className="list-disc space-y-0.5 pl-4 text-muted-foreground">
+              {c.caveats.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          </div>
+          <p className="text-muted-foreground">
+            <span className="font-medium uppercase tracking-wide">Provenance</span> · {c.provenance.source} ·
+            metric <code className="text-foreground">{c.provenance.metric}</code>{" "}
+            <span
+              className={cn(
+                c.provenance.metricStatus === "unavailable" ? "text-destructive" : "text-warning",
+              )}
+            >
+              [{c.provenance.metricStatus}]
+            </span>{" "}
+            · grain {c.provenance.grain}
+          </p>
+        </div>
+      )}
+    </li>
+  );
+}
+
+export function InsightCandidates() {
+  const all = useMemo(() => buildInsightCandidates(), []);
+  const [filter, setFilter] = useState<(typeof categories)[number]>("all");
+  const shown = filter === "all" ? all : all.filter((c) => c.category === filter);
+  const suppressed = all.filter((c) => c.suppressed).length;
+
+  return (
+    <section aria-label="Insight candidates" className="rounded-md border border-border bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <FlaskConical className="size-4 text-primary" aria-hidden />
+          <h2 className="text-sm font-medium">Insight candidates</h2>
+          <span className="text-xs text-muted-foreground">
+            Deterministic — computed before any model call
+          </span>
+        </div>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5 text-success" aria-hidden />
+          {all.length} candidates · {suppressed} suppressed
+        </span>
+      </header>
+
+      <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-2">
+        {categories.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setFilter(c)}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-xs capitalize transition-colors",
+              filter === c
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      <ul className="space-y-2 p-4">
+        {shown.length === 0 ? (
+          <li className="py-6 text-center text-sm text-muted-foreground">
+            No candidates in this category for the current window.
+          </li>
+        ) : (
+          shown.map((c) => <Card key={c.id} c={c} />)
+        )}
+      </ul>
+    </section>
+  );
+}
+
+Edited MeasurementContractPanel.tsx
+src/components/explorer/MeasurementContractPanel.tsx
+
+import { useState } from "react";
+import { ChevronDown, ScrollText } from "lucide-react";
+import {
+  MEASUREMENT_CONTRACT_VERSION,
+  measurementContract,
+  type MetricRow,
+} from "@/lib/measurement-contract";
+import { cn } from "@/lib/utils";
+
+const statusTone: Record<MetricRow["status"], string> = {
+  validated: "border-success/40 text-success",
+  provisional: "border-warning/40 text-warning",
+  unavailable: "border-destructive/40 text-destructive",
+};
+
+function Row({ m }: { m: MetricRow }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className="border-b border-border last:border-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
+      >
+        <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{m.id}</code>
+        <span className="hidden text-xs text-muted-foreground sm:block">{m.grain}</span>
+        <span className={cn("rounded-full border px-2 py-0.5 text-[11px]", statusTone[m.status])}>
+          {m.status}
+        </span>
+        <ChevronDown
+          className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <dl className="grid gap-x-6 gap-y-1.5 px-4 pb-3 text-xs sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">Numerator</dt>
+            <dd>{m.numerator}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Denominator</dt>
+            <dd>{m.denominator}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Source</dt>
+            <dd>{m.source}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Event mapping</dt>
+            <dd>{m.eventMapping}</dd>
+          </div>
+          {m.blockedBy && (
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Blocked by</dt>
+              <dd className="text-destructive">{m.blockedBy}</dd>
+            </div>
+          )}
+          <div className="sm:col-span-2">
+            <dt className="text-muted-foreground">Known limitations</dt>
+            <dd>
+              <ul className="list-disc pl-4">
+                {m.limitations.map((l, i) => (
+                  <li key={i}>{l}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        </dl>
+      )}
+    </li>
+  );
+}
+
+export function MeasurementContractPanel() {
+  const counts = measurementContract.reduce<Record<string, number>>((acc, m) => {
+    acc[m.status] = (acc[m.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <section
+      aria-label="GA4 measurement contract"
+      className="rounded-md border border-border bg-surface"
+    >
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <ScrollText className="size-4 text-primary" aria-hidden />
+          <h2 className="text-sm font-medium">GA4 measurement contract</h2>
+          <span className="text-xs text-muted-foreground">{MEASUREMENT_CONTRACT_VERSION}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {counts["provisional"] ?? 0} provisional · {counts["unavailable"] ?? 0} unavailable ·{" "}
+          {counts["validated"] ?? 0} validated
+        </span>
+      </header>
+      <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+        No metric reaches the insights layer or the model until it has a row here. Unavailable rows are
+        never presented as measured.
+      </p>
+      <ul>
+        {measurementContract.map((m) => (
+          <Row key={m.id} m={m} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+Edited EvidenceConnectorPanel.tsx
+src/components/explorer/EvidenceConnectorPanel.tsx
+
+import { useState } from "react";
+import { CheckCircle2, Database, Lock, RefreshCw, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  EVIDENCE_SOURCE,
+  SMALL_CELL_MIN,
+  evidenceCatalog,
+  evidenceGates,
+  lastSync,
+  linkageCoverage,
+} from "@/lib/evidence/mock-evidence";
+import { cn } from "@/lib/utils";
+
+type Phase = "idle" | "syncing";
+
+const gateTone = {
+  unlocked: "border-success/40 text-success",
+  "phase-b": "border-warning/40 text-warning",
+  blocked: "border-destructive/40 text-destructive",
+} as const;
+
+export function EvidenceConnectorPanel() {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [syncedAt, setSyncedAt] = useState(lastSync.at);
+
+  const runSync = () => {
+    setPhase("syncing");
+    window.setTimeout(() => {
+      setSyncedAt(new Date().toISOString());
+      setPhase("idle");
+    }, 1400);
+  };
+
+  const allowlisted = evidenceCatalog.filter((d) => d.allowlisted);
+  const excluded = evidenceCatalog.filter((d) => !d.allowlisted);
+
+  return (
+    <section aria-label="Evidence connector" className="rounded-md border border-border bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Database className="size-4 text-primary" aria-hidden />
+          <h2 className="truncate text-sm font-medium">{EVIDENCE_SOURCE.label}</h2>
+          <span className="hidden text-xs text-muted-foreground md:inline">{EVIDENCE_SOURCE.mode}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full border border-success/40 px-2.5 py-1 text-xs text-success">
+            <CheckCircle2 className="size-3.5" aria-hidden />
+            Connected
+          </span>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={runSync} disabled={phase === "syncing"}>
+            <RefreshCw className={cn("size-3.5", phase === "syncing" && "animate-spin")} aria-hidden />
+            {phase === "syncing" ? "Syncing…" : "Manual sync"}
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-3">
+          <div className="rounded-md border border-border bg-background/40 p-3 text-xs text-muted-foreground">
+            <p>
+              <span className="text-foreground">{EVIDENCE_SOURCE.baseUrl}</span> · {EVIDENCE_SOURCE.transport}
+            </p>
+            <p className="mt-1 font-mono">
+              manifest {lastSync.manifestHash.slice(0, 12)}… · last sync {syncedAt.replace("T", " ").slice(0, 16)}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Allowlisted datasets
+            </h3>
+            {phase === "syncing" ? (
+              <div className="space-y-1.5" role="status" aria-label="Syncing datasets">
+                {allowlisted.map((d) => (
+                  <Skeleton key={d.id} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : (
+              <ul className="divide-y divide-border rounded-md border border-border">
+                {allowlisted.map((d) => {
+                  const record = lastSync.records.find((r) => r.datasetId === d.id);
+                  return (
+                    <li key={d.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+                      <code className="min-w-0 flex-1 truncate text-foreground">{d.id}</code>
+                      <span className="text-muted-foreground">{d.rows.toLocaleString()} rows</span>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[11px]",
+                          record?.outcome === "synced"
+                            ? "border-success/40 text-success"
+                            : "border-warning/40 text-warning",
+                        )}
+                      >
+                        {record?.outcome ?? "pending"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <Lock className="size-3.5" aria-hidden />
+              Never synced
+            </h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {excluded.map((d) => (
+                <li key={d.id}>
+                  <code className="text-foreground">{d.id}</code> — {d.note}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs">
+            <p className="flex items-center gap-1.5 font-medium text-warning">
+              <ShieldAlert className="size-3.5" aria-hidden />
+              Linkage coverage {(linkageCoverage.ga4SessionsMatched * 100).toFixed(0)}%
+            </p>
+            <p className="mt-1 text-muted-foreground">{linkageCoverage.note}</p>
+            <p className="mt-1 text-muted-foreground">
+              Small-cell minimum: {SMALL_CELL_MIN}. Below-threshold cohorts: {linkageCoverage.cohortsBelowThreshold.join(", ")}.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Gates
+            </h3>
+            <ul className="space-y-1.5">
+              {evidenceGates.map((g) => (
+                <li key={g.id} className="flex items-center gap-2 text-xs">
+                  <span className={cn("rounded-full border px-2 py-0.5 text-[11px]", gateTone[g.state])}>
+                    {g.state}
+                  </span>
+                  <span className="text-muted-foreground">
+                    <span className="text-foreground">Gate {g.id}</span> — {g.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+Now wiring the new sources and panels in.
+
+Edited types.ts
+src/lib/research/types.ts
+- export type SourceId = "ga4" | "drive";
+1 + export type SourceId = "ga4" | "drive" | "evidence";
+2
+3
+4
+export type SourceState = "ready" | "not_configured" | "permission" | "error";
+
+Edited sources.server.ts
+src/lib/research/sources.server.ts
+
+import { buildDataContext } from "@/lib/mock-braintree";
+2 + import { EVIDENCE_SOURCE, evidenceContext, lastSync } from "@/lib/evidence/mock-evidence";
+3 + import { contractContext } from "@/lib/measurement-contract";
++ import { insightContext } from "@/lib/insights/engine";
+5
+import type { SourceLink, SourceStatus } from "./types";
+7
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+const GATEWAY = "https://connector-gateway.lovable.dev";
+"ready",
+'Measurement ID $(id} - reporting on the linked property dataset.,
++
++
++
++
+) ,
+context: 'GA4 property (measurement ID ${id}) - behavioural and demographic metrics:\n${buildDataContext()},
+context: [
+'GA4 property (measurement ID ${id}) - behavioural and demographic metrics:, buildDataContext(),
++
+contractContext () ,
+1. join("\n"),
+links: T
+label: 'GA4 property ${id},
+
+
+Edited
+mock-evidence.ts
+Now the deterministic insight engine and UI panels.
+
+Edited
+engine.ts
+Now the UI panels and wiring.
+
+Edited
+InsightCandidates.tsx
+Edited
+MeasurementContractPanel.tsx
+Edited
+EvidenceConnectorPanel.tsx
+Now wiring the new sources and panels in.
+
+Edited
+types.ts
+src/lib/research/types.ts
+Edited
+sources.server.ts
+src/lib/research/sources.server.ts
+import { buildDataContext } from "@/lib/mock-braintree";
+import { EVIDENCE_SOURCE, evidenceContext, lastSync } from "@/lib/evidence/mock-evidence";
+import { contractContext } from "@/lib/measurement-contract";
+import { insightContext } from "@/lib/insights/engine";
+import type { SourceLink, SourceStatus } from "./types";
+
+const GATEWAY = "https://connector-gateway.lovable.dev";
+        "ready",
+        `Measurement ID ${id} — reporting on the linked property dataset.`,
+      ),
+      context: `GA4 property (measurement ID ${id}) — behavioural and demographic metrics:\n${buildDataContext()}`,
+      context: [
+        `GA4 property (measurement ID ${id}) — behavioural and demographic metrics:`,
+        buildDataContext(),
+        "",
+        contractContext(),
+      ].join("\n"),
+      links: [
+        {
+          label: `GA4 property ${id}`,
+
+Adding the Evidence source to the registry and mounting the panels.
+
+Edited sources.server.ts
+src/lib/research/sources.server.ts
+
+/* ----------------------------- Registry ---------------------------- */
+
++const evidenceSource: ResearchSource = {
++  id: "evidence",
++  label: "Evidence dashboard",
++  check: () =>
++    status(
++      "evidence",
++      "Evidence dashboard",
++      "ready",
++      `Synced ${lastSync.records.filter((r) => r.outcome === "synced").length} allowlisted datasets.`,
++    ),
++  load: async () => ({
++    status: evidenceSource.check(),
++    context: [evidenceContext(), "", insightContext()].join("\n"),
++    links: [{ label: EVIDENCE_SOURCE.label, url: EVIDENCE_SOURCE.baseUrl }],
++  }),
++};
++
+ // Add a new source (GitHub, Notion, …) by appending an adapter here.
+-export const researchSources: ResearchSource[] = [ga4Source, driveSource];
++export const researchSources: ResearchSource[] = [ga4Source, driveSource, evidenceSource];
+
+ export function checkSources(): SourceStatus[] {
+   return researchSources.map((s) => s.check());
+
+   Edited index.tsx
+src/routes/index.tsx
+
+import { Scorecard } from "@/components/explorer/Scorecard";
+import { AiSummary } from "@/components/explorer/AiSummary";
+import { ResearchPanel } from "@/components/explorer/ResearchPanel";
+import { EvidenceConnectorPanel } from "@/components/explorer/EvidenceConnectorPanel";
+import { InsightCandidates } from "@/components/explorer/InsightCandidates";
+import { MeasurementContractPanel } from "@/components/explorer/MeasurementContractPanel";
+import { EquityPanel } from "@/components/explorer/EquityPanel";
+import { ChartsRow, ForecastFunnelRow } from "@/components/explorer/ChartsRow";
+import { DataPreview } from "@/components/explorer/DataPreview";
+            <div className="mx-auto max-w-[1400px] space-y-4 p-4 md:p-6">
+              <Scorecard />
+              <AiSummary />
+              <EvidenceConnectorPanel />
+              <InsightCandidates />
+              <ResearchPanel />
+              <MeasurementContractPanel />
+              <EquityPanel />
+              <ChartsRow />
+              <ForecastFunnelRow />
+
+
+              Thought for 2s
+I should also update the research system prompt to reflect the trust layer, then do a quick review and typecheck.
+
+Typechecking the new code
+cd /dev-server && tsgo --noEmit 2>&1 | head -30
+
+Edited research.ts
+src/routes/api/research.ts
+
+5
+6
+7
+import type {ResearchResult, SourceLink } from "@/lib/research/types";
+const SYSTEM = 'You are the research analyst inside Insights Explorer.
+- You answer a question by combining Google Analytics 4 metrics with Google Drive documents supplied below.
+8 + You answer a question by combining Google Analytics 4 metrics, Evidence dashboard aggregates and Google Drive documents supplied below.
+9
+10
+Rules:
+- - Use ONLY the supplied context. Never invent numbers. If something is missing, say so plainly.
+11 + - Use ONLY the supplied context. Never invent or recalculate numbers - precomputed insight candidates are authoritative. Your job is to prioritize
+12 + - Respect the GA4 measurement contract: never present an l'unavailablel metric as measured, and label I'provisionall metrics as unvalidated.
+13 + - Never report a rate for a cell marked SUPPRESSED; give counts and say why.
+14 + - Carry each finding's caveats and provenance into your answer.
+15
+- State the denominator behind every rate, and quantify segment gaps in percentage points.
+16
+- Cells under 50 people are descriptive only, never a reliable rate.
+17
+- No causal claims - describe patterns and propose the next analysis.
+
+Final typecheck
+cd /dev-server && tsgo --noEmit 2>&1 | head -20
+
+Added three panels to the dashboard, all on realistic mock data and wired into the research/Al flow:
+• Evidence connector - allowlisted dataset catalog, manual sync with SyncRecord metadata (manifest hash, checksums, schema fingerprints), never-synced person/event-level datasets, 78% linkage coverage report, and gate status.
+• Insight candidates - deterministic trust layer computing equity gaps, funnel drop-off, device/channel/relaunch findings with evidence, uncertainty labels, caveats, small-cell suppression, and provenance; Gemini only prioritizes and explains these, never calculates.
+• GA4 measurement contract — all five metric rows with numerator/denominator, grain, event mapping, validation status, and blockers; unavailable metrics can never be presented as measured.

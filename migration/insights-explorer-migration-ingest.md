@@ -3246,4 +3246,17 @@ User provided the Lovable prompts behind the 17-commit update (Drive slide-out +
 | Evidence-panel deferral | master-plan §8 (Phase 4) + gate 8 | `EvidenceConnectorPanel`/`InsightCandidates`/`MeasurementContractPanel`/`insights/engine.ts`/research-source changes are mock-driven prototypes of the deferred evidence-connector workstream — out of the first vertical slice; `mock-evidence.ts` → MSW fixture material only |
 | Gemini-role alignment | LOVABLE-UPDATES §5.3 | "Gemini only prioritizes and explains, never calculates" matches the plan's stance: deterministic trust-layer logic lives in Python; Gemini stays advisory |
 
+### 4.17 Lovable implementation transcript fold-in (2026-08-06)
+
+User provided Lovable's raw build transcript (what it actually did, with full file dumps). Cross-checked against the canonical contract. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Transcript captured | `whisperer-30-reference/LOVABLE-ACTIONS-080526.txt` (new) | Raw Lovable build actions + full dumps: `drive-browse.server.ts`, `api/drive-files.ts`, `DriveImportSheet.tsx`, `Sidebar.tsx` wiring, `measurement-contract.ts`, `mock-evidence.ts`, `insights/engine.ts`, three panels, `sources.server.ts`/`types.ts`/`index.tsx` wiring |
+| Drive list contract fully specified | master-plan Phase 5 | `GET /api/v1/drive/list?q=&folder_id=` — `trashed = false AND (name contains | '<folder_id>' in parents)`, `pageSize: 50`, `orderBy: folder,modifiedTime desc`, fields `id,name,mimeType,modifiedTime,size,webViewLink,iconLink`; response `{ state, message?, setupHint?, files }` with `ready|not_configured|permission|error`; 401/403 → permission → reconnect + `drive.readonly` |
+| **Import gotcha** | master-plan Phase 5 + risk register | The prototype's Import button only calls `loadData("drive · <name>")` — **it does not download or ingest**. The port must wire Import → `POST /api/v1/drive/download` → `data_loader`; new High risk row |
+| Contract transcription verified | master-plan cross-cutting B + risk register; inventory §6.2 | `measurement-contract.ts` cross-checked field-by-field vs canonical `plans/ga4-measurement-contract.md` — **faithful** (5/5 metric IDs, statuses provisional ×2 / unavailable ×3, numerators/denominators, grain, event mapping, blockers, limitations). Second-contract guard RESOLVED; risk severity Medium → Low |
+| AI-boundary pattern | inventory §6.3 | `contractContext()`/`evidenceContext()`/`insightContext()` — deterministic text assembled from a single source of truth, model never recalculates; maps to `utils/prompt_templates.py` in the port |
+| Evidence-connector design reference | inventory §6.2 | Mock details (allowlist, SyncRecord, 78% linkage, small-cell min 50, gate states) are reference material for the deferred evidence-connector workstream — stays out of the first slice (gate 8) |
+
 *— End of compiled archive —*
