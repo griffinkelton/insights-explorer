@@ -77,6 +77,33 @@ def _api_and_shared_paths():
         yield Path("utils") / f"{name}.py"
 
 
+def _uses_dynamic_imports(tree: ast.AST) -> bool:
+    """Dynamic-import forms bypass AST import scanning — prohibited (2026-08-06).
+
+    Catches ``importlib.import_module(...)`` / ``importlib.__import__(...)``,
+    the builtin ``__import__(...)``, ``import importlib``, and
+    ``from importlib import ...``. ``pd.eval()`` / ``df.eval()`` are NOT
+    dynamic imports (Pandas arithmetic evaluation) and are deliberately not
+    flagged.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "__import__":
+                return True
+            if isinstance(node.func, ast.Attribute) and node.func.attr in {
+                "import_module",
+                "__import__",
+            }:
+                return True
+        if isinstance(node, ast.Import) and any(
+            alias.name == "importlib" or alias.name.startswith("importlib.") for alias in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            return True
+    return False
+
+
 def test_no_streamlit_in_shared_utils() -> None:
     for name in SHARED_MODULES:
         path = Path("utils") / f"{name}.py"
@@ -97,6 +124,31 @@ def test_no_quarantined_imports_in_api_or_shared() -> None:
     for path in _api_and_shared_paths():
         tree = ast.parse(path.read_text())
         assert not _imports_quarantined(tree), f"{path} must not import a STREAMLIT-ONLY module"
+
+
+def test_no_dynamic_imports_in_api_or_shared() -> None:
+    """api/** and shared utils/** must not use dynamic imports (2026-08-06).
+    Static AST scanning cannot see ``importlib.import_module`` / ``__import__``
+    — they are prohibited outright; only an explicit, reviewed allowlist (none
+    currently) may relax this."""
+    for path in _api_and_shared_paths():
+        tree = ast.parse(path.read_text())
+        assert not _uses_dynamic_imports(
+            tree
+        ), f"{path} uses a dynamic import — prohibited (bypasses the import boundary)"
+
+
+def test_dynamic_import_forms_flagged() -> None:
+    """The bypass forms must be caught; pandas eval and normal imports are not."""
+    assert _uses_dynamic_imports(ast.parse('importlib.import_module("utils.styles")'))
+    assert _uses_dynamic_imports(ast.parse('importlib.__import__("utils.session")'))
+    assert _uses_dynamic_imports(ast.parse('__import__("utils.error_boundary")'))
+    assert _uses_dynamic_imports(ast.parse("import importlib"))
+    assert _uses_dynamic_imports(ast.parse("from importlib import import_module"))
+    # Sanity: legitimate forms are NOT flagged.
+    assert not _uses_dynamic_imports(ast.parse("import utils.data_loader"))
+    assert not _uses_dynamic_imports(ast.parse('df.eval("a + b")'))
+    assert not _uses_dynamic_imports(ast.parse("import pandas as pd"))
 
 
 def _is_quarantined_source(source: str) -> bool:

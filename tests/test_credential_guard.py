@@ -140,7 +140,7 @@ class TestEnvAllowlist:
         assert "MAX_BROWSER_UPLOAD_BYTES" in joined
         assert "MAX_INGEST_BYTES" in joined
         assert "GEMINI_MODEL" in joined
-        assert "AI_MAX_INPUT_TOKENS" in joined
+        assert "AI_MAX_CONTEXT_TOKENS" in joined
 
     def test_check_env_example_rejects_real_or_empty_secret(self):
         guard = self._guard()
@@ -184,7 +184,7 @@ class TestEnvAllowlist:
             "GEMINI_API_KEY=your_api_key_here\n"
             "GEMINI_MODEL=gemini-2.5-flash\n"
             "GEMINI_DATA_POLICY=local_free\n"
-            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_MAX_CONTEXT_TOKENS=24000\n"
             "AI_RESERVED_OUTPUT_TOKENS=4096\n"
             "AI_MAX_CONTEXT_CHARS=96000\n"
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
@@ -204,7 +204,7 @@ class TestEnvAllowlist:
             "GEMINI_API_KEY=not-a-placeholder-key\n"
             "GEMINI_MODEL=gemini-2.5-flash\n"
             "GEMINI_DATA_POLICY=local_free\n"
-            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_MAX_CONTEXT_TOKENS=24000\n"
             "AI_RESERVED_OUTPUT_TOKENS=4096\n"
             "AI_MAX_CONTEXT_CHARS=96000\n"
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
@@ -228,11 +228,11 @@ class TestEnvAllowlist:
         errors = guard.check_env_file(
             "GEMINI_MODEL=gemini-2.5-flash\n"
             "GEMINI_DATA_POLICY=local_free\n"
-            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_MAX_CONTEXT_TOKENS=24000\n"
         )
         assert any("GEMINI_MODEL" in e for e in errors)
         assert any("GEMINI_DATA_POLICY" in e for e in errors)
-        assert any("AI_MAX_INPUT_TOKENS" in e for e in errors)
+        assert any("AI_MAX_CONTEXT_TOKENS" in e for e in errors)
 
     def test_repo_env_example_passes_check_env_example(self):
         guard = self._guard()
@@ -335,9 +335,9 @@ class TestYamlEnvAllowlist:
         # allowlisted AI values either.
         guard = self._guard()
         errors = guard.check_yaml_env_file(
-            "env:\n  AI_MAX_INPUT_TOKENS: 24000\n  AI_STREAM_TIMEOUT_SECONDS: 120\n"
+            "env:\n  AI_MAX_CONTEXT_TOKENS: 24000\n  AI_STREAM_TIMEOUT_SECONDS: 120\n"
         )
-        assert any("AI_MAX_INPUT_TOKENS" in e for e in errors)
+        assert any("AI_MAX_CONTEXT_TOKENS" in e for e in errors)
         assert any("AI_STREAM_TIMEOUT_SECONDS" in e for e in errors)
 
     def test_yaml_concrete_config_value_fails_in_deployment_config(self):
@@ -445,7 +445,7 @@ class TestMainBehavior:
             "GEMINI_API_KEY=your_api_key_here\n"
             "GEMINI_MODEL=gemini-2.5-flash\n"
             "GEMINI_DATA_POLICY=local_free\n"
-            "AI_MAX_INPUT_TOKENS=24000\n"
+            "AI_MAX_CONTEXT_TOKENS=24000\n"
             "AI_RESERVED_OUTPUT_TOKENS=4096\n"
             "AI_MAX_CONTEXT_CHARS=96000\n"
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
