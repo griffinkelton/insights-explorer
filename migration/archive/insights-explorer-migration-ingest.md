@@ -3440,7 +3440,7 @@ Gate-1 and gate-2 closure records — the reviewer's "two manual gates" are now 
 | **Gate 1 — credential remediation** | Both exposed `AIzaSy…` keys (`AIzaSyC4mri…` / `AIzaSyDaGmW…`) classified as **owned by the product owner's insights-explorer GCP setup** — verified NOT in the whisperer-30 `.env` (which contains only `VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY`, a Lovable connector key, non-AIza) and not in either repo's git history. Rotated/revoked + old keys confirmed invalid (**user-confirmed ~2026-08-03**). whisperer-30 tracked `.env` **untracked** in commit `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`): `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created placeholder-only; `.env` remains on disk for local dev. **History-wide secret scans clean in both repos** (`git rev-list --all` × `git grep` for full-length keys → no hits) + `scripts/check_credentials.py` exit 0. Recorded per the reviewer's closure list (provider, type, owner, rotation date, invalidation, scan reference — no key values) in `../policies/env-rotation-checklist.md` — Gate 1 closure record |
 | **Gate 2 — migration branch + freeze** | `feat/react-fastapi-migration` created from `main` @ `3769575` and pushed to `origin` (2026-08-06). **Streamlit feature freeze ACTIVE:** `main` accepts only production/security fixes, CI/deploy fixes, and docs; feature requests park in `../../IDEAS.md` as `post-migration`; migration-impact test + fix-forward rule active. Recorded in `../policies/branch-and-freeze-policy.md` §4 and the master-plan gate table |
 
-**Post-closure status:** gates 1, 2, and 6 are closed; **gate 7 (vertical slice) is unblocked** — the upload → preview → quality → clear implementation PR may begin. Follow-ups that remain non-blocking: merge `fix/remove-tracked-env` into whisperer-30 `main`; optional history scrub; Phase 1 guard-allowlist additions.
+**Post-closure status:** gates 1, 2, and 6 are closed; **gate 7 (vertical slice) is unblocked** — the upload → preview → quality → clear implementation PR may begin. Follow-ups that remain non-blocking: ~~merge `fix/remove-tracked-env` into whisperer-30 `main`~~ **DONE 2026-08-06 (`a4d72e8`)**; optional history scrub; Phase 1 guard-allowlist additions.
 
 ### 4.29 Phase 1 authorized — branch sync, guard allowlist, first-PR scope (2026-08-06)
 
@@ -3451,7 +3451,7 @@ The reviewer's unblock message was folded in (no product code yet — this round
 | Branch sync | `feat/react-fastapi-migration` | Fast-forwarded `3769575 → d1f6f6c` (gate closures, retention approval, once-over QA) and pushed — the branch is current for Phase 1 code |
 | Phase 1 authorization + PR scope | master-plan §5 | Recorded the reviewer's first-PR boundary (FastAPI bootstrap · `/healthz` · config + safe env handling · `SessionStore`/`DatasetStore` interfaces + in-memory impls · `POST /api/v1/upload` 25 MB · `data/context` · `data/preview` · `data/quality` · **`data/clear`** · contract tests) and the keep-out list (React, GA4, Drive, Gemini/chat, charts/forecast/funnels/exports, evidence panels). **Added the previously-omitted `POST /api/v1/data/clear`** to the §5 vertical-slice task and exit criteria |
 | Guard allowlist caution | master-plan §11-D + env-rotation-checklist Phase E | FastAPI env-var validation now — **names only**: `API_SESSION_SECRET` · `API_CORS_ORIGINS` · `FRONTEND_URL` · `MAX_BROWSER_UPLOAD_BYTES` · `MAX_INGEST_BYTES`. Guard validates names / expected presence in deployment / no committed values — never permissive wildcards, never trust a value for matching a broad shape |
-| Lovable `.env` merge (housekeeping) | whisperer-30 | `fix/remove-tracked-env` → merge into whisperer-30 `main` recommended before reusing/archiving the frontend source (does **not** block the Phase 1 FastAPI slice). Result: `.env` untracked but local, `.env`/`.env.*` ignored, `.env.example` committed with placeholders |
+| Lovable `.env` merge (housekeeping) | whisperer-30 | `fix/remove-tracked-env` → **MERGED 2026-08-06** — PR #1 merged as `a4d72e8` (`.env` untracked + `.env`/`.env.*` ignored + `.env.example` committed with placeholders on `main`; branch deleted) — completed before further frontend-source reuse. Did **not** block the Phase 1 FastAPI slice |
 
 ### 4.30 migration/ reorganization — functional buckets (2026-08-06)
 
@@ -3463,5 +3463,17 @@ The `migration/` folder was reorganized into functional buckets so the doc graph
 | Link rewrite | 16 files | Location-aware script rewrote every path reference that resolves to a moved file (or lives in a moved file) — covering relative-, root-, and bare-style tokens; the **verbatim sanitized transcript and captured Lovable docs (`AGENTS.md`, `routes-README.md`, `lovable-plan-…`) verified byte-identical/untouched**; hand fixes applied to the DOCIDX diagram, README bucket tables, and WHISPERER-30-REFERENCE prose |
 | Index restructure | `migration/README.md`, DOCUMENTATION_INDEX.md | README doc tables regrouped by bucket (Execution / Policies & controls / Implementation packets / Archive); "how they relate" diagram redrawn for the bucket layout; lifecycle table notes the folder mirrors the classes; DOCIDX migration diagram + README row updated |
 | Verification | repo-wide | Link check 359/359 resolving (same tooling as the once-over, verbatim archive excluded); credential guard exit 0; no temp files left behind |
+
+### 4.31 Lovable `.env` cleanup merged to whisperer-30 `main` (2026-08-06)
+
+The queued housekeeping merge from §4.29 is complete.
+
+| Item | Detail |
+|---|---|
+| PR | whisperer-30 **PR #1** — `fix/remove-tracked-env` → `main` ("security: untrack .env, add secret gitignore rules, .env.example") |
+| Merge | GitHub merge commit **`a4d72e8`** (2026-08-06); local `main` fast-forwarded `a71c371 → a4d72e8`; merged branch deleted |
+| Verified on `main` | `.env` **not tracked** (`git ls-tree` empty) · `.gitignore` gains `.env` / `.env.*` / `!.env.example` · `.env.example` committed placeholder-only · all 17 Lovable-wave files intact (DriveImportSheet, evidence/GA4/insights panels, drive-browse.server, api/drive-files) |
+| Gate-1 impact | None — gate 1 already closed; this was the documented non-blocking housekeeping follow-up. History scrub via `git-filter-repo` remains optional (rotation already neutralized exposure) |
+| Local note | The remediation scratch-clone's working-tree `.env` copy was removed by the fast-forward (tracked→untracked transition) — immaterial: the real dev `.env` lives on the user's machine and was never touched |
 
 *— End of compiled archive —*

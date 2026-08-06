@@ -108,7 +108,7 @@ rm <whisperer-30-clone>/.env        # or move to a gitignored local secrets stor
 
 ## Verification (done = checklist complete)
 
-- [x] `git ls-files | grep -c '^\.env$'` → `0` (no `.env` tracked) — **verified 2026-08-06 on `fix/remove-tracked-env`**
+- [x] `git ls-files | grep -c '^\.env$'` → `0` (no `.env` tracked) — **verified 2026-08-06 on `fix/remove-tracked-env` and re-verified on `main` post-merge (`a4d72e8`)**
 - [x] `.env.example` committed with key names + safe placeholders only — **2026-08-06 (`2341c9c`)**
 - [x] `.gitignore` contains `.env` (+ `!.env.example`) — **2026-08-06**
 - [x] Every real credential from Phase B rotated/revoked at its provider (assumption-of-compromise applied) — **user-confirmed 2026-08-06 (~2026-08-03)**
@@ -128,11 +128,11 @@ Closed per the reviewer's closure-evidence list (provider, type, owner, rotation
 | Owner | Product owner — **insights-explorer GCP setup** (verified: NOT in the whisperer-30 `.env`, which holds only `VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY`; not present in either repo's git history) |
 | Rotation/revocation date | User-confirmed: rotated/revoked when last asked, **~2026-08-03** (a few days before 2026-08-06); exact date per provider-console records |
 | Old credential invalid | User-confirmed — old keys no longer usable |
-| `.env` removal | whisperer-30 tracked `.env` **untracked** in `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`); `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created with placeholder only; `.env` stays on disk for local dev |
+| `.env` removal | whisperer-30 tracked `.env` **untracked** in `2341c9c` (branch `fix/remove-tracked-env`, pushed to `origin`); `.gitignore` gains `.env` / `.env.*` / `!.env.example`; `.env.example` created with placeholder only; **merged to whisperer-30 `main` as `a4d72e8` (2026-08-06)** |
 | Scan verification | History-wide `git grep` for full-length keys across **all commits** of both repos → **no hits**; `scripts/check_credentials.py .` → exit 0 (clean) |
 | Repo state | Both repos' working trees clean of credential-shaped strings (verified 2026-08-06) |
 
-**Remaining follow-ups (not gate-blocking):** merge `fix/remove-tracked-env` into whisperer-30 `main` (PR on GitHub — your call) · optionally scrub history with `git-filter-repo` (Phase D optional — rotation already neutralizes exposure) · add the new FastAPI env vars to the guard allowlist in Phase 1.
+**Remaining follow-ups (not gate-blocking):** ~~merge `fix/remove-tracked-env` into whisperer-30 `main`~~ **DONE (2026-08-06)** — PR #1 merged as `a4d72e8` (`.env` untracked + `.env.*` ignored + `.env.example` committed on `main`; branch deleted) · optionally scrub history with `git-filter-repo` (Phase D optional — rotation already neutralizes exposure) · add the new FastAPI env vars to the guard allowlist in Phase 1.
 
 ---
 
