@@ -97,6 +97,7 @@ ALLOWLISTED_ENV_VARS = frozenset(
         "AI_FIRST_TOKEN_TIMEOUT_SECONDS",
         "AI_GENERATE_TIMEOUT_SECONDS",
         "AI_STREAM_TIMEOUT_SECONDS",
+        "AI_QUEUE_WAIT_SECONDS",
     }
 )
 # Non-placeholder fails ANYWHERE, including .env.example.

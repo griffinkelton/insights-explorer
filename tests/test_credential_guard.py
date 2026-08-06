@@ -190,6 +190,7 @@ class TestEnvAllowlist:
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
             "AI_GENERATE_TIMEOUT_SECONDS=60\n"
             "AI_STREAM_TIMEOUT_SECONDS=120\n"
+            "AI_QUEUE_WAIT_SECONDS=30\n"
         )
         assert errors == []
 
@@ -210,6 +211,7 @@ class TestEnvAllowlist:
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
             "AI_GENERATE_TIMEOUT_SECONDS=60\n"
             "AI_STREAM_TIMEOUT_SECONDS=120\n"
+            "AI_QUEUE_WAIT_SECONDS=30\n"
         )
         assert any("GEMINI_API_KEY" in e for e in errors)
 
@@ -450,7 +452,8 @@ class TestMainBehavior:
             "AI_MAX_CONTEXT_CHARS=96000\n"
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
             "AI_GENERATE_TIMEOUT_SECONDS=60\n"
-            "AI_STREAM_TIMEOUT_SECONDS=120\n",
+            "AI_STREAM_TIMEOUT_SECONDS=120\n"
+            "AI_QUEUE_WAIT_SECONDS=30\n",
             encoding="utf-8",
         )
         assert guard.main(["check_credentials.py", str(env_example)]) == 0
