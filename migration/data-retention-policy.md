@@ -1,6 +1,6 @@
 # Data Retention & AI Data-Boundary Policy
 
-**Status:** 🔵 Planning — written **before the API exists** (master-plan revision 2026-08-05). Binds Phase 1 implementation and must be revisited at Phase 5 (GA4) and Phase 6 (cutover) as new data surfaces arrive.
+**Status:** 🔵 Planning — written **before the API exists** (master-plan revision 2026-08-05). **Gate 6: APPROVED 2026-08-06** — all five §11 decisions confirmed by the product owner (reviewer-endorsed defaults, incl. 24 h upload retention). Binds Phase 1 implementation and must be revisited at Phase 5 (GA4) and Phase 6 (cutover) as new data surfaces arrive.
 
 ---
 
@@ -18,7 +18,7 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 2. Uploaded data retention
 
-- **Proposed default:** uploaded files live **only for the lifetime of the server session** — no persistence layer for raw uploads. Env-overridable `RETENTION_HOURS` (proposed default 24 h) for any future persisted dataset store. ⚠️ *Confirm with product before Phase 1.*
+- **Approved (2026-08-06):** uploaded files live **only for the lifetime of the server session** — no persistence layer for raw uploads. Env-overridable `RETENTION_HOURS` (approved default **24 h** — auto-removed within 24 hours; reviewer default confirmed by product owner 2026-08-06) for any future persisted dataset store. *Lengthen only with a user-visible retention notice and a reliable Clear Data control.*
 - Uploaded bytes are released when the session expires or "Clear Data" runs.
 
 ## 3. Raw dataframe persistence
@@ -28,7 +28,7 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 4. Session expiry
 
-- **Proposed defaults (confirm):** idle timeout ~2 h; absolute maximum ~12 h. After expiry: dataset reference, OAuth credentials, filter/metric/chat state, and usage-ledger entries are purged.
+- **Approved (2026-08-06):** idle timeout **2 h**; absolute maximum **12 h**. After expiry: dataset reference, OAuth credentials, filter/metric/chat state, and usage-ledger entries are purged.
 
 ## 5. "Clear Data" semantics
 
@@ -62,16 +62,16 @@ The app handles client analytics data and potentially sensitive public-health/eq
 
 ## 11. Decision points requiring approval (gate 6)
 
-This policy is **drafted, not decided** (third-review refinement 2026-08-05). Approve or amend these five points **before client data reaches the API** — approval closes gate 6 in `master-plan.md` Phase 0:
+This policy was **drafted, not decided** (third-review refinement 2026-08-05) until the **product owner approved all five points on 2026-08-06** (seventh review round — reviewer-endorsed defaults), closing gate 6 in `master-plan.md` Phase 0. Decisions are binding for Phase 1; amendments require a dated addendum.
 
-| # | Decision | Draft proposal | Status |
+| # | Decision | Approved value (2026-08-06) | Status |
 |---|---|---|---|
-| 1 | Raw upload retention duration | Session-scoped only; `RETENTION_HOURS` default 24 h | ⚠️ Awaiting approval |
-| 2 | Session idle timeout + absolute expiry | ~2 h idle / ~12 h absolute | ⚠️ Awaiting approval |
-| 3 | What "Clear Data" deletes immediately | Dataset, preview rows, quality/analysis cache, chat context, export temp files (not OAuth credentials or theme) | ⚠️ Awaiting approval |
-| 4 | Whether export/report metadata is logged | Format, row count, timestamp, session id only — never row content; 30-day retention | ⚠️ Awaiting approval |
-| 5 | What Gemini receives | Fields from the current `DataContext` allowlist only; identifiers removed/aggregated before AI calls | ⚠️ Awaiting approval |
+| 1 | Raw upload retention duration | Session-scoped only; `RETENTION_HOURS` default **24 h** — auto-removed within 24 hours | ✅ Approved 2026-08-06 |
+| 2 | Session idle timeout + absolute expiry | **2 h idle / 12 h absolute** | ✅ Approved 2026-08-06 |
+| 3 | What "Clear Data" deletes immediately | Dataset, preview rows, quality/analysis cache, chat context, export temp files (not OAuth credentials or theme) | ✅ Approved 2026-08-06 |
+| 4 | Whether export/report metadata is logged | Format, row count, timestamp, session id only — never row content; 30-day retention | ✅ Approved 2026-08-06 |
+| 5 | What Gemini receives | Fields from the current `DataContext` allowlist only; identifiers removed/aggregated before AI calls; **provisional metrics carry caveats, unavailable metrics are never numeric evidence** (metric-state policy) | ✅ Approved 2026-08-06 |
 
 ---
 
-*Drafted 2026-08-05 as part of the master-plan revision pass (peer review: "specify data retention now"). Proposed defaults are flagged ⚠️ for product confirmation before Phase 1 code.*
+*Drafted 2026-08-05 as part of the master-plan revision pass (peer review: "specify data retention now"). All five §11 defaults **approved by product owner 2026-08-06** (seventh review round — reviewer-endorsed defaults; the flagged 24 h upload-retention judgment call was confirmed). Binding for Phase 1. Amendments require a dated addendum.*

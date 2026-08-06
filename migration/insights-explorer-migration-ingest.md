@@ -3396,4 +3396,14 @@ Companion to §4.24 (same review round): the reviewer's research-discipline prom
 | Ready-to-use prompts + policy | archive §3.12 | The four research prompts recorded verbatim (GA4 feasibility, Drive slide-out, Gemini production readiness, Cloud Run readiness) plus the do-not-research list and timing map |
 | Cross-check result | §4.25 | Every "do not research again" item maps to live-verified material (§4.11/§4.13 size policy · canonical contract metric policy · §4.19 Drive trust boundary · §4.16–4.17 contract faithfulness · §4.18 fake-Import). The policy's genuinely open gaps align with existing open items: risk-register item 7 (GA4 dim/metric limits — still "reported, not live-verified") and Drive **shared-drive** behavior (only pagination verified, §4.19). npm already locked (2026-08-06) → the bun-vs-npm research item is closed; only React 19/Recharts version re-verification remains before Phase 4 |
 
+### 4.26 Review — final verdict + Gate 6 approval (2026-08-06)
+
+Seventh review round. The reviewer confirmed the migration package is **execution-ready** — OAuth vocabulary, session trust-boundary wording, and the 25 MB cap are settled — subject to the three non-document gates (1 credential remediation, 2 branch + freeze, 6 product/data-policy approval). This round closes **Gate 6**: the product owner approved all five §11 retention/AI-boundary defaults (reviewer-endorsed, incl. the flagged judgment call resolved to **24 h** upload retention).
+
+| Change | Where | What |
+|---|---|---|
+| Gate 6 approval | data-retention-policy.md | All five §11 decisions marked **✅ Approved 2026-08-06** (product owner): **24 h** session-scoped upload retention (auto-removed within 24 h; lengthen only with a user-visible retention notice) · **2 h idle / 12 h absolute** session · Clear Data deletes dataset/preview/quality-cache/chat/export-temp (keeps OAuth + theme) · export metadata only (format/timestamp/rows/session id, 30 days) · Gemini allowlist-only with identifiers removed/aggregated, provisional metrics carry caveats, unavailable metrics never numeric evidence (synced to the metric-state policy). ⚠️ flags cleared; §2/§4 confirm markers removed |
+| Master plan | master-plan §4 gate table | Gate 6 row: **Open — product decision** → **APPROVED (2026-08-06)** with the approved values recorded; §4 task line updated to note defaults approved, gate closed. The vertical slice is now blocked only by **Gates 1 (credential rotation)** and **2 (branch + freeze)** — both manual product-owner actions |
+| Reviewer verdict | — | "At this point, more migration planning would have diminishing returns. Close Gates 1, 2, and 6, then let the first implementation PR validate the architecture." Recorded for the record — remaining work is manual git/provider-console work, not documentation |
+
 *— End of compiled archive —*
