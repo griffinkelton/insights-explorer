@@ -284,12 +284,12 @@ def test_chat_context_too_large_typed_error(ai_settings, monkeypatch) -> None:
         yield "should not run"
 
     monkeypatch.setattr(chat_route, "generate_response_stream_async", never_called)
+
     # Force the deterministic-minimum-exceeds-budget path regardless of data.
-    monkeypatch.setattr(
-        chat_route,
-        "build_chat_prompt_payload",
-        lambda **kw: (_ for _ in ()).throw(ContextTooLargeError(100)),
-    )
+    def _too_large(**kw):
+        raise ContextTooLargeError(100)
+
+    monkeypatch.setattr(chat_route, "build_chat_prompt_payload", _too_large)
 
     c = TestClient(app)
     _upload(c)

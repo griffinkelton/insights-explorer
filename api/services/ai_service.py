@@ -235,6 +235,22 @@ def build_summary_prompt_payload(
 
 
 # ── Usage-ledger sink (D5/D13) ─────────────────────────────────────────────
+def accumulate_latency(ledger: UsageLedger) -> None:
+    """Add the last request's TTFT/TTLT to the ledger's safe cumulative sums.
+
+    Shared by the chat (SSE) and analysis (summary) routes so the two paths
+    cannot drift. Observability only — no per-request retention (D13).
+    """
+    if ledger.request_started_at and ledger.provider_first_token_at:
+        ledger.ttft_cum_ms += int(
+            (ledger.provider_first_token_at - ledger.request_started_at).total_seconds() * 1000
+        )
+    if ledger.request_started_at and ledger.provider_completed_at:
+        ledger.ttlt_cum_ms += int(
+            (ledger.provider_completed_at - ledger.request_started_at).total_seconds() * 1000
+        )
+
+
 def ledger_sink(ledger: UsageLedger) -> UsageSink:
     """Bind Phase 2 ``UsageEvent`` emission to the per-session ledger.
 
@@ -330,6 +346,7 @@ __all__ = [
     "ContextTooLargeError",
     "DeterministicContext",
     "TypedAiError",
+    "accumulate_latency",
     "build_chat_prompt_payload",
     "build_deterministic_context",
     "build_summary_prompt_payload",

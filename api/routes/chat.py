@@ -26,6 +26,7 @@ from api.schemas import ChatRequest
 from api.services.ai_service import (
     ContextTooLargeError,
     TypedAiError,
+    accumulate_latency,
     build_chat_prompt_payload,
     build_deterministic_context,
     classify_provider_error,
@@ -41,18 +42,6 @@ router = APIRouter(prefix="/api/v1", tags=["ai"])
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _accumulate_latency(ledger) -> None:
-    """Add the last request's TTFT/TTLT to the safe cumulative sums."""
-    if ledger.request_started_at and ledger.provider_first_token_at:
-        ledger.ttft_cum_ms += int(
-            (ledger.provider_first_token_at - ledger.request_started_at).total_seconds() * 1000
-        )
-    if ledger.request_started_at and ledger.provider_completed_at:
-        ledger.ttlt_cum_ms += int(
-            (ledger.provider_completed_at - ledger.request_started_at).total_seconds() * 1000
-        )
 
 
 @router.post("/chat")
@@ -173,9 +162,13 @@ async def chat(
             if lock_held:
                 session.ai_lock.release()
             ledger.provider_completed_at = _utcnow()
-            _accumulate_latency(ledger)
+            accumulate_latency(ledger)
             # `done` closes the transport; `error` is terminal for content (C5).
-            yield "event: done\n"
-            yield 'data: {"type": "done"}\n\n'
+            # Guard the terminal yield: on client disconnect Starlette cancels
+            # this task, and an async generator that yields during CancelledError/
+            # GeneratorExit teardown raises RuntimeError — skip `done` instead.
+            if not asyncio.current_task().cancelling():
+                yield "event: done\n"
+                yield 'data: {"type": "done"}\n\n'
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

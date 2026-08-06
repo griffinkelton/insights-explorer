@@ -34,6 +34,7 @@ from api.schemas import (
 )
 from api.services.ai_service import (
     ContextTooLargeError,
+    accumulate_latency,
     build_deterministic_context,
     build_summary_prompt_payload,
     classify_provider_error,
@@ -77,7 +78,7 @@ def _status_for(code: str) -> int:
         "rate_limited": status.HTTP_429_TOO_MANY_REQUESTS,
         "quota_exhausted": status.HTTP_429_TOO_MANY_REQUESTS,
         "ai_busy": status.HTTP_429_TOO_MANY_REQUESTS,
-        "context_too_large": status.HTTP_422_UNPROCESSABLE_ENTITY,
+        "context_too_large": status.HTTP_422_UNPROCESSABLE_CONTENT,
         "timeout": status.HTTP_504_GATEWAY_TIMEOUT,
         "provider_unavailable": status.HTTP_502_BAD_GATEWAY,
     }.get(code, status.HTTP_502_BAD_GATEWAY)
@@ -176,14 +177,7 @@ async def analysis_summary(
         if lock_held:
             session.ai_lock.release()
         ledger.provider_completed_at = _utcnow()
-        if ledger.request_started_at and ledger.provider_first_token_at:
-            ledger.ttft_cum_ms += int(
-                (ledger.provider_first_token_at - ledger.request_started_at).total_seconds() * 1000
-            )
-        if ledger.request_started_at and ledger.provider_completed_at:
-            ledger.ttlt_cum_ms += int(
-                (ledger.provider_completed_at - ledger.request_started_at).total_seconds() * 1000
-            )
+        accumulate_latency(ledger)
 
 
 def _find_page_col(df: pd.DataFrame) -> str | None:
@@ -209,12 +203,12 @@ def analysis_forecast(
     date_col = payload.date_col or find_date_column(df)
     if date_col is None or date_col not in df.columns:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Could not detect a date column; pass date_col explicitly.",
         )
     if payload.metric_col not in df.columns:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Metric column '{payload.metric_col}' not found in dataset.",
         )
 
@@ -257,12 +251,12 @@ def analysis_funnel(
     page_col = payload.page_col or _find_page_col(df)
     if page_col is None or page_col not in df.columns:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Could not detect a page/path column; pass page_col explicitly.",
         )
     if payload.metric_col not in df.columns:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Metric column '{payload.metric_col}' not found in dataset.",
         )
 
