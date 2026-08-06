@@ -16,7 +16,7 @@
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting process | Before reporting a vulnerability |
 | [LICENSE](LICENSE) | MIT License | To understand usage rights |
 | [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | v0.1.0 release checklist with evidence and sign-off | Release verification |
-| [migration/README.md](migration/README.md) | React/FastAPI migration — index of all planning docs, research, and reference capture | Before starting migration work (Phases 1–2 implemented; Phase 3 execution-ready) |
+| [migration/README.md](migration/README.md) | React/FastAPI migration — index of all planning docs, research, and reference capture | Before starting migration work (Phases 1–3 implemented; Phase 4 = React port next) |
 
 ---
 
@@ -64,7 +64,7 @@
 
 ## 🚚 React/FastAPI Migration (`migration/`)
 
-> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Phase 1 (upload slice) ✅ and Phase 2 (utils decoupling) ✅ complete on `feat/react-fastapi-migration` (794 tests, guard exit 0). Phase 3 (AI/analysis) spec is EXECUTION-READY — Gemini research gate run, all 13 decisions confirmed + refined (incl. `GEMINI_DATA_POLICY` runtime tiers), verification notes recorded (`bc585e0`), and the AI env-var guard allowlist + tests landed (`f3ccde0`). Entry gates closed: credentials remediated · branch + Streamlit freeze active · retention/AI-boundary policy approved. Awaiting owner authorization to implement Phase 3.** Start at `migration/README.md`.
+> Moving the product from Streamlit to a React frontend (whisperer-30 components) + FastAPI backend over the existing `utils/` layer. **Phase 1 (upload slice) ✅, Phase 2 (utils decoupling) ✅ and Phase 3 (AI/analysis) ✅ complete on `feat/react-fastapi-migration` (859 tests, guard exit 0). Phase 3 added SSE streaming chat, summary/forecast/funnel endpoints, per-session usage ledger, ai_service (deterministic context, identifier scrub, token guard, typed errors), async aio Gemini streaming, and 29 contract tests (`bb6f564`); Task 0 countTokens probe verified against `google-genai` 2.14.0. Entry gates closed: credentials remediated · branch + Streamlit freeze active · retention/AI-boundary policy approved. Phase 4 (React port) is the next target — spec expansion gated on React 19/Recharts research.** Start at `migration/README.md`.
 
 | File | Purpose (why read this?) | What it covers | Status |
 |---|---|---|---|
@@ -252,4 +252,4 @@ master-plan.md ─── "EXECUTION COORDINATOR (phases 0–6 + cross-cutting + 
 
 ---
 
-*This index was last updated 2026-08-06 — migration docs: Phase 1 + Phase 2 implemented on `feat/react-fastapi-migration` (794 tests, guard exit 0); Phase 3 spec execution-ready (Gemini research gate, 13 decisions confirmed/refined, verification notes `bc585e0`); AI env-var guard allowlist + tests landed (`f3ccde0`); `GEMINI_DATA_POLICY` canonicalized into `data-retention-policy.md` §7.1–7.2; evidence-connector design gained a deferred Technical-Docs RAG reference (secondary evidence). Prior update 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory, data-retention policy, master-plan revision). Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
+*This index was last updated 2026-08-06 — migration docs: Phases 1–3 implemented on `feat/react-fastapi-migration` (859 tests, guard exit 0): Phase 3 (AI/analysis) `bb6f564` — SSE chat, summary/forecast/funnel, usage ledger, ai_service, async aio streaming, Task 0 countTokens probe (google-genai 2.14.0), 29 contract tests; Phase 4 (React port) next — spec expansion gated on React 19/Recharts research. Prior update 2026-08-05 — added the `migration/` folder: React/FastAPI migration docs (compiled archive, 6-phase plan, **master execution plan**, F3/F4 prompts, GLM comparison, session-state inventory, Docker pattern, .env rotation checklist, branch/freeze policy, test-layer inventory, data-retention policy, master-plan revision). Prior update 2026-08-02 — v0.3.0 spec: Phase 2 complete (all 5 steps, 664 tests), Phase 3.0–3.1 complete (Picker wiring + UX polish, 56 tests); Phase 3.2 (Playwright) + 3.3 (browser matrix) + 4 (docs) pending. ga4-insights-sketch v3 (662 lines, 5-gate phasing).*
