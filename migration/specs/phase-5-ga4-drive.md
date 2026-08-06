@@ -57,3 +57,28 @@ GA4 OAuth (connect/callback/pull) and Drive import. Both flows terminate server-
 - **F4 §8** `ga4_service.py` (`begin_oauth`/`exchange_code` — PKCE additions per F4's Research Fold-In Cross-Check item 1) + `ga4.py` routes (callback status vocabulary locked: `status=success` · `status=cancelled` · `status=error&reason=<code>`; `provider_denied`/`invalid_oauth_state` are superseded spellings).
 - **F4 §11** React callback route (typed `validateSearch`, `errorComponent` for `VALIDATE_SEARCH`).
 - **F4 Reconciliation Addendum 2 item 2** — GA4 measurement-contract mapping for `POST /api/v1/ga4/pull`.
+- **OAuth transaction flow (owner guidance 2026-08-06 — ready for the expansion; the Redis
+  store is Phase 6 infra — an in-memory ephemeral store remains acceptable through Phase 5 per
+  master-plan §9):** Authorization Code + PKCE S256. `POST /api/v1/ga4/connect` creates
+  cryptographically random `state` + PKCE verifier, stores a short-lived transaction record
+  keyed `ie:oauth:state:<sha256(state)>` (10-minute TTL, `NX`), sets an HttpOnly transaction
+  cookie binding the browser to the transaction, then 302s to Google. `GET /api/v1/ga4/callback`
+  consumes the record **exactly once** (Redis `GETDEL`, or the Lua fallback below), verifies the
+  transaction cookie with `compare_digest`, exchanges the code with the stored verifier + the
+  single allowlisted redirect URI, persists encrypted provider tokens server-side, rotates the
+  app session ID, clears the transaction cookie, and 303s to `/auth/ga4/callback?status=success`.
+  Never put the PKCE verifier, state record, Google token, or client secret in React or browser
+  storage.
+
+  ```python
+  CONSUME_STATE = """
+  local value = redis.call("GET", KEYS[1])
+  if value then redis.call("DEL", KEYS[1]) end
+  return value
+  """
+  ```
+
+  OAuth rules: state + verifier from cryptographic randomness · PKCE S256 (never plain) · state
+  TTL ≈ 10 min · one-time consumption (no replay) · callback bound to the short-lived
+  transaction cookie · one allowlisted Google redirect URI · allowlisted relative return paths ·
+  provider tokens stored server-side + encrypted · app session rotated after OAuth completes.
