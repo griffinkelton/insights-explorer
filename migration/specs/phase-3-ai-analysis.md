@@ -63,6 +63,14 @@ Dispatched to the web + docs research agents. Findings below are **official-sour
 
 Phase 2 kept `utils/gemini_client.py` framework-neutral with **sync** generators. Phase 3 adds an **async `aio` path** for FastAPI SSE (confirmed D2 — `generate_response_stream_async` via `client.aio.models.generate_content_stream`, additive to the sync generator; see Task 5).
 
+### Verification notes (added 2026-08-06 — after owner-provided refinement review)
+
+These are **implementation-time checks**, not blocking research gaps. The Phase 3 refinements (token guard, sliding-window history, latency observability) stayed on the internal-decision side; only the following carry unverified or secondary-evidence claims:
+
+1. **`countTokens` exact SDK shape (verify at Task 7):** the ≥80% preflight path depends on `client.models.count_tokens(...).total_tokens`. The research gate verified `generate_content_stream` + `usage_metadata` in detail but did **not** confirm the exact `countTokens` method name/return shape in the installed `google-genai` 2.14.0. Verify locally at implementation time before wiring the near-limit preflight.
+2. **`countTokens` cost semantics (corrected wording):** `countTokens` is **free but separately rate-limited**, and adds a round-trip latency + its own failure mode — it does **not** consume generation quota. Task 7 wording reflects this ("extra latency + quota use" is inaccurate and is not used).
+3. **Owner-provided heuristics are design choices, not researched constraints:** the **≥80% threshold** and the **token-budgeted sliding-window algorithm** came from owner reference material (secondary, with devblogs/RAG citations) — adopted as internal design decisions, not verified external facts. Do not re-derive them from research; treat them as confirmed product decisions. The parked evidence-connector RAG reference (`plans/🔵 evidence-connector-design.md` "Deferred — Technical-Docs RAG Reference, Parts 1–2") carries owner/secondary citations (RAGAS, HNSW, milvus, etc.) and must receive **fresh research when that workstream opens** per the research-gating discipline — it is reference, not verified authority.
+
 ## Task sequence: Preconditions + 12 implementation/acceptance tasks
 
 ### 0. Preconditions and non-goals
@@ -440,7 +448,7 @@ Caveats are appended to the prompt (provisional → directional label; unavailab
 
 Pipeline (every request): validate chat payload limits → build deterministic context → **estimate input tokens locally (chars ÷ 4)** → reserve output → trim deterministically if over → **optionally exact `countTokens` at ≥80% of budget** → send → record provider usage metadata.
 
-1. Estimate tokens locally via **chars ÷ 4** — never a `countTokens` API call before every request (extra latency + quota use + failure mode). There is no universally accurate "tiktoken for Gemini" — Gemini uses its own tokenizer; local estimates are model-approximate.
+1. Estimate tokens locally via **chars ÷ 4** — never a `countTokens` API call before every request (`countTokens` is free but separately rate-limited, and adds round-trip latency + its own failure mode — it does not consume generation quota; verification note 2). There is no universally accurate "tiktoken for Gemini" — Gemini uses its own tokenizer; local estimates are model-approximate. (Verify the exact `countTokens` method shape in the installed SDK at implementation time — verification note 1.)
 2. Effective rule: `estimated_input_tokens <= AI_MAX_INPUT_TOKENS - AI_RESERVED_OUTPUT_TOKENS` (i.e. 24,000 − 4,096).
 3. **Deterministic trim order:** (1) drop raw/sample rows first → (2) reduce sample-row count → (3) keep quality warnings, metric-status caveats, filters, provenance → (4) keep aggregate summaries → (5) **reject only if the deterministic minimum context still exceeds the guard**.
 4. **Exact `countTokens` only in the near-limit band** (≈80–100% of budget), never on ordinary requests:
