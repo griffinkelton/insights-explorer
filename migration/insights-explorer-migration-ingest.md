@@ -3234,4 +3234,16 @@ User feedback round 4 (3 user notes + reviewer items). **Nothing executed.**
 | Gate-closure evidence rule | master-plan Phase 0 | "A gate closes only when its stated evidence is present — not because its document exists"; Gate 1 evidence gains a **history-wide secret scan** step (env-rotation Phase E step 3) |
 | Conversation export relocated | `migration/archive/freebuff-conversation-080525.sanitized.md` | Moved out of the repo root (reviewer feedback — large-file noise); marked **SANITIZED — INTERNAL — DO NOT SEND TO EXTERNAL MODELS**; credential guard re-verified clean |
 
+### 4.16 Lovable semantic-layer fold-in (2026-08-06)
+
+User provided the Lovable prompts behind the 17-commit update (Drive slide-out + evidence/GA4/insights panels on mock data). The panel semantics were verified directly from `origin/main` source. **Nothing executed.**
+
+| Change | Where | What |
+|---|---|---|
+| Semantic layer documented | `whisperer-30-reference/LOVABLE-UPDATES-080525.md` §5 | User-verbatim Lovable prompts (Drive import slide-out; evidence-connector/GA4/insights panels on realistic mock data) + code-verified semantics: slide-out browse (`/api/drive-files?q|folderId`, Nitro, non-canonical), `SyncRecord`/`evidenceGates`/`linkageCoverage`, uncertainty/caveats/provenance incl. `metricStatus: "unavailable"`, Numerator/Denominator + grain + "Unavailable rows are never presented as measured" |
+| Drive browse-UX decision | master-plan §9 (Phase 5) + principles §2.10 | Picker iframe (existing) **vs** Lovable slide-out browse; slide-out path requires `GET /api/v1/drive/list?q=&folder_id=` backed by `utils/drive_client.py` metadata calls; Nitro `/api/drive-files` route is non-canonical (same treatment as `ai-gateway.server.ts`); picker-token endpoint only needed for the iframe option |
+| Second-contract guard | master-plan cross-cutting B + risk register | `measurement-contract.ts` (110 lines) must be diffed against the canonical `plans/ga4-measurement-contract.md`; TS types generated from the canonical Python/OpenAPI source, never from the prototype file |
+| Evidence-panel deferral | master-plan §8 (Phase 4) + gate 8 | `EvidenceConnectorPanel`/`InsightCandidates`/`MeasurementContractPanel`/`insights/engine.ts`/research-source changes are mock-driven prototypes of the deferred evidence-connector workstream — out of the first vertical slice; `mock-evidence.ts` → MSW fixture material only |
+| Gemini-role alignment | LOVABLE-UPDATES §5.3 | "Gemini only prioritizes and explains, never calculates" matches the plan's stance: deterministic trust-layer logic lives in Python; Gemini stays advisory |
+
 *— End of compiled archive —*

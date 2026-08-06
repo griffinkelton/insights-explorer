@@ -41,7 +41,7 @@ The master plan adds what none of the source docs have: **execution order, inter
 7. **Incremental PRs per deliverable; additive documentation.** Original docs preserved; decisions appended as dated addenda.
 8. **whisperer-30 stays a living design reference until cutover.** (Archive §1.13 item 2.)
 9. **Local-first deployment posture (2026-08-06):** the product runs **locally first**; a hosted beta comes later. In-memory `SessionStore`/`DatasetStore` implementations remain acceptable **through Phase 5** for local use. The shared ephemeral OAuth/session store, object storage, and Cloud Run are **beta/hosting-time work** — proven before the hosted beta, not before Phase 5 code.
-10. **External API surface is unchanged by the migration.** The app connects only to: Google OAuth 2.0, Google Analytics Data API v1, Google Drive (download + metadata), the Google Picker API (frontend), and the Gemini API. Cloud Run, Redis/Valkey, Cloud Storage, and Postgres are infrastructure, not app-facing APIs; the only enablement item is the Cloud Resource Manager API (Picker project number, Phase 5).
+10. **External API surface is unchanged by the migration.** The app connects only to: Google OAuth 2.0, Google Analytics Data API v1, Google Drive (download + metadata), the Google Picker API (frontend), and the Gemini API. Cloud Run, Redis/Valkey, Cloud Storage, and Postgres are infrastructure, not app-facing APIs; the only enablement item is the Cloud Resource Manager API (Picker project number, Phase 5). **Drive browse (2026-08-06):** the new Lovable slide-out browse UX (search + breadcrumbs + metadata) uses the *same* Google Drive metadata API, called server-side via FastAPI (`GET /api/v1/drive/list`) — the Google Picker iframe becomes an optional alternative, not a required API (see §9, Phase 5 browse-UX decision).
 
 ---
 
@@ -198,6 +198,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] **Routing:** TanStack Router `validateSearch` + `Route.useSearch()` for typed search params (GA4 callback `status`/`reason`), never raw `window.location.search`. (Archive §3.6.)
 - [ ] MSW test setup: `setupServer` from `msw/node`, `onUnhandledRequest: "error"`; mocks (`mock-ga4.ts`, `mock-braintree.ts`) become **test fixtures only**; streaming chat tests use `HttpResponse` + `ReadableStream` body with SSE headers (jsdom has no `EventSource` — test the `getReader()` path). (F4 §12; archive §3.10 item 4.)
 - [ ] **Chat reconnect behavior (before any deploy):** the client retains the user message, renders partial output safely, and allows retry without creating duplicate assistant messages. Treat Cloud Run's configurable request timeout (default 300s, up to 3600s) as a ceiling, not a guarantee of one uninterrupted stream. (Archive §3.10; §4.12.)
+- [ ] **New Lovable panels stay out of the first slice (gate 8, 2026-08-06):** `EvidenceConnectorPanel`, `InsightCandidates`, `MeasurementContractPanel`, `insights/engine.ts`, and the research-source changes are **mock-driven prototypes of the deferred evidence-connector workstream** (`plans/evidence-connector-design.md`) — do not port them into the vertical slice; `mock-evidence.ts` → MSW fixture material only. (Archive §4.16.)
 - [ ] `frontend/README.md` + gitignore for `node_modules`, `dist`.
 
 **Exit criteria (DoD):** `npm run dev` (or `bun dev`) + `uvicorn` produce a usable app at `localhost:5173`; no references to `mock-ga4.ts`/`mock-braintree.ts` in runtime code; store talks to FastAPI with `credentials: "include"`.
@@ -217,11 +218,12 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 - [ ] `POST /api/ga4/pull` → paginate (`limit`/`offset`, 10k-row pages, ≤9 dimensions, max 250k rows/request) and throttle for the **10 concurrent requests/property (Standard; 50 for 360)** quota; enable `returnPropertyQuota: true` for observability; account for token budgets (200k/day + 40k/hr per property) and the 120 thresholded-requests/hr cap. (Plan amendment 7; archive §3.9, §3.10.)
 - [ ] Align pulled metrics with `plans/ga4-measurement-contract.md` via `contract_row`/`validation_status` provenance; aggregate-only rows stay `unavailable`. (Archive §4.11.)
 
-**Tasks — Drive Picker:**
-- [ ] Port the picker as a **native React component** (preserve size safeguards + error taxonomy; not an embedded Streamlit component).
-- [ ] `POST /api/drive/picker-token` → returns the OAuth token **and the project number** (`setAppId`); document Cloud Resource Manager API enablement; restrict the API key to HTTP referrers. (Plan amendment 2; archive §3.3.)
+**Tasks — Drive Picker (browse-UX decision 2026-08-06; archive §4.16):**
+- [ ] **Choose the Drive browse UX:** (a) port the Lovable **slide-out browse** (search + folder breadcrumbs + file metadata + open-in-Drive links, per `whisperer-30-reference/LOVABLE-UPDATES-080525.md` §5) — requires `GET /api/v1/drive/list?q=&folder_id=` backed by `utils/drive_client.py` metadata calls (the prototype's Nitro `/api/drive-files` route is non-canonical), **or** (b) keep the Google **Picker iframe** (existing `drive_picker_component_frontend/` behavior, `setAppId` project number + referrer-restricted API key). Either way: preserve size safeguards + error taxonomy; the picker-token endpoint is only needed for option (b).
+- [ ] Port the chosen UI as a **native React component** (not an embedded Streamlit component).
+- [ ] `POST /api/drive/picker-token` → returns the OAuth token **and the project number** (`setAppId`) — **only if the Picker iframe (b) is chosen**; document Cloud Resource Manager API enablement; restrict the API key to HTTP referrers. (Plan amendment 2; archive §3.3.)
 - [ ] `POST /api/drive/download` → `drive_client.py` download logic; enforce `MAX_INGEST_BYTES = 100 MB` + MIME allowlist + typed errors.
-- [ ] E2E: GA4 connect→pull and Drive pick→download→preview flows in Playwright.
+- [ ] E2E: GA4 connect→pull and Drive browse/pick→download→preview flows in Playwright.
 
 **Exit criteria (DoD):** both flows work in React with the server-session model; errors (size, auth, bad type) surface with the established taxonomy; no token leakage (credential guard extends to FastAPI env vars).
 
@@ -270,6 +272,8 @@ Long-term shape: **Redis/Valkey for ephemeral session + OAuth state · Cloud Sto
 
 ### B. Contract discipline — `plans/ga4-measurement-contract.md` + archive §4.2/§4.11
 Canonical shapes adopted in Phase 1; typed client generated/validated from OpenAPI; snake_case at the API boundary, camelCase only via the client; `/api/v1` from day one (evidence connector evolves safely). Measurement-contract mapping recorded in archive §4.11.
+
+**Second-contract guard (2026-08-06):** the whisperer-30 prototype ships a competing `measurement-contract.ts` (110 lines) — diff it against the canonical contract at Phase 4/5 port time; it must never become a domain model. TS types are generated from the canonical Python/OpenAPI source, never from this file. (Archive §4.16.)
 
 ### C. Test strategy — `test-layer-inventory.md`
 **742 = 452 utils-facing (61%, transfer as-is) + 290 Streamlit-layer (39%, rewrite/retire) + 40 Playwright E2E.** Per-file transfer paths in the inventory; four-layer matrix in archive §1.13 item 5. DoD per phase includes its test gate.
@@ -383,6 +387,8 @@ insights-explorer/
 | Sync/CPU-heavy work blocks the FastAPI event loop (SSE/chat stalls) | Medium | Sync routes or controlled thread pool; hard caps on rows/columns/decompressed size; streamed exports (Phase 1) |
 | Session affinity ≠ consistency across Cloud Run instances (data loss) | Medium (beta+) | Shared ephemeral session/OAuth store proven before the hosted beta; in-memory acceptable through Phase 5 (local-first posture) |
 | Retention/privacy exposure (client analytics + health/equity context) | Medium | `data-retention-policy.md` + Gemini data-boundary rules before the API exists (Phase 1) |
+| Second competing measurement contract (`measurement-contract.ts`) | Medium | Diff vs canonical `plans/ga4-measurement-contract.md` at Phase 4/5; TS types generated from canonical source, never from the prototype file (cross-cutting B; archive §4.16) |
+| Drive browse UX drift (slide-out vs Picker iframe) | Low | Explicit Phase 5 browse-UX decision; slide-out path adds `GET /api/v1/drive/list` (server-side Drive metadata); Nitro `/api/drive-files` route non-canonical (Phase 5; archive §4.16) |
 
 ---
 
@@ -406,4 +412,4 @@ insights-explorer/
 
 ---
 
-*This master plan was synthesized 2026-08-05 from the full `migration/` package and revised from review feedback (first pass: session store + upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates; second pass: 25 MB upload cap, state-placement architecture, 8-gate priority checklist; third pass: gate 5a/5b split, locked 25 MB cap, staging precision; fourth pass 2026-08-06: local-first deployment posture, API-surface confirmation, Lovable update inventory §4.15). It is planning-only: no migration product code was written and no commands executed. Each phase begins only on explicit approval, and per the addenda system, any later corrections append as dated addenda rather than rewriting this document.*
+*This master plan was synthesized 2026-08-05 from the full `migration/` package and revised from review feedback (first pass: session store + upload architecture moved to Phase 0/1, canonical API decisions record, data-retention policy, three release gates; second pass: 25 MB upload cap, state-placement architecture, 8-gate priority checklist; third pass: gate 5a/5b split, locked 25 MB cap, staging precision; fourth pass 2026-08-06: local-first deployment posture, API-surface confirmation, Lovable update inventory §4.15; fifth pass 2026-08-06: Lovable semantic-layer fold-in — Drive browse-UX decision, second-contract guard, evidence-panel deferral, archive §4.16). It is planning-only: no migration product code was written and no commands executed. Each phase begins only on explicit approval, and per the addenda system, any later corrections append as dated addenda rather than rewriting this document.*

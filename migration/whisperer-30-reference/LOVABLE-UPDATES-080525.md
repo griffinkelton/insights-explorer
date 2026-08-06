@@ -72,6 +72,31 @@ What actually changed in the working tree between the capture (`a71c371`) and `o
 4. **Server routes** (`drive-files.ts`, `research.ts`, `drive-browse.server.ts`) — Lovable/Nitro-only; non-canonical until reconciled with the master plan (same treatment as the existing `ai-gateway.server.ts`).
 5. **Merge structure** — `8b4b7b9` merged a gpt-engineer evidence/GA4 branch into main; the Drive-import aggregate is `3059a0f`.
 
+## 5. Semantic layer — what Lovable was told + verified behavior (2026-08-06)
+
+Supplement to §4 from the user's follow-up: the Lovable prompts behind these commits, plus the behavior verified directly from `origin/main` source.
+
+### 5.1 What Lovable was asked to build (user verbatim)
+
+- **Drive import:** *"Create an 'import from Drive' selector as in sidebar, modal, slide out. Whatever you think is best."* → Lovable delivered a **right-side slide-out** with search, folder breadcrumbs, file metadata, open-in-Drive links, and connected/empty/permission/error states.
+- **Evidence connector / GA4 / insights panels:** asked with `plans/evidence-connector-design.md`, `plans/ga4-measurement-contract.md`, `plans/ga4-insights-sketch.md` shared → Lovable added three dashboard panels **on realistic mock data**, wired into the research/AI flow.
+
+### 5.2 Verified implementation semantics (from `origin/main` source)
+
+| File | Verified semantics |
+|---|---|
+| `DriveImportSheet.tsx` | Direct browser slide-out browse (search + breadcrumbs + metadata); fetches `/api/drive-files?q\|folderId` through the Lovable gateway — **non-canonical** Nitro route |
+| `EvidenceConnectorPanel.tsx` | `evidenceGates`, `lastSync`/`linkageCoverage` (SyncRecord metadata), manual `runSync` (`phase: "idle" \| "syncing"`), gate-tone mapping |
+| `InsightCandidates.tsx` | Deterministic trust layer: categories (all/equity/funnel/access/reach/quality/change), `uncertainty` tones, **Caveats**, **Provenance** (source · metric · `metricStatus` incl. `unavailable`) |
+| `MeasurementContractPanel.tsx` | All five metric rows with **Numerator/Denominator**, `grain`, validation counts (provisional/unavailable); "No metric reaches the insights layer or the model until it has a row here. Unavailable rows are never presented as measured." |
+
+### 5.3 Implications for the migration plans
+
+1. **Drive browse UX is now a Phase 5 decision** — Google **Picker iframe** (existing `drive_picker_component_frontend/` behavior) **vs the Lovable slide-out browse**. The slide-out needs server-side Drive metadata listing (`GET /api/v1/drive/list?q=&folder_id=` on FastAPI, backed by `utils/drive_client.py`); the prototype's Nitro `/api/drive-files` route is non-canonical (same treatment as `ai-gateway.server.ts`). Master-plan Phase 5 updated.
+2. **The three panels are mock-driven prototypes of the deferred evidence-connector workstream** (`plans/evidence-connector-design.md`) — keep out of the first vertical slice (master-plan gate 8); `mock-evidence.ts` → MSW fixture material only.
+3. **`measurement-contract.ts` is a second competing contract** — must be diffed against the canonical `plans/ga4-measurement-contract.md`; TS types should come from the canonical Python/OpenAPI contract, never from this file.
+4. **"Gemini only prioritizes and explains, never calculates"** (Lovable's own framing of the insights engine) aligns with the plan's stance: deterministic trust-layer logic lives in Python; Gemini's role stays advisory.
+
 ---
 
-*Source data: `migration/lovable-commits.json` + `git show --stat --name-status` runs on `insights-whisperer-30` @ `8b4b7b9` (fetched 2026-08-06). Compiled 2026-08-05/06.*
+*Source data: `migration/lovable-commits.json` + `git show --stat --name-status` runs on `insights-whisperer-30` @ `8b4b7b9` (fetched 2026-08-06); panel semantics verified from `origin/main` source (2026-08-06). Compiled 2026-08-05/06.*
