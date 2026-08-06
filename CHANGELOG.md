@@ -6,6 +6,19 @@
 
 ---
 
+## React/FastAPI migration — Phase 6 refined (round 2): Redis locks, failure typing, OAuth state
+
+**Date:** 2026-08-06 | **Status:** Phase 6 spec deepened from owner guidance — no status change (ACTIVE); Phase 5 stub still gated on its research gates | **Branch:** docs on `main`
+
+- **Phase 6 Task 6 expanded:** concrete `session_ai_lock` (owner-token `SET NX PX`, jittered retry, `AiBusyError`, compare-and-delete Lua release + optional renew; acquire *after* queue-wait, immediately before the provider op; 150 s lease covers the 120 s stream).
+- **No-Redlock decision:** single Redis instance lease lock is correct for per-session AI serialization; Redlock reference implementation parked as an explicitly do-not-implement appendix (needs ≥3 independent masters).
+- **Redis failure typing:** `RedisUnavailableError` → typed `503 session_store_unavailable` (retryable); mid-stream failures convert to the typed SSE error contract instead (headers already sent); no per-request `PING`; **no in-memory fallback in hosted mode** (split-brain); environment policy table.
+- **Health endpoints:** `/healthz` (liveness) vs `/readyz` (Redis reachability).
+- **Cleanup policy:** TTL-first session lifecycle (idle capped by absolute; validate `absolute_expires_at` on read); explicit deletes on logout/Clear Data; BackgroundTasks restricted to best-effort post-response work only (never lock release / session revocation / OAuth state consumption / durable cleanup); periodic orphan-artifact reconciliation via scheduled job.
+- **Phase 5 parked:** full PKCE S256 OAuth transaction flow (state record keyed by `sha256(state)`, 10-min TTL, transaction-cookie binding, one-time `GETDEL`/Lua consumption, session rotation) recorded under Parked/absorbed content — ready for the expansion; research gates still required before expansion.
+
+---
+
 ## React/FastAPI migration — Phase 3 approved; Phase 4 scope corrected (review round)
 
 **Date:** 2026-08-06 | **Status:** Phase 3 APPROVED as complete (`bb6f564` + `bcf4866` on `feat/react-fastapi-migration`); Phase 4 spec updated per review — filter/metric controls removed from the slice-1 flow | **Branch:** docs on `main`
