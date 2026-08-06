@@ -1,4 +1,13 @@
-"""Global error boundary — renders friendly error cards instead of tracebacks."""
+"""
+STREAMLIT-ONLY MODULE.
+
+This module is part of the legacy Streamlit presentation layer.
+FastAPI services and framework-neutral utils must not import it.
+
+Migration owner: Phase 6 retirement.
+
+Global error boundary — renders friendly error cards instead of tracebacks.
+"""
 
 import logging
 import os

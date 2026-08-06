@@ -6,7 +6,6 @@ from enum import Enum
 from io import BytesIO
 from typing import Any
 import pandas as pd
-import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +103,6 @@ def load_file(file: Any) -> tuple[pd.DataFrame | None, str | None, str | None]:
     return df, None, warning
 
 
-@st.cache_data(ttl=600, show_spinner=False)
 def validate_columns(
     df: pd.DataFrame,
     _ruleset_version: str = QUALITY_RULESET_VERSION,
@@ -119,7 +117,6 @@ def validate_columns(
     return missing
 
 
-@st.cache_data(ttl=600, show_spinner=False)
 def get_dataset_stats(
     df: pd.DataFrame,
     _ruleset_version: str = QUALITY_RULESET_VERSION,

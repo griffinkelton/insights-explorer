@@ -16,6 +16,7 @@ from utils.forecasting import forecast_metric, build_forecast_summary, build_for
 from utils.funnels import build_funnel_data
 from utils.charts import generate_forecast_chart, generate_funnel_chart
 from utils.gemini_client import generate_response
+from utils.session import streamlit_usage_sink
 
 
 def _accent(dark_hex: str, light_hex: str) -> str:
@@ -526,7 +527,9 @@ def _render_forecast_section(base_df: pd.DataFrame | None) -> None:
                     # Generate AI narrative
                     try:
                         prompt = build_forecast_prompt(result)
-                        st.session_state[f"{forecast_key}_narrative"] = generate_response(prompt)
+                        st.session_state[f"{forecast_key}_narrative"] = generate_response(
+                            prompt, request_type="forecast", usage_sink=streamlit_usage_sink
+                        )
                     except Exception:
                         st.session_state[f"{forecast_key}_narrative"] = build_forecast_summary(
                             result

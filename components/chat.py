@@ -12,6 +12,7 @@ from utils.charts import generate_chart
 from utils.commands import get_command_pills, resolve_command
 from utils.gemini_client import DEFAULT_MODEL, generate_response, generate_response_stream
 from utils.prompt_templates import build_chat_prompt, detect_chart_request
+from utils.session import streamlit_usage_sink
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +272,11 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
 
     _model = st.session_state.get("selected_model", DEFAULT_MODEL)
     try:
-        full_text = st.write_stream(generate_response_stream(chat_prompt, model=_model))
+        full_text = st.write_stream(
+            generate_response_stream(
+                chat_prompt, model=_model, request_type="chat", usage_sink=streamlit_usage_sink
+            )
+        )
         entry["response"] = full_text
 
         # Detect chart config from ORIGINAL response (before cleaning)
@@ -296,9 +301,14 @@ def _stream_chat_response(entry: dict[str, Any], df: pd.DataFrame, i: int) -> No
                     'If no chart applies, output {"type":"none"}.\n\n'
                     f"Analysis:\n{full_text[:2000]}"
                 )
-                retry_response = generate_response(retry_prompt, model=_model)
+                retry_response = generate_response(
+                    retry_prompt,
+                    model=_model,
+                    request_type="chart",
+                    usage_sink=streamlit_usage_sink,
+                )
                 chart_config = detect_chart_request(retry_response)
-                # api_success_count is handled by _track_usage() inside generate_response()
+                # api_success_count is handled by streamlit_usage_sink via usage_sink
                 st.session_state.last_api_call = time.time()
             except Exception:
                 logger.debug("Chart extraction failed", exc_info=True)

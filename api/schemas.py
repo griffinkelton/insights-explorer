@@ -2,6 +2,9 @@
 
 Fields mirror ``utils.data_loader.DataQualityReport`` for the quality report
 so the adapter in ``api/services/quality_service.py`` stays a thin mapping.
+Phase 2 (spec Task 7): structured ``DatasetWarning`` surfaced end-to-end on
+``DatasetContext.warnings`` (confirmed P2 — truncation is user-visible data
+loss, not a server-log-only concern).
 """
 
 from __future__ import annotations
@@ -23,6 +26,15 @@ class Column(BaseModel):
     nullable: bool
 
 
+class DatasetWarning(BaseModel):
+    """Structured non-fatal data warning (confirmed + refined P2, 2026-08-06)."""
+
+    code: Literal["rows_truncated"]
+    message: str
+    original_row_count: int | None = None
+    loaded_row_count: int = 0
+
+
 class DatasetContext(BaseModel):
     source: Literal["upload", "ga4", "drive"]
     filename: str
@@ -32,6 +44,7 @@ class DatasetContext(BaseModel):
     filters: list[dict] = Field(default_factory=list)
     metrics: list[dict] = Field(default_factory=list)
     provenance: dict = Field(default_factory=dict)
+    warnings: list[DatasetWarning] = Field(default_factory=list)
 
 
 class UploadResponse(BaseModel):

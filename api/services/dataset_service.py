@@ -1,18 +1,23 @@
 """Dataset service: parsing/context adapter + policy-real Clear Data.
 
 Parsing is an **adapter boundary** to ``utils/data_loader.py`` — do not
-duplicate its validation/error taxonomy (spec §8).
+duplicate its validation/error taxonomy (spec §8/§Task 7). Phase 2 replaces
+the temporary parser with ``utils/data_loader.load_file()`` and surfaces its
+row-truncation warning as a structured ``DatasetWarning``.
 """
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 import pandas as pd
 
-from api.schemas import Column, DatasetContext, DateRange
+from utils.data_loader import load_file
+
+from api.schemas import Column, DatasetContext, DatasetWarning, DateRange
 from api.stores.dataset_store import datasets
 from api.stores.session_store import AppSession
 
@@ -27,7 +32,72 @@ def infer_column_type(series: pd.Series) -> str:
     return "string"
 
 
-def make_context(df: pd.DataFrame, *, source: str, filename: str) -> DatasetContext:
+class _NamedBytesIO(BytesIO):
+    """BytesIO with a .name — the minimal file-like contract load_file needs."""
+
+    def __init__(self, data: bytes, name: str) -> None:
+        super().__init__(data)
+        self.name = name
+
+
+class UploadError(Exception):
+    """Typed upload failure; route maps to the Phase 1 HTTP status codes."""
+
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
+def parse_uploaded_file(
+    filename: str,
+    content: bytes,
+) -> tuple[pd.DataFrame, DatasetWarning | None]:
+    """Adapter over utils/data_loader.load_file() — single parser, one taxonomy.
+
+    Returns (df, warning) where warning is a structured DatasetWarning when rows
+    were truncated (confirmed P2), or None. Errors raise UploadError with the
+    Phase 1 status-code mapping.
+    """
+    df, error, warning = load_file(_NamedBytesIO(content, filename))
+    if error is not None:
+        status = _error_status(error, filename)
+        raise UploadError(status, error)
+    structured = None
+    if warning is not None:
+        structured = DatasetWarning(
+            code="rows_truncated",
+            message=warning,
+            original_row_count=_extract_original_row_count(warning),
+            loaded_row_count=len(df),
+        )
+    return df, structured
+
+
+def _extract_original_row_count(warning: str) -> int | None:
+    """Best-effort parse of the loader's truncation notice; None if format changes."""
+    match = re.search(r"Dataset has ([0-9,]+) rows", warning)
+    return int(match.group(1).replace(",", "")) if match else None
+
+
+def _error_status(error: str, filename: str) -> int:
+    suffix = Path(filename).suffix.lower()
+    if "Unsupported file type" in error or suffix not in {".csv", ".xlsx", ".xls"}:
+        return 415
+    if "empty" in error.lower():
+        return 400
+    if "too large" in error.lower():
+        return 413
+    return 422  # "We couldn't read this file…"
+
+
+def make_context(
+    df: pd.DataFrame,
+    *,
+    source: str,
+    filename: str,
+    warnings: list[DatasetWarning] | None = None,
+) -> DatasetContext:
     date_columns = [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
     start = end = None
     if date_columns:
@@ -45,21 +115,8 @@ def make_context(df: pd.DataFrame, *, source: str, filename: str) -> DatasetCont
             for c in df.columns
         ],
         provenance={"created_at": datetime.now(timezone.utc).isoformat(), "transformations": []},
+        warnings=warnings or [],
     )
-
-
-def parse_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
-    """Adapter boundary — replace with utils/data_loader.load_file() once its
-    Streamlit cache/UI coupling is extracted (Phase 2). No duplicate parsers."""
-    suffix = Path(filename).suffix.lower()
-    with NamedTemporaryFile(suffix=suffix, delete=True) as tmp:
-        tmp.write(content)
-        tmp.flush()
-        if suffix == ".csv":
-            return pd.read_csv(tmp.name)
-        if suffix in {".xlsx", ".xls"}:
-            return pd.read_excel(tmp.name)
-    raise ValueError("Supported formats are CSV, XLSX, and XLS.")
 
 
 def clear_dataset_state(session: AppSession) -> None:

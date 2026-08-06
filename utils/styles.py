@@ -1,4 +1,12 @@
-"""Custom CSS, JS, and favicon injection for the GA4 Insight Explorer UI.
+"""
+STREAMLIT-ONLY MODULE.
+
+This module is part of the legacy Streamlit presentation layer.
+FastAPI services and framework-neutral utils must not import it.
+
+Migration owner: Phase 6 retirement.
+
+Custom CSS, JS, and favicon injection for the GA4 Insight Explorer UI.
 
 v0.2.0 refactor:
     - Monolithic f-string replaced by 5 CSS + 1 JS named constants.

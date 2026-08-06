@@ -14,7 +14,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from api.config import get_settings
 from api.dependencies import AppSession, get_or_create_session
 from api.schemas import DataPreviewResponse, DatasetContext, QualityReport, UploadResponse
-from api.services.dataset_service import clear_dataset_state, make_context, parse_uploaded_file
+from api.services.dataset_service import (
+    UploadError,
+    clear_dataset_state,
+    make_context,
+    parse_uploaded_file,
+)
 from api.services.quality_service import build_quality_report
 from api.stores.dataset_store import datasets  # canonical store location (api/stores)
 
@@ -58,8 +63,15 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
     try:
-        dataframe = parse_uploaded_file(filename, content)
-        context = make_context(dataframe, source="upload", filename=filename)
+        dataframe, warning = parse_uploaded_file(filename, content)
+        context = make_context(
+            dataframe,
+            source="upload",
+            filename=filename,
+            warnings=[warning] if warning else [],
+        )
+    except UploadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:

@@ -1,8 +1,18 @@
-"""Gemini API client wrapper for GA4 Insight Explorer."""
+"""Gemini API client wrapper for GA4 Insight Explorer.
+
+Framework-neutral (Phase 2, spec Task 5): no Streamlit import. Usage
+accounting is emitted as a structured ``UsageEvent`` through an injectable
+``usage_sink`` callback — the Streamlit layer supplies a session-state
+writer; the FastAPI layer will supply a server-side usage ledger (Phase 3).
+Sink failures are best-effort/logged and never break a request.
+"""
 
 import logging
 import os
 from collections.abc import Generator
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
+from typing import Callable
 
 from dotenv import load_dotenv
 from google import genai
@@ -108,7 +118,93 @@ def _classify_api_error(e: Exception) -> str:
     return "⚠️ Gemini could not complete that request. Please try again shortly."
 
 
-def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
+@dataclass(frozen=True)
+class UsageEvent:
+    """Structured, safe Gemini usage event (confirmed + refined P1 + review fix).
+
+    Contains operational metadata ONLY — NEVER prompt content, raw rows, user
+    messages, or model output (Gemini boundary, data-retention-policy §AI).
+    Sink failures are best-effort/logged, never fatal.
+    """
+
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    model: str = ""
+    request_type: str = ""  # e.g. "summary" | "chat" | "chart" (Phase 3 uses it)
+    input_tokens: int = 0
+    output_tokens: int = 0
+    thoughts_token_count: int = 0
+    cached_token_count: int = 0  # preserved for the legacy total_cached_tokens counter
+    tool_use_token_count: int = 0
+    total_token_count: int = 0  # provider-reported total when available (review fix)
+    success: bool = True
+    sanitized_error_class: str | None = None
+
+
+UsageSink = Callable[[UsageEvent], None]
+
+
+def _emit_usage(
+    response,
+    model: str,
+    request_type: str = "",
+    success: bool = True,
+    error_class: str | None = None,
+    usage_sink: UsageSink | None = None,
+) -> UsageEvent | None:
+    """Build a safe UsageEvent from provider metadata and hand it to the sink.
+
+    Best-effort: a failing sink is logged and never raises — telemetry must not
+    break a user request (confirmed P1).
+    """
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None and success:
+        return None
+    event = UsageEvent(
+        model=model,
+        request_type=request_type,
+        input_tokens=getattr(usage, "prompt_token_count", 0) or 0,
+        output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
+        thoughts_token_count=getattr(usage, "thoughts_token_count", 0) or 0,
+        cached_token_count=getattr(usage, "cached_content_token_count", 0) or 0,
+        tool_use_token_count=getattr(usage, "tool_use_token_count", 0) or 0,
+        total_token_count=getattr(usage, "total_token_count", 0) or 0,
+        success=success,
+        sanitized_error_class=error_class,
+    )
+    # Review fix (2026-08-06): preserve provider semantics — if the provider did
+    # NOT report a total, fall back to a documented sum (never silently
+    # substitute a weaker number that changes the meaning of the legacy counter).
+    if event.total_token_count == 0:
+        event = replace(
+            event,
+            total_token_count=(
+                event.input_tokens
+                + event.output_tokens
+                + event.thoughts_token_count
+                + event.cached_token_count
+                + event.tool_use_token_count
+            ),
+        )
+    if usage_sink is not None:
+        try:
+            usage_sink(event)
+        except Exception as exc:  # best-effort — telemetry never breaks a request
+            # Review fix (2026-08-06): log a generic event with only the error
+            # CLASS — never str(exc), which could contain prompt content or raw
+            # rows from an arbitrary API ledger or Streamlit sink.
+            logger.warning(
+                "usage_sink_failed",
+                extra={"error_class": type(exc).__name__},
+            )
+    return event
+
+
+def generate_response(
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+    request_type: str = "",
+    usage_sink: UsageSink | None = None,
+) -> str:
     """Send a prompt to Gemini and return the text response.
 
     Raises ValueError for missing API key, RuntimeError for API failures.
@@ -122,8 +218,8 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
                 "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
             },
         )
-        # Track token usage if available
-        _track_usage(response)
+        # Emit usage (if available) through the optional sink.
+        _emit_usage(response, model, request_type=request_type, usage_sink=usage_sink)
         return response.text
     except ValueError:
         raise  # API key errors propagate as-is
@@ -131,62 +227,12 @@ def generate_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
         raise RuntimeError(_classify_api_error(e)) from e
 
 
-def _track_usage(response) -> dict | None:
-    """Extract provider-reported usage metadata from a Gemini response.
-
-    Returns a dict with per-request token counts, or None if metadata
-    is unavailable.  Also accumulates session totals in st.session_state
-    when running inside Streamlit.
-    """
-    usage = getattr(response, "usage_metadata", None)
-    if usage is None:
-        return None
-
-    per_request = {
-        "prompt_tokens": getattr(usage, "prompt_token_count", 0) or 0,
-        "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
-        "thought_tokens": getattr(usage, "thoughts_token_count", 0) or 0,
-        "cached_tokens": getattr(usage, "cached_content_token_count", 0) or 0,
-        "tool_tokens": getattr(usage, "tool_use_token_count", 0) or 0,
-        "total_tokens": getattr(usage, "total_token_count", 0) or 0,
-    }
-
-    # Accumulate session totals (Streamlit only)
-    try:
-        import streamlit as st
-
-        for key, field in [
-            ("total_input_tokens", "prompt_tokens"),
-            ("total_output_tokens", "output_tokens"),
-            ("total_thought_tokens", "thought_tokens"),
-            ("total_cached_tokens", "cached_tokens"),
-            ("total_tokens_used", "total_tokens"),
-        ]:
-            if key not in st.session_state:
-                st.session_state[key] = 0
-            st.session_state[key] += per_request[field]
-
-        if "api_success_count" not in st.session_state:
-            st.session_state.api_success_count = 0
-        st.session_state.api_success_count += 1
-
-        # Attach per-request usage to the last chat history entry.
-        # Only set once — chart extraction calls must not overwrite
-        # the chat response usage.
-        history = st.session_state.get("chat_history", [])
-        if history and "usage" not in history[-1]:
-            history[-1]["usage"] = per_request
-    except ImportError:
-        pass
-
-    return per_request
-
-
 def analyze_file_with_gemini(
     file_bytes: bytes,
     mime_type: str,
     prompt: str = "Analyze this file and provide key insights.",
     model: str = DEFAULT_MODEL,
+    usage_sink: UsageSink | None = None,
 ) -> str:
     """Analyze a file (image, PDF, etc.) directly with Gemini's multimodal capabilities.
 
@@ -218,7 +264,7 @@ def analyze_file_with_gemini(
                 "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
             },
         )
-        _track_usage(response)
+        _emit_usage(response, model, request_type="file", usage_sink=usage_sink)
         return response.text
     except ValueError:
         raise
@@ -229,6 +275,8 @@ def analyze_file_with_gemini(
 def generate_response_stream(
     prompt: str,
     model: str = DEFAULT_MODEL,
+    request_type: str = "",
+    usage_sink: UsageSink | None = None,
 ) -> Generator[str, None, None]:
     """Stream Gemini response tokens one at a time.
 
@@ -247,13 +295,15 @@ def generate_response_stream(
                 "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
             },
         )
+        last_chunk = None
         for chunk in response:
             if chunk.text:
                 yield chunk.text
-            # Track usage from final chunk
-            usage = getattr(chunk, "usage_metadata", None)
-            if usage is not None:
-                _track_usage(chunk)
+            # Usage arrives on the final chunk — remember it for the sink.
+            if getattr(chunk, "usage_metadata", None) is not None:
+                last_chunk = chunk
+        if last_chunk is not None:
+            _emit_usage(last_chunk, model, request_type=request_type, usage_sink=usage_sink)
     except ValueError:
         raise  # API key errors propagate as-is
     except Exception as e:
