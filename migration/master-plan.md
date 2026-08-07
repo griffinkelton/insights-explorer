@@ -253,7 +253,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 |---|---|---|
 | 1 | User cancels Google OAuth | Callback receives `status=cancelled`; safe cancelled state renders; no partial session state |
 | 2 | Drive not configured | Sheet state `not_configured` with setup hint; no crash |
-| 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.readonly` |
+| 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.file` (Picker-first slice) |
 | 4 | Unsupported file selected | Typed `unsupported_type` error matching the upload taxonomy |
 | 5 | Client sends forged filename/MIME/size metadata | Backend re-fetches Drive metadata and rejects on mismatch |
 | 6 | Backend authority on metadata | `file_id` is the only authority input (`request_id` is the picker-freshness binding); server `files.get` decides |

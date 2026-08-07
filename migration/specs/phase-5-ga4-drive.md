@@ -239,7 +239,7 @@ Retry only clearly transient transport/provider failures; never authorization, i
 - `GET /api/v1/drive/list?q=&folder_id=&page_token=` backed by `utils/drive_client.py` metadata calls.
 - Server `files.list` query: `trashed = false AND (name contains '<term>' OR '<folder_id>' in parents)`, `orderBy: folder,modifiedTime desc`, fields `id,name,mimeType,modifiedTime,size,webViewLink,iconLink`.
 - Response `{ state, message?, setupHint?, files: [...], next_page_token }` — **`next_page_token` required** (opaque string or null); a folder larger than the page **must paginate, not silently truncate**; React sheet adds a "Load more" affordance.
-- States `ready|not_configured|permission|error` (`not_configured` → no credentials; 401/403 → `permission` → reconnect + `drive.readonly`; else `error`).
+- States `ready|not_configured|permission|error` (`not_configured` → no credentials; 401/403 → `permission` → reconnect + `drive.readonly` — **deferred slide-out path only; never requested by the Picker-first slice**; else `error`).
 - Shared-drive support only if Task 0 research + D1 scope include it (`supportsAllDrives`, `includeItemsFromAllDrives`, `corpora`).
 
 **Picker iframe (D1 → picker):**
@@ -295,7 +295,7 @@ Retry only clearly transient transport/provider failures; never authorization, i
 |---|---|---|
 | 1 | User cancels Google OAuth | Callback receives `status=cancelled`; safe cancelled state; no partial session state |
 | 2 | Drive not configured | Sheet state `not_configured` with setup hint; no crash |
-| 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.readonly` |
+| 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.file` (Picker-first slice) |
 | 4 | Unsupported file selected | Typed `unsupported_type` matching the upload taxonomy |
 | 5 | Client sends forged filename/MIME/size metadata | Backend re-fetches Drive metadata and rejects on mismatch |
 | 6 | Backend authority on metadata | `file_id` is the only authority input (`request_id` is the picker-freshness binding); server `files.get` decides |
