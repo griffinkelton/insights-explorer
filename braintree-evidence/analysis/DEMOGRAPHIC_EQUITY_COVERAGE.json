@@ -1,0 +1,313 @@
+{
+  "artifact": {
+    "name": "BrainGuide client-question and equity-gate coverage matrix",
+    "version": "2026-08-07.1",
+    "status": "audited_snapshot",
+    "authoritative_inputs": [
+      "../../braintree-reqs.md",
+      "../../BRAINTREE_CHECKLIST.md",
+      "../../ROADMAP.md",
+      "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md",
+      "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md",
+      "braintree-evidence/CONSOLIDATED.json"
+    ],
+    "status_vocabulary": {
+      "supported_now": "The current captured evidence supports a bounded descriptive answer with explicit provenance and limitations.",
+      "partial_now": "The current evidence supports useful descriptive context, but not the full client question or a stable comparative claim.",
+      "blocked_external_input": "The method and acceptance criteria are defined, but required data, owner decisions, permissions, or intervention results do not exist in this repository snapshot.",
+      "not_applicable_to_snapshot": "The question requires a live product/evaluation phase rather than additional interpretation of the captured PDFs."
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "Who is BrainGuide reaching overall?",
+      "gate": "1",
+      "status": "supported_now",
+      "current_answer": "Aggregate web reach, geography, device, language, content, and questionnaire participation are described; race/ethnicity reach is not available at the all-visitor grain.",
+      "evidence": ["braintree-evidence/CONSOLIDATED.json $.reports[1].snapshot (results_overview)", "braintree-evidence/CONSOLIDATED.json $.reports[6].snapshot (top_content)", "braintree-evidence/CONSOLIDATED.json $.reports[8].snapshot (geographic_traffic)", "braintree-evidence/CONSOLIDATED.json $.reports[9].snapshot (user_journeys)"],
+      "limitations": ["GA4 users/sessions are not people", "sources have different freshness and grain", "no population benchmark", "this is a bounded aggregate reach profile, not a complete equity answer"],
+      "unlock": "None for bounded aggregate description; benchmark and linked early-funnel demographics for equity reach."
+    },
+    {
+      "id": 2,
+      "question": "Are we reaching priority populations equitably?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "White respondents are 77.9% of displayed race rows; Black respondents are 4.5%; Hispanic/Latino respondents are 4.9%. This is an observed composition signal, not a population representation ratio.",
+      "evidence": ["braintree-evidence/reports/Results Overview.pdf p. 7", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json displayed_race_rows"],
+      "limitations": ["no approved benchmark", "race rows are downstream and display semantics need reconciliation", "no all-eligible visitor denominator"],
+      "unlock": "Owner-approved benchmark, compatible race/ethnicity crosswalk, all-eligible denominator, and sensitivity analysis."
+    },
+    {
+      "id": 3,
+      "question": "Who completes the questionnaire?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Overall starts, scored outcomes, information-only paths, and flow-specific completion snapshots are available, but demographic completion rates are not.",
+      "evidence": ["braintree-evidence/CONSOLIDATED.json $.reports[1].snapshot (results_overview)", "braintree-evidence/CONSOLIDATED.json $.scoring_systems", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §2.2 Funnel estimand"],
+      "limitations": ["started_date and completed_date semantics differ", "no early demographic context", "flow denominators differ"],
+      "unlock": "Versioned event-level funnel plus optional early demographics and linkage coverage."
+    },
+    {
+      "id": 4,
+      "question": "Who drops off, and where?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "Aggregate journey gaps and SBC's 4.8% scored-result rate identify operational friction, but true step-level abandonment and demographic drop-off cannot be isolated.",
+      "evidence": ["braintree-evidence/reports/journey-explorer.md", "braintree-evidence/reports/SBC Analysis.pdf", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md Issue 2"],
+      "limitations": ["qCurrent gaps infer rather than observe abandonment", "no failure-state telemetry", "no demographic linkage at starts/steps"],
+      "unlock": "Event-level sequence, explicit abandonment/failure events, stable unit, and linkage."
+    },
+    {
+      "id": 5,
+      "question": "Does the platform reach intended age groups?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Some displayed age composition is reported, including under-45 and 45–54 counts, but the complete reconciled age distribution and intended-audience benchmark are unavailable.",
+      "evidence": ["braintree-evidence/reports/Results Overview.pdf p. 7", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md §2.6"],
+      "limitations": ["incomplete age buckets", "age is collected downstream", "AD8 informants and MIS/SBC self-respondents differ"],
+      "unlock": "Complete age distribution, intended age eligibility, and matched benchmark."
+    },
+    {
+      "id": 6,
+      "question": "Are women reached and engaged differently?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Displayed gender rows are female-heavy (70.1% of displayed gender rows), but there is no valid engagement or benchmark comparison by gender.",
+      "evidence": ["braintree-evidence/reports/Results Overview.pdf p. 7", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json displayed_gender_rows"],
+      "limitations": ["composition is not disparity", "gender semantics and missingness require validation", "no early-funnel linkage"],
+      "unlock": "Validated gender dictionary, same-funnel denominators, benchmark or prespecified internal comparison."
+    },
+    {
+      "id": 7,
+      "question": "Are Black users reached and supported effectively?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Black respondents are 2,433 (4.5%) of displayed race rows; trusted-messenger, privacy, and UX hypotheses are documented, but reach, completion, resource-action, and outcome equity are not measurable by Black identity yet.",
+      "evidence": ["braintree-evidence/reports/Results Overview.pdf p. 7", "braintree-evidence/reports/AD8 Analysis.pdf; braintree-evidence/reports/MIS Analysis.pdf; braintree-evidence/reports/SBC Analysis.pdf race tables", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md Issue 1 and Black conclusion"],
+      "limitations": ["no benchmark", "no early-funnel race field", "external literature is not BrainGuide-specific"],
+      "unlock": "Early optional self-report, approved linkage, benchmark, Black community co-design, and evaluated intervention."
+    },
+    {
+      "id": 8,
+      "question": "Are Hispanic/Latino users reached effectively?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Hispanic/Latino respondents are 2,675 (4.9%) of displayed race rows; language, device, acquisition, and resource support hypotheses are documented, but effective reach and completion are not established.",
+      "evidence": ["braintree-evidence/reports/Results Overview.pdf p. 7", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md Issue 3 and Hispanic/Latino conclusion"],
+      "limitations": ["Hispanic/Latino display semantics need crosswalk", "Spanish is not equivalent to Hispanic/Latino identity", "no early-funnel linkage"],
+      "unlock": "Race/ethnicity crosswalk, benchmark, Spanish/English end-to-end funnel, and community validation."
+    },
+    {
+      "id": 9,
+      "question": "Is Spanish-language access functional and used?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Spanish is 5.5% of Top Content pageviews and is present in trial/provider pathways; the snapshot provides descriptive language signals but not functional equivalence.",
+      "evidence": ["braintree-evidence/reports/Top Content.pdf p. 3", "braintree-evidence/reports/Clinical Trials.pdf pp. 1–2", "braintree-evidence/reports/Find a Provider.pdf pp. 1–2", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json language_and_resource_rates"],
+      "limitations": ["visit-based rates are not unique-person conversion", "provider rate is suppressed for instability/privacy", "no Spanish questionnaire step funnel"],
+      "unlock": "Language-persistent event funnel, error telemetry, native-speaker review, and language-concordant resource testing."
+    },
+    {
+      "id": 10,
+      "question": "Where do users first encounter BrainGuide?",
+      "gate": "1",
+      "status": "partial_now",
+      "current_answer": "Top content, geography, and acquisition context identify major entry/reach surfaces, but unattributed `(none)` traffic prevents reliable channel attribution for most questionnaire responses.",
+      "evidence": ["braintree-evidence/reports/Top Content.pdf", "braintree-evidence/reports/Geographic Traffic.pdf", "braintree-evidence/reports/Results Overview.pdf pp. 8–9"],
+      "limitations": ["UTM-none is not a channel", "landing-page taxonomy contains unmapped paths", "source systems have different grains"],
+      "unlock": "Validated acquisition taxonomy, URL hygiene, and complete landing/session event data."
+    },
+    {
+      "id": 11,
+      "question": "Which channels bring meaningful users?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "The requirements identify the question, but current disparity artifacts do not establish channel-to-qualified-completion or downstream-action rates by demographic group.",
+      "evidence": ["braintree-reqs.md Top 25 #11", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 5"],
+      "limitations": ["channel attribution incomplete", "meaningful action taxonomy not validated", "no demographic linkage"],
+      "unlock": "Campaign/source map, qualified action taxonomy, event-level funnel, and approved linkage."
+    },
+    {
+      "id": 12,
+      "question": "Which search needs bring people to the site?",
+      "gate": "1",
+      "status": "partial_now",
+      "current_answer": "Search Console is identified as a source layer, but the disparity deliverable does not include a query-level analysis or demographic overlay.",
+      "evidence": ["braintree-evidence/CONSOLIDATED.json $.data_architecture.source_layers / refresh_expectations", "braintree-reqs.md §Top 25 #12"],
+      "limitations": ["search query data is not included in the current snapshot outputs", "no intent-to-pathway linkage"],
+      "unlock": "Search Console query/page export, content taxonomy, and optional approved aggregate pathway join."
+    },
+    {
+      "id": 13,
+      "question": "What content does each audience need?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Content categories, locales, demographic-affinity context, and research-informed content gaps support an audit plan, but not a causal need or preference claim.",
+      "evidence": ["braintree-evidence/reports/Top Content.pdf", "braintree-evidence/reports/Top Content by Demographic.pdf", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md Issue 6"],
+      "limitations": ["post-questionnaire selected sample", "430 unmapped pages", "affinity is not need or causal effect"],
+      "unlock": "Maintained content taxonomy, validated group linkage, task research, and outcome/action mapping."
+    },
+    {
+      "id": 14,
+      "question": "Are users finding the right pathway?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "The product's persona/pathway model is documented, but pathway appropriateness and demographic routing cannot be evaluated from aggregate captures.",
+      "evidence": ["braintree-evidence/CONSOLIDATED.md §4", "braintree-evidence/reports/journey-explorer.md", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 2"],
+      "limitations": ["no intent/pathway linkage", "no task-success or comprehension measure", "no demographic early-funnel data"],
+      "unlock": "Intent and pathway events, task-comprehension research, and linked funnel cohorts."
+    },
+    {
+      "id": 15,
+      "question": "Do users understand and act on tailored results?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Result-page actions, provider/trial clicks, and share behavior are measurable as intent/engagement signals, but comprehension and downstream completion are not measured.",
+      "evidence": ["braintree-evidence/reports/Result Pages.pdf", "braintree-evidence/reports/Result Sharing.pdf", "braintree-evidence/reports/Clinical Trials.pdf", "braintree-evidence/reports/Find a Provider.pdf"],
+      "limitations": ["clicks are not completed care/research actions", "no comprehension measure", "no validated demographic linkage"],
+      "unlock": "Comprehension task/survey, action definitions, downstream outcomes, and linkage."
+    },
+    {
+      "id": 16,
+      "question": "Which patterns predict questionnaire completion?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "The current artifacts define this as an association/prediction analysis, not a causal claim, but the required session-level event sequence is unavailable.",
+      "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §4", "plans/ga4-measurement-contract.md"],
+      "limitations": ["aggregate GA4 query lacks event sequence/session IDs", "no held-out validation design", "no stable outcome event contract"],
+      "unlock": "Session/event-level data, validated completion event, prespecified features, temporal split, and calibration/equity evaluation."
+    },
+    {
+      "id": 17,
+      "question": "Which patterns predict care-seeking?",
+      "gate": "2/3",
+      "status": "blocked_external_input",
+      "current_answer": "Provider clicks and trial clicks are observable handoff intent, but care-seeking prediction or downstream outcome is not supported.",
+      "evidence": ["braintree-evidence/reports/Clinical Trials.pdf", "braintree-evidence/reports/Find a Provider.pdf", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §2.3"],
+      "limitations": ["no appointment/referral outcome", "click intent is not care-seeking", "no linked cohort"],
+      "unlock": "Approved downstream outcome, validated action taxonomy, linked cohort, and predictive validation."
+    },
+    {
+      "id": 18,
+      "question": "Are users progressing toward clinical research?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Clinical-trial visits and clicks measure research-navigation activity, but matching, account creation, referral, and enrollment progression are not linked in this snapshot.",
+      "evidence": ["braintree-evidence/reports/Clinical Trials.pdf", "braintree-evidence/CONSOLIDATED.md §5.15"],
+      "limitations": ["click is not match/enrollment", "language and demographic linkage incomplete", "later funnel may be small-cell"],
+      "unlock": "Event-level research funnel, approved downstream linkage, target population/eligibility definitions, and suppression."
+    },
+    {
+      "id": 19,
+      "question": "Where does the research pathway leak?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "The protocol defines the required research funnel, but current evidence has only visit/click endpoints.",
+      "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 5", "braintree-evidence/reports/Clinical Trials.pdf"],
+      "limitations": ["missing match/account/referral steps", "no event sequence", "no group denominators"],
+      "unlock": "Complete event-level research funnel and linked outcome states."
+    },
+    {
+      "id": 20,
+      "question": "Do local-resource features lead to action?",
+      "gate": "2",
+      "status": "partial_now",
+      "current_answer": "Provider-finder visits and clicks are observed handoff signals; the snapshot cannot establish completed local-resource use or equitable action.",
+      "evidence": ["braintree-evidence/reports/Find a Provider.pdf", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json language_and_resource_rates"],
+      "limitations": ["visit-based click rates", "no appointment/provider contact outcome", "no demographic funnel linkage"],
+      "unlock": "Validated resource-action event, downstream outcome or approved proxy, and linked group cohorts."
+    },
+    {
+      "id": 21,
+      "question": "Does the experience work across devices/browsers?",
+      "gate": "1",
+      "status": "partial_now",
+      "current_answer": "Device-specific page exit rates show mobile/tablet friction signals, but browser compatibility, technical errors, accessibility success, and demographic intersections are not available.",
+      "evidence": ["braintree-evidence/reports/User Journeys.pdf p. 5", "braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md §2.4 and Issue 5"],
+      "limitations": ["exit is not a technical failure", "browser/accessibility telemetry absent", "no device-by-group funnel"],
+      "unlock": "Browser/error/performance telemetry, accessibility task testing, and device/language/group funnel."
+    },
+    {
+      "id": 22,
+      "question": "Are users returning for continued guidance?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "The current snapshot does not provide a validated person-level retention cohort or demographic return linkage.",
+      "evidence": ["braintree-evidence/CONSOLIDATED.json $.cohort_definitions", "plans/🔵 ga4-insights-sketch.md §Three-layer measurement model / retention limitations"],
+      "limitations": ["cookie/device return is not person-level", "retention query is not available", "no group linkage"],
+      "unlock": "Validated retention cohort definition, event/session/user grain decision, and privacy-approved linkage."
+    },
+    {
+      "id": 23,
+      "question": "Did the March 2026 relaunch improve the experience?",
+      "gate": "2",
+      "status": "blocked_external_input",
+      "current_answer": "A relaunch comparison is explicitly blocked until the exact date and page/event equivalence crosswalk are confirmed.",
+      "evidence": ["braintree-reqs.md", "plans/🔵 ga4-insights-sketch.md", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 1"],
+      "limitations": ["exact relaunch date unresolved", "path/event taxonomy changed", "no concurrent comparison design"],
+      "unlock": "Exact date, crosswalk, complete periods, comparable control/time series, and subgroup analysis."
+    },
+    {
+      "id": 24,
+      "question": "Does BrainGuide increase awareness/confidence/action?",
+      "gate": "3",
+      "status": "blocked_external_input",
+      "current_answer": "The protocol separates follow-up survey outcomes from GA4 behavior and defines response-bias reporting, but no valid impact estimate exists in the snapshot.",
+      "evidence": ["braintree-reqs.md Top 25 #24", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 5", "ROADMAP.md"],
+      "limitations": ["no survey data in current artifact", "self-selected follow-up would not establish causal impact", "no comparison design"],
+      "unlock": "Approved survey instrument/cohort, response-rate and nonresponse analysis, and credible comparison or pre/post design."
+    },
+    {
+      "id": 25,
+      "question": "What actions should be prioritized next?",
+      "gate": "2/3",
+      "status": "supported_now",
+      "current_answer": "The evidence supports prioritizing SBC reliability, Spanish/language parity, mobile/accessibility, privacy-forward copy, early-funnel instrumentation, community co-design, and only then measured outreach.",
+      "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md §5", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §3", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json"],
+      "limitations": ["priority ranking is decision guidance, not measured intervention effect", "ROI and effort estimates are not available", "the ranking is not a statistically optimized or experimentally validated priority score"],
+      "unlock": "Owner capacity/effort estimates, intervention baselines, and controlled evaluation results."
+    }
+  ],
+  "gates": [
+    {"id": "1.1", "requirement": "Reach: total users, new vs returning, sessions, top acquisition channels", "status": "partial_in_snapshot; product_metric_contract_provisional", "evidence": ["braintree-evidence/CONSOLIDATED.json reports.top_content", "braintree-evidence/CONSOLIDATED.json reports.geographic_traffic", "plans/ga4-measurement-contract.md daily_reach"]},
+    {"id": "1.2", "requirement": "Trends: week-over-week change and day-of-week patterns", "status": "implemented_elsewhere_but_not_validated_in_this_snapshot", "evidence": ["BRAINTREE_CHECKLIST.md Gate 1.2", "braintree-reqs.md"]},
+    {"id": "1.3", "requirement": "Top pages: traffic and engagement", "status": "partial_in_snapshot; existing_app_surface_not_validated_here", "evidence": ["braintree-evidence/CONSOLIDATED.json reports.top_content"]},
+    {"id": "1.4", "requirement": "Device split with metric breakdown", "status": "partial_now; exit rates only", "evidence": ["braintree-evidence/reports/User Journeys.pdf p. 5", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json device_exit_rates"]},
+    {"id": "1.5", "requirement": "Anomalies: deviation days and engagement cliffs", "status": "implemented_elsewhere_but_not_validated_in_this_snapshot", "evidence": ["BRAINTREE_CHECKLIST.md Gate 1.5", "plans/🔵 ga4-insights-sketch.md"]},
+    {"id": "1.6", "requirement": "Day-1/7/14/28 retention", "status": "blocked_external_input", "evidence": ["braintree-evidence/CONSOLIDATED.json cohort_definitions", "plans/ga4-measurement-contract.md"]},
+    {"id": "1.7", "requirement": "Funnel start-to-completion with step drop-off", "status": "blocked_external_input_for_demographic_equity; aggregate journey gaps are descriptive", "evidence": ["braintree-evidence/reports/journey-explorer.md", "DEMOGRAPHIC_EQUITY_COVERAGE.json questions[4]"]},
+    {"id": "1.8", "requirement": "Forecasting with AI narrative", "status": "implemented_elsewhere_but_not_validated_in_this_snapshot", "evidence": ["BRAINTREE_CHECKLIST.md Gate 1.8"]},
+    {"id": "1.9", "requirement": "Pre-compute insights on data load", "status": "not_implemented_in_this_artifact", "evidence": ["BRAINTREE_CHECKLIST.md Gate 1.9"]},
+    {"id": "1.10", "requirement": "Inject structured insight block into every Gemini chat prompt", "status": "not_implemented_in_this_artifact", "evidence": ["BRAINTREE_CHECKLIST.md Gate 1.10", "plans/🔵 ga4-insights-sketch.md"]},
+    {"id": "0.1", "requirement": "Semantic metric registry", "status": "method_defined_but_not_implemented_in_product", "evidence": ["plans/ga4-measurement-contract.md", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §3 Phase 1"]},
+    {"id": "0.2", "requirement": "Event taxonomy/bot/URL audit", "status": "partially_described; automated_gate_not_in_this_artifact", "evidence": ["braintree-evidence/CONSOLIDATED.md §5.7/§5.11", "braintree-reqs.md"]},
+    {"id": "0.3", "requirement": "Pre/post-March-2026 relaunch crosswalk", "status": "blocked_external_input", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 1"]},
+    {"id": "0.4", "requirement": "Automated data-quality gate", "status": "not_implemented_in_this_artifact", "evidence": ["plans/🔵 ga4-insights-sketch.md"]},
+    {"id": "0.5", "requirement": "Feasibility matrix", "status": "supported_by_this_artifact", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_COVERAGE.json"]},
+    {"id": "0.6", "requirement": "Prompt-injection guard for source labels", "status": "not_implemented_in_this_artifact", "evidence": ["plans/🔵 ga4-insights-sketch.md"]},
+    {"id": "2.1", "requirement": "Evidence connector", "status": "design_only; current PDF snapshot is manually curated", "evidence": ["plans/🔵 evidence-connector-design.md"]},
+    {"id": "2.2", "requirement": "Linkage coverage report", "status": "blocked_external_input", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md Phase 1/2"]},
+    {"id": "2.3", "requirement": "Equity reach", "status": "partial_now", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[1]", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json $.displayed_race_rows"]},
+    {"id": "2.3-RACE", "requirement": "Race/ethnicity coding crosswalk and mutually-exclusive-category decision", "status": "blocked_external_input", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §3 Phase 1", "DEMOGRAPHIC_EQUITY_COVERAGE.json questions[2], questions[7], questions[8]"]},
+    {"id": "2.4", "requirement": "Funnel equity", "status": "blocked_external_input", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[2]", "DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[3]"]},
+    {"id": "2.5", "requirement": "Pathway equity", "status": "blocked_external_input", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[13]", "DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[14]"]},
+    {"id": "2.6", "requirement": "Language access", "status": "partial_now", "evidence": ["questions[9]", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json language_and_resource_rates"]},
+    {"id": "2.7", "requirement": "Small-cell suppression", "status": "implemented_in_snapshot_calculator", "evidence": ["scripts/analyze_demographic_equity.py", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json"]},
+    {"id": "2.8", "requirement": "Complementary suppression/difference attacks", "status": "protocol_defined; product_enforcement_not_implemented", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §5"]},
+    {"id": "3.1", "requirement": "Survey cohort reporting", "status": "blocked_external_input", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[23]"]},
+    {"id": "3.2", "requirement": "Dose-response", "status": "blocked_external_input", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[23]"]},
+    {"id": "3.3", "requirement": "Content-to-outcome mapping", "status": "blocked_external_input", "evidence": ["questions[13]", "questions[15]"]},
+    {"id": "3.4", "requirement": "Campaign evaluation", "status": "blocked_external_input", "evidence": ["questions[11]", "questions[25]"]},
+    {"id": "3.5", "requirement": "Return-journey analysis", "status": "blocked_external_input", "evidence": ["DEMOGRAPHIC_EQUITY_COVERAGE.json $.questions[21]"]},
+    {"id": "T.1", "requirement": "Insight evidence/limitations", "status": "implemented_in_report_protocol_snapshot", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json"]},
+    {"id": "T.2", "requirement": "Inference labels", "status": "implemented_in_protocol_and_report", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §1"]},
+    {"id": "T.3", "requirement": "Insights inbox/dashboard", "status": "not_implemented_in_this_artifact", "evidence": ["BRAINTREE_CHECKLIST.md"]},
+    {"id": "T.4", "requirement": "Automated data-quality gate", "status": "not_implemented_in_this_artifact", "evidence": ["BRAINTREE_CHECKLIST.md"]},
+    {"id": "T.5", "requirement": "No raw PII/small cells to LLM", "status": "implemented_for_snapshot_artifacts; product-wide enforcement remains separate", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §5"]},
+    {"id": "T.6", "requirement": "Audit trail", "status": "partial_in_snapshot_provenance; product audit trail absent", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_INPUTS.json", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §5"]},
+    {"id": "T.7", "requirement": "Failure behavior", "status": "implemented_in_blocked_claims_and_protocol", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json", "braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md §6"]},
+    {"id": "T.8", "requirement": "Refresh/stale labeling/caching", "status": "snapshot freshness labeled; product policy absent", "evidence": ["braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json", "braintree-evidence/CONSOLIDATED.json data_architecture.refresh_expectations"]}
+  ]
+}

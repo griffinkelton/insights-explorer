@@ -1,0 +1,515 @@
+{
+  "artifact": {
+    "title": "BrainGuide Evidence Dashboard — Consolidated Semantic Data Registry",
+    "version": "2026-08-06.1",
+    "status": "provisional_snapshot",
+    "language": "en",
+    "purpose": "Give an LLM enough semantic context to understand what the BrainGuide analytics data measures, how it is calculated, why it exists, and which conclusions are safe.",
+    "completeness_note": "This is a semantic summary, not a complete row-level export. Selected tables, monthly series, campaigns, geography rows, and graph edges are summarized; the original PDFs remain authoritative for exhaustive values.",
+    "snapshot_captured_at": "2026-08-06",
+    "dashboard": "https://dashboard.dev2.mybrainguide.org",
+    "source_files": 17,
+    "pdf_source_files": 16,
+    "markdown_source_files": 1,
+    "authoritative_rule": "The source PDFs and dashboard definitions remain authoritative for row-level values. This registry is a semantic consolidation and should be regenerated when the dashboard changes."
+  },
+  "executive_context": {
+    "organization_and_product": "BrainGuide is a public-facing brain-health information and screening-navigation platform associated with UsAgainstAlzheimer's. It helps people assess memory concerns, receive tailored educational guidance, and navigate provider or clinical-trial resources.",
+    "central_analytics_question": "Who is BrainGuide reaching, what do they need, how do they move through the platform, whether experiences differ across populations, and whether use progresses toward appropriate care or research action.",
+    "important_clinical_boundary": "AD8, MIS, and SBC values in this dashboard are screening or routing measures. A Good/Poor/Moderate label is a product result category, not a medical diagnosis. BrainGuide results do not replace clinical evaluation.",
+    "primary_uses": [
+      "Monitor reach, acquisition, content demand, language access, geography, and device access.",
+      "Understand questionnaire starts, scored completions, non-scored information completions, and result routing.",
+      "Understand performance patterns within AD8, MIS, and SBC assessment flows.",
+      "Measure engagement with result pages, PDF sharing, provider navigation, and clinical-trial links.",
+      "Identify measurement gaps and hypotheses for product, content, outreach, and instrumentation work."
+    ],
+    "not_safe_to_claim_from_this_snapshot": [
+      "That any page, campaign, or interaction caused a questionnaire completion or care-seeking action.",
+      "That a product result category is a clinical diagnosis.",
+      "That aggregate GA4 users can be joined to questionnaire respondents at the individual level.",
+      "That small demographic percentages are stable or representative of the population.",
+      "That pre- and post-March-2026 figures are directly comparable without a relaunch crosswalk."
+    ]
+  },
+  "how_to_read": {
+    "fact_vs_interpretation": {
+      "observed": "Directly reported by a dashboard table or definition.",
+      "comparative": "A difference between valid groups or periods; still descriptive unless an approved design supports stronger inference.",
+      "hypothesis": "A plausible explanation requiring UX review, instrumentation validation, or qualitative follow-up.",
+      "not_assessable": "The required grain, linkage, denominator, or data quality is unavailable."
+    },
+    "count_semantics": {
+      "users": "Usually distinct GA4 user_pseudo_id values in the selected period; summing daily users can double-count returning users.",
+      "sessions": "GA4 sessions; not people.",
+      "pageviews": "GA4 page_view events or the modeled pageview equivalent.",
+      "questionnaire_started": "A respondent record/session that loaded or began the questionnaire, depending on the report. Do not equate with a scored completion.",
+      "received_score": "A respondent completed a scored flow (AD8, MIS, or SBC) by reaching GET_SCORE or GET_SBC.",
+      "got_information_without_score": "A respondent completed the c / Get Information path without a calculated assessment score.",
+      "completion_rate": "Always read the report-specific denominator. Questionnaire score completion is generally Received Score divided by Started; SBC flow completion is scored entries divided by SBC flow entries.",
+      "not_provided": "Missing, skipped, not collected for the flow, or no result URL. It is not equivalent to a negative answer."
+    },
+    "privacy": {
+      "minimum_cell_rule": 10,
+      "recommended_behavior": "Suppress or roll up small demographic intersections; do not use exact sparse cells to infer people.",
+      "email_rule": "The Result Sharing report intentionally excludes email addresses. Contacting a person requires an authorized query outside this dashboard.",
+      "ai_rule": "Do not send confidential Evidence rows or identifiers to an LLM. Provide only approved aggregate insight objects with provenance and suppression decisions."
+    }
+  },
+  "data_architecture": {
+    "source_layers": [
+      {
+        "layer": "GA4 events",
+        "dataset": "analytics_257799278",
+        "tables": ["events_*"],
+        "contains": "Event-level website behavior. Raw export begins 2026-05-17 for the journey/event reports.",
+        "used_by": ["top_content", "geographic_traffic", "user_journeys", "site_events", "result_pages", "clinical_trials", "find_a_provider"]
+      },
+      {
+        "layer": "GA4 historical backfill",
+        "dataset": "reporting",
+        "tables": ["ga4_page_historical", "ga4_questionnaire_*_historical", "ga4_geo_device_historical", "ga4_outbound_clicks_historical"],
+        "contains": "Historical GA4 data pulled through the Data API; useful for longer trends but may lack event/session deduplication.",
+        "used_by": ["top_content", "result_pages", "geographic_traffic"]
+      },
+      {
+        "layer": "Google Ads",
+        "dataset": "googleads",
+        "tables": ["ads_Campaign_8328184535", "ads_CampaignBasicStats_8328184535"],
+        "contains": "Daily campaign metrics, costs, and attributes.",
+        "used_by": ["data_mapping_reference", "campaign_attribution_context"]
+      },
+      {
+        "layer": "DynamoDB exports",
+        "dataset": "MyBrainguide",
+        "tables": ["raw_dpn-chat-bot-content", "raw_dpn-chat-bot-content-go365"],
+        "contains": "Raw BrainGuide Standard and Go365 questionnaire records.",
+        "used_by": ["results_overview", "ad8_analysis", "mis_analysis", "sbc_analysis"]
+      },
+      {
+        "layer": "Search Console",
+        "dataset": "searchconsole_brainguide",
+        "tables": ["searchdata_site_impression", "searchdata_url_impression"],
+        "contains": "Google Search impressions, clicks, and average position.",
+        "used_by": ["data_mapping_reference"]
+      },
+      {
+        "layer": "dbt staging",
+        "dataset": "reporting_staging",
+        "materialization": "views",
+        "contains": "Cleaned and normalized source data; no cross-source joins.",
+        "used_by": ["reporting marts"]
+      },
+      {
+        "layer": "dbt marts",
+        "dataset": "reporting",
+        "materialization": "tables",
+        "contains": "Aggregated and joined tables queried by Evidence pages.",
+        "used_by": ["all dashboard reports"]
+      }
+    ],
+    "mapping_seeds": [
+      {"file": "content_page_map.csv", "maps": "URL slug to category, canonical title, locale, active status", "why": "Makes page traffic understandable and preserves renamed/superseded URL history."},
+      {"file": "source_medium_map.csv", "maps": "source + medium to channel, paid status, campaign target", "why": "Normalizes inconsistent GA4 acquisition labels."},
+      {"file": "persona_page_map.csv", "maps": "result-page slug to persona, audience, diagnosed status, brain-health label, score family", "why": "Explains result routing and prevents raw URLs from being misinterpreted."},
+      {"file": "campaign_name_map.csv", "maps": "GA4 campaign variants to canonical Ads campaign", "why": "Reconciles GA4 and Ads naming differences."},
+      {"file": "campaign_target_map.csv", "maps": "campaign prefixes to business target", "why": "Groups campaigns into Clinical Trials, Find a Provider, or BrainGuide General."},
+      {"file": "legacy_web_kpis.csv", "maps": "weekly web KPI history from March 2021 through December 2024", "why": "Fills the pre-daily-data period; frozen weekly grain must not be summed with daily rows."},
+      {"file": "legacy_questionnaire_monthly.csv", "maps": "monthly questionnaire counts from March 2021 through January 2024", "why": "Fills the pre-DynamoDB period; DynamoDB supersedes it from January 2024."},
+      {"file": "legacy_persona_traffic.csv", "maps": "weekly persona traffic from March 2021 through August 2023", "why": "Historical pre-SBC context; reconstructed monotonic dates."}
+    ],
+    "refresh_expectations": {
+      "daily_sources": "GA4 and Ads usually lag by 1–2 days.",
+      "questionnaire_source": "Questionnaire responses load weekly, usually Sunday; up to approximately 9 days of lag can be normal.",
+      "snapshot_source_status": {
+        "core_web_metrics": "2026-08-04",
+        "ga4_geography": "2026-08-04",
+        "top_content": "2026-08-04",
+        "user_journeys": "2026-08-04",
+        "outbound_clicks": "2026-08-04",
+        "traffic_attribution": "2026-08-04",
+        "google_ads_campaigns": "2026-08-03",
+        "search_console": "2026-08-03",
+        "questionnaire_responses": "2026-08-02"
+      }
+    }
+  },
+  "cohort_definitions": [
+    {"id": "all_site_visitors", "definition": "GA4 users or sessions in the selected period", "can_answer": ["reach", "acquisition", "content", "geography", "device"], "cannot_answer": ["self-reported race/ethnicity", "clinical outcome"]},
+    {"id": "questionnaire_starters", "definition": "Records/sessions that loaded or began a questionnaire; exact event semantics vary by report", "can_answer": ["initial participation"], "cannot_answer": ["scored completion"]},
+    {"id": "received_score", "definition": "Respondents reaching a scored AD8, MIS, or SBC result", "can_answer": ["assessment outcomes", "demographics collected in scored flows"], "cannot_answer": ["all site visitors"]},
+    {"id": "got_information_without_score", "definition": "Respondents completing flow c / Get Information without a score", "can_answer": ["information-seeking completion"], "cannot_answer": ["assessment performance"]},
+    {"id": "sbc_scored", "definition": "SBC entrants producing a scored speech result", "can_answer": ["SBC risk distribution"], "cannot_answer": ["all SBC entrants", "clinical diagnosis"]},
+    {"id": "result_page_actions", "definition": "GA4 actions fired on persona/result pages", "can_answer": ["post-result engagement"], "cannot_answer": ["unique people or completed care actions without additional identity/event rules"]},
+    {"id": "follow_up_survey", "definition": "A separate self-selected survey respondent cohort", "can_answer": ["reported awareness, confidence, satisfaction, intended/actual action"], "cannot_answer": ["all platform users without response-bias analysis"]}
+  ],
+  "scoring_systems": {
+    "ad8": {
+      "name": "Alzheimer's Disease 8-Item Informant Interview",
+      "flow_type": "ad8",
+      "respondent": "Caregiver or family member answering about someone else.",
+      "measure": "Observed change in memory and functional abilities across eight questions.",
+      "formula": "sum(Yes answers)",
+      "range": [0, 8],
+      "answer_mapping": {"Yes": 1, "No": 0, "Not sure": 0},
+      "categories": [{"label": "Good", "range": "0–1", "meaning": "Unlikely significant cognitive impairment; follow-up context still matters."}, {"label": "Poor", "range": "2–8", "meaning": "Possible cognitive impairment; follow-up recommended."}, {"label": "High Concern", "range": "5–8", "meaning": "Elevated concern flag used by this dashboard."}],
+      "direction": "Lower is less concern; higher is more concern.",
+      "dashboard_snapshot": {"completions": 12330, "average_score": 4.17, "good_percent": 17.3, "poor_percent": 82.7, "high_concern_percent": 47.4, "with_demographics_percent": 91.0, "good_average": 0.45, "poor_average": 4.95},
+      "question_yes_percent": {"Q1_judgment_decision_making": 69.1, "Q2_less_interest_hobbies": 53.8, "Q3_repeats_questions_stories_statements": 59.9, "Q4_trouble_learning_tools": 44.8, "Q5_forgets_month_or_year": 25.8, "Q6_finance_difficulty": 41.0, "Q7_appointments": 51.5, "Q8_daily_thinking_memory": 71.0},
+      "interpretation_warning": "Demographics describe the informant/caregiver, not the person being evaluated. This is a screening/routing result, not a diagnosis."
+    },
+    "mis": {
+      "name": "Memory Impairment Screen",
+      "flow_type": "mis",
+      "respondent": "Self-administered respondent in the MIS flow.",
+      "measure": "Memory performance using free and category-cued recall of four words.",
+      "formula": "(2 × number_of_free_recalled_words) + number_of_cued_recalled_words",
+      "range": [0, 8],
+      "categories": [{"label": "Good", "range": "5–8", "meaning": "Normal memory performance in this screen."}, {"label": "Poor", "range": "0–4", "meaning": "Possible memory impairment; follow-up context matters."}],
+      "direction": "Higher is better memory performance.",
+      "dashboard_snapshot": {"completions": 107976, "average_score": 6.28, "good_percent": 79.7, "poor_percent": 19.6, "with_demographics_percent": 92.0, "good_average": 7.23, "poor_average": 2.42},
+      "word_sets": {"english_sets": 10, "spanish_sets": 8, "design": "Four words from different semantic categories, shown in randomized presentation order to reduce association effects."},
+      "word_set_snapshot": [
+        {"set": "Bracelet / Candle / Dolphin / Orchestra", "responses": 11192, "average": 6.23, "good_percent": 79.2, "poor_percent": 20.2},
+        {"set": "Cereal / Notebook / Penguin / Submarine", "responses": 11144, "average": 6.13, "good_percent": 77.1, "poor_percent": 22.3},
+        {"set": "Coconut / Dragonfly / Pepper / Toothbrush", "responses": 10990, "average": 6.23, "good_percent": 79.9, "poor_percent": 19.4},
+        {"set": "Flamingo / Lemonade / Pencil / Umbrella", "responses": 10990, "average": 6.52, "good_percent": 83.4, "poor_percent": 16.0},
+        {"set": "Butterfly / Cheesecake / Helmet / Lighthouse", "responses": 10952, "average": 6.38, "good_percent": 81.2, "poor_percent": 18.1},
+        {"set": "Chemistry / Doughnut / Kangaroo / Lipstick", "responses": 10742, "average": 6.25, "good_percent": 79.0, "poor_percent": 20.3},
+        {"set": "Bookstore / Carrot / Freezer / Necklace", "responses": 10523, "average": 6.26, "good_percent": 78.5, "poor_percent": 20.6},
+        {"set": "Backyard / Crossword / Lizard / Strawberry", "responses": 10513, "average": 6.30, "good_percent": 80.3, "poor_percent": 18.9},
+        {"set": "Billboard / Postcard / Scissors / Warehouse", "responses": 10415, "average": 6.29, "good_percent": 79.3, "poor_percent": 19.8},
+        {"set": "Briefcase / Coyote / Pineapple / Telegram", "responses": 10350, "average": 6.26, "good_percent": 79.2, "poor_percent": 20.0}
+      ],
+      "interpretation_warning": "The dashboard's small Spanish word-set rows are unstable and should not be compared with the large English sets without a prespecified design."
+    },
+    "sbc": {
+      "name": "Speech Based Cognition assessment",
+      "flow_type": "sbc",
+      "respondent": "Self-administered respondent speaking about themselves.",
+      "measure": "Continuous speech-based score from 0 to 1; higher values indicate lower risk in this product routing.",
+      "range": [0, 1],
+      "categories": [{"label": "Low Risk / Good", "score": "> 0.5", "result_url": "/navigate-next-steps-1/"}, {"label": "Medium Risk / Moderate", "score": "0.2–0.5", "result_url": "/navigate-next-steps-2/"}, {"label": "High Risk / Poor", "score": "< 0.2", "result_url": "/navigate-next-steps-3/"}],
+      "direction": "Higher score is lower risk.",
+      "boundary_rule": "The routed result page is authoritative at exact boundaries; scores exactly 0.2 or 0.5 may route to either adjacent tier.",
+      "dashboard_snapshot": {"flow_entries": 36803, "scored_completions": 1751, "completion_rate_percent": 4.8, "average_score": 0.357, "low_risk_percent": 31.8, "medium_risk_percent": 25.2, "high_risk_percent": 43.0, "low_average": 0.756, "high_average": 0.069},
+      "risk_snapshot": [{"risk": "Low", "responses": 556, "average": 0.756, "minimum_displayed": 0.50}, {"risk": "Medium", "responses": 442, "average": 0.346, "minimum_displayed": 0.20}, {"risk": "High", "responses": 753, "average": 0.069, "minimum_displayed": 0.01}],
+      "interpretation_warning": "Most people who enter SBC do not produce a scored result; abandonment or recording failure is possible. Scored-result distributions must not be generalized to all SBC entrants."
+    },
+    "flow_c": {
+      "name": "Get Information without score",
+      "flow_type": "c",
+      "measure": "Completion of an information path without a calculated assessment score.",
+      "score": null,
+      "demographics": false,
+      "approximate_share_of_completions_percent": 24.0,
+      "interpretation_warning": "A c-flow result URL may still map to a persona/brain-health route, but that route does not represent a scored assessment."
+    }
+  },
+  "persona_and_routing": {
+    "routing_axes": ["Who", "Diagnosed", "Indicating Brain Health"],
+    "assessment_personas": [
+      {"label": "Self · Not Diagnosed · Good", "slug": "self-undx-good", "legacy_name": "Julia", "result_url": "/maintain-brain-health-1/", "brain_health": "Good", "who": "Self", "diagnosed": "Not Diagnosed"},
+      {"label": "Self · Not Diagnosed · Poor", "slug": "self-undx-poor", "legacy_name": "Ben", "result_url": "/address-memory-concerns-1/", "brain_health": "Poor", "who": "Self", "diagnosed": "Not Diagnosed"},
+      {"label": "Self · Diagnosed · Good", "slug": "self-dx-good", "legacy_name": "Meredith", "result_url": "/understand-next-steps-2/", "brain_health": "Good", "who": "Self", "diagnosed": "Diagnosed"},
+      {"label": "Self · Diagnosed · Poor", "slug": "self-dx-poor", "legacy_name": "Carol", "result_url": "/understand-next-steps-1/", "brain_health": "Poor", "who": "Self", "diagnosed": "Diagnosed"},
+      {"label": "Someone Else · Not Diagnosed · Good", "slug": "other-undx-good", "legacy_name": "Nicole", "result_url": "/guide-loved-ones-4/", "brain_health": "Good", "who": "Someone Else", "diagnosed": "Not Diagnosed"},
+      {"label": "Someone Else · Not Diagnosed · Poor", "slug": "other-undx-poor", "legacy_name": "Anson", "result_url": "/guide-loved-ones-3/", "brain_health": "Poor", "who": "Someone Else", "diagnosed": "Not Diagnosed"},
+      {"label": "Someone Else · Diagnosed · Good", "slug": "other-dx-good", "legacy_name": "Olivia", "result_url": "/guide-loved-ones-2/", "brain_health": "Good", "who": "Someone Else", "diagnosed": "Diagnosed"},
+      {"label": "Someone Else · Diagnosed · Poor", "slug": "other-dx-poor", "legacy_name": "Farah", "result_url": "/guide-loved-ones-1/", "brain_health": "Poor", "who": "Someone Else", "diagnosed": "Diagnosed"}
+    ],
+    "sbc_personas": [
+      {"label": "Self · Low Risk (SBC)", "slug": "self-sbc-low", "result_url": "/navigate-next-steps-1/", "brain_health": "Good", "who": "Self"},
+      {"label": "Self · Moderate Risk (SBC)", "slug": "self-sbc-med", "result_url": "/navigate-next-steps-2/", "brain_health": "Moderate", "who": "Self"},
+      {"label": "Self · High Risk (SBC)", "slug": "self-sbc-high", "result_url": "/navigate-next-steps-3/", "brain_health": "Poor", "who": "Self"}
+    ],
+    "routing_logic": "Who, diagnosis status, concern responses, and the flow-specific score category determine the result URL. Result URLs are then mapped to descriptive personas by persona_page_map.csv.",
+    "warning": "Good/Poor/Moderate is a product routing label and should not be called a diagnosis or clinical outcome."
+  },
+  "reports": [
+    {
+      "id": "questionnaire_journey_explorer",
+      "source_file": "braintree-evidence/reports/journey-explorer.md",
+      "dashboard_path": "/questionnaire/explorer/",
+      "what_it_measures": "A visual questionnaire journey map plus qCurrent event counts, inferred step drop-off, flow structure, and upload/configuration context.",
+      "why_it_exists": "Lets analysts see the branching paths through Intro, MIS, AD8, SBC, and Results/Common, locate high-volume nodes, and investigate where progression decreases.",
+      "population_and_grain": "Event-level questionnaire transitions and qCurrent arrivals summarized as nodes and directed edges; node volume represents events/users reaching a stage, not necessarily unique people unless the underlying query defines it.",
+      "coverage": "The captured view describes a selected month of 2026-07-04 through 2026-08-04 and a loaded backend dataset spanning November 2024 onward.",
+      "flow_legend": ["Intro (A)", "Myself (MIS)", "Someone Else (AD8)", "Speech (SBC)", "Results/Common (C)"],
+      "snapshot": {"nodes": 117, "transitions": 163, "events_in_selected_view": 352372, "loaded_rows": 537573, "loaded_data_start": "2024-11", "example_entry": "W-A1", "example_entry_volume": 26221, "example_next_step": "W-A2", "example_next_step_volume": 21734},
+      "qcurrent_definition": "A qCurrent event records arrival at a questionnaire screen via a button click. When there is no explicit exit event, inferred abandonment is the gap between the volume reaching one step and the volume reaching the next step.",
+      "controls": ["Date range", "Language", "Device", "Campaign", "Vertical/horizontal layout", "Event counts", "Node text", "Link visibility", "Step filter/sort", "Compare by device/language/campaign"],
+      "limitations": ["Inferred abandonment is not a directly observed exit.", "Event counts may not equal unique users without a user-level deduplication contract.", "The qCurrent explorer and the modeled questionnaire outcome reports use different grains and should not be silently combined.", "The markdown is a page synthesis rather than a raw export of all nodes/edges; use the dashboard/query source for complete graph rows."]
+    },
+    {
+      "id": "results_overview",
+      "source_file": "braintree-evidence/reports/Results Overview.pdf",
+      "dashboard_path": "/questionnaire/results/",
+      "what_it_measures": "The top-level questionnaire funnel, scored and non-scored outcomes, persona/brain-health routing, demographics, campaign attribution, and longitudinal activity.",
+      "why_it_exists": "This is the primary operational view of how many people start, receive a score, or complete the information path, and who reaches each result category.",
+      "population_and_grain": "One respondent-level modeled record summarized by date, questionnaire, flow, language, campaign/source, result, persona, and demographics; legacy pre-2024 data is monthly aggregate only.",
+      "coverage": "BrainGuide Standard January 2024–present; Go365 February 2025–present; legacy monthly tracking back to March 2021.",
+      "source": ["mart_questionnaire_funnel", "mart_questionnaire_responses", "mart_questionnaire_trend", "legacy tracking spreadsheet"],
+      "snapshot": {
+        "filtered_records": 72419,
+        "started": 93203,
+        "brain_health_good": 39463,
+        "brain_health_moderate": 168,
+        "brain_health_poor": 15142,
+        "brain_health_not_provided": 17646,
+        "score_completion_rate_percent": 77.7,
+        "good_percent_of_scored_outcomes": 72.0,
+        "poor_percent_of_scored_outcomes": 27.6,
+        "moderate_percent_of_scored_outcomes": 0.3,
+        "demographics_gender_percent": 79.0,
+        "demographics_age_percent": 77.0,
+        "demographics_race_percent": 75.0,
+        "persona_largest": {"persona": "Self · Not Diagnosed · Good", "responses": 35168, "percent_total": 48.6},
+        "sbc_not_provided_responses": 17211,
+        "latest_month_july_2026": {"brain_guide_standard_started": 24275, "brain_guide_standard_completed": 21943, "received_score": 7901, "got_information": 14042, "go365_started": 1306, "go365_completed": 1303, "go365_received_score": 644, "go365_got_information": 659}
+      },
+      "key_definitions": ["Started means any DynamoDB record, with start date based on earliest updatedAt.", "Received Score means AD8, MIS, or SBC scored completion.", "Got Information means flow c and no score.", "Demographic filters apply from Received Score downward; they are not available for all starters.", "The date filter uses started_date for funnel counts and completed_date for outcome/demographic analysis, so totals may not reconcile exactly."],
+      "limitations": ["Pre-2024 legacy data is monthly and not individual-level.", "SBC frequently has no result URL, producing Not provided.", "Brain-health labels derive from result URLs, not clinical diagnoses.", "Go365 is a separate questionnaire/table and should be segmented from BrainGuide Standard when appropriate."]
+    },
+    {
+      "id": "ad8_analysis",
+      "source_file": "braintree-evidence/reports/AD8 Analysis.pdf",
+      "dashboard_path": "/questionnaire/ad8/",
+      "what_it_measures": "Eight informant-reported changes in memory and daily functioning for someone else.",
+      "why_it_exists": "Shows caregiver/family concern patterns, score distribution, respondent demographics, campaign composition, and trends.",
+      "population_and_grain": "Completed AD8 respondents, summarized by question, score, persona, caregiver demographics, campaign, and month.",
+      "coverage": "Dashboard snapshot through 2026-08-06; source mart rebuilt daily; date domain offers 915 records/options and filtered view has 12,330 records.",
+      "snapshot": {"completions": 12330, "average_score": 4.17, "good_percent": 17.3, "poor_percent": 82.7, "high_concern_percent": 47.4, "demographics_percent": 91.0, "question_with_highest_yes_percent": "Q8 Daily problems with thinking or memory (71.0%)", "question_with_lowest_yes_percent": "Q5 Forgets correct month or year (25.8%)"},
+      "limitations": ["Caregiver demographics describe the respondent, not the subject.", "Not Sure is scored like No and may understate or overstate concern.", "All AD8 routes are Someone Else/caregiver personas.", "Product category is not a diagnosis."]
+    },
+    {
+      "id": "mis_analysis",
+      "source_file": "braintree-evidence/reports/MIS Analysis.pdf",
+      "dashboard_path": "/questionnaire/mis/",
+      "what_it_measures": "Self-administered memory performance using weighted free and cued recall.",
+      "why_it_exists": "Shows memory-screen distribution, word-set consistency, self-reported context, respondent demographics, campaign composition, and trends.",
+      "population_and_grain": "Completed MIS respondents, summarized by word set, score, persona, demographic, campaign, and month.",
+      "coverage": "Dashboard snapshot through 2026-08-06; source mart rebuilt daily; filtered view has 107,976 records.",
+      "snapshot": {"completions": 107976, "average_score": 6.28, "good_percent": 79.7, "poor_percent": 19.6, "demographics_percent": 92.0, "highest_large_word_set_average": {"set": "Flamingo / Lemonade / Pencil / Umbrella", "average": 6.52}, "lowest_large_word_set_average": {"set": "Cereal / Notebook / Penguin / Submarine", "average": 6.13}},
+      "limitations": ["Small Spanish word-set rows are unstable compared with large English sets.", "Self vs Someone Else text can be confusing in dashboard labels; MIS is self-administered in the defined flow.", "Good/Poor is a screen category, not a diagnosis."]
+    },
+    {
+      "id": "sbc_analysis",
+      "source_file": "braintree-evidence/reports/SBC Analysis.pdf",
+      "dashboard_path": "/questionnaire/sbc/",
+      "what_it_measures": "A continuous speech-based cognitive score and the resulting low/medium/high risk route.",
+      "why_it_exists": "Separates entry-to-scored-result completion from risk distribution and shows which populations/campaigns produce scored results.",
+      "population_and_grain": "SBC entrants for flow completion; scored SBC respondents for risk, demographics, campaigns, and trends.",
+      "coverage": "Dashboard snapshot through 2026-08-06; source mart rebuilt daily; score domain begins October 2024.",
+      "snapshot": {"flow_entries": 36803, "scored_completions": 1751, "completion_rate_percent": 4.8, "average_score": 0.357, "low_risk_percent": 31.8, "medium_risk_percent": 25.2, "high_risk_percent": 43.0},
+      "limitations": ["Only 4.8% of flow entries produced a scored result in this snapshot.", "Recording failure and abandonment are not distinguished.", "Scored respondents are a selected subset of entrants.", "Risk routing is not equivalent to diagnosis."]
+    },
+    {
+      "id": "scoring_reference",
+      "source_file": "braintree-evidence/reports/Scoring Reference.pdf",
+      "dashboard_path": "/questionnaire/scoring/",
+      "what_it_measures": "The semantic key for formulas, thresholds, flow types, result URLs, and personas.",
+      "why_it_exists": "Prevents an analyst or LLM from treating incompatible AD8, MIS, and SBC scales as one score or misreading a result URL.",
+      "population_and_grain": "Reference definitions rather than a single population table.",
+      "coverage": "Current routing and scoring definitions at capture time.",
+      "snapshot": {"assessment_personas": 8, "sbc_personas": 3, "flow_types": ["ad8", "mis", "sbc", "c"], "flow_c_approximate_share_percent": 24.0},
+      "limitations": ["Exact SBC boundary routing follows the captured result URL.", "The c flow has a result route but no score."]
+    },
+    {
+      "id": "top_content",
+      "source_file": "braintree-evidence/reports/Top Content.pdf",
+      "dashboard_path": "/content/top-content/",
+      "what_it_measures": "Pageviews, users, sessions, unique pages, page categories, locale, and unmapped URL slugs.",
+      "why_it_exists": "Shows what content attracts attention and whether page taxonomy or URL mapping needs maintenance.",
+      "population_and_grain": "GA4 page-level aggregate, primarily page path/title/category/locale over date.",
+      "coverage": "Historical GA4 Data API estimates before 2026-05-17; raw export thereafter; refreshed daily.",
+      "source": ["mart_top_content", "content_page_map.csv"],
+      "snapshot": {"pageviews": 516480, "users": 174486, "sessions": 182074, "unique_pages": 584, "unmapped_pages": 430, "english_pageviews": 487949, "spanish_pageviews": 28531, "english_percent": 94.5, "spanish_percent": 5.5, "top_categories": [{"category": "Home", "pageviews": 267120, "users": 69305}, {"category": "Result", "pageviews": 111261, "users": 19467}, {"category": "Hub", "pageviews": 54560, "users": 27326}, {"category": "Clinical Trials", "pageviews": 50422, "users": 38708}, {"category": "Find a Provider", "pageviews": 16168, "users": 13193}], "top_pages": [{"page": "Home", "pageviews": 265665, "users": 69018, "sessions": 70687}, {"page": "Maintain Brain Health 1", "pageviews": 79570, "users": 12923, "sessions": 13358}, {"page": "Clinical Trial Connector", "locale": "en", "pageviews": 44450, "users": 33716, "sessions": 34858}, {"page": "Brain Health Equity", "locale": "en", "pageviews": 23463, "users": 12814, "sessions": 14244}, {"page": "Brain Health Equity", "locale": "es", "pageviews": 19527, "users": 10028, "sessions": 11853}]},
+      "limitations": ["Before 2026-05-17, metrics were independently aggregated by the Data API and can have small inconsistencies.", "Unmapped URL count reflects taxonomy gaps, not necessarily missing traffic.", "Pageviews are not unique people."]
+    },
+    {
+      "id": "top_content_by_demographic",
+      "source_file": "braintree-evidence/reports/Top Content by Demographic.pdf",
+      "dashboard_path": "/content/top-content-by-demographic/",
+      "what_it_measures": "Content viewed by self-reported questionnaire demographic groups.",
+      "why_it_exists": "Supports within-group content affinity and access analysis, not site-wide population estimates.",
+      "population_and_grain": "Page path × demographic group, attributed by the dashboard's demographic-attribution model over GA4 user_pseudo_id records; this is not validated person-level linkage unless separately approved.",
+      "coverage": "Approximately 2026-05-24 onward; raw GA4 export only, because historical Data API data lacks session grain for linkage.",
+      "snapshot": {"pageviews": 9600, "users": 1964, "sessions": 2279, "unique_pages": 155, "top_categories": [{"category": "Hub", "pageviews": 2797, "users": 503, "share_percent": 29}, {"category": "Journey", "pageviews": 1603, "users": 204, "share_percent": 16}, {"category": "Clinical Trials", "pageviews": 1461, "users": 348, "share_percent": 15}, {"category": "Resources", "pageviews": 1400, "users": 306, "share_percent": 14}, {"category": "Find a Provider", "pageviews": 880, "users": 225, "share_percent": 9}]},
+      "limitations": ["Only users who reached demographic questions appear; this is a self-selected minority.", "Compare shares within groups, not raw counts across groups.", "The attribution rolls demographic answers to every page viewed by that user in the export window; it is not a page-level causal effect.", "Minimum sessions and small-cell suppression are essential."]
+    },
+    {
+      "id": "geographic_traffic",
+      "source_file": "braintree-evidence/reports/Geographic Traffic.pdf",
+      "dashboard_path": "/acquisition/geography/",
+      "what_it_measures": "GA4 users and sessions by country, US state/territory, and city, with population-normalized state reach.",
+      "why_it_exists": "Shows geographic reach and whether traffic is concentrated in or normalized differently across priority populations and regions.",
+      "population_and_grain": "GA4 user/session aggregates by geography and month.",
+      "coverage": "From 2024-11-06 onward via GA4 API/BigQuery; daily refresh.",
+      "source": ["dashboard lineage label: exact mart name to confirm", "2020 Census P1", "2020 ACS B01001"],
+      "snapshot": {"us_users": 620861, "us_sessions": 570877, "us_states_territories_reached": 81, "global_users": 690800, "global_sessions": 680393, "global_countries_reached": 211, "top_us_states_by_users": ["California", "Florida", "Texas", "New York", "Pennsylvania"], "top_us_cities_by_users": ["New York", "Los Angeles", "Chicago", "Phoenix", "Houston"]},
+      "formulas": {"users_per_100k_total": "Users ÷ state population × 100,000", "users_per_100k_65_plus": "Users ÷ (state population × 65+ percentage) × 100,000"},
+      "limitations": ["GA4 users are cookie/device-based and can be counted on multiple days.", "Geography is not a questionnaire demographic substitute.", "Puerto Rico is grouped into the US section for comparison.", "Population-normalized reach is descriptive, not service need or outcome."]
+    },
+    {
+      "id": "user_journeys",
+      "source_file": "braintree-evidence/reports/User Journeys.pdf",
+      "dashboard_path": "/content/user-journeys/",
+      "what_it_measures": "Immediate prior and next page views within sessions, arrivals, departures, exits, and device-specific page-sequence exit rates.",
+      "why_it_exists": "Shows navigation paths and where sessions stop producing another page view, including what happens after a result page.",
+      "population_and_grain": "Within-session ordered page-view sequence; page transition counts, not person-level journeys.",
+      "coverage": "Raw GA4 event export from 2026-05-17 onward.",
+      "source": ["dashboard lineage label: exact mart name to confirm", "raw GA4 event export"],
+      "snapshot": {"selected_page": "Home", "sessions_arriving": 64626, "landed_directly": 58021, "departures": 64800, "exits": 48300, "exit_rate_percent": 74.9, "top_next_page": "Maintain Brain Health 1 (10220 sessions)", "device_exit_rates": {"mobile": 74.7, "tablet": 80.2, "desktop": 62.8}},
+      "limitations": ["Exit rate is not bounce rate.", "Questionnaire steps, PDF saves, audio, and outbound clicks may happen without another page view.", "A page sequence does not prove intent or causality.", "Device counts have slight source/table reconciliation differences in the captured page and should be treated as dashboard aggregates, not hand-summed."]
+    },
+    {
+      "id": "site_events",
+      "source_file": "braintree-evidence/reports/Site Events.pdf",
+      "dashboard_path": "/content/site-events/",
+      "what_it_measures": "Inventory and total volume of named GA4 events, first-seen and last-seen dates, and lightweight event categories.",
+      "why_it_exists": "Makes instrumentation visible and helps identify what can or cannot support a metric contract.",
+      "population_and_grain": "Event name aggregate over the raw export; one row per event name.",
+      "coverage": "Raw GA4 export available from 2026-05-17; captured event table spans 2026-06-06 through 2026-08-04.",
+      "source": ["raw GA4 BigQuery export"],
+      "snapshot": {"total_events": 1760403, "distinct_event_names": 17, "largest_events": [{"event": "Questionnaire", "count": 676341}, {"event": "page_view", "count": 493035}, {"event": "userId", "count": 164668}, {"event": "session_start", "count": 145262}, {"event": "first_visit", "count": 127493}, {"event": "web_questionnaire_start", "count": 47172}, {"event": "web_questionnaire_finish", "count": 13642}, {"event": "outbound_click", "count": 9563}, {"event": "tailored_page_events", "count": 2862}, {"event": "file_download", "count": 195}]},
+      "limitations": ["Event volume is not unique users or completed actions.", "Questionnaire is a repeated event and must not automatically be used as a completion metric.", "Categories are analyst-derived, not native GA4 fields.", "Event semantics require an approved metric registry before AI use."]
+    },
+    {
+      "id": "result_pages",
+      "source_file": "braintree-evidence/reports/Result Pages.pdf",
+      "dashboard_path": "/content/result-pages/",
+      "what_it_measures": "Actions taken on persona/result pages: Save PDF, Email Results, audio, provider navigation, and related tailored-page engagement.",
+      "why_it_exists": "Measures post-assessment engagement with guidance and navigation options.",
+      "population_and_grain": "Action event aggregate by result persona, score family, brain-health label, language, device, and action type.",
+      "coverage": "November 2024 onward; GA4 Data API through 2026-05-17, raw BigQuery export from 2026-05-18 onward.",
+      "source": ["dashboard lineage label: exact mart name to confirm", "persona_page_map.csv"],
+      "snapshot": {"total_actions": 3286, "distinct_action_types": 7, "result_pages_with_activity": 12, "filtered_rows": 1344},
+      "limitations": ["Historical Data API portion lacks session-level deduplication.", "An action is intent/engagement unless its event semantics explicitly represent completion.", "Unmapped pages appear as Unknown and need mapping maintenance.", "English and Spanish are separate unless rolled up via en_slug."]
+    },
+    {
+      "id": "result_sharing",
+      "source_file": "braintree-evidence/reports/Result Sharing.pdf",
+      "dashboard_path": "/questionnaire/sharing/",
+      "what_it_measures": "Clicks on Share PDF via Email / Email Results and the keep-in-touch consent checkbox at share time.",
+      "why_it_exists": "Separates information sharing from explicit contactability consent without exposing email addresses.",
+      "population_and_grain": "One row per share click, summarized by result page, questionnaire, language, and month.",
+      "coverage": "June 2022 onward; longest historical dataset in the project.",
+      "source": ["raw_share-pdf-via-email", "stg_share_pdf", "mart_pdf_shares"],
+      "snapshot": {"filtered_shares": 3113, "opted_in": 225, "opt_in_rate_percent": 7.2, "questionnaire_breakdown": {"BrainGuideStandard": {"shares": 2689, "opted_in": 135, "rate_percent": 5.0}, "Go365": {"shares": 422, "opted_in": 89, "rate_percent": 21.1}, "Prevention": {"shares": 2, "opted_in": 1, "rate_percent": 50.0}, "note": "The Prevention questionnaire is discovered here but is not otherwise modeled."}, "largest_result_page": {"page": "/maintain-brain-health-1/", "shares": 2063, "opted_in": 103, "rate_percent": 5.0}},
+      "limitations": ["Share is not the same as contact consent; opt-in is the explicit consent signal.", "No email addresses are displayed or modeled.", "The dashboard cannot itself contact people.", "Do not join to GA4 people without approved linkage and governance."]
+    },
+    {
+      "id": "clinical_trials",
+      "source_file": "braintree-evidence/reports/Clinical Trials.pdf",
+      "dashboard_path": "/content/clinical-trials/",
+      "what_it_measures": "Visits to English/Spanish Clinical Trial Connector pages and outbound clicks to trial-matching links.",
+      "why_it_exists": "Measures interest in research navigation and the handoff from BrainGuide content to external trial resources.",
+      "population_and_grain": "Pageview visits and outbound click events by language, destination, and month.",
+      "coverage": "Visits from June 2025; outbound-click dimensions began May 2026.",
+      "source": ["mart_top_content", "mart_ga4_outbound_clicks"],
+      "snapshot": {"english_visits": 44450, "spanish_visits": 5972, "total_visits": 50422, "english_clicks": 7984, "spanish_clicks": 347, "total_clicks": 8331, "click_through_rate_percent": 16.5},
+      "limitations": ["CTR is clicks divided by visits, not a strict per-person conversion rate; a visit can produce multiple clicks.", "Pre-May-2026 clicks are incomplete or zero because custom outbound dimensions were not yet tracked.", "A click signals interest/intent, not enrollment or completed trial matching."]
+    },
+    {
+      "id": "find_a_provider",
+      "source_file": "braintree-evidence/reports/Find a Provider.pdf",
+      "dashboard_path": "/content/find-a-provider/",
+      "what_it_measures": "Visits to English/Spanish provider-finder pages and outbound clicks to Medicare, Isaac Health, and Synapticure.",
+      "why_it_exists": "Measures care-navigation interest and external provider referral handoff.",
+      "population_and_grain": "Pageview visits and outbound click events by language, destination, and month.",
+      "coverage": "Visits from April 2026; outbound-click dimensions began May 2026.",
+      "source": ["mart_top_content", "mart_ga4_outbound_clicks"],
+      "snapshot": {"english_visits": 15974, "spanish_visits": 194, "total_visits": 16168, "english_clicks": 1227, "spanish_clicks": 5, "total_clicks": 1232, "click_through_rate_percent": 7.6, "destination_share": {"medicare": 49.5, "isaac_health": 33.1, "synapticure": 17.4}},
+      "limitations": ["CTR is clicks divided by visits, not unique-person conversion.", "Outbound tracking is incomplete before May 2026.", "A click is referral intent, not an appointment or care outcome.", "Spanish volume is too small for stable comparative conclusions."]
+    },
+    {
+      "id": "data_mapping_reference",
+      "source_file": "braintree-evidence/reports/Data & Mapping Reference.pdf",
+      "dashboard_path": "/reference/data-reference/",
+      "what_it_measures": "Data freshness, mapping-seed definitions, raw source locations, and dbt/Evidence architecture.",
+      "why_it_exists": "Provides lineage and tells analysts how to interpret freshness, naming normalization, source boundaries, and update procedures.",
+      "population_and_grain": "Reference metadata, not an end-user population table.",
+      "coverage": "Current dashboard architecture at capture time.",
+      "snapshot": {"source_status_rows": 9, "mapping_seed_files": 8, "major_raw_source_groups": 5, "dbt_layers": ["Seeds", "Staging", "Marts"]},
+      "limitations": ["Evidence queries marts and cannot query raw sources directly.", "Mapping changes can change categories without changing underlying events.", "Freshness is cadence-aware and must be interpreted per source."]
+    },
+    {
+      "id": "monthly_report_generator",
+      "source_file": "braintree-evidence/reports/Monthly Report Generator.pdf",
+      "dashboard_path": "/reference/report-generator/",
+      "what_it_measures": "A presentation-oriented monthly/YTD summary of web sessions, visitors, questionnaire starts, questionnaire profile, and demographics.",
+      "why_it_exists": "Packages recurring dashboard metrics into a report-ready PowerPoint workflow.",
+      "population_and_grain": "Monthly web and questionnaire aggregates plus YTD profile tables.",
+      "coverage": "Available month selector includes 21 months; captured selected month is 2026-07.",
+      "snapshot": {"selected_month": "2026-07", "web_sessions_selected_month": 1536, "web_sessions_prior_year_month": 4901, "web_sessions_ytd": 256338, "web_visitors_all_time": 1331755, "questionnaire_started_selected_month": 25581, "questionnaire_started_prior_year_month": 2314, "questionnaire_started_ytd": 213005, "questionnaire_started_all_time": 688964},
+      "limitations": ["Presentation totals may use report-specific historical and current-source rules.", "PowerPoint generation requires a local report server and should not be treated as a separate analytical source."]
+    }
+  ],
+  "cross_report_findings": [
+    {
+      "id": "questionnaire_scale_and_completion",
+      "statement": "Questionnaire activity is large, but the denominators differ materially by flow.",
+      "evidence": ["Results Overview reports 93,203 starters and 72,419 filtered records.", "MIS reports 107,976 completions.", "AD8 reports 12,330 completions.", "SBC reports 36,803 flow entries but only 1,751 scored results (4.8%)."],
+      "safe_interpretation": "Use flow-specific populations and denominators. Never compare raw completion counts as if they were the same cohort."
+    },
+    {
+      "id": "result_routing_is_not_clinical_outcome",
+      "statement": "Good/Poor/Moderate values are derived from product routing and score categories.",
+      "evidence": ["Scoring Reference maps URLs/personas to brain-health labels.", "Results Overview explicitly says brain health is derived from result URL and is not a clinical diagnosis."],
+      "safe_interpretation": "Describe these as product result categories or screening routes."
+    },
+    {
+      "id": "spanish_access",
+      "statement": "Spanish web traffic exists but is much smaller than English traffic.",
+      "evidence": ["Top Content: Spanish is 5.5% of pageviews and 5.5% of users in the captured period.", "Find a Provider: 194 Spanish visits vs 15,974 English.", "Clinical Trials: 5,972 Spanish visits vs 44,450 English."],
+      "safe_interpretation": "This supports a language-access monitoring question, not a stable performance ranking of Spanish users."
+    },
+    {
+      "id": "content_and_action",
+      "statement": "Clinical-trial and provider pages have measurable outbound handoffs.",
+      "evidence": ["Clinical Trials: 50,422 visits and 8,331 outbound clicks, 16.5% visit-based CTR.", "Find a Provider: 16,168 visits and 1,232 outbound clicks, 7.6% visit-based CTR.", "Result Sharing: 3,113 shares and 225 explicit opt-ins."],
+      "safe_interpretation": "These are observable engagement or intent signals. They are not trial enrollment, appointments, or downstream care outcomes."
+    },
+    {
+      "id": "tracking_boundary",
+      "statement": "The raw GA4 export begins 2026-05-17 for event sequences and user journeys.",
+      "evidence": ["User Journeys and Site Events definitions.", "Top Content and Result Pages use longer historical Data API backfill with different limitations."],
+      "safe_interpretation": "Do not silently combine event-level post-May-17 sequence analysis with historical API aggregates as if the measurement process were identical."
+    }
+  ],
+  "known_contradictions_or_reconciliation_rules": [
+    {"issue": "PDF text extraction", "resolution": "Use PyMuPDF extraction. pypdf misread the embedded dashboard font and produced private-use glyphs in place of digits; the values in this artifact were re-extracted with PyMuPDF and spot-checked against rendered pages."},
+    {"issue": "Dashboard capture date vs data date", "resolution": "Capture timestamps are 2026-08-06, but source marts have different latest dates. Always use the report's source coverage and freshness metadata."},
+    {"issue": "Results Overview counts do not reconcile perfectly", "resolution": "Started uses started_date while outcome/demographic analysis uses completed_date; date windows and source populations differ. Follow the report's explicit sanity-check note."},
+    {"issue": "AD8 outcome rows do not sum to the completion KPI", "resolution": "The captured AD8 outcome table shows 10,170 Poor + 2,125 Good = 12,295 versus 12,330 completions, leaving 35 records not represented in those two outcome rows. Treat the KPI and outcome table as separate reported measures until the mart's missing/unclassified rule is confirmed."},
+    {"issue": "MIS outcome rows do not sum to the completion KPI", "resolution": "The captured MIS outcome table shows 21,159 Poor + 86,039 Good = 107,198 versus 107,976 completions, leaving 778 records not represented in those two outcome rows. Do not assume the remainder is Poor or Good; identify the missing/unclassified score rule in the source mart."},
+    {"issue": "SBC boundary and category names", "resolution": "Use result URL/routed tier at exact 0.2/0.5 boundaries; do not recompute a category from a rounded display score."},
+    {"issue": "Exit rate vs bounce rate", "resolution": "User Journeys exit means no next page_view in the session. It is not GA4 bounce rate and may be high when event-based interactions occur without page loads."},
+    {"issue": "Historical vs raw GA4", "resolution": "Pre-2026-05-17 or pre-2026-05-18 reports may be Data API aggregates without session-level deduplication; post-boundary raw export is internally more consistent."},
+    {"issue": "Not provided vs Prefer not to answer", "resolution": "Not provided can mean skipped/not collected/no result. Prefer not to answer is an explicit questionnaire option in some dimensions; education storage can make skipped and explicit refusal indistinguishable in marts."},
+    {"issue": "Top Content by Demographic attribution", "resolution": "Demographic answers are rolled to a user and attributed to every page viewed in the export window. Treat as within-group descriptive affinity, not user-level causal linkage."}
+  ],
+  "recommended_llm_behavior": {
+    "before_answering": [
+      "Identify the report and its population, grain, date coverage, and source.",
+      "Use the flow-specific scoring system; never merge AD8, MIS, and SBC scores.",
+      "State the numerator, denominator, and unit for any rate.",
+      "Check whether the period is historical Data API, raw GA4 export, DynamoDB, or a mixed source.",
+      "Apply suppression and mention small samples or missingness.",
+      "Use observed/comparative/hypothesis/not-assessable language rather than causal language."
+    ],
+    "safe_answer_template": {
+      "finding": "What was observed.",
+      "measure": "Metric, numerator, denominator, unit, grain, and period.",
+      "population": "Who is included and who is excluded.",
+      "why_it_matters": "Operational or product relevance, without overclaiming.",
+      "caveats": "Source, freshness, sample size, linkage, and clinical limitations.",
+      "next_action": "A validation or product action justified by the evidence."
+    },
+    "example": "Observed: SBC scored-result completion was 4.8% (1,751 / 36,803 entrants) in the captured selection. Why it matters: the largest operational issue is entry-to-recording completion, not merely the risk distribution among scored respondents. Caveat: the dashboard does not distinguish abandonment from recording failure, and scored respondents are a selected subset. Next action: validate recording errors and step-level events by device and language."
+  },
+  "source_inventory": [
+    "braintree-evidence/reports/AD8 Analysis.pdf", "braintree-evidence/reports/Clinical Trials.pdf", "braintree-evidence/reports/Data & Mapping Reference.pdf", "braintree-evidence/reports/Find a Provider.pdf", "braintree-evidence/reports/Geographic Traffic.pdf", "braintree-evidence/reports/MIS Analysis.pdf", "braintree-evidence/reports/Monthly Report Generator.pdf", "braintree-evidence/reports/Result Pages.pdf", "braintree-evidence/reports/Result Sharing.pdf", "braintree-evidence/reports/Results Overview.pdf", "braintree-evidence/reports/SBC Analysis.pdf", "braintree-evidence/reports/Scoring Reference.pdf", "braintree-evidence/reports/Site Events.pdf", "braintree-evidence/reports/Top Content by Demographic.pdf", "braintree-evidence/reports/Top Content.pdf", "braintree-evidence/reports/User Journeys.pdf", "braintree-evidence/reports/journey-explorer.md"
+  ]
+}
