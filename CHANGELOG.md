@@ -6,6 +6,18 @@
 
 ---
 
+## React/FastAPI migration — Phase 5 contract-complete; Task 0 is the next gate
+
+**Date:** 2026-08-06 | **Status:** Phase 5 spec (`migration/specs/phase-5-ga4-drive.md`) contract-consistent and ready for Task 0 — decisions D1–D5 settled, implementation details locked, three review contract fixes + scope-consistency fix applied | **Branch:** docs on `main`
+
+- **Decisions settled (D1–D5):** Picker iframe first (slide-out `drive/list` as the swappable follow-up); two separate consents (`analytics.readonly` · `drive.file`); GA4 pull shape locked — five canonical metrics × `date`, 90 complete days, daily grain; live opt-in smoke approved (D4 — owner provides a non-client test property + Drive account, never CI); Drive UI in the sidebar.
+- **Implementation details locked:** GA4 pull contract (server-owned request builder, ~90-row reality with pagination proven via mocked contract tests, provenance record, quota record-only from successful responses, 8-row typed error taxonomy with non-retryable `ga4_quota_exhausted`); Drive download hardening (disk-backed `NamedTemporaryFile`, declared + actual-byte caps, `trashed`/`canDownload` checks, worker-thread execution, `workspace_export_required` for Google-native files, **no upload-to-Drive**); Picker JIT/memory-only token (`no-store`, never revoked on close).
+- **Review contract fixes:** Picker-scoped token claim; canonical `{ request_id, file_id }` download payload with stale/duplicate rules; `ga4_connection_required`/409 vs `ga4_reconnect_required`/401 split; Sheets Picker UI filter; 3 runtime tests (stale request_id, token non-persistence, cancel-during-transfer); active Drive E2E matrix reconnects with `drive.file` only (`drive.readonly` confined to the deferred slide-out prose).
+- **Master-plan synced:** §9 Phase 5 bullets + E2E rows 3/8/6, §13 #7 (GA4 limits + pull contract) and #9 (Picker scopes/token); Phase 3 + Phase 6 STATUS banners added for status-table parity.
+- **Status flow:** Phase 4 ✅ DONE → Phase 5 🔵 ACTIVE (Task 0 research gates next; D1–D5 settled) → Phase 6 🔵 ACTIVE (non-blocking).
+
+---
+
 ## React/FastAPI migration — Phase 4 complete (Waves 4A + 4B); Phase 5 expanded
 
 **Date:** 2026-08-06 | **Status:** Phase 4 (React port) IMPLEMENTED + tested on `feat/react-fastapi-migration` (`075dfa4` + `ed94679`) — frontend check/build green, 17 vitest/MSW tests, Playwright Task 9 gate green against real FastAPI, 859 Python tests, guard exit 0 | **Branch:** code on `feat/react-fastapi-migration`; docs on `main`

@@ -12,7 +12,7 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 >
 > **Phase 4 is DONE** (`075dfa4` + `ed94679` on `feat/react-fastapi-migration`; frontend check/build green, 17 vitest/MSW tests, Playwright Task 9 gate green against real FastAPI, 859 Python tests, guard exit 0, hooks green). React port complete: Vite+TanStack Router+Tailwind v4 scaffold, `api.ts` snake→camel boundary normalization, drift-matrix store (server-owned state, no seeds), named-SSE chat reader + mounted Chat/AiSummary (Wave 4B), selective shadcn primitives, MSW tests, CI `frontend-port` + `frontend-port-e2e` jobs.
 >
-> **Next spec:** [`phase-5-ga4-drive.md`](phase-5-ga4-drive.md) — **EXPANDED — execution-ready pending Task 0 research gates + decisions D1–D5** (2026-08-06). GA4 OAuth (PKCE S256, server-owned) + Drive import (port of the hardened `drive_client` trust boundary), contract tests + Drive E2E matrix, React wiring into the Phase 4 shell. Task 0 research gates (GA4 feasibility + Drive browse-UX) must run and D1–D5 be settled before implementation begins.
+> **Next spec:** [`phase-5-ga4-drive.md`](phase-5-ga4-drive.md) — **EXPANDED — execution-ready pending Task 0 research gates** (decisions D1–D5 settled + implementation details locked 2026-08-06). GA4 OAuth (PKCE S256, server-owned) + Drive import (port of the hardened `drive_client` trust boundary), contract tests + Drive E2E matrix, React wiring into the Phase 4 shell. Task 0 research gates (GA4 feasibility + Drive browse-UX) must run before implementation begins.
 
 **Strategic authority:** `migration/master-plan.md` (phases, locked decisions, risk register). **Evidence authority:** `migration/archive/insights-explorer-migration-ingest.md` (Parts 1–4: synthesis, verbatim sources, live-verified research, reconciliation ledger). **Semantic authority:** `../../plans/ga4-measurement-contract.md` (metrics + metric-status consumption policy). This folder turns those into **task-ordered, executable instructions** — file-level steps, code, acceptance criteria, and per-phase gates.
 
@@ -20,7 +20,7 @@ The **tactical** layer of the React/FastAPI migration. Each phase of the migrati
 
 ## Why a suite, not a monolith
 
-A single "master implementation spec" would go stale: later phases depend on fresh external research (GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–4 (done); Phase 5 (GA4/Drive) and Phase 6 (cutover/hosting) are expanded to ACTIVE — execution-ready pending their Task 0 research gates/probes.
+A single "master implementation spec" would go stale: later phases depend on fresh external research (GA4/Drive before Phase 5, Cloud Run before Phase 6 — see the research queue in archive §3.12). Each phase file is therefore **expanded only when its gate opens**; before that it is a stub recording scope, inputs, research gates, and exit criteria. The fully executable files today are Phases 1–4 (done); Phase 5 (GA4/Drive) and Phase 6 (cutover/hosting) are expanded to ACTIVE — execution-ready pending their Task 0 research gates/probes (Phase 5 decisions D1–D5 settled + implementation details locked).
 
 ## Phase/spec status table
 
@@ -30,7 +30,7 @@ A single "master implementation spec" would go stale: later phases depend on fre
 | Phase 2 — utils decoupling (`phase-2-utils-decoupling.md`) | ✅ **DONE** | Closed 2026-08-06 — `8c66eea` on `feat/react-fastapi-migration`, 794 passed, guard exit 0, hooks green |
 | Phase 3 — AI/analysis (`phase-3-ai-analysis.md`) | ✅ **DONE** | Closed 2026-08-06 — `bb6f564` on `feat/react-fastapi-migration`, 859 passed (incl. 73 API contract tests), guard exit 0, hooks green. Task 0 countTokens probe verified `google-genai` 2.14.0 `client.models.count_tokens` |
 | Phase 4 — React port (`phase-4-react-port.md`) | ✅ **DONE** | Closed 2026-08-06 — `075dfa4` on `feat/react-fastapi-migration` (Waves 4A+4B: scaffold, boundary-normalized `api.ts`, drift-matrix store, named-SSE reader, mounted Chat/AiSummary, MSW+vitest 17 tests, Playwright Task 9 gate green, CI jobs) + `ed94679` (retry-duplicate fix). Frontend check/build/test green; 859 Python tests; guard exit 0 |
-| Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: Tasks 0–7 (research gates + probes, PKCE OAuth service/routes, Drive trust-boundary port, GA4 pull with contract provenance, browse path per D1, React wiring, contract tests + Drive E2E matrix, CI/guard). **Pending Task 0 research gates + owner decisions D1–D5 before implementation** |
+| Phase 5 — GA4/Drive (`phase-5-ga4-drive.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: Tasks 0–7 (research gates + probes, PKCE OAuth service/routes, Drive trust-boundary port, GA4 pull with contract provenance, browse path per D1, React wiring, contract tests + Drive E2E matrix, CI/guard). **Pending Task 0 research gates before implementation (decisions D1–D5 settled + implementation details locked 2026-08-06)** |
 | Phase 6 — cutover/hosting (`phase-6-cutover-hosting.md`) | 🔵 **ACTIVE — expanded, execution-ready** | Expanded 2026-08-06 from the stub: single-origin FastAPI-serves-Vite, one worker/container, multi-stage Docker, SPA fallback + cache headers, `__Host-` cookies, Redis sessions/locks for multi-instance, Cloud Run deploy, SSE serving, CI pipeline; pending Task 0 Cloud Run readiness probe |
 
 > **Branch-state note (2026-08-06):** Phase 1 + Phase 2 + Phase 3 + Phase 4 implementations are
@@ -58,7 +58,7 @@ Phase 0 gates are **closed** and recorded; the spec suite treats them as settled
 | 1 — Credential remediation | ✅ Closed 2026-08-06 | `../policies/env-rotation-checklist.md` (keys rotated/revoked, `.env` untracked in whisperer-30 and merged to `main` as `a4d72e8`, history scans clean) |
 | 2 — Migration branch + freeze | ✅ Closed 2026-08-06 | `../policies/branch-and-freeze-policy.md` (`feat/react-fastapi-migration` created + pushed; Streamlit feature freeze active on `main`) |
 | 6 — Retention/AI boundary | ✅ Closed 2026-08-06 | `../policies/data-retention-policy.md` §11 (five defaults approved by product owner) |
-| 7 — Vertical slice | 🟢 **Open** | This is the authorization to execute `phase-1-upload-slice.md` |
+| 7 — Vertical slice | ✅ **Closed 2026-08-06** | Authorized `phase-1-upload-slice.md` execution — Phase 1 shipped (`eaa6ac5` + `66c0f1d`, 782 tests, guard exit 0) |
 
 **Branch rule (frozen):** migration *product code* lands on `feat/react-fastapi-migration`; docs and index updates land on `main` (per `../policies/branch-and-freeze-policy.md`). The active spec's changes are committed to the migration branch; the suite's status flips are docs on `main`.
 
@@ -114,4 +114,4 @@ The three non-negotiable release gates (master-plan §14) map to each phase; eac
 | `../policies/*` | Cross-cutting tracks A–G |
 | `../../plans/ga4-measurement-contract.md` | Metric semantics + status policy (Phases 1, 5) |
 
-*Created 2026-08-06 per product-owner interview (suite-over-monolith decision). Suite is planning-only: no migration product code has been written. Active spec: `phase-1-upload-slice.md`.*
+*Created 2026-08-06 per product-owner interview (suite-over-monolith decision). Phases 1–4 implemented and closed on `feat/react-fastapi-migration`. Active spec: `phase-5-ga4-drive.md` (next executable phase — Task 0 research gates).*

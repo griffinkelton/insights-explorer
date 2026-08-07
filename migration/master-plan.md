@@ -182,6 +182,8 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 7. Phase 3 — Wire FastAPI to real utils (Week 3)
 
+> **STATUS: ✅ DONE (2026-08-06)** — `bb6f564` + `bcf4866` (review fixes) on `feat/react-fastapi-migration`. SSE chat (named events, `ai_lock` queue-wait → `ai_busy`, failure accounting), summary/forecast/funnel endpoints, per-session usage ledger, `ai_service` (deterministic context, identifier scrub, token guard, typed errors), async aio Gemini streaming, Task 0 countTokens probe (`google-genai` 2.14.0). Evidence: 859 tests (incl. 73 `tests/api`), guard exit 0, hooks green. Full record: `specs/phase-3-ai-analysis.md`.
+
 **Inputs:** plan Phase 3 + amendments · archive §3.4 (funnel nuance), §3.9 (Gemini SDK), §3.10 item 7 (model hygiene).
 
 **Goal:** replace mock/skeleton responses with real `utils/` calls.
@@ -226,7 +228,7 @@ Phase 6  Cutover, hosting (Cloud Run), retire     ┘
 
 ## 9. Phase 5 — GA4 OAuth + Drive Picker (Week 5)
 
-> **STATUS: 🔵 EXPANDED — execution-ready pending Task 0 research gates (decisions D1–D5 settled + implementation details locked 2026-08-06).** `specs/phase-5-ga4-drive.md` expanded from the stub: Tasks 0–7 (GA4 feasibility + Drive browse-UX research gates; PKCE S256 OAuth service/routes with transaction-cookie binding; Drive `download` trust-boundary port of `utils/drive_client.py`; GA4 `pull` with measurement-contract provenance; browse path per D1 (slide-out `files.list` vs Picker iframe); React wiring into the Phase 4 shell; contract tests + 12-row Drive E2E matrix + guard allowlist). Open decisions D1–D5 (§13 #7/#9 + owner choices) must be settled before implementation; research gates are the first implementation task, not a precondition for this document.
+> **STATUS: 🔵 EXPANDED — execution-ready pending Task 0 research gates (decisions D1–D5 settled + implementation details locked 2026-08-06).** `specs/phase-5-ga4-drive.md` expanded from the stub: Tasks 0–7 (GA4 feasibility + Drive browse-UX research gates; PKCE S256 OAuth service/routes with transaction-cookie binding; Drive `download` trust-boundary port of `utils/drive_client.py`; GA4 `pull` with measurement-contract provenance; browse path per D1 (slide-out `files.list` vs Picker iframe); React wiring into the Phase 4 shell; contract tests + 12-row Drive E2E matrix + guard allowlist). Open decisions D1–D5 are settled (§13 #7/#9 + owner choices, 2026-08-06); research gates are the first implementation task, not a precondition for this document.
 
 **Inputs:** plan Phase 5 + amendments (items 1–7) · archive §3.2 (PKCE), §3.3 (Picker), §3.4 (GA4), §3.6 (validateSearch) · F4 §8 (OAuth adapters) · `utils/ga4_client.py`, `utils/drive_client.py`, `components/drive_picker_component_frontend/`.
 
@@ -271,6 +273,8 @@ GA4 E2E: connect → pull → preview success path plus the OAuth error/cancel p
 ---
 
 ## 10. Phase 6 — Cutover, hosting, retire Streamlit (Week 6)
+
+> **STATUS: 🔵 EXPANDED — execution-ready pending Task 0 Cloud Run readiness probe (2026-08-06).** Spec `specs/phase-6-cutover-hosting.md` deepened from owner guidance: single-origin FastAPI-serves-Vite, one worker/container, multi-stage Docker, SPA fallback + cache headers, `__Host-` cookies, Redis sessions/locks for multi-instance, Cloud Run deploy, SSE serving, `/healthz` vs `/readyz`. **Non-blocking until Phase 5 closes.**
 
 **Inputs:** plan Phase 6 + amendments · `policies/dockerfile-pattern.md` (full) · `policies/test-layer-inventory.md` §4 (retirement checklist) · archive §3.10 item 3 (Cloud Run), §3.11 (Vercel eval).
 
