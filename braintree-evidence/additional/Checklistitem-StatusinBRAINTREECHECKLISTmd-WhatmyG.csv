@@ -1,0 +1,6 @@
+"Checklist item","Status in BRAINTREE_CHECKLIST.md","What my GA4 pull adds"
+"Q1 ""Who is BrainGuide reaching overall?""","Gate 1, GA4-answerable","Channel-mix baseline (~90% paid)"
+"Q9 ""Is Spanish-language access functional and used?""","Gate 2, partial (GA4 + questionnaire)","16,905 Spanish-language sessions vs. ~9/year questionnaire completions — a concrete linkage-gap number"
+"Q11 ""Which channels bring meaningful users?""","Gate 2","Channel × engagement/bounce table"
+"Q21 ""Device/browser experience""","Gate 1, partial (GA4-only)","Spanish sessions are 91% mobile vs. 71% for English"
+"Trust Layer T.2 (inference labels)","Required, unchecked","My supplement already used ""descriptive,"" ""blocked,"" ""associated"" — consistent with the required labeling scheme"

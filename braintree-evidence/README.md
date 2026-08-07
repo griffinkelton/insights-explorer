@@ -12,6 +12,7 @@ This directory is the evidence package for the BrainGuide analytics and demograp
 3. **[Equity protocol](./analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md)** — the implementation contract for measurement, funnel repair, mechanism validation, controlled UX/UI intervention, and outreach/outcome evaluation.
 4. **[Question and gate coverage matrix](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.md)** — the auditable answer-status map for all 25 client questions and the implementation gates. The canonical machine-readable source is [DEMOGRAPHIC_EQUITY_COVERAGE.json](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.json).
 5. **[Captured source reports](./reports/)** — the original PDF captures and the [journey explorer synthesis](./reports/md/artifacts/journey-explorer.md).
+6. **[Additional research archive](./additional/README.md)** — supplemental GA4 analysis, benchmark/funnel extracts, research prompts, presentation exports, and provenance conversations; mixed authority and confidential handling applies.
 
 ## What the client wants answered
 

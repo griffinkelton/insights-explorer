@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="slides-format" content="viewport">
+<title>MyBrainGuide.org — GA4 Executive Narrative & Analytics Maturity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+@theme {
+  --color-bg: #F8FAFC;
+  --color-bg-deep: #EFF6FF;
+  --color-surface: #FFFFFF;
+  --color-text: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748B;
+  --color-accent-1: #0891B2;
+  --color-accent-2: #34D399;
+  --color-accent-3: #F97316;
+  --color-glass-bg: rgba(255,255,255,0.85);
+  --color-glass-border: rgba(15,23,42,0.08);
+  --color-vignette: rgba(0,0,0,0.05);
+  --font-display: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+</style>
+<style>
+:root { --color-bg: #F8FAFC; --color-text: #0F172A; --glow-color-rgb: 8,145,178; }
+*,*::before,*::after{box-sizing:border-box;}
+html,body{background:var(--color-bg);margin:0;}
+body{font-family:var(--font-body);color:var(--color-text);overflow:hidden;height:100vh;width:100vw;}
+.deck{width:100vw;height:100vh;position:relative;}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;background:var(--color-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:scale(0.95);transition:opacity .7s ease,transform .7s ease;pointer-events:none;overflow:hidden;}
+.slide.active{opacity:1;transform:scale(1);pointer-events:all;}
+.slide>.content{position:relative;z-index:2;width:100%;max-width:1180px;padding:clamp(1.5rem,4vw,3.2rem);}
+.nav-controls{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:100;background:var(--color-glass-bg);backdrop-filter:blur(10px);padding:10px 24px;border-radius:40px;border:1px solid var(--color-glass-border);}
+.nav-btn{width:40px;height:40px;border:none;background:rgba(8,145,178,0.08);color:var(--color-accent-1);border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .3s;}
+.nav-btn:hover{background:rgba(8,145,178,0.18);}
+.slide-dots{display:flex;gap:6px;max-width:420px;flex-wrap:wrap;}
+.slide-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--color-glass-border);cursor:pointer;transition:background .3s,transform .3s;}
+.slide-dots .dot.active{background:var(--color-accent-1);transform:scale(1.3);}
+.slide-counter{font-size:.8rem;color:var(--color-text-muted);min-width:40px;text-align:center;}
+.reveal{opacity:0;transform:translateY(20px);}
+@keyframes float-slow{0%{transform:translate(0,0) scale(1);}25%{transform:translate(60px,-50px) scale(1.12);}50%{transform:translate(-40px,40px) scale(.9);}75%{transform:translate(50px,20px) scale(1.08);}100%{transform:translate(0,0) scale(1);}}
+@keyframes float-drift{0%{transform:translate(0,0) scale(1) rotate(0deg);}33%{transform:translate(-50px,-60px) scale(1.15) rotate(3deg);}66%{transform:translate(40px,30px) scale(.88) rotate(-2deg);}100%{transform:translate(0,0) scale(1) rotate(0deg);}}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-15px);}}
+.gradient-mesh{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);animation:float-slow 10s ease-in-out infinite;}
+.blob:nth-child(2){animation:float-drift 14s ease-in-out infinite;}
+.blob:nth-child(3){animation:float-slow 18s ease-in-out infinite reverse;}
+.slide::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");background-repeat:repeat;background-size:256px 256px;opacity:.02;mix-blend-mode:overlay;}
+.slide::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,var(--color-vignette) 100%);}
+.bar-row{display:flex;align-items:center;gap:14px;}
+.bar-label{width:150px;font-size:.85rem;font-weight:600;color:var(--color-text-secondary);flex-shrink:0;}
+.bar-track{flex:1;height:26px;background:rgba(15,23,42,0.06);border-radius:8px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:8px;transition:width 1s ease;}
+.bar-value{width:130px;font-size:.85rem;font-weight:700;color:var(--color-text);text-align:right;flex-shrink:0;}
+.stat-glow{text-shadow:0 0 24px rgba(var(--glow-color-rgb),0.25);}
+.src-note{font-size:.68rem;color:var(--color-text-muted);font-style:italic;}
+.heatmap-grid{display:grid;gap:5px;}
+.heatmap-cell{border-radius:10px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:64px;}
+.timeline-track{position:relative;padding-left:34px;}
+.timeline-track::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--color-accent-1),var(--color-accent-2),var(--color-accent-3));}
+.timeline-item{position:relative;padding-bottom:18px;}
+.timeline-dot{position:absolute;left:-34px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--color-surface);border:3px solid var(--color-accent-1);box-shadow:0 0 0 4px rgba(8,145,178,0.12);}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.2s!important;}}
+</style>
+</head>
+<body>
+<div class="mouse-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+<div class="deck">
+
+<div class="slide slide-1 active" data-slide="1">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:500px;height:500px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.14;"></div>
+    <div class="blob" style="width:320px;height:320px;bottom:-80px;left:-60px;background:var(--color-accent-2);opacity:.12;"></div>
+    <div class="blob" style="width:220px;height:220px;top:40%;left:15%;background:var(--color-accent-3);opacity:.08;"></div>
+  </div>
+  <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content text-center">
+    <div class="text-[100px] mb-4 animate-[float_3s_ease-in-out_infinite] reveal">🧠</div>
+    <h1 class="font-display text-[clamp(2rem,4.6vw,3.4rem)] font-black bg-linear-to-br from-accent-1 via-accent-2 to-accent-1 bg-clip-text text-transparent tracking-tight mb-3 reveal">The Story Behind the Numbers</h1>
+    <p class="text-[clamp(0.85rem,1.4vw,1.2rem)] font-medium text-text-secondary mb-2 reveal">MyBrainGuide.org — GA4 Narrative &amp; Analytics Maturity Review</p>
+    <p class="text-[clamp(0.7rem,1vw,0.95rem)] font-light text-text-muted tracking-[3px] uppercase reveal">YTD Traffic · Equity Coverage · Implementation Roadmap</p>
+  </div>
+</div>
+
+<div class="slide slide-2" data-slide="2">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-6">Three Questions This Deck Answers</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="reveal flex gap-4 items-start bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <div class="w-9 h-9 rounded-full bg-linear-to-br from-accent-1 to-accent-2 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
+        <div><p class="font-semibold text-text">What happened, and why?</p><p class="text-sm text-text-muted">YTD traffic surge, channel mix shift, engagement anomaly</p></div>
+      </div>
+      <div class="reveal flex gap-4 items-start bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <div class="w-9 h-9 rounded-full bg-linear-to-br from-accent-1 to-accent-2 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</div>
+        <div><p class="font-semibold text-text">What can we actually answer today?</p><p class="text-sm text-text-muted">Coverage map against the 25 client questions in scope</p></div>
+      </div>
+      <div class="reveal flex gap-4 items-start bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <div class="w-9 h-9 rounded-full bg-linear-to-br from-accent-1 to-accent-2 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</div>
+        <div><p class="font-semibold text-text">What has to happen next?</p><p class="text-sm text-text-muted">Data-readiness gates, timeline, and immediate priorities</p></div>
+      </div>
+      <div class="reveal flex gap-4 items-start bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <div class="w-9 h-9 rounded-full bg-linear-to-br from-accent-1 to-accent-2 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">+</div>
+        <div><p class="font-semibold text-text">Grounded in project history</p><p class="text-sm text-text-muted">Reqs &amp; checklist from insights-explorer, plus AHSR meeting record</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-3" data-slide="3">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;left:-100px;background:var(--color-accent-1);opacity:.08;"></div>
+    <div class="blob" style="width:300px;height:300px;bottom:-80px;right:-80px;background:var(--color-accent-3);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-1">Headline KPIs, YTD</h2>
+    <p class="text-text-muted reveal mb-5 text-sm">Jan 1 – Aug 6, 2026 vs. same period 2025</p>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Sessions</p>
+        <p class="text-[1.9rem] font-black text-accent-1 stat-glow" data-count="369900">0</p>
+        <p class="text-sm font-semibold text-accent-2 mt-1">▲ +302% YoY</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Page Views</p>
+        <p class="text-[1.9rem] font-black text-accent-1 stat-glow" data-count="1017607">0</p>
+        <p class="text-sm font-semibold text-accent-2 mt-1">▲ +702% YoY</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Engaged Sessions</p>
+        <p class="text-[1.9rem] font-black text-accent-1 stat-glow" data-count="348526">0</p>
+        <p class="text-sm font-semibold text-accent-2 mt-1">▲ +780% YoY</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Engagement Rate</p>
+        <p class="text-[1.9rem] font-black text-accent-3 stat-glow">94.2%</p>
+        <p class="text-sm font-semibold text-accent-3 mt-1">▲ +51.2 pts</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Pages / Session</p>
+        <p class="text-[1.9rem] font-black text-accent-1 stat-glow">2.75</p>
+        <p class="text-sm font-semibold text-accent-2 mt-1">▲ +99% YoY</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-xs uppercase tracking-wider text-text-muted mb-2">Homepage Entry Share</p>
+        <p class="text-[1.9rem] font-black text-accent-1 stat-glow">65%</p>
+        <p class="text-sm font-semibold text-text-muted mt-1">240,243 sessions</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-4" data-slide="4">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-1">2026 YTD Sessions by Channel</h2>
+    <p class="text-text-muted reveal mb-5 text-sm">369,900 total sessions — paid channels dominate the mix</p>
+    <div class="flex flex-col gap-3 reveal">
+      <div class="bar-row"><p class="bar-label">Cross-network</p><div class="bar-track"><div class="bar-fill" data-width="49.5" style="width:0%;background:linear-gradient(90deg,var(--color-accent-1),var(--color-accent-2));"></div></div><p class="bar-value">183,055 (49.5%)</p></div>
+      <div class="bar-row"><p class="bar-label">Display</p><div class="bar-track"><div class="bar-fill" data-width="25.4" style="width:0%;background:linear-gradient(90deg,var(--color-accent-1),var(--color-accent-2));"></div></div><p class="bar-value">94,137 (25.4%)</p></div>
+      <div class="bar-row"><p class="bar-label">Paid Search</p><div class="bar-track"><div class="bar-fill" data-width="16.5" style="width:0%;background:linear-gradient(90deg,var(--color-accent-1),var(--color-accent-2));"></div></div><p class="bar-value">61,100 (16.5%)</p></div>
+      <div class="bar-row"><p class="bar-label">Direct</p><div class="bar-track"><div class="bar-fill" data-width="3.0" style="width:0%;background:var(--color-accent-3);"></div></div><p class="bar-value">11,198 (3.0%)</p></div>
+      <div class="bar-row"><p class="bar-label">Organic Search</p><div class="bar-track"><div class="bar-fill" data-width="2.3" style="width:0%;background:var(--color-accent-3);"></div></div><p class="bar-value">8,383 (2.3%)</p></div>
+      <div class="bar-row"><p class="bar-label">Unassigned</p><div class="bar-track"><div class="bar-fill" data-width="1.9" style="width:0%;background:var(--color-text-muted);"></div></div><p class="bar-value">7,162 (1.9%)</p></div>
+      <div class="bar-row"><p class="bar-label">Referral</p><div class="bar-track"><div class="bar-fill" data-width="1.1" style="width:0%;background:var(--color-accent-3);"></div></div><p class="bar-value">4,216 (1.1%)</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-5" data-slide="5">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.09;"></div>
+    <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-60px;background:var(--color-accent-2);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-1 font-semibold reveal mb-2">The Campaign Story — Part 1</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">Cross-Network Didn't Grow — It Got Reclassified</h2>
+    <div class="grid grid-cols-2 gap-5">
+      <div class="reveal bg-surface shadow-md border-l-4 border-accent-1 rounded-r-xl p-5">
+        <p class="text-sm text-text-secondary mb-2">GA4's "Cross-network" bucket captures <span class="font-semibold text-text">Performance Max and Demand Gen</span> campaigns that serve one ad across Search, Display, YouTube, Gmail, and Discover.</p>
+        <p class="text-sm text-text-secondary">PMax adoption jumped from 60% to 71% of advertisers between 2024–2025 industry-wide.</p>
+      </div>
+      <div class="reveal bg-bg-deep border border-glass-border rounded-xl p-5 flex flex-col justify-center">
+        <p class="text-xs uppercase text-text-muted mb-2">What this explains</p>
+        <p class="font-semibold text-text mb-1">613 → 183,055 sessions (+29,762%)</p>
+        <p class="text-sm text-text-muted">Consistent with turning on/scaling an automated campaign — not organic growth. Also explains why Paid Search stayed flat.</p>
+      </div>
+    </div>
+    <p class="src-note reveal mt-5">Industry context: Hallam Agency, MRS Digital, SEOTesting analyses of GA4 cross-network behavior (2024–2026).</p>
+  </div>
+</div>
+
+<div class="slide slide-6" data-slide="6">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;left:-100px;background:var(--color-accent-2);opacity:.09;"></div>
+    <div class="blob" style="width:260px;height:260px;bottom:-60px;right:-60px;background:var(--color-accent-3);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-2 font-semibold reveal mb-2">The Campaign Story — Part 2</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">The Surge Lines Up With a Real Campaign Push</h2>
+    <div class="flex flex-col gap-2.5">
+      <div class="reveal border-l-4 border-accent-2 bg-surface shadow-md rounded-r-lg p-3.5">
+        <p class="font-semibold text-text text-sm">UsAgainstAlzheimer's ran a named BrainGuide campaign in Hispanic Heritage Month 2024</p>
+        <p class="text-xs text-text-muted">Targeted El Paso &amp; Phoenix, explicitly spotlighting MyBrainGuide.org with digital ads and community partners.</p>
+      </div>
+      <div class="reveal border-l-4 border-accent-1 bg-surface shadow-md rounded-r-lg p-3.5">
+        <p class="font-semibold text-text text-sm">CDC-funded National Healthy Brain Initiative has been active since 2020</p>
+        <p class="text-xs text-text-muted">5-year cooperative agreement funds tailored digital dissemination to Black and Latino communities.</p>
+      </div>
+      <div class="reveal border-l-4 border-accent-3 bg-surface shadow-md rounded-r-lg p-3.5">
+        <p class="font-semibold text-text text-sm">This reframes paid concentration as intentional outreach — with an open question</p>
+        <p class="text-xs text-text-muted">Is Cross-network/Display targeting actually reaching women, Black, and Hispanic audiences, per Client Question #2 &amp; #11 below?</p>
+      </div>
+    </div>
+    <p class="src-note reveal mt-4">Source: usagainstalzheimers.org press release (Oct 2024); Center for Brain Health Equity CDC cooperative agreement documentation.</p>
+  </div>
+</div>
+
+<div class="slide slide-7" data-slide="7">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.08;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;left:-50px;background:var(--color-accent-2);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-1 font-semibold reveal mb-2">Analytics Framework</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">Three Data Layers Have to Connect</h2>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="reveal bg-surface shadow-md border-t-4 border-accent-1 rounded-b-xl rounded-t-sm p-5 hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-2xl mb-2">📊</p>
+        <p class="font-semibold text-text mb-1">GA4 / GTM Behavior</p>
+        <p class="text-xs text-text-muted mb-2">Available now via OAuth connect</p>
+        <p class="text-sm text-text-secondary">Acquisition, navigation, engagement, device, session funnel.</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border-t-4 border-accent-2 rounded-b-xl rounded-t-sm p-5 hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-2xl mb-2">📋</p>
+        <p class="font-semibold text-text mb-1">Questionnaire / Evidence</p>
+        <p class="text-xs text-text-muted mb-2">Requires evidence connector (not yet built)</p>
+        <p class="text-sm text-text-secondary">Self-reported age, demographics, pathway, responses.</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border-t-4 border-accent-3 rounded-b-xl rounded-t-sm p-5 hover:-translate-y-1 hover:shadow-xl transition">
+        <p class="text-2xl mb-2">📮</p>
+        <p class="font-semibold text-text mb-1">SurveyMonkey Follow-Up</p>
+        <p class="text-xs text-text-muted mb-2">Opt-in cohort, ~353 invited</p>
+        <p class="text-sm text-text-secondary">Awareness change, confidence, satisfaction, care-seeking.</p>
+      </div>
+    </div>
+    <p class="reveal mt-5 text-sm text-text-secondary bg-bg-deep border border-glass-border rounded-xl p-4">GA4 demographic/geo fields are <span class="font-semibold text-text">behavioral context, not a substitute</span> for self-reported race, ethnicity, or gender — those live only in the questionnaire layer, and linkage between layers via a de-identified session ID is still an open technical question.</p>
+    <p class="src-note reveal mt-3">Source: braintree-reqs-2.md — GA4 Insights Engine design sketch, three-layer measurement model.</p>
+  </div>
+</div>
+
+<div class="slide slide-8" data-slide="8">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;left:-100px;background:var(--color-accent-3);opacity:.07;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;right:-50px;background:var(--color-accent-1);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-3 font-semibold reveal mb-2">Coverage Map</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-1">Only 6 of 25 Client Questions Are Answerable With GA4 Alone</h2>
+    <p class="text-text-muted reveal mb-4 text-sm">The other 19 require the questionnaire/demographic evidence connector — not yet built</p>
+    <div class="reveal heatmap-grid" style="grid-template-columns:180px repeat(3,1fr);">
+      <div></div>
+      <div class="text-center"><p class="text-xs font-bold uppercase text-text-secondary">Gate 1 — GA4 Now</p></div>
+      <div class="text-center"><p class="text-xs font-bold uppercase text-text-secondary">Gate 2 — Needs Demographics</p></div>
+      <div class="text-center"><p class="text-xs font-bold uppercase text-text-secondary">Gate 3 — Needs Survey</p></div>
+
+      <div class="flex items-center px-2"><p class="text-sm font-semibold text-text-secondary">Reach &amp; Acquisition</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(34,197,94,0.7),rgba(34,197,94,0.3));box-shadow:inset 0 0 12px rgba(34,197,94,0.2),0 0 8px rgba(34,197,94,0.15);"><p class="text-lg font-black text-text">4</p><p class="text-[10px] text-text-muted">#1,10,12,21</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(250,204,21,0.4),rgba(250,204,21,0.12));"><p class="text-lg font-black text-text">1</p><p class="text-[10px] text-text-muted">#11</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+
+      <div class="flex items-center px-2"><p class="text-sm font-semibold text-text-secondary">Funnel &amp; Journey</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(239,68,68,0.5),rgba(239,68,68,0.2));box-shadow:inset 0 0 12px rgba(239,68,68,0.15);"><p class="text-lg font-black text-text">5</p><p class="text-[10px] text-text-muted">#3,4,14,15,16</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+
+      <div class="flex items-center px-2"><p class="text-sm font-semibold text-text-secondary">Equity by Population</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(239,68,68,0.55),rgba(239,68,68,0.22));box-shadow:inset 0 0 12px rgba(239,68,68,0.18);"><p class="text-lg font-black text-text">6</p><p class="text-[10px] text-text-muted">#2,5,6,7,8,9</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+
+      <div class="flex items-center px-2"><p class="text-sm font-semibold text-text-secondary">Content &amp; Care Pathway</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(239,68,68,0.5),rgba(239,68,68,0.2));box-shadow:inset 0 0 12px rgba(239,68,68,0.15);"><p class="text-lg font-black text-text">5</p><p class="text-[10px] text-text-muted">#13,17,18,19,20</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+
+      <div class="flex items-center px-2"><p class="text-sm font-semibold text-text-secondary">Retention &amp; Outcomes</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08),rgba(255,255,255,0.02));"><p class="text-lg font-black text-text-muted">0</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(250,204,21,0.45),rgba(250,204,21,0.15));"><p class="text-lg font-black text-text">3</p><p class="text-[10px] text-text-muted">#22,23,25</p></div>
+      <div class="heatmap-cell" style="background:radial-gradient(circle at 35% 35%,rgba(59,130,246,0.5),rgba(59,130,246,0.2));box-shadow:inset 0 0 12px rgba(59,130,246,0.15);"><p class="text-lg font-black text-text">1</p><p class="text-[10px] text-text-muted">#24</p></div>
+    </div>
+    <p class="src-note reveal mt-4">Source: BRAINTREE_CHECKLIST.md — Top 25 Client Questions Coverage Map, mapped by data-readiness gate.</p>
+  </div>
+</div>
+
+<div class="slide slide-9" data-slide="9">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;right:-100px;background:var(--color-accent-2);opacity:.08;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;left:-50px;background:var(--color-accent-3);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-2 font-semibold reveal mb-2">Implementation Roadmap</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">Where the Analytics Engine Stands Today</h2>
+    <div class="flex flex-col gap-4 reveal">
+      <div>
+        <div class="flex justify-between text-sm mb-1"><p class="font-semibold text-text">Gate 0 — Data Readiness</p><p class="text-text-muted">0 / 6 tasks</p></div>
+        <div class="bar-track" style="height:20px;"><div class="bar-fill" data-width="0" style="width:0%;background:var(--color-accent-3);"></div></div>
+        <p class="text-xs text-text-muted mt-1">Metric registry, event taxonomy audit, relaunch crosswalk, quality gate, feasibility matrix, prompt-injection guard</p>
+      </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1"><p class="font-semibold text-text">Gate 1 — GA4 Descriptive Insights</p><p class="text-text-muted">6 / 10 tasks</p></div>
+        <div class="bar-track" style="height:20px;"><div class="bar-fill" data-width="60" style="width:0%;background:var(--color-accent-1);"></div></div>
+        <p class="text-xs text-text-muted mt-1">Trends, top pages, device split, anomalies, funnel, forecasting are live; reach summary and prompt injection still open</p>
+      </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1"><p class="font-semibold text-text">Gate 2 — Evidence Overlay (Equity)</p><p class="text-text-muted">0 / 8 tasks</p></div>
+        <div class="bar-track" style="height:20px;"><div class="bar-fill" data-width="0" style="width:0%;background:var(--color-accent-3);"></div></div>
+        <p class="text-xs text-text-muted mt-1">Requires the evidence connector — blocks 19 of 25 client questions, including all priority-population equity analysis</p>
+      </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1"><p class="font-semibold text-text">Gate 3 — Outcomes &amp; Evaluation</p><p class="text-text-muted">0 / 5 tasks</p></div>
+        <div class="bar-track" style="height:20px;"><div class="bar-fill" data-width="0" style="width:0%;background:var(--color-accent-3);"></div></div>
+        <p class="text-xs text-text-muted mt-1">Survey cohort reporting, dose-response, content-to-outcome, campaign evaluation, return-journey analysis</p>
+      </div>
+    </div>
+    <p class="src-note reveal mt-4">Source: BRAINTREE_CHECKLIST.md gate task tables, checked against completion markers.</p>
+  </div>
+</div>
+
+<div class="slide slide-10" data-slide="10">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:420px;height:420px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.09;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;left:-60px;background:var(--color-accent-2);opacity:.07;"></div>
+  </div>
+  <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-1 font-semibold reveal mb-2">Timeline — Part 1</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-6">Mission &amp; Campaign Context</h2>
+    <div class="timeline-track">
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-1);"></div><p class="text-xs font-bold text-accent-1 uppercase">2020</p><p class="font-semibold text-text">CDC funds the National Healthy Brain Initiative</p><p class="text-sm text-text-muted">5-year cooperative agreement; BrainGuide beta launches in English &amp; Spanish, built for equity from day one.</p></div>
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-2);"></div><p class="text-xs font-bold text-accent-2 uppercase">Sep 15 – Oct 15, 2024</p><p class="font-semibold text-text">Hispanic Heritage Month campaign spotlights MyBrainGuide.org</p><p class="text-sm text-text-muted">Targeted digital outreach in El Paso, TX and Phoenix, AZ, aligned with a national awareness moment.</p></div>
+      <div class="timeline-item reveal" style="padding-bottom:0;"><div class="timeline-dot" style="border-color:var(--color-accent-3);"></div><p class="text-xs font-bold text-accent-3 uppercase">Early March 2026</p><p class="font-semibold text-text">BrainGuide site relaunch</p><p class="text-sm text-text-muted">Same GA4 property; URLs unchanged but page names/UI shifted — every YoY trend in this deck straddles this break.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-11" data-slide="11">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:420px;height:420px;top:-100px;left:-100px;background:var(--color-accent-2);opacity:.09;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;right:-60px;background:var(--color-accent-3);opacity:.07;"></div>
+  </div>
+  <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-2 font-semibold reveal mb-2">Timeline — Part 2</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-6">This Engagement, in Real Time</h2>
+    <div class="timeline-track">
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-1);"></div><p class="text-xs font-bold text-accent-1 uppercase">June 2026</p><p class="font-semibold text-text">Questionnaire cohort of 353 respondents identified</p><p class="text-sm text-text-muted">Becomes the pilot sampling frame for the AHSR follow-up survey.</p></div>
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-2);"></div><p class="text-xs font-bold text-accent-2 uppercase">Jul 23, 2026</p><p class="font-semibold text-text">Griffin Kelton onboarded; GA4 access granted</p><p class="text-sm text-text-muted">Evidence dashboard scope confirmed: BrainGuide property only, self-reported (not GA-derived) demographics.</p></div>
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-3);"></div><p class="text-xs font-bold text-accent-3 uppercase">Jul 27, 2026</p><p class="font-semibold text-text">Survey recruitment email launches via MailChimp</p><p class="text-sm text-text-muted">Spanish-language contacts (~9 YTD) handled separately via direct outreach, not MailChimp.</p></div>
+      <div class="timeline-item reveal"><div class="timeline-dot" style="border-color:var(--color-accent-1);"></div><p class="text-xs font-bold text-accent-1 uppercase">Aug 6, 2026 — Today</p><p class="font-semibold text-text">This YTD snapshot</p><p class="text-sm text-text-muted">369,900 sessions; Gate 0 data-readiness work not yet started.</p></div>
+      <div class="timeline-item reveal" style="padding-bottom:0;"><div class="timeline-dot" style="border-color:var(--color-accent-2);"></div><p class="text-xs font-bold text-accent-2 uppercase">Sep 30, 2026</p><p class="font-semibold text-text">Final Report due to AHSR</p><p class="text-sm text-text-muted">Equity findings depend on the Gate 2 evidence connector landing before this date.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-12" data-slide="12">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-1">Channel Change, YoY</h2>
+    <p class="text-text-muted reveal mb-5 text-sm">Cross-network and Display explain nearly all of the growth</p>
+    <div class="reveal overflow-hidden rounded-xl border border-glass-border shadow-md">
+      <table class="w-full text-sm bg-surface">
+        <thead><tr class="bg-bg-deep text-text-secondary uppercase text-xs tracking-wide">
+          <th class="text-left p-3">Channel</th><th class="text-right p-3">2025</th><th class="text-right p-3">2026</th><th class="text-right p-3">Change</th>
+        </tr></thead>
+        <tbody>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Cross-network</td><td class="p-3 text-right">613</td><td class="p-3 text-right">183,055</td><td class="p-3 text-right font-bold text-accent-2">+29,762%</td></tr>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Display</td><td class="p-3 text-right">6,774</td><td class="p-3 text-right">94,137</td><td class="p-3 text-right font-bold text-accent-2">+1,290%</td></tr>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Paid Search</td><td class="p-3 text-right">65,129</td><td class="p-3 text-right">61,100</td><td class="p-3 text-right font-bold text-accent-3">−6.2%</td></tr>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Organic Search</td><td class="p-3 text-right">2,863</td><td class="p-3 text-right">8,383</td><td class="p-3 text-right font-bold text-accent-2">+193%</td></tr>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Referral</td><td class="p-3 text-right">2,876</td><td class="p-3 text-right">4,216</td><td class="p-3 text-right font-bold text-accent-2">+47%</td></tr>
+          <tr class="border-t border-glass-border"><td class="p-3 font-semibold">Direct</td><td class="p-3 text-right">9,200</td><td class="p-3 text-right">11,198</td><td class="p-3 text-right font-bold text-accent-2">+22%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-13" data-slide="13">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;left:-100px;background:var(--color-accent-2);opacity:.09;"></div>
+    <div class="blob" style="width:260px;height:260px;bottom:-60px;right:-60px;background:var(--color-accent-1);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-2 font-semibold reveal mb-2">The Depth Story</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">Small Channels, Deepest Trust</h2>
+    <div class="grid grid-cols-2 gap-5">
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <p class="text-xs uppercase text-text-muted mb-2">Referral — 1.1% of sessions</p>
+        <p class="font-semibold text-2xl text-accent-1 mb-1">~9:51 avg. session</p>
+        <p class="text-sm text-text-muted">Research on reaching Black and Latino communities on Alzheimer's finds trusted-partner referrals consistently outperform generic ads on engagement depth.</p>
+      </div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-5">
+        <p class="text-xs uppercase text-text-muted mb-2">Organic Search — 2.3% of sessions</p>
+        <p class="font-semibold text-2xl text-accent-1 mb-1">+193% YoY, ~5 min avg.</p>
+        <p class="text-sm text-text-muted">Benchmarking shows organic search typically carries the strongest engagement of any channel — underinvested relative to quality.</p>
+      </div>
+    </div>
+    <p class="reveal mt-5 text-sm text-text-secondary bg-bg-deep border border-glass-border rounded-xl p-4"><span class="font-semibold text-text">Read on this:</span> the highest-intent visitors arrive through the channels getting the least budget. Referral partnerships and SEO deserve real investment.</p>
+    <p class="src-note reveal mt-3">Sources: Gerontologist (2025); EAB and Wired Impact GA4 benchmarking studies.</p>
+  </div>
+</div>
+
+<div class="slide slide-14" data-slide="14">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-1">Top Entry Pages, YTD 2026</h2>
+    <p class="text-text-muted reveal mb-5 text-sm">Homepage dominates; clinical trials &amp; community content lead secondary entries</p>
+    <div class="flex flex-col gap-3 reveal">
+      <div class="bar-row"><p class="bar-label">Homepage (/)</p><div class="bar-track"><div class="bar-fill" data-width="100" style="width:0%;background:linear-gradient(90deg,var(--color-accent-1),var(--color-accent-2));"></div></div><p class="bar-value">240,243</p></div>
+      <div class="bar-row"><p class="bar-label">Clinical Trials</p><div class="bar-track"><div class="bar-fill" data-width="14.8" style="width:0%;background:var(--color-accent-1);"></div></div><p class="bar-value">35,453</p></div>
+      <div class="bar-row"><p class="bar-label">Brain Health Communities</p><div class="bar-track"><div class="bar-fill" data-width="6.7" style="width:0%;background:var(--color-accent-1);"></div></div><p class="bar-value">16,032</p></div>
+      <div class="bar-row"><p class="bar-label">Find a Provider</p><div class="bar-track"><div class="bar-fill" data-width="5.6" style="width:0%;background:var(--color-accent-1);"></div></div><p class="bar-value">13,365</p></div>
+      <div class="bar-row"><p class="bar-label">ES Brain Health page</p><div class="bar-track"><div class="bar-fill" data-width="5.5" style="width:0%;background:var(--color-accent-1);"></div></div><p class="bar-value">13,177</p></div>
+      <div class="bar-row"><p class="bar-label">/go365/</p><div class="bar-track"><div class="bar-fill" data-width="1.8" style="width:0%;background:var(--color-accent-3);"></div></div><p class="bar-value">4,400</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-15" data-slide="15">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;right:-100px;background:var(--color-accent-3);opacity:.08;"></div>
+    <div class="blob" style="width:280px;height:280px;bottom:-70px;left:-50px;background:var(--color-accent-1);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-3 font-semibold reveal mb-2">The Research Pathway</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">The 7 C's — Where the Chain Can Leak</h2>
+    <div class="grid grid-cols-4 gap-3 reveal">
+      <div class="bg-surface shadow-md border border-glass-border rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-1">1. Acquisition</p><p class="text-[11px] text-text-muted mt-1">→ Intent</p></div>
+      <div class="bg-surface shadow-md border border-glass-border rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-1">2. Intent</p><p class="text-[11px] text-text-muted mt-1">→ Pathway</p></div>
+      <div class="bg-surface shadow-md border border-glass-border rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-2">3. Pathway</p><p class="text-[11px] text-text-muted mt-1">→ Completion</p></div>
+      <div class="bg-surface shadow-md border-2 border-accent-3 rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-3">4. Profile → Rec.</p><p class="text-[11px] text-text-muted mt-1">GA4 alone can't see this</p></div>
+      <div class="bg-surface shadow-md border-2 border-accent-3 rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-3">5. Rec. → Action</p><p class="text-[11px] text-text-muted mt-1">Needs evidence connector</p></div>
+      <div class="bg-surface shadow-md border-2 border-accent-3 rounded-lg p-3 text-center"><p class="text-xs font-bold text-accent-3">6. Action → Outcome</p><p class="text-[11px] text-text-muted mt-1">Needs survey layer</p></div>
+      <div class="bg-surface shadow-md border-2 border-accent-3 rounded-lg p-3 text-center col-span-2"><p class="text-xs font-bold text-accent-3">7. Equity — repeat every step for women, Black, Hispanic/Latino, Spanish-language users</p></div>
+    </div>
+    <p class="reveal mt-5 text-sm text-text-secondary bg-bg-deep border border-glass-border rounded-xl p-4">Steps 1–3 are measurable with GA4 today. Steps 4–7 — the parts that matter most for AHSR's equity questions — require the questionnaire/survey linkage that doesn't exist yet. This is the single biggest blocker to the Sept 30 Final Report's equity findings.</p>
+    <p class="src-note reveal mt-3">Source: braintree-reqs-2.md, "Critical connections" and "7 C's" framework.</p>
+  </div>
+</div>
+
+<div class="slide slide-16" data-slide="16">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-5">The Typical Visitor Flow — and Why</h2>
+    <div class="flex items-center justify-between gap-3 reveal">
+      <div class="flex-1 bg-surface shadow-md border-l-4 border-accent-1 rounded-xl p-4 text-center"><p class="text-xs uppercase text-text-muted mb-1">Step 1</p><p class="font-semibold text-sm">Paid Acquisition</p><p class="text-xs text-text-muted mt-1">Cross-network / Display / Search</p></div>
+      <div class="text-2xl text-accent-1">→</div>
+      <div class="flex-1 bg-surface shadow-md border-l-4 border-accent-2 rounded-xl p-4 text-center"><p class="text-xs uppercase text-text-muted mb-1">Step 2</p><p class="font-semibold text-sm">Homepage Landing</p><p class="text-xs text-text-muted mt-1">65% of all sessions</p></div>
+      <div class="text-2xl text-accent-1">→</div>
+      <div class="flex-1 bg-surface shadow-md border-l-4 border-accent-3 rounded-xl p-4 text-center"><p class="text-xs uppercase text-text-muted mb-1">Step 3</p><p class="font-semibold text-sm">Topic Deep-Dive</p><p class="text-xs text-text-muted mt-1">Trials, provider finder, community</p></div>
+    </div>
+    <p class="reveal mt-5 text-sm text-text-secondary">Broad automated campaigns (PMax/Display) typically point to a homepage rather than topic-matched landing pages, which likely explains the homepage's 65% entry share even though trial and provider-finder content perform strongly once reached.</p>
+    <div class="mt-5 reveal bg-bg-deep border border-glass-border rounded-xl p-4">
+      <p class="text-sm text-text-secondary"><span class="font-bold text-accent-3">⚠ Data quality flag:</span> ~20,305 landing sessions carry malformed URLs (nested full-URL params, misspelled <code>utm_source=goole</code>), fragmenting true attribution — this is exactly the "URL hygiene" issue flagged in Gate 0.2 of the checklist.</p>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-17" data-slide="17">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:400px;height:400px;top:-100px;right:-100px;background:var(--color-accent-3);opacity:.09;"></div>
+    <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-60px;background:var(--color-accent-1);opacity:.07;"></div>
+  </div>
+  <div class="content">
+    <p class="text-xs uppercase tracking-[0.15em] text-accent-3 font-semibold reveal mb-2">The Engagement Puzzle</p>
+    <h2 class="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-bold reveal mb-5">94.2% Is Far Outside Normal Range</h2>
+    <div class="grid grid-cols-3 gap-4 reveal">
+      <div class="bg-surface shadow-md border border-glass-border rounded-xl p-4 text-center">
+        <p class="text-xs uppercase text-text-muted mb-2">Nonprofit median</p>
+        <p class="text-2xl font-black text-accent-1">43.2%</p>
+      </div>
+      <div class="bg-surface shadow-md border border-glass-border rounded-xl p-4 text-center">
+        <p class="text-xs uppercase text-text-muted mb-2">Higher-ed organic (top channel)</p>
+        <p class="text-2xl font-black text-accent-1">63.1%</p>
+      </div>
+      <div class="bg-surface shadow-md border-2 border-accent-3 rounded-xl p-4 text-center">
+        <p class="text-xs uppercase text-accent-3 font-semibold mb-2">MyBrainGuide 2026</p>
+        <p class="text-2xl font-black text-accent-3">94.2%</p>
+      </div>
+    </div>
+    <p class="reveal mt-5 text-sm text-text-secondary bg-bg-deep border border-glass-border rounded-xl p-4">A jump this far beyond benchmarks points to a <span class="font-semibold text-text">GA4 configuration change</span> — this is precisely the "key-event rate validation" concern flagged in the checklist's Gate 0.2 event taxonomy audit, which has not yet been run.</p>
+    <p class="src-note reveal mt-3">Sources: Wired Impact 2025 Nonprofit Benchmarks; EAB GA4 higher-ed analysis; BRAINTREE_CHECKLIST.md Gate 0.2.</p>
+  </div>
+</div>
+
+<div class="slide slide-18" data-slide="18">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-5">10 Reasoned Takeaways — Part 1</h2>
+    <div class="flex flex-col gap-2.5">
+      <div class="reveal border-l-4 border-accent-1 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">1. Traffic quadrupled — a funded campaign push</p><p class="text-xs text-text-muted">Sessions rose 302%, consistent with named campaigns and CDC-funded outreach, not organic drift.</p></div>
+      <div class="reveal border-l-4 border-accent-2 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">2. Pages/session nearly doubled — content-rich campaign design</p><p class="text-xs text-text-muted">Culturally tailored messaging favors multi-format, layered content.</p></div>
+      <div class="reveal border-l-4 border-accent-3 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">3. Cross-network exploded — GA4's PMax bucket, not new audience</p><p class="text-xs text-text-muted">613 → 183,055 sessions reflects a shift into Performance Max/Demand Gen campaign types.</p></div>
+      <div class="reveal border-l-4 border-accent-1 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">4. Display became a core engine — same automated-campaign effect</p><p class="text-xs text-text-muted">+1,290% growth mirrors broader PMax/Demand Gen adoption (60%→71%, 2024-2025).</p></div>
+      <div class="reveal border-l-4 border-accent-2 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">5. Paid Search flattened — budget reallocated, not lost</p><p class="text-xs text-text-muted">-6.2% YoY is the expected mirror image of the cross-network shift.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-19" data-slide="19">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:350px;height:350px;top:-80px;right:-80px;background:var(--color-accent-1);opacity:.06;"></div>
+    <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.05;"></div>
+  </div>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-5">10 Reasoned Takeaways — Part 2</h2>
+    <div class="flex flex-col gap-2.5">
+      <div class="reveal border-l-4 border-accent-3 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">6. Paid concentration (91.5%) is a targeting-transparency risk</p><p class="text-xs text-text-muted">Automated campaigns don't expose demographics — directly relevant to Client Question #2 and #11.</p></div>
+      <div class="reveal border-l-4 border-accent-1 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">7. Organic Search is under-scaled but proven to convert attention into time</p><p class="text-xs text-text-muted">+193% growth and ~5 min sessions align with benchmark data on organic performance.</p></div>
+      <div class="reveal border-l-4 border-accent-2 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">8. Referral is the most trusted channel — a known pattern in this field</p><p class="text-xs text-text-muted">~10 min average duration matches published trusted-messenger findings.</p></div>
+      <div class="reveal border-l-4 border-accent-3 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">9. Homepage dominance reflects broad-match campaign design</p><p class="text-xs text-text-muted">Automated campaigns default to homepage landings, diluting topic-level demand signals.</p></div>
+      <div class="reveal border-l-4 border-accent-1 bg-surface shadow-md rounded-r-lg p-3.5"><p class="font-semibold text-text text-sm">10. The 94.2% engagement rate needs a tracking audit before it's trusted</p><p class="text-xs text-text-muted">Far outside nonprofit (43%) and higher-ed (63%) benchmarks — a config change is the likely cause.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide slide-20" data-slide="20">
+  <div class="gradient-mesh">
+    <div class="blob" style="width:500px;height:500px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.13;"></div>
+    <div class="blob" style="width:320px;height:320px;bottom:-80px;left:-60px;background:var(--color-accent-2);opacity:.11;"></div>
+    <div class="blob" style="width:220px;height:220px;top:40%;left:15%;background:var(--color-accent-3);opacity:.08;"></div>
+  </div>
+  <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+  <div class="content">
+    <h2 class="font-display text-[clamp(1.6rem,3.2vw,2.4rem)] font-bold reveal mb-5 text-center">Immediate Next Steps</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-4"><p class="font-semibold text-text text-sm">🔧 Gate 0.1–0.4: Build the data quality gate</p><p class="text-xs text-text-muted mt-1">URL hygiene, bot detection, event taxonomy audit — fixes the malformed-URL and engagement-rate anomalies seen today.</p></div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-4"><p class="font-semibold text-text text-sm">📊 Gate 1.9: Pre-compute GA4 insights on connect</p><p class="text-xs text-text-muted mt-1">Store trends, top pages, anomalies, funnel, and forecast into a single insight object.</p></div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-4"><p class="font-semibold text-text text-sm">🔗 Gate 2.1–2.2: Build the evidence connector</p><p class="text-xs text-text-muted mt-1">Unlocks 19 of 25 client questions — the single highest-leverage build for the Sept 30 report.</p></div>
+      <div class="reveal bg-surface shadow-md border border-glass-border rounded-xl p-4"><p class="font-semibold text-text text-sm">🎯 Gate T.3: Build the Insights Inbox/dashboard</p><p class="text-xs text-text-muted mt-1">Every finding needs evidence strength, caveats, and drill-down before it reaches AHSR leadership.</p></div>
+    </div>
+    <p class="src-note reveal mt-4 text-center">Source: BRAINTREE_CHECKLIST.md — Immediate Next Steps section.</p>
+  </div>
+</div>
+
+</div>
+
+<div class="nav-controls">
+  <button class="nav-btn" onclick="changeSlide(-1)">‹</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" onclick="changeSlide(1)">›</button>
+  <span class="slide-counter" id="counter">1 / 20</span>
+</div>
+
+<script>
+let current=1;
+const total=document.querySelectorAll('.slide').length;
+const dotsContainer=document.getElementById('dots');
+const counter=document.getElementById('counter');
+for(let i=1;i<=total;i++){const dot=document.createElement('div');dot.className='dot'+(i===1?' active':'');dot.onclick=()=>goToSlide(i);dotsContainer.appendChild(dot);}
+function goToSlide(n){const prev=document.querySelector('.slide.active');const next=document.querySelector(`.slide[data-slide="${n}"]`);if(prev)prev.classList.remove('active');if(next){next.classList.add('active');animateSlide(next);}current=n;updateNav();}
+function changeSlide(dir){let next=current+dir;if(next<1)next=total;if(next>total)next=1;goToSlide(next);}
+function updateNav(){document.querySelectorAll('.dot').forEach((d,i)=>{d.classList.toggle('active',i+1===current);});counter.textContent=current+' / '+total;}
+document.addEventListener('keydown',(e)=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();changeSlide(1);}if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1);}});
+let touchStartX=0;
+document.addEventListener('touchstart',(e)=>{touchStartX=e.touches[0].clientX;});
+document.addEventListener('touchend',(e)=>{const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>50)changeSlide(diff>0?1:-1);});
+function animateSlide(slide){
+  slide.querySelectorAll('.reveal').forEach((el,i)=>{
+    el.style.transition='none';el.style.opacity='0';el.style.transform='translateY(20px)';el.offsetHeight;
+    const delay=i*0.06;
+    el.style.transition=`opacity 0.35s ease ${delay}s, transform 0.35s ease ${delay}s`;
+    el.style.opacity='1';el.style.transform='translateY(0px)';
+  });
+  animateSlideEffects(slide);
+}
+function animateSlideEffects(slide){
+  slide.querySelectorAll('[data-count]:not(.counted)').forEach(el=>{
+    el.classList.add('counted');
+    const target=parseInt(el.dataset.count);
+    let cur=0;const step=target/40;
+    const timer=setInterval(()=>{cur+=step;if(cur>=target){cur=target;clearInterval(timer);}el.textContent=Math.round(cur).toLocaleString();},30);
+  });
+  slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar,i)=>{
+    bar.classList.add('fill-init');
+    bar.style.width='0%';bar.style.transition=`width 0.8s ease ${i*0.06}s`;bar.offsetHeight;bar.style.width=bar.dataset.width+'%';
+  });
+}
+document.addEventListener('mousemove',(e)=>{
+  const spotlight=document.querySelector('.mouse-spotlight');
+  if(spotlight){const rgb=getComputedStyle(document.documentElement).getPropertyValue('--glow-color-rgb').trim()||'8,145,178';spotlight.style.background=`radial-gradient(600px circle at ${e.clientX}px ${e.clientY}px, rgba(${rgb}, 0.05), transparent 40%)`;}
+});
+window.initParticles=function(canvas,options){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+  const interactive=options.interactive!==false;
+  const count=options.count||(interactive?55:18);
+  let mx=-1000,my=-1000;
+  const rgb=getComputedStyle(document.documentElement).getPropertyValue('--glow-color-rgb').trim()||'8,145,178';
+  const [r,g,b]=rgb.split(',').map(Number);
+  const particles=Array.from({length:count},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,size:Math.random()*2.5+0.8,alpha:Math.random()*0.35+0.1}));
+  if(interactive){
+    canvas.addEventListener('mousemove',(e)=>{const rect=canvas.getBoundingClientRect();mx=e.clientX-rect.left;my=e.clientY-rect.top;});
+    canvas.addEventListener('mouseleave',()=>{mx=-1000;my=-1000;});
+  }
+  (function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      if(interactive){const dx=p.x-mx,dy=p.y-my,dist=Math.sqrt(dx*dx+dy*dy);if(dist<120){const force=(120-dist)/120*2;p.vx+=(dx/dist)*force*0.1;p.vy+=(dy/dist)*force*0.1;}}
+      p.vx*=0.98;p.vy*=0.98;p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+      if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${r},${g},${b},${p.alpha})`;ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  })();
+};
+document.querySelectorAll('.particle-canvas').forEach(c=>window.initParticles(c,{interactive:true,count:55}));
+document.querySelectorAll('.particle-canvas-ambient').forEach(c=>window.initParticles(c,{interactive:false,count:18}));
+try{animateSlide(document.querySelector('.slide.active'));}catch(e){console.warn('Initial animation error:',e);}
+</script>
+</body>
+</html>

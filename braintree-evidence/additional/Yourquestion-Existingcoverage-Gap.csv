@@ -1,0 +1,6 @@
+"Your question","Existing coverage","Gap?"
+"Q1 — reach/equity by priority population + age/geography/concern level","Maps to coverage matrix Q2, Q5, Q10","""Concern level"" as a reach-segmentation axis is new — not in the 25-question list"
+"Q2 (garbled) — completing questionnaire → seeking info → discussing with provider","Maps to Q3, Q15, Q17, Q20","Covered, no gap"
+"Q3 — where users advance/stall/disengage from engagement to care","Maps to Q4, Q14, Q19","Covered, no gap"
+"Q4 — awareness/attitudes/understanding influence","Maps directly to Q24","Covered, no gap"
+"Q5 — proportion of moderate/high concern users who seek clinical care","Closest existing: Q17, Q18","Neither Q17 nor Q18 segments by concern/risk level — this is genuinely new"

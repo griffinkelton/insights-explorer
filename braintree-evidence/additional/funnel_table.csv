@@ -1,0 +1,7 @@
+step,users_reaching,step_loss_pct,flag,note
+Landing (W-A1),26221,,,visitor/session
+W-A2,21734,17.1%,,questionnaire flow-select
+W-A5-A,17903,17.6%,,flow branch
+W-A3-B,9327,47.9%,HIGH — ~48% drop,flow branch
+MIS entry (W-B-MIS-1),8126,,,Myself flow start
+MIS step 9 (W-B-MIS-9),6876,15.4%,,"Myself flow, stable"
