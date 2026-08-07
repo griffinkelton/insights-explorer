@@ -6,7 +6,7 @@
 
 ## Purpose
 
-GA4 OAuth (connect/callback/pull) and Drive import. Both flows terminate server-side: Google redirects to **FastAPI** (`/api/v1/ga4/callback`), FastAPI validates PKCE/state and exchanges the code, then redirects the browser to React with only a safe `status`/`reason`. The browser never receives a provider token. Drive ingestion ports the existing hardened Python client (`utils/drive_client.py` — `download_drive_file` is ported/adapted, **not redesigned**; see master-plan §9 trust boundary). **Phase 5 Drive path is download-and-ingest only — no upload-to-Drive code** (a future export/backup feature opens a separate workstream; see Task 2).
+GA4 OAuth (connect/callback/pull) and Drive import. Both flows terminate server-side: Google redirects to **FastAPI** (`/api/v1/ga4/callback`), FastAPI validates PKCE/state and exchanges the code, then redirects the browser to React with only a safe `status`/`reason`. The browser never receives GA4 provider credentials, any refresh token, a client secret, or a persisted connection record. For Google Picker only, the browser temporarily receives a **currently valid, short-lived Drive access token in component memory immediately before Picker opens** (token-containment rules: Task 4). Drive ingestion ports the existing hardened Python client (`utils/drive_client.py` — `download_drive_file` is ported/adapted, **not redesigned**; see master-plan §9 trust boundary). **Phase 5 Drive path is download-and-ingest only — no upload-to-Drive code** (a future export/backup feature opens a separate workstream; see Task 2).
 
 **Local-first posture (master-plan principle 9):** in-memory `SessionStore`/`DatasetStore` remain acceptable through Phase 5 for local use. The OAuth transaction store follows the parked flow below and may use an in-memory ephemeral implementation keyed by the session (Redis arrives in Phase 6 for hosted/beta). **In-memory is insufficient as a *generic* state store only when multi-instance hosting starts** — not for single-process Phase 5.
 
@@ -149,7 +149,7 @@ Connect Google Drive — "Choose a CSV or spreadsheet from Google Drive for impo
 
 Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into `api/services/drive_service.py`:
 
-- **Input:** `file_id` only (+ Picker `request_id` for freshness) — never trust a client-provided filename, MIME type, or byte size (master-plan §9; archive §4.18).
+- **Input:** `{ request_id, file_id }` (canonical, locked) — **`file_id` is the only authority input**: never trust a client-provided filename, MIME type, or byte size (master-plan §9; archive §4.18). **`request_id`** binds the selection to the active server/session picker request — stale or duplicate `request_id` returns a typed non-retryable error, and a second selection can never replace the active dataset.
 - Server re-fetches metadata: `files.get(fields="id,name,mimeType,size,md5Checksum,trashed,capabilities(canDownload)")` — server-authoritative. Reject `trashed` files (`file_not_available`) and files without `capabilities.canDownload` (`download_not_allowed`).
 - MIME/suffix allowlist (`DRIVE_IMPORT_MIME_TYPES` — CSV/XLSX + Google-native) enforced server-side; React sheet checks are UX guidance only.
 - **Google-native Sheets are NOT auto-exported in Phase 5** — reject with typed `workspace_export_required` until an explicit export contract (allowlisted export MIME, row/size behavior, typed errors) is defined. That follow-up branch uses the same actual-byte cap + temp-file ownership; the **10 MB Sheets/docs export cap** applies there, not to Phase 5.
@@ -157,7 +157,7 @@ Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into 
 - **Disk-backed temp file, not an in-memory buffer:** stream via `MediaIoBaseDownload` (256 KiB chunks) into `NamedTemporaryFile(mode="w+b", suffix=<sanitized filename suffix>, prefix="insights-drive-", delete=False)` — raw 100 MB content never occupies process RAM before Pandas allocates its own parse structures (Phase 2 `_BoundedBytesIO` is the local-upload pattern; Drive downloads at the 100 MB cap need disk backing).
 - Google client code is **synchronous → run in a worker thread** (`anyio.to_thread.run_sync`) — never block the FastAPI event loop.
 - Parse through the existing unified ingestion adapter (filename semantics preserved by the temp suffix); **preserve the old dataset on every failure** (replace only on success). Delete the temp artifact in `finally`/exception path — deterministic cleanup, no orphaned client data after parser/provider/timeout/cancellation/validation failures.
-- **No Drive uploads in Phase 5** — download-and-ingest only. A future export/backup feature would open a separate workstream (Drive **resumable upload**, 256 KiB-multiple chunks, retry only transient 5xx, temp-file cleanup) — parked as reference, not Phase 5 scope.
+- **No Drive uploads in Phase 5** — download-and-ingest only. Explicit boundary: **no Drive export endpoint · no resumable upload · no app-created Drive folder · no report backup · no Drive write scope**. A future export/backup workstream would add resumable uploads only with an explicit retention, ownership, duplicate-prevention, and Drive-write-scope decision — parked as reference, not Phase 5 scope.
 - Typed errors reuse the Phase 1 upload taxonomy plus Drive-specific codes: `unsupported_type` / `too_large` / `empty_file` / `not_found` / `access_denied` / `download_failed` / `file_not_available` / `download_not_allowed` / `workspace_export_required`.
 - On success: ingest via the same `data_loader` path as local upload → set the active `DatasetContext` with `source: "drive"` and the server-fetched filename → clear derived state first (same semantics as a fresh local upload). Never log file content or full Drive metadata.
 
@@ -165,7 +165,7 @@ Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into 
 
 | Endpoint | Method | Contract |
 |---|---|---|
-| `/api/v1/drive/download` | POST | `{ file_id }` → `{ dataset }` (same wrapper shape as local upload); errors typed identically. |
+| `/api/v1/drive/download` | POST | `{ request_id, file_id }` (canonical, locked) → `{ dataset }` (same wrapper shape as local upload); `request_id` must match the active server/session picker request (stale/duplicate → typed non-retryable error); **only `file_id`** is used for Drive metadata/download authority — client filename/MIME/size ignored; errors typed identically. |
 | `/api/v1/drive/status` | GET | `{ configured: bool }` — reconnect affordance state. |
 | `/api/v1/drive/picker-token` | POST | **Only if Picker iframe (D1)** — JIT, browser-memory-only (see Task 4): `{ access_token, expires_at?, app_id }`; `Cache-Control: no-store` + `Pragma: no-cache`; CSRF/origin enforced; never revoked on Picker close; document Cloud Resource Manager API enablement; API key HTTP-referrer restricted. |
 | `/api/v1/drive/list` | GET | **Only if slide-out (D1)** — see Task 4. |
@@ -212,7 +212,8 @@ Provider tokens, raw OAuth metadata, and user identifiers never enter provenance
 | GA4/provider condition | Public result | Retry? |
 |---|---|---|
 | Invalid metric/dimension/date request | `ga4_invalid_report` / 422 | No |
-| Missing or expired GA4 connection | `ga4_connection_required` / 401 or 409 | No — reconnect |
+| No GA4 connection established | `ga4_connection_required` / 409 | No — connect first |
+| Stored credentials invalid/expired | `ga4_reconnect_required` / 401 | No — reconnect |
 | Permission denied for property | `ga4_access_denied` / 403 | No |
 | Property not found/unavailable | `ga4_property_unavailable` / 404 | No |
 | Rate-limited temporarily | `ga4_rate_limited` / 429 | At most one pre-response retry |
@@ -253,6 +254,16 @@ Retry only clearly transient transport/provider failures; never authorization, i
 - Server retains: refresh token, client secret, connection record, token refresh, download authority, session identity.
 - Selection → `POST /api/v1/drive/download` with `{ request_id, file_id }` (same trust boundary as Task 2).
 
+**Selection contract (canonical):**
+
+```json
+{ "request_id": "picker-request-uuid", "file_id": "google-drive-file-id" }
+```
+
+- `request_id` must match the active server/session picker request; stale or duplicate → typed non-retryable error (a second selection can never replace the active dataset).
+- Only `file_id` is used for Drive metadata/download authority; client filename, MIME type, and byte size are ignored.
+- **Sheets in the Picker UI:** initially filter to CSV/XLS/XLSX where possible, or visibly label Google Sheets as "not yet supported" — users must not select a Sheet only to discover `workspace_export_required` at the API boundary.
+
 **Either path:** **Import is the real integration seam** — the prototype's Import button only calls `loadData("drive · <name>")`; the port wires Import → `POST /api/v1/drive/download` → `data_loader` → dataset (master-plan §9; archive §4.17).
 
 ---
@@ -275,7 +286,7 @@ Retry only clearly transient transport/provider failures; never authorization, i
 - GA4: connect returns `{ authorization_url }` with PKCE params; callback invalid/expired/replayed state → typed 400; transaction-cookie mismatch → 400; exchange failure → `token_exchange_failed`; success rotates session; disconnect revokes; status reflects connection; metric-status provenance (`contract_row`/`validation_status`) present; unavailable rows never numeric.
 - GA4 pull — **pagination proven via mocks** (production ≈ 90 rows; no high-cardinality dimension added to force paging): `rowCount=90` → one page; `rowCount=20,001` → pages 10,000 + 10,000 + 1; empty report → no rows + valid provenance + `page_count=1`; second request `offset` = first page row count; no duplicate rows; final partial page handled.
 - GA4 pull — quota/errors: quota snapshot recorded from **successful** responses only (last successful snapshot retained); `ResourceExhausted` → typed **non-retryable** `ga4_quota_exhausted` with **no retry loop**; `ServiceUnavailable`/`InternalServerError` → at most one retry → `ga4_provider_unavailable`; `DeadlineExceeded` → `ga4_timeout`; invalid request → `ga4_invalid_report`; provenance `page_count`/`row_count`/`quota_observed` present; no tokens/raw rows logged with quota.
-- Drive: picker-token is JIT — `no-store`/`no-cache` headers, CSRF enforced, `expires_at` when available, token never revoked on close; **no Drive upload endpoints exist in Phase 5** (boundary test); `download` with forged filename/MIME/size metadata → server metadata wins; `trashed` → `file_not_available`; `canDownload=false` → `download_not_allowed`; MIME/suffix reject (`unsupported_type`); size caps (`too_large` — declared preflight **and** actual-byte counter during transfer); Google-native file → `workspace_export_required`; empty file; not-found; access-denied; success sets `source: "drive"` + server-fetched filename; temp artifact deleted in `finally` (no orphans); Clear Data removes drive-derived state but keeps OAuth connection.
+- Drive: picker-token is JIT — `no-store`/`no-cache` headers, CSRF enforced, `expires_at` when available, token never revoked on close; **no Drive upload endpoints exist in Phase 5** (boundary test); `download` with forged filename/MIME/size metadata → server metadata wins; `trashed` → `file_not_available`; `canDownload=false` → `download_not_allowed`; MIME/suffix reject (`unsupported_type`); size caps (`too_large` — declared preflight **and** actual-byte counter during transfer); Google-native file → `workspace_export_required`; empty file; not-found; access-denied; success sets `source: "drive"` + server-fetched filename; temp artifact deleted in `finally` (no orphans); Clear Data removes drive-derived state but keeps OAuth connection. **Runtime additions:** **duplicate/stale picker `request_id`** → second selection cannot replace the active dataset (typed non-retryable error; old dataset preserved); **picker-token non-persistence** → `no-store`/`no-cache` headers asserted, token never enters session metadata, logs, usage ledger, or API fixture output; **cancellation during Drive transfer** → temp artifact deleted and the prior dataset remains active.
 - Guard: `tests/test_credential_guard.py` allowlist additions for `GA4_*`/`DRIVE_*` env vars.
 
 **Drive E2E acceptance matrix (Playwright, master-plan §9):**
@@ -287,7 +298,7 @@ Retry only clearly transient transport/provider failures; never authorization, i
 | 3 | Drive permission expired | State `permission` → reconnect flow re-requests `drive.readonly` |
 | 4 | Unsupported file selected | Typed `unsupported_type` matching the upload taxonomy |
 | 5 | Client sends forged filename/MIME/size metadata | Backend re-fetches Drive metadata and rejects on mismatch |
-| 6 | Backend authority on metadata | `file_id` is the only client input; server `files.get` decides |
+| 6 | Backend authority on metadata | `file_id` is the only authority input (`request_id` is the picker-freshness binding); server `files.get` decides |
 | 7 | Binary CSV/XLSX import | Downloads server-side, parses, creates the active dataset |
 | 8 | Google-native Sheet | Phase 5: typed `workspace_export_required` (export contract deferred; the 10 MB export cap applies to the future branch) |
 | 9 | Size limit enforcement | 100 MB ingestion policy enforced server-side |
