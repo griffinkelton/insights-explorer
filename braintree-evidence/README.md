@@ -11,8 +11,9 @@ This directory is the evidence package for the BrainGuide analytics and demograp
 2. **[Demographic disparity analysis](./analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md)** — analyzes the observed White-heavy questionnaire composition, Black and Hispanic/Latino reach signals, Spanish-language access, possible mechanisms, external research, and recommendations beginning with UX/UI and copy.
 3. **[Equity protocol](./analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md)** — the implementation contract for measurement, funnel repair, mechanism validation, controlled UX/UI intervention, and outreach/outcome evaluation.
 4. **[Question and gate coverage matrix](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.md)** — the auditable answer-status map for all 25 client questions and the implementation gates. The canonical machine-readable source is [DEMOGRAPHIC_EQUITY_COVERAGE.json](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.json).
-5. **[Captured source reports](./reports/)** — the original PDF captures and the [journey explorer synthesis](./reports/md/artifacts/journey-explorer.md).
-6. **[Additional research archive](./additional/README.md)** — supplemental GA4 analysis, benchmark/funnel extracts, research prompts, presentation exports, and provenance conversations; mixed authority and confidential handling applies.
+5. **[Comprehensive supplemental Q1–Q5 report](./reports/md/COMPREHENSIVE_SUPPLEMENTAL_ANALYSIS_Q1-Q5.md)** — the latest cross-source synthesis answering reach/equity, action, pathways, awareness, and care-progression questions with external research and explicit evidence limits.
+6. **[Captured source reports](./reports/)** — the original PDF captures and the [journey explorer synthesis](./reports/md/artifacts/journey-explorer.md).
+7. **[Additional research archive](./additional/README.md)** — supplemental GA4 analysis, benchmark/funnel extracts, research prompts, presentation exports, and provenance conversations; mixed authority and confidential handling applies.
 
 ## What the client wants answered
 
@@ -70,6 +71,7 @@ braintree-evidence/
 - [Demographic equity protocol](./analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md)
 - [Equity coverage matrix](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.md)
 - [Journey explorer](./reports/md/artifacts/journey-explorer.md)
+- [Comprehensive supplemental Q1–Q5 report](./reports/md/COMPREHENSIVE_SUPPLEMENTAL_ANALYSIS_Q1-Q5.md)
 
 ### Machine-readable artifacts and reproducibility
 

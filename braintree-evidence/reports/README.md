@@ -10,7 +10,9 @@ This directory contains the captured source material used by the BrainGuide evid
 
 ## Supplemental Markdown artifacts
 
-The Markdown artifacts include acquisition, organic search, site traffic, questionnaire results, report-specific analyses, mapping references, journey behavior, and resource-path summaries. They are aggregate research records and contain no intended raw respondent-level data, credentials, or secrets.
+- [`COMPREHENSIVE_SUPPLEMENTAL_ANALYSIS_Q1-Q5.md`](./md/COMPREHENSIVE_SUPPLEMENTAL_ANALYSIS_Q1-Q5.md) — the 2026-08-07 supplemental synthesis answering the five priority questions across reach/equity, action, pathways, awareness, and care progression. It layers the canonical reports with all `additional/` material and external/official research, and labels observed versus associated, hypothesized, experiment-supported, and not-assessable claims.
+
+The remaining Markdown artifacts include acquisition, organic search, site traffic, questionnaire results, report-specific analyses, mapping references, journey behavior, and resource-path summaries. They are aggregate research records and contain no intended raw respondent-level data, credentials, or secrets.
 
 ## Provenance rules
 
