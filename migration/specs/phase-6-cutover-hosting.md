@@ -1,6 +1,7 @@
 # Phase 6 — Cutover, Hosting, Retire Streamlit
 
-> 🔵 **ACTIVE — expanded from the stub (2026-08-06) with owner guidance; execution-ready after Task 0 (Cloud Run readiness probe).**
+> 🔵 **ACTIVE — expanded + deepened (2026-08-06) for execution after Phase 5; pending Task 0 (Cloud Run readiness probe).**
+> **Phase 5 (GA4 OAuth + Drive import) is DONE** (`f032c9b` on `feat/react-fastapi-migration`) — Task 6/7/10 must migrate the *real* Phase 5 artifacts enumerated in [Post-Phase-5 reality](#post-phase-5-reality-2026-08-06--what-phase-6-must-change).
 > Refined round 2 (2026-08-06): Redis lock implementation detail (single-instance lease lock, not
 > Redlock), Redis failure typing (503 vs SSE), healthz/readyz, TTL-first cleanup + BackgroundTasks
 > policy, and the OAuth transaction flow parked from owner guidance.
@@ -26,6 +27,33 @@ and retire the Streamlit app. Architecture decisions recorded 2026-08-06 from ow
   OAuth state out of process memory; datasets/exports stay in object/durable storage.
 ```
 
+## Owner decisions (2026-08-06)
+
+| Decision | Answer | Consequence for this spec |
+|---|---|---|
+| D4 live Google smoke | **Keep explicitly pending** — no sandbox credentials yet | Phase 5 stays closed on the no-credential wiring gate; the `E2E_REAL_GOOGLE=1` smoke becomes a **pre-hosted-beta exit gate** (Task 10), never a Phase 6 code blocker |
+| Hosting target | **Cloud Run** (as planned) | Tasks 0/2/3/7/8 unchanged; Nginx (Task 9) stays the documented alternative only |
+| Redis timing | **Local stays in-memory; Redis arrives at the first hosted beta** (even a single replica) | Task 6 is executed as part of the beta bring-up, not at arbitrary multi-instance scaling; the Docker/runtime/SPA/cookie work (Tasks 1–5) ships in-memory first |
+| Production domain | **Not yet — use `<app-domain>` placeholders** | Redirect allowlist, Picker referrer restriction, `__Host-` cookie, and `FRONTEND_URL`/`API_CORS_ORIGINS` stay parameterized; filled at deployment time |
+| Streamlit retirement | **Private rollback window ≈ 2 weeks** after parity, then archive | Task 10 keeps the private-running Streamlit path for the window, then archives whisperer-30 with a fold-in note |
+
+## Post-Phase-5 reality (2026-08-06) — what Phase 6 must change
+
+Phase 5 shipped the GA4/Drive OAuth + import vertical slice (`f032c9b`). These implemented
+artifacts define exactly what Phase 6 migrates — nothing below is speculative:
+
+| Phase 5 artifact | Current state (`f032c9b`) | Phase 6 fate |
+|---|---|---|
+| `api/stores/oauth_store.py` (`oauth_transactions`) | In-memory TTL store with `put` (NX) / `get_and_delete` / `peek`; key `ie:oauth:state:<sha256(state)>`; 10-min TTL | **Redis swap, same interface** (Task 6) — Redis `GETDEL` (or the Lua get-and-delete fallback); `ga4.py` routes unchanged |
+| `api/stores/session_store.py` sessions | In-memory; carry `ga4_credentials` / `drive_credentials` (Fernet blobs), `dataset_id`, `metadata`, `usage_ledger` | Redis session JSON (Task 6); token blobs stay server-side only, never in the browser |
+| Token encryption (`ga4_service.encrypt_tokens`) | Fernet key **derived from `API_SESSION_SECRET`** (`sha256`) | Keep the derivation; **rotating `API_SESSION_SECRET` forces all users to reconnect** — document in the rotation checklist; optional hardening item: dedicated `TOKEN_ENCRYPTION_KEY` secret |
+| OAuth transaction cookie `insights_oauth_txn` | `secure=False` (local HTTP) | `secure=True` behind Cloud Run via `COOKIE_SECURE=true`; same for the session cookie (Task 4) |
+| OAuth redirect URI | Single allowlisted `GA4_REDIRECT_URI` | Prod value = `https://<app-domain>/api/v1/ga4/callback` — Google console allowlist must match exactly |
+| Picker API key (`VITE_GOOGLE_PICKER_API_KEY`) | Frontend env var, ships in the bundle | **Baked at build time** from a CI secret (build arg) — never a runtime env var; restrict the key to the production HTTP referrer in Google Cloud console |
+| GA4/Drive secrets | `GA4_CLIENT_ID` / `GA4_CLIENT_SECRET` / `GA4_PROPERTY_ID` / `GOOGLE_CLOUD_PROJECT_NUMBER` / `DRIVE_ENABLED` / `GA4_ENABLED` / `drive_download_timeout_seconds` | Secret Manager (Task 7); `*_ENABLED` stay env vars |
+| CSRF / same-origin | `enforce_same_origin_unsafe` implemented (Phase 5) | Configure the production origin allowlist (`api_cors_origins`); add a CSRF token/header only if a cross-site topology appears |
+| Live Google smoke | Pending D4 sandbox credentials (`E2E_REAL_GOOGLE=1`, never CI) | Run **before** the hosted beta (exit gate — not a Phase 6 code blocker) |
+
 ## Inputs / source documents
 
 - master-plan §10 (Phase 6), §11-E (CI/CD), §12 (SPA fallback in `api/main.py`), §13 (open
@@ -35,6 +63,7 @@ and retire the Streamlit app. Architecture decisions recorded 2026-08-06 from ow
 - `../policies/data-retention-policy.md` (hosted retention controls)
 - Phase 3 spec — SSE contract, typed errors, `ai_busy`, timeouts (Task 5 of this spec serves it)
 - Phase 4 spec — `frontend/dist` build, `API_BASE = "/api/v1"`, `credentials: "include"`
+- Phase 5 spec — implemented GA4/Drive OAuth + import (`f032c9b`): `oauth_store.py`, session `ga4_credentials`/`drive_credentials`, `insights_oauth_txn` cookie, Picker env var, `enforce_same_origin_unsafe`
 
 ## Tracks consumed
 
@@ -288,11 +317,18 @@ uvicorn api.main:app --host 0.0.0.0 --port 8080 --proxy-headers \
   --forwarded-allow-ips="127.0.0.1"
 ```
 
-**CSRF (same-origin SPA):** validate `Origin` on cookie-authenticated unsafe methods
-(POST/PUT/PATCH/DELETE) against the configured public origin; add a CSRF token/header before a
-hosted beta if cross-site exposure is possible. OAuth state/PKCE validation stays server-side.
-Never put Google/Gemini/Drive/session credentials in React state, Vite env vars, or browser
-storage.
+**CSRF (same-origin SPA):** `enforce_same_origin_unsafe` (POST/PUT/PATCH/DELETE `Origin`
+check) is **already implemented** (Phase 5) — Phase 6 configures the production public origin
+(`api_cors_origins` = `https://<app-domain>`; `""` disables cross-origin API access). Add a CSRF
+token/header before a hosted beta **only if** a cross-site topology appears. OAuth state/PKCE
+validation stays server-side. Never put Google/Gemini/Drive/session credentials in React state,
+Vite env vars, or browser storage.
+
+**OAuth transaction cookie (Phase 5):** `insights_oauth_txn` (HttpOnly, `SameSite=Lax`, 10-min)
+must follow the same local/prod split — `secure=True` in production via `COOKIE_SECURE=true`.
+The OAuth redirect allowlist in Google Cloud must be the production
+`https://<app-domain>/api/v1/ga4/callback` **exactly** (a second console entry is allowed for
+the local dev redirect while developing against real Google, never in CI).
 
 ---
 
@@ -321,8 +357,11 @@ chunks usually provide enough activity; add a `: keepalive` comment line (or
 
 ## Task 6 — Redis (Memorystore): sessions, locks, OAuth state, failure handling
 
-**Do this only when enabling multi-instance/workers.** Redis is the **server-side session
-registry**; the browser keeps only the opaque cookie. Do NOT store raw DataFrames, previews,
+**Owner decision (2026-08-06): Redis is introduced at the first hosted beta — even a single
+replica — because the beta runs Cloud Run (stateless containers, no process affinity).
+Local/Phase 6 code stays in-memory; this task is part of beta bring-up, not optional scaling
+work.** Redis is the **server-side session registry**; the browser keeps only the opaque
+cookie. Do NOT store raw DataFrames, previews,
 prompts, model output, or access tokens as ordinary session JSON — store dataset references and
 small metadata only; artifacts live in durable/encrypted storage. Redis connectivity: VPC
 connector / direct VPC egress to private Memorystore; URL in Secret Manager, never in the repo
@@ -547,6 +586,25 @@ storage_uri / deletion_status` at artifact creation; a scheduled job (every 15�
 `expires_at < now` with `deletion_status != deleted`, deletes the object, marks completion, and
 emits an aggregate audit event. Do not depend on a web request arriving after expiry.
 
+### Phase 5 state migration — `oauth_store` + session fields
+
+The Phase 5 stores are already interface-shaped for this swap (`f032c9b`):
+
+- **`oauth_transactions`** (`api/stores/oauth_store.py`): in-memory `put` (NX) /
+  `get_and_delete` / `peek`. Redis implementation: `SET ie:oauth:state:<sha256(state)> JSON
+  NX PX 600000` for `put`; `GETDEL` (Redis ≥ 6.2) or the parked Lua get-and-delete for
+  `get_and_delete`; `GET` for `peek`. `ga4.py` routes call only these three methods — no
+  route changes.
+- **Session JSON** (`api/stores/session_store.py`): the in-memory `AppSession` carries
+  `dataset_id`, `metadata`, `usage_ledger`, `ga4_credentials`, `drive_credentials`.
+  Serialize the same fields into `ie:session:<id>`; `ga4_credentials`/`drive_credentials`
+  are **already encrypted Fernet blobs** (never plaintext tokens) and travel inside the
+  session JSON as opaque strings. Validate `absolute_expires_at` in the value on every read.
+- **Session rotation (Phase 5 OAuth callback):** `_rotate_session` deletes the old session
+  and creates a fresh one — the Redis implementation must do the same atomically
+  (create new → copy `dataset_id`/`metadata`/`usage_ledger`/credentials → delete old),
+  because the OAuth callback now runs on the *authenticated* path.
+
 ### Health endpoints
 
 ```text
@@ -568,13 +626,34 @@ gcloud run deploy insights-explorer \
   --image us-central1-docker.pkg.dev/PROJECT_ID/insights-repo/insights-explorer:COMMIT_SHA \
   --region us-central1 \
   --port 8080 \
-  --timeout 180s \
+  --timeout 300s \
   --concurrency 10 \
   --min-instances 0 --max-instances 3 \
-  --set-env-vars APP_ENV=production,COOKIE_SECURE=true \
+  --set-env-vars APP_ENV=production,COOKIE_SECURE=true,FRONTEND_URL=https://<app-domain> \
+  --set-env-vars API_CORS_ORIGINS=https://<app-domain>,GA4_ENABLED=true,DRIVE_ENABLED=true \
   --set-secrets API_SESSION_SECRET=api-session-secret:latest \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest \
+  --set-secrets GA4_CLIENT_ID=ga4-client-id:latest \
+  --set-secrets GA4_CLIENT_SECRET=ga4-client-secret:latest \
+  --set-secrets GA4_PROPERTY_ID=ga4-property-id:latest \
+  --set-secrets GOOGLE_CLOUD_PROJECT_NUMBER=google-cloud-project-number:latest \
+  --set-secrets REDIS_URL=redis-url:latest
 ```
+
+**Secrets inventory (Secret Manager, one secret per row):**
+
+| Secret | Used by | Rotation consequence |
+|---|---|---|
+| `api-session-secret` | Session ID signing/opaque store + **Fernet key derivation** | **Rotating it forces every user to reconnect** (GA4/Drive tokens unreadable) + invalidates live sessions — batch rotations with maintenance window |
+| `gemini-api-key` | `ai_service` | None (AI becomes unavailable until updated) |
+| `ga4-client-id` / `ga4-client-secret` | GA4 + Drive OAuth (shared client, D2) | Live OAuth grants stay valid; new connects use the new client |
+| `ga4-property-id` | First pull | Pulls target the new property |
+| `google-cloud-project-number` | Picker `setAppId` | Picker requires the matching app config |
+| `redis-url` | Memorystore client (Task 6) | Sessions/locks reset — users re-authenticate |
+
+`VITE_GOOGLE_PICKER_API_KEY` is **not** in this table: it is a public, referrer-restricted key
+baked into the bundle at **build time** (CI secret → `--build-arg`), and the Google Cloud
+console must restrict it to the production HTTP referrer (`https://<app-domain>/*`).
 
 Per-container: **one Uvicorn worker**, Cloud Run handles replica scaling; every request must be
 valid on any instance (no session-affinity reliance — that is an optimization at most). Raise
