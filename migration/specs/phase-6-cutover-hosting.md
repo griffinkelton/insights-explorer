@@ -31,11 +31,53 @@ and retire the Streamlit app. Architecture decisions recorded 2026-08-06 from ow
 
 | Decision | Answer | Consequence for this spec |
 |---|---|---|
-| D4 live Google smoke | **Keep explicitly pending** — no sandbox credentials yet | Phase 5 stays closed on the no-credential wiring gate; the `E2E_REAL_GOOGLE=1` smoke becomes a **pre-hosted-beta exit gate** (Task 10), never a Phase 6 code blocker |
+| D4 live Google smoke | **Keep explicitly pending** — dedicated **synthetic** sandbox only (never client data); see [D4 sandbox governance](#d4-sandbox-governance-no-client-data) | Phase 5 stays closed on the no-credential wiring gate; the `E2E_REAL_GOOGLE=1` smoke becomes a **pre-hosted-beta exit gate** (Task 10), never a Phase 6 code blocker |
 | Hosting target | **Cloud Run** (as planned) | Tasks 0/2/3/7/8 unchanged; Nginx (Task 9) stays the documented alternative only |
-| Redis timing | **Local stays in-memory; Redis arrives at the first hosted beta** (even a single replica) | Task 6 is executed as part of the beta bring-up, not at arbitrary multi-instance scaling; the Docker/runtime/SPA/cookie work (Tasks 1–5) ships in-memory first |
-| Production domain | **Not yet — use `<app-domain>` placeholders** | Redirect allowlist, Picker referrer restriction, `__Host-` cookie, and `FRONTEND_URL`/`API_CORS_ORIGINS` stay parameterized; filled at deployment time |
-| Streamlit retirement | **Private rollback window ≈ 2 weeks** after parity, then archive | Task 10 keeps the private-running Streamlit path for the window, then archives whisperer-30 with a fold-in note |
+| Redis timing | **Local stays in-memory; Redis from the first hosted beta** (even a single replica) | Task 6 is executed as beta bring-up — Cloud Run instances are ephemeral (restart, revision replacement, scale-to-zero, cross-instance requests), so OAuth/session state must be durable from day one; VPC connector added with Redis, not in local-first Phase 5 |
+| Production domain | **Not yet — use `<app-domain>` placeholders**; separate dev OAuth client now, separate production client at pre-beta (see [Dev vs pre-beta OAuth](#dev-vs-pre-beta-oauth-configuration)) | Redirect allowlist, Picker referrer restriction, `__Host-` cookie, and `FRONTEND_URL`/`API_CORS_ORIGINS` stay parameterized; filled at deployment time |
+| Streamlit retirement | **Private rollback window ≈ 2 weeks** after parity, then archive (see [Task 10 exit criteria](#task-10--cutover-streamlit-retirement-rollback)) | Task 10 keeps the private-running Streamlit path for the window, then archives whisperer-30 with a fold-in note |
+
+### D4 sandbox governance (no client data)
+
+The live smoke uses a **dedicated synthetic sandbox only** — never a client property or
+account just because it is easier:
+
+```text
+Dedicated Google test account
+Dedicated synthetic GA4 property (synthetic/non-client traffic only)
+Dedicated Drive fixture folder
+Synthetic CSV/XLSX fixtures
+No client identities, proprietary content, or production OAuth credentials
+```
+
+The smoke validates consent, PKCE callback/state, scope behavior, property compatibility,
+pull shape, pagination contract, Picker token + selection, Drive download/import, and Clear
+Data — none of which require client data. If a real client-property probe is ever necessary,
+**all** of these must be in place first: client written authorization · confirmed data
+classification + permitted-use scope · `client_paid` data-policy mode · dedicated production
+OAuth project/client · HTTPS custom domain + exact redirect URI · token encryption at rest ·
+retention/deletion + incident-response posture · no raw data or tokens in logs, fixtures,
+screenshots, or test reports.
+
+### Dev vs pre-beta OAuth configuration
+
+```text
+Development (separate dev OAuth client):
+  http://localhost:5173                       (authorized JS origin)
+  http://localhost:8000/api/v1/ga4/callback   (exact redirect URI)
+
+Pre-beta (separate production OAuth client):
+  https://<app-domain>                        (authorized JS origin)
+  https://<app-domain>/api/v1/ga4/callback    (exact redirect URI)
+  Picker API key restricted to https://<app-domain>/*
+```
+
+Google requires HTTPS for production redirect URIs and authorized JS origins (localhost is the
+development exception) and **exact-match** redirect URIs — no open redirects or path
+traversal. Before any external/client beta access, prepare: verified production domain · HTTPS
+· public product homepage · privacy policy · terms of service · exact OAuth redirect URI ·
+authorized JavaScript origin · Picker referrer allowlist · `__Host-insights_session` cookie
+config (`Secure` · `HttpOnly` · `SameSite=Lax` · `Path=/` · no `Domain` attribute).
 
 ## Post-Phase-5 reality (2026-08-06) — what Phase 6 must change
 
@@ -358,10 +400,14 @@ chunks usually provide enough activity; add a `: keepalive` comment line (or
 ## Task 6 — Redis (Memorystore): sessions, locks, OAuth state, failure handling
 
 **Owner decision (2026-08-06): Redis is introduced at the first hosted beta — even a single
-replica — because the beta runs Cloud Run (stateless containers, no process affinity).
-Local/Phase 6 code stays in-memory; this task is part of beta bring-up, not optional scaling
-work.** Redis is the **server-side session registry**; the browser keeps only the opaque
-cookie. Do NOT store raw DataFrames, previews,
+replica.** This is **not** a multi-instance-scale question: a single Cloud Run instance is
+still ephemeral — it may restart, a deployment replaces the revision, scale-to-zero removes
+process memory, and a later request can reach a different instance. OAuth transaction state
+and active-session data would otherwise disappear. Local/Phase 6 code stays in-memory (one
+worker, in-memory `SessionStore`/`DatasetStore`, no Redis); this task is beta bring-up.
+Cloud Run reaches Memorystore through the **authorized VPC network** (VPC connector / direct
+VPC egress) — add that connector work here, at beta, not in local-first Phase 5. Redis is the
+**server-side session registry**; the browser keeps only the opaque cookie. Do NOT store raw DataFrames, previews,
 prompts, model output, or access tokens as ordinary session JSON — store dataset references and
 small metadata only; artifacts live in durable/encrypted storage. Redis connectivity: VPC
 connector / direct VPC egress to private Memorystore; URL in Secret Manager, never in the repo
@@ -733,11 +779,19 @@ else → `index.html` → TanStack Router.
 
 - **Feature-parity checklist (12 items) green in the new UI**; Streamlit retired from the
   default path; whisperer-30 archived with a fold-in note.
-- **Rollback:** Streamlit stays available privately while React/FastAPI stabilizes; feature
-  flag or separate beta URL; rollback criteria (failed OAuth, failed upload/preview path,
-  data-isolation bug, persistent AI errors, unrecoverable session loss) route users to
-  Streamlit or disable only the affected FastAPI feature — never emergency production code
-  changes.
+- **Rollback:** Streamlit stays available **privately** for ≈ 2 weeks while React/FastAPI
+  stabilizes (maintainers only — no new feature work, no new user onboarding, no divergent
+  data model, no new public links); feature flag or separate beta URL; rollback criteria
+  (failed OAuth, failed upload/preview path, data-isolation bug, persistent AI errors,
+  unrecoverable session loss) route users to Streamlit or disable only the affected FastAPI
+  feature — never emergency production code changes.
+- **Archive exit criteria (all must be green before whisperer-30 is archived):**
+  React/FastAPI regression + frontend + E2E suites remain green · D4 live smoke completed ·
+  GA4 + Drive happy/error paths validated · chat stream/retry/cancel stable · Clear Data
+  verified · no critical production issue for **14 consecutive days** · rollback runbook
+  tested · any needed user-data/session migration documented. Only then is Streamlit
+  archived with a fold-in note — two active UIs must never become permanent competing
+  products.
 - **Credential hygiene:** `check_credentials.py` enforced in CI; no live credentials in
   repo/history/captures; Workload Identity Federation / managed identities + Secret Manager.
 - **§17 deferred gates** (product-mode decision + the five checkboxes) close or get explicitly
