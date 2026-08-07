@@ -50,10 +50,10 @@
 | 1.1 | Reach: total users, new vs returning, sessions, top acquisition channels | `partial_in_snapshot; product_metric_contract_provisional` | braintree-evidence/CONSOLIDATED.json reports.top_content; braintree-evidence/CONSOLIDATED.json reports.geographic_traffic; plans/ga4-measurement-contract.md daily_reach |
 | 1.2 | Trends: week-over-week change and day-of-week patterns | `implemented_elsewhere_but_not_validated_in_this_snapshot` | BRAINTREE_CHECKLIST.md Gate 1.2; braintree-reqs.md |
 | 1.3 | Top pages: traffic and engagement | `partial_in_snapshot; existing_app_surface_not_validated_here` | braintree-evidence/CONSOLIDATED.json reports.top_content |
-| 1.4 | Device split with metric breakdown | `partial_now; exit rates only` | braintree-evidence/reports/User Journeys.pdf p. 5; braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json device_exit_rates |
+| 1.4 | Device split with metric breakdown | `partial_now; exit rates only` | braintree-evidence/reports/pdf/User Journeys.pdf p. 5; braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_SNAPSHOT.json device_exit_rates |
 | 1.5 | Anomalies: deviation days and engagement cliffs | `implemented_elsewhere_but_not_validated_in_this_snapshot` | BRAINTREE_CHECKLIST.md Gate 1.5; plans/🔵 ga4-insights-sketch.md |
 | 1.6 | Day-1/7/14/28 retention | `blocked_external_input` | braintree-evidence/CONSOLIDATED.json cohort_definitions; plans/ga4-measurement-contract.md |
-| 1.7 | Funnel start-to-completion with step drop-off | `blocked_external_input_for_demographic_equity; aggregate journey gaps are descriptive` | braintree-evidence/reports/journey-explorer.md; DEMOGRAPHIC_EQUITY_COVERAGE.json questions[4] |
+| 1.7 | Funnel start-to-completion with step drop-off | `blocked_external_input_for_demographic_equity; aggregate journey gaps are descriptive` | braintree-evidence/reports/md/artifacts/journey-explorer.md; braintree-evidence/analysis/DEMOGRAPHIC_EQUITY_COVERAGE.json questions[4] |
 | 1.8 | Forecasting with AI narrative | `implemented_elsewhere_but_not_validated_in_this_snapshot` | BRAINTREE_CHECKLIST.md Gate 1.8 |
 | 1.9 | Pre-compute insights on data load | `not_implemented_in_this_artifact` | BRAINTREE_CHECKLIST.md Gate 1.9 |
 | 1.10 | Inject structured insight block into every Gemini chat prompt | `not_implemented_in_this_artifact` | BRAINTREE_CHECKLIST.md Gate 1.10; plans/🔵 ga4-insights-sketch.md |

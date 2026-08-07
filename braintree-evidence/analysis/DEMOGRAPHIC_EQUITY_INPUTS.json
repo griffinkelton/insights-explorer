@@ -4,7 +4,7 @@
     "version": "2026-08-07.1",
     "status": "curated_snapshot_fixture",
     "source_snapshot": "2026-08-06",
-    "authority": "Values are manually transcribed from the named captured PDFs under braintree-evidence/reports/ and cross-checked against braintree-evidence/CONSOLIDATED.json; source PDFs remain authoritative for exhaustive rows.",
+    "authority": "Values are manually transcribed from the named captured PDFs under braintree-evidence/reports/pdf/ and cross-checked against braintree-evidence/CONSOLIDATED.json; source PDFs remain authoritative for exhaustive rows.",
     "privacy_note": "The source dashboard exposes a Spanish provider-click cell below the repository release floor. This fixture stores it only as <10; the hardened output suppresses the cell and its rate."
   },
   "race_rows": {
@@ -44,12 +44,12 @@
   },
   "device_exit_rates": {"Mobile": 74.7, "Tablet": 80.2, "Desktop": 62.8},
   "provenance": {
-    "race_rows": "braintree-evidence/reports/Results Overview.pdf p. 7",
-    "gender_rows": "braintree-evidence/reports/Results Overview.pdf p. 7",
-    "flow_race_rows": "braintree-evidence/reports/AD8 Analysis.pdf p. 5; braintree-evidence/reports/MIS Analysis.pdf p. 5; braintree-evidence/reports/SBC Analysis.pdf p. 4",
-    "top_content": "braintree-evidence/reports/Top Content.pdf p. 3",
-    "clinical_trials": "braintree-evidence/reports/Clinical Trials.pdf pp. 1–2",
-    "find_provider": "braintree-evidence/reports/Find a Provider.pdf pp. 1–2",
-    "device_exit_rates": "braintree-evidence/reports/User Journeys.pdf p. 5"
+    "race_rows": "braintree-evidence/reports/pdf/Results Overview.pdf p. 7",
+    "gender_rows": "braintree-evidence/reports/pdf/Results Overview.pdf p. 7",
+    "flow_race_rows": "braintree-evidence/reports/pdf/AD8 Analysis.pdf p. 5; braintree-evidence/reports/pdf/MIS Analysis.pdf p. 5; braintree-evidence/reports/pdf/SBC Analysis.pdf p. 4",
+    "top_content": "braintree-evidence/reports/pdf/Top Content.pdf p. 3",
+    "clinical_trials": "braintree-evidence/reports/pdf/Clinical Trials.pdf pp. 1–2",
+    "find_provider": "braintree-evidence/reports/pdf/Find a Provider.pdf pp. 1–2",
+    "device_exit_rates": "braintree-evidence/reports/pdf/User Journeys.pdf p. 5"
   }
 }

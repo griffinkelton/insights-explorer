@@ -229,7 +229,7 @@
   "reports": [
     {
       "id": "questionnaire_journey_explorer",
-      "source_file": "braintree-evidence/reports/journey-explorer.md",
+      "source_file": "braintree-evidence/reports/md/artifacts/journey-explorer.md",
       "dashboard_path": "/questionnaire/explorer/",
       "what_it_measures": "A visual questionnaire journey map plus qCurrent event counts, inferred step drop-off, flow structure, and upload/configuration context.",
       "why_it_exists": "Lets analysts see the branching paths through Intro, MIS, AD8, SBC, and Results/Common, locate high-volume nodes, and investigate where progression decreases.",
@@ -243,7 +243,7 @@
     },
     {
       "id": "results_overview",
-      "source_file": "braintree-evidence/reports/Results Overview.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Results Overview.pdf",
       "dashboard_path": "/questionnaire/results/",
       "what_it_measures": "The top-level questionnaire funnel, scored and non-scored outcomes, persona/brain-health routing, demographics, campaign attribution, and longitudinal activity.",
       "why_it_exists": "This is the primary operational view of how many people start, receive a score, or complete the information path, and who reaches each result category.",
@@ -273,7 +273,7 @@
     },
     {
       "id": "ad8_analysis",
-      "source_file": "braintree-evidence/reports/AD8 Analysis.pdf",
+      "source_file": "braintree-evidence/reports/pdf/AD8 Analysis.pdf",
       "dashboard_path": "/questionnaire/ad8/",
       "what_it_measures": "Eight informant-reported changes in memory and daily functioning for someone else.",
       "why_it_exists": "Shows caregiver/family concern patterns, score distribution, respondent demographics, campaign composition, and trends.",
@@ -284,7 +284,7 @@
     },
     {
       "id": "mis_analysis",
-      "source_file": "braintree-evidence/reports/MIS Analysis.pdf",
+      "source_file": "braintree-evidence/reports/pdf/MIS Analysis.pdf",
       "dashboard_path": "/questionnaire/mis/",
       "what_it_measures": "Self-administered memory performance using weighted free and cued recall.",
       "why_it_exists": "Shows memory-screen distribution, word-set consistency, self-reported context, respondent demographics, campaign composition, and trends.",
@@ -295,7 +295,7 @@
     },
     {
       "id": "sbc_analysis",
-      "source_file": "braintree-evidence/reports/SBC Analysis.pdf",
+      "source_file": "braintree-evidence/reports/pdf/SBC Analysis.pdf",
       "dashboard_path": "/questionnaire/sbc/",
       "what_it_measures": "A continuous speech-based cognitive score and the resulting low/medium/high risk route.",
       "why_it_exists": "Separates entry-to-scored-result completion from risk distribution and shows which populations/campaigns produce scored results.",
@@ -306,7 +306,7 @@
     },
     {
       "id": "scoring_reference",
-      "source_file": "braintree-evidence/reports/Scoring Reference.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Scoring Reference.pdf",
       "dashboard_path": "/questionnaire/scoring/",
       "what_it_measures": "The semantic key for formulas, thresholds, flow types, result URLs, and personas.",
       "why_it_exists": "Prevents an analyst or LLM from treating incompatible AD8, MIS, and SBC scales as one score or misreading a result URL.",
@@ -317,7 +317,7 @@
     },
     {
       "id": "top_content",
-      "source_file": "braintree-evidence/reports/Top Content.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Top Content.pdf",
       "dashboard_path": "/content/top-content/",
       "what_it_measures": "Pageviews, users, sessions, unique pages, page categories, locale, and unmapped URL slugs.",
       "why_it_exists": "Shows what content attracts attention and whether page taxonomy or URL mapping needs maintenance.",
@@ -329,7 +329,7 @@
     },
     {
       "id": "top_content_by_demographic",
-      "source_file": "braintree-evidence/reports/Top Content by Demographic.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Top Content by Demographic.pdf",
       "dashboard_path": "/content/top-content-by-demographic/",
       "what_it_measures": "Content viewed by self-reported questionnaire demographic groups.",
       "why_it_exists": "Supports within-group content affinity and access analysis, not site-wide population estimates.",
@@ -340,7 +340,7 @@
     },
     {
       "id": "geographic_traffic",
-      "source_file": "braintree-evidence/reports/Geographic Traffic.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Geographic Traffic.pdf",
       "dashboard_path": "/acquisition/geography/",
       "what_it_measures": "GA4 users and sessions by country, US state/territory, and city, with population-normalized state reach.",
       "why_it_exists": "Shows geographic reach and whether traffic is concentrated in or normalized differently across priority populations and regions.",
@@ -353,7 +353,7 @@
     },
     {
       "id": "user_journeys",
-      "source_file": "braintree-evidence/reports/User Journeys.pdf",
+      "source_file": "braintree-evidence/reports/pdf/User Journeys.pdf",
       "dashboard_path": "/content/user-journeys/",
       "what_it_measures": "Immediate prior and next page views within sessions, arrivals, departures, exits, and device-specific page-sequence exit rates.",
       "why_it_exists": "Shows navigation paths and where sessions stop producing another page view, including what happens after a result page.",
@@ -365,7 +365,7 @@
     },
     {
       "id": "site_events",
-      "source_file": "braintree-evidence/reports/Site Events.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Site Events.pdf",
       "dashboard_path": "/content/site-events/",
       "what_it_measures": "Inventory and total volume of named GA4 events, first-seen and last-seen dates, and lightweight event categories.",
       "why_it_exists": "Makes instrumentation visible and helps identify what can or cannot support a metric contract.",
@@ -377,7 +377,7 @@
     },
     {
       "id": "result_pages",
-      "source_file": "braintree-evidence/reports/Result Pages.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Result Pages.pdf",
       "dashboard_path": "/content/result-pages/",
       "what_it_measures": "Actions taken on persona/result pages: Save PDF, Email Results, audio, provider navigation, and related tailored-page engagement.",
       "why_it_exists": "Measures post-assessment engagement with guidance and navigation options.",
@@ -389,7 +389,7 @@
     },
     {
       "id": "result_sharing",
-      "source_file": "braintree-evidence/reports/Result Sharing.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Result Sharing.pdf",
       "dashboard_path": "/questionnaire/sharing/",
       "what_it_measures": "Clicks on Share PDF via Email / Email Results and the keep-in-touch consent checkbox at share time.",
       "why_it_exists": "Separates information sharing from explicit contactability consent without exposing email addresses.",
@@ -401,7 +401,7 @@
     },
     {
       "id": "clinical_trials",
-      "source_file": "braintree-evidence/reports/Clinical Trials.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Clinical Trials.pdf",
       "dashboard_path": "/content/clinical-trials/",
       "what_it_measures": "Visits to English/Spanish Clinical Trial Connector pages and outbound clicks to trial-matching links.",
       "why_it_exists": "Measures interest in research navigation and the handoff from BrainGuide content to external trial resources.",
@@ -413,7 +413,7 @@
     },
     {
       "id": "find_a_provider",
-      "source_file": "braintree-evidence/reports/Find a Provider.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Find a Provider.pdf",
       "dashboard_path": "/content/find-a-provider/",
       "what_it_measures": "Visits to English/Spanish provider-finder pages and outbound clicks to Medicare, Isaac Health, and Synapticure.",
       "why_it_exists": "Measures care-navigation interest and external provider referral handoff.",
@@ -425,7 +425,7 @@
     },
     {
       "id": "data_mapping_reference",
-      "source_file": "braintree-evidence/reports/Data & Mapping Reference.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Data & Mapping Reference.pdf",
       "dashboard_path": "/reference/data-reference/",
       "what_it_measures": "Data freshness, mapping-seed definitions, raw source locations, and dbt/Evidence architecture.",
       "why_it_exists": "Provides lineage and tells analysts how to interpret freshness, naming normalization, source boundaries, and update procedures.",
@@ -436,7 +436,7 @@
     },
     {
       "id": "monthly_report_generator",
-      "source_file": "braintree-evidence/reports/Monthly Report Generator.pdf",
+      "source_file": "braintree-evidence/reports/pdf/Monthly Report Generator.pdf",
       "dashboard_path": "/reference/report-generator/",
       "what_it_measures": "A presentation-oriented monthly/YTD summary of web sessions, visitors, questionnaire starts, questionnaire profile, and demographics.",
       "why_it_exists": "Packages recurring dashboard metrics into a report-ready PowerPoint workflow.",
@@ -510,6 +510,6 @@
     "example": "Observed: SBC scored-result completion was 4.8% (1,751 / 36,803 entrants) in the captured selection. Why it matters: the largest operational issue is entry-to-recording completion, not merely the risk distribution among scored respondents. Caveat: the dashboard does not distinguish abandonment from recording failure, and scored respondents are a selected subset. Next action: validate recording errors and step-level events by device and language."
   },
   "source_inventory": [
-    "braintree-evidence/reports/AD8 Analysis.pdf", "braintree-evidence/reports/Clinical Trials.pdf", "braintree-evidence/reports/Data & Mapping Reference.pdf", "braintree-evidence/reports/Find a Provider.pdf", "braintree-evidence/reports/Geographic Traffic.pdf", "braintree-evidence/reports/MIS Analysis.pdf", "braintree-evidence/reports/Monthly Report Generator.pdf", "braintree-evidence/reports/Result Pages.pdf", "braintree-evidence/reports/Result Sharing.pdf", "braintree-evidence/reports/Results Overview.pdf", "braintree-evidence/reports/SBC Analysis.pdf", "braintree-evidence/reports/Scoring Reference.pdf", "braintree-evidence/reports/Site Events.pdf", "braintree-evidence/reports/Top Content by Demographic.pdf", "braintree-evidence/reports/Top Content.pdf", "braintree-evidence/reports/User Journeys.pdf", "braintree-evidence/reports/journey-explorer.md"
+    "braintree-evidence/reports/pdf/AD8 Analysis.pdf", "braintree-evidence/reports/pdf/Clinical Trials.pdf", "braintree-evidence/reports/pdf/Data & Mapping Reference.pdf", "braintree-evidence/reports/pdf/Find a Provider.pdf", "braintree-evidence/reports/pdf/Geographic Traffic.pdf", "braintree-evidence/reports/pdf/MIS Analysis.pdf", "braintree-evidence/reports/pdf/Monthly Report Generator.pdf", "braintree-evidence/reports/pdf/Result Pages.pdf", "braintree-evidence/reports/pdf/Result Sharing.pdf", "braintree-evidence/reports/pdf/Results Overview.pdf", "braintree-evidence/reports/pdf/SBC Analysis.pdf", "braintree-evidence/reports/pdf/Scoring Reference.pdf", "braintree-evidence/reports/pdf/Site Events.pdf", "braintree-evidence/reports/pdf/Top Content by Demographic.pdf", "braintree-evidence/reports/pdf/Top Content.pdf", "braintree-evidence/reports/pdf/User Journeys.pdf", "braintree-evidence/reports/md/artifacts/journey-explorer.md"
   ]
 }

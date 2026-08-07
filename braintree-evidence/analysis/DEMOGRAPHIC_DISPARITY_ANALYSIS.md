@@ -10,16 +10,16 @@
 
 | Evidence used | Source and page |
 |---|---|
-| Results Overview race rows and White count | `../reports/Results Overview.pdf`, p. 7; demographic/filter definitions are on pp. 4, 13–14 |
-| AD8 race rows | `../reports/AD8 Analysis.pdf`, p. 5 |
-| MIS race rows | `../reports/MIS Analysis.pdf`, p. 5 |
-| SBC race rows | `../reports/SBC Analysis.pdf`, p. 4 |
-| English/Spanish overall pageviews | `../reports/Top Content.pdf`, p. 3; locale mapping/definitions on pp. 1 and 8 |
-| Clinical Trials English/Spanish visits and clicks | `../reports/Clinical Trials.pdf`, pp. 1–3 |
-| Find a Provider English/Spanish visits and clicks | `../reports/Find a Provider.pdf`, pp. 1–3 |
-| Device exit rates and exit-rate definition | `../reports/User Journeys.pdf`, pp. 2, 4–5 |
+| Results Overview race rows and White count | `../reports/pdf/Results Overview.pdf`, p. 7; demographic/filter definitions are on pp. 4, 13–14 |
+| AD8 race rows | `../reports/pdf/AD8 Analysis.pdf`, p. 5 |
+| MIS race rows | `../reports/pdf/MIS Analysis.pdf`, p. 5 |
+| SBC race rows | `../reports/pdf/SBC Analysis.pdf`, p. 4 |
+| English/Spanish overall pageviews | `../reports/pdf/Top Content.pdf`, p. 3; locale mapping/definitions on pp. 1 and 8 |
+| Clinical Trials English/Spanish visits and clicks | `../reports/pdf/Clinical Trials.pdf`, pp. 1–3 |
+| Find a Provider English/Spanish visits and clicks | `../reports/pdf/Find a Provider.pdf`, pp. 1–3 |
+| Device exit rates and exit-rate definition | `../reports/pdf/User Journeys.pdf`, pp. 2, 4–5 |
 
-All page references refer to the captured PDFs in [`reports/`](../reports/), not to a live dashboard whose content may change.
+All page references refer to the captured PDFs in [`reports/pdf/`](../reports/pdf/), not to a live dashboard whose content may change.
 
 ## Benchmark decision required before publishing a disparity ratio
 
@@ -40,10 +40,10 @@ For the eventual analysis, calculate representation ratios and percentage-point 
 
 BrainGuide's questionnaire evidence shows a pronounced **White/Caucasian concentration** and much smaller observed Black/African American and Hispanic/Latino respondent groups:
 
-- In the Results Overview race rows (`../reports/Results Overview.pdf`, p. 7), White/Caucasian respondents are **42,556**, Black/African American respondents **2,433**, and Hispanic/Latino respondents **2,675**.
+- In the Results Overview race rows (`../reports/pdf/Results Overview.pdf`, p. 7), White/Caucasian respondents are **42,556**, Black/African American respondents **2,433**, and Hispanic/Latino respondents **2,675**.
 - Among the displayed race rows, these are approximately **77.9% White, 4.5% Black, and 4.9% Hispanic/Latino**. White respondents outnumber the displayed Black and Hispanic/Latino rows by approximately **17.5:1** and **15.9:1**, respectively.
 - The dashboard reports race information for approximately **75%** of the Results Overview filtered population. Demographics are primarily available from the scored-completion population downward, not from every visitor or every questionnaire starter.
-- Spanish-language pageviews are **5.5%** of Top Content pageviews in the captured period (`../reports/Top Content.pdf`, p. 3). Spanish traffic is present and meaningful, but materially smaller than English traffic.
+- Spanish-language pageviews are **5.5%** of Top Content pageviews in the captured period (`../reports/pdf/Top Content.pdf`, p. 3). Spanish traffic is present and meaningful, but materially smaller than English traffic.
 - The current evidence does **not** support a precise claim such as “Black users are X% underrepresented” because the analysis lacks a validated, like-for-like denominator: all eligible visitors, questionnaire starters, and scored completers are not currently linked and measured by the same race/ethnicity definition and time window.
 
 The most defensible conclusion is therefore:
@@ -81,7 +81,7 @@ The current dashboard primarily describes **scored questionnaire respondents** a
 
 ### 2.1 Results Overview race composition
 
-The following calculations use the displayed race rows from the Results Overview capture (`../reports/Results Overview.pdf`, p. 7). The row sum is **54,626**. It should be treated as a **displayed-row denominator**, not automatically as the total number of eligible site users, questionnaire starters, or even all race-answered respondents, because the dashboard also reports report-specific demographic coverage and filters.
+The following calculations use the displayed race rows from the Results Overview capture (`../reports/pdf/Results Overview.pdf`, p. 7). The row sum is **54,626**. It should be treated as a **displayed-row denominator**, not automatically as the total number of eligible site users, questionnaire starters, or even all race-answered respondents, because the dashboard also reports report-specific demographic coverage and filters.
 
 | Displayed race row | Count | Share of displayed race rows | Dashboard display / note |
 |---|---:|---:|---|
@@ -125,7 +125,7 @@ The displayed race rows also vary by flow. The rows below do **not** always sum 
 
 ### 2.3 Spanish-language reach
 
-The overall locale totals below come from `../reports/Top Content.pdf`, p. 3; the Clinical Trials and Find a Provider figures come from their respective PDFs, pp. 1–2.
+The overall locale totals below come from `../reports/pdf/Top Content.pdf`, p. 3; the Clinical Trials and Find a Provider figures come from their respective PDFs, pp. 1–2.
 
 Observed language and locale signals:
 
@@ -143,7 +143,7 @@ These calculations use visit-based dashboard counts; a visit can generate multip
 
 ### 2.4 Device and journey friction
 
-The User Journeys capture (`../reports/User Journeys.pdf`, p. 5) reports page-level exit rates of:
+The User Journeys capture (`../reports/pdf/User Journeys.pdf`, p. 5) reports page-level exit rates of:
 
 - Mobile: **74.7%**
 - Tablet: **80.2%**
@@ -155,7 +155,7 @@ This is a descriptive page-sequence exit measure, not bounce rate and not a demo
 
 ### 2.5 Missingness and selection
 
-The Results Overview capture (`../reports/Results Overview.pdf`, p. 4) reports approximately:
+The Results Overview capture (`../reports/pdf/Results Overview.pdf`, p. 4) reports approximately:
 
 - Gender information: **79%**
 - Age information: **77%**
@@ -182,7 +182,7 @@ The broader demographic and reach tables add context, but they do not by themsel
 
 ### Issue 1 — White respondents dominate the observed questionnaire evidence
 
-**Observed:** White/Caucasian is 77.9% of the displayed Results Overview race rows (`../reports/Results Overview.pdf`, p. 7); Black/African American is 4.5%; Hispanic/Latino is 4.9%. Similar White-heavy patterns appear in the displayed AD8, MIS, and SBC rows (`../reports/AD8 Analysis.pdf`, p. 5; `../reports/MIS Analysis.pdf`, p. 5; `../reports/SBC Analysis.pdf`, p. 4).
+**Observed:** White/Caucasian is 77.9% of the displayed Results Overview race rows (`../reports/pdf/Results Overview.pdf`, p. 7); Black/African American is 4.5%; Hispanic/Latino is 4.9%. Similar White-heavy patterns appear in the displayed AD8, MIS, and SBC rows (`../reports/pdf/AD8 Analysis.pdf`, p. 5; `../reports/pdf/MIS Analysis.pdf`, p. 5; `../reports/pdf/SBC Analysis.pdf`, p. 4).
 
 **Why this matters:** The groups of greatest interest to the client are not appearing in the respondent evidence at a level that would support confident subgroup learning, culturally specific content optimization, or equitable reach claims. The gap also matters because external literature documents higher dementia burden and lower awareness/diagnosis timeliness among Black and Hispanic older adults.
 
@@ -211,7 +211,7 @@ The broader demographic and reach tables add context, but they do not by themsel
 
 ### Issue 3 — Spanish access is present but may not be functionally equivalent
 
-**Observed:** Spanish is 5.5% of overall Top Content pageviews (`../reports/Top Content.pdf`, p. 3). Spanish Clinical Trials and Find a Provider visits and clicks are much smaller than English; the simple visit-based CTRs are also lower in this snapshot (`../reports/Clinical Trials.pdf`, pp. 1–2; `../reports/Find a Provider.pdf`, pp. 1–2).
+**Observed:** Spanish is 5.5% of overall Top Content pageviews (`../reports/pdf/Top Content.pdf`, p. 3). Spanish Clinical Trials and Find a Provider visits and clicks are much smaller than English; the simple visit-based CTRs are also lower in this snapshot (`../reports/pdf/Clinical Trials.pdf`, pp. 1–2; `../reports/pdf/Find a Provider.pdf`, pp. 1–2).
 
 **Research-supported mechanisms:**
 
@@ -238,7 +238,7 @@ The broader demographic and reach tables add context, but they do not by themsel
 
 ### Issue 5 — Device and accessibility friction may amplify demographic gaps
 
-**Observed:** Mobile and tablet exit rates are higher than desktop (`../reports/User Journeys.pdf`, p. 5). SBC produces a scored result for only 4.8% of entries (`../reports/SBC Analysis.pdf`, pp. 2–3), and the current report does not distinguish abandonment from microphone permission failure, recording failure, browser incompatibility, network failure, or server-side scoring failure.
+**Observed:** Mobile and tablet exit rates are higher than desktop (`../reports/pdf/User Journeys.pdf`, p. 5). SBC produces a scored result for only 4.8% of entries (`../reports/pdf/SBC Analysis.pdf`, pp. 2–3), and the current report does not distinguish abandonment from microphone permission failure, recording failure, browser incompatibility, network failure, or server-side scoring failure.
 
 **Research-supported mechanisms:** Digital health equity research identifies device/connectivity, ease of navigation, culture, age, socioeconomic status, education, residence, and supportive infrastructure as interacting factors. Wilson et al.'s systematic review recommends user-friendly interfaces, compatibility with existing devices, culturally appropriate content, non-digital options, and educational support ([npj Digital Medicine 2024, PMC11217442](https://pmc.ncbi.nlm.nih.gov/articles/PMC11217442/)).
 

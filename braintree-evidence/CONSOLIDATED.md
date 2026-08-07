@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-08-06 · **Environment:** `dashboard.dev2.mybrainguide.org` · **Status:** provisional snapshot
 >
-> This document consolidates the 16 Evidence dashboard PDF captures in [`reports/`](./reports/) and [`journey-explorer.md`](./reports/journey-explorer.md) into one semantic guide. It explains **what the data is, what it measures, why it exists, how it is calculated, and what an LLM must not infer**. The companion [`CONSOLIDATED.json`](./CONSOLIDATED.json) contains the same contract in machine-readable form. **This is a semantic summary, not a complete row-level export:** selected tables, trends, campaign rows, geography rows, and graph edges are summarized rather than reproduced in full. The original PDFs remain the source for exhaustive row-level values.
+> This document consolidates the 16 Evidence dashboard PDF captures in [`reports/pdf/`](./reports/pdf/) and [`journey-explorer.md`](./reports/md/artifacts/journey-explorer.md) into one semantic guide. It explains **what the data is, what it measures, why it exists, how it is calculated, and what an LLM must not infer**. The companion [`CONSOLIDATED.json`](./CONSOLIDATED.json) contains the same contract in machine-readable form. **This is a semantic summary, not a complete row-level export:** selected tables, trends, campaign rows, geography rows, and graph edges are summarized rather than reproduced in full. The original PDFs remain the source for exhaustive row-level values.
 
 ## 1. Executive meaning
 
@@ -155,7 +155,7 @@ SBC has three separate personas: `self-sbc-low`, `self-sbc-med`, and `self-sbc-h
 
 ## 5. Consolidated report catalog
 
-### 5.1 Questionnaire Journey Explorer ([`journey-explorer.md`](./reports/journey-explorer.md))
+### 5.1 Questionnaire Journey Explorer ([`journey-explorer.md`](./reports/md/artifacts/journey-explorer.md))
 
 - **Measures:** A branching questionnaire map, qCurrent screen-arrival events, directed transitions, node volumes, and inferred step loss.
 - **Why:** Shows how visitors move through Intro, MIS, AD8, SBC, and Results/Common flows, and where progression falls between screens.

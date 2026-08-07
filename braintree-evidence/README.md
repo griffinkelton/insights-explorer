@@ -11,7 +11,7 @@ This directory is the evidence package for the BrainGuide analytics and demograp
 2. **[Demographic disparity analysis](./analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md)** — analyzes the observed White-heavy questionnaire composition, Black and Hispanic/Latino reach signals, Spanish-language access, possible mechanisms, external research, and recommendations beginning with UX/UI and copy.
 3. **[Equity protocol](./analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md)** — the implementation contract for measurement, funnel repair, mechanism validation, controlled UX/UI intervention, and outreach/outcome evaluation.
 4. **[Question and gate coverage matrix](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.md)** — the auditable answer-status map for all 25 client questions and the implementation gates. The canonical machine-readable source is [DEMOGRAPHIC_EQUITY_COVERAGE.json](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.json).
-5. **[Captured source reports](./reports/)** — the original PDF captures and the [journey explorer synthesis](./reports/journey-explorer.md).
+5. **[Captured source reports](./reports/)** — the original PDF captures and the [journey explorer synthesis](./reports/md/artifacts/journey-explorer.md).
 
 ## What the client wants answered
 
@@ -55,8 +55,11 @@ braintree-evidence/
 │   ├── DEMOGRAPHIC_EQUITY_INPUTS.json
 │   └── DEMOGRAPHIC_EQUITY_SNAPSHOT.json
 └── reports/
-    ├── 16 captured dashboard PDFs
-    └── journey-explorer.md
+    ├── README.md                     # Source-report index and provenance notes
+    ├── pdf/                          # 16 captured dashboard PDFs
+    └── md/
+        ├── artifacts/               # Markdown report transcriptions/syntheses
+        └── prompt_conversation.md   # Capture context and scrape log
 ```
 
 ### Human-readable documentation
@@ -65,7 +68,7 @@ braintree-evidence/
 - [Demographic disparity analysis](./analysis/DEMOGRAPHIC_DISPARITY_ANALYSIS.md)
 - [Demographic equity protocol](./analysis/DEMOGRAPHIC_EQUITY_PROTOCOL.md)
 - [Equity coverage matrix](./analysis/DEMOGRAPHIC_EQUITY_COVERAGE.md)
-- [Journey explorer](./reports/journey-explorer.md)
+- [Journey explorer](./reports/md/artifacts/journey-explorer.md)
 
 ### Machine-readable artifacts and reproducibility
 
@@ -93,23 +96,23 @@ python -m pytest -q \
 
 The original captures are preserved under [reports/](./reports/). The consolidated guide and analysis cite the report name and page so a reviewer can trace a claim back to its source. The source set includes:
 
-- [Results Overview.pdf](./reports/Results%20Overview.pdf)
-- [AD8 Analysis.pdf](./reports/AD8%20Analysis.pdf)
-- [MIS Analysis.pdf](./reports/MIS%20Analysis.pdf)
-- [SBC Analysis.pdf](./reports/SBC%20Analysis.pdf)
-- [Scoring Reference.pdf](./reports/Scoring%20Reference.pdf)
-- [Top Content.pdf](./reports/Top%20Content.pdf)
-- [Top Content by Demographic.pdf](./reports/Top%20Content%20by%20Demographic.pdf)
-- [Geographic Traffic.pdf](./reports/Geographic%20Traffic.pdf)
-- [User Journeys.pdf](./reports/User%20Journeys.pdf)
-- [Site Events.pdf](./reports/Site%20Events.pdf)
-- [Clinical Trials.pdf](./reports/Clinical%20Trials.pdf)
-- [Find a Provider.pdf](./reports/Find%20a%20Provider.pdf)
-- [Result Pages.pdf](./reports/Result%20Pages.pdf)
-- [Result Sharing.pdf](./reports/Result%20Sharing.pdf)
-- [Data & Mapping Reference.pdf](./reports/Data%20%26%20Mapping%20Reference.pdf)
-- [Monthly Report Generator.pdf](./reports/Monthly%20Report%20Generator.pdf)
-- [User Journeys / journey-explorer.md](./reports/journey-explorer.md)
+- [Results Overview.pdf](./reports/pdf/Results%20Overview.pdf)
+- [AD8 Analysis.pdf](./reports/pdf/AD8%20Analysis.pdf)
+- [MIS Analysis.pdf](./reports/pdf/MIS%20Analysis.pdf)
+- [SBC Analysis.pdf](./reports/pdf/SBC%20Analysis.pdf)
+- [Scoring Reference.pdf](./reports/pdf/Scoring%20Reference.pdf)
+- [Top Content.pdf](./reports/pdf/Top%20Content.pdf)
+- [Top Content by Demographic.pdf](./reports/pdf/Top%20Content%20by%20Demographic.pdf)
+- [Geographic Traffic.pdf](./reports/pdf/Geographic%20Traffic.pdf)
+- [User Journeys.pdf](./reports/pdf/User%20Journeys.pdf)
+- [Site Events.pdf](./reports/pdf/Site%20Events.pdf)
+- [Clinical Trials.pdf](./reports/pdf/Clinical%20Trials.pdf)
+- [Find a Provider.pdf](./reports/pdf/Find%20a%20Provider.pdf)
+- [Result Pages.pdf](./reports/pdf/Result%20Pages.pdf)
+- [Result Sharing.pdf](./reports/pdf/Result%20Sharing.pdf)
+- [Data & Mapping Reference.pdf](./reports/pdf/Data%20%26%20Mapping%20Reference.pdf)
+- [Monthly Report Generator.pdf](./reports/pdf/Monthly%20Report%20Generator.pdf)
+- [User Journeys / journey-explorer.md](./reports/md/artifacts/journey-explorer.md)
 
 ## Related planning and governance
 

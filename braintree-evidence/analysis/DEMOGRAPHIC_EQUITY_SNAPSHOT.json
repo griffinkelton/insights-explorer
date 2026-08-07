@@ -29,7 +29,7 @@
   ],
   "device_exit_rates": {
     "interpretation": "Page-sequence exit measure, not bounce rate and not linked to self-reported demographics.",
-    "provenance": "braintree-evidence/reports/User Journeys.pdf p. 5",
+    "provenance": "braintree-evidence/reports/pdf/User Journeys.pdf p. 5",
     "rates_percent": {
       "Desktop": 62.8,
       "Mobile": 74.7,
@@ -38,7 +38,7 @@
   },
   "displayed_gender_rows": {
     "denominator": 56885,
-    "provenance": "braintree-evidence/reports/Results Overview.pdf p. 7; displayed rows only",
+    "provenance": "braintree-evidence/reports/pdf/Results Overview.pdf p. 7; displayed rows only",
     "rows": {
       "Female": 39889,
       "Male": 14740,
@@ -54,7 +54,7 @@
   },
   "displayed_race_rows": {
     "denominator": 54626,
-    "provenance": "braintree-evidence/reports/Results Overview.pdf p. 7; displayed rows only",
+    "provenance": "braintree-evidence/reports/pdf/Results Overview.pdf p. 7; displayed rows only",
     "rows": {
       "American Indian/Alaska Native": 536,
       "Asian": 1417,
@@ -108,7 +108,7 @@
       }
     },
     "interpretation": "Displayed-row composition only; row sums do not equal all flow KPIs.",
-    "provenance": "braintree-evidence/reports/AD8 Analysis.pdf p. 5; braintree-evidence/reports/MIS Analysis.pdf p. 5; braintree-evidence/reports/SBC Analysis.pdf p. 4"
+    "provenance": "braintree-evidence/reports/pdf/AD8 Analysis.pdf p. 5; braintree-evidence/reports/pdf/MIS Analysis.pdf p. 5; braintree-evidence/reports/pdf/SBC Analysis.pdf p. 4"
   },
   "language_and_resource_rates": {
     "clinical_trials": {
@@ -140,7 +140,7 @@
       "spanish_visit_click_rate_percent": "suppressed: numerator < 10"
     },
     "interpretation": "Visit-based descriptive rates; rates require denominator >= 50; released cells require n >= 10.",
-    "provenance": "braintree-evidence/reports/Top Content.pdf p. 3; braintree-evidence/reports/Clinical Trials.pdf pp. 1\u20132; braintree-evidence/reports/Find a Provider.pdf pp. 1\u20132",
+    "provenance": "braintree-evidence/reports/pdf/Top Content.pdf p. 3; braintree-evidence/reports/pdf/Clinical Trials.pdf pp. 1\u20132; braintree-evidence/reports/pdf/Find a Provider.pdf pp. 1\u20132",
     "top_content_pageviews": {
       "counts": {
         "English": 487949,
