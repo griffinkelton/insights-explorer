@@ -1,0 +1,55 @@
+{
+  "artifact": {
+    "name": "BrainGuide demographic equity calculator inputs",
+    "version": "2026-08-07.1",
+    "status": "curated_snapshot_fixture",
+    "source_snapshot": "2026-08-06",
+    "authority": "Values are manually transcribed from the named captured PDFs under braintree-evidence/reports/ and cross-checked against braintree-evidence/CONSOLIDATED.json; source PDFs remain authoritative for exhaustive rows.",
+    "privacy_note": "The source dashboard exposes a Spanish provider-click cell below the repository release floor. This fixture stores it only as <10; the hardened output suppresses the cell and its rate."
+  },
+  "race_rows": {
+    "White/Caucasian": 42556,
+    "Prefer not to answer": 3074,
+    "Hispanic/Latino": 2675,
+    "Black/African American": 2433,
+    "Asian": 1417,
+    "Mixed": 1272,
+    "Other/Not Listed": 573,
+    "American Indian/Alaska Native": 536,
+    "Native Hawaiian/Pacific Islander": 90
+  },
+  "gender_rows": {
+    "Female": 39889,
+    "Male": 14740,
+    "Prefer not to answer": 2013,
+    "Non-binary/gender-fluid/other": 243
+  },
+  "flow_race_rows": {
+    "AD8": {"displayed_row_sum": 10760, "White/Caucasian": 7582, "Black/African American": 500, "Hispanic/Latino": 516},
+    "MIS": {"displayed_row_sum": 94929, "White/Caucasian": 74612, "Black/African American": 4500, "Hispanic/Latino": 4611},
+    "SBC": {"displayed_row_sum": 1679, "White/Caucasian": 1241, "Black/African American": 119, "Hispanic/Latino": 94}
+  },
+  "flow_kpis": {
+    "AD8 completions": 12330,
+    "MIS completions": 107976,
+    "SBC flow entries": 36803,
+    "SBC scored completions": 1751
+  },
+  "locale_and_resource": {
+    "top_content_pageviews": {"English": 487949, "Spanish": 28531},
+    "clinical_trials_visits": {"English": 44450, "Spanish": 5972},
+    "clinical_trials_clicks": {"English": 7984, "Spanish": 347},
+    "find_provider_visits": {"English": 15974, "Spanish": 194},
+    "find_provider_clicks": {"English": 1227, "Spanish": "<10"}
+  },
+  "device_exit_rates": {"Mobile": 74.7, "Tablet": 80.2, "Desktop": 62.8},
+  "provenance": {
+    "race_rows": "braintree-evidence/reports/Results Overview.pdf p. 7",
+    "gender_rows": "braintree-evidence/reports/Results Overview.pdf p. 7",
+    "flow_race_rows": "braintree-evidence/reports/AD8 Analysis.pdf p. 5; braintree-evidence/reports/MIS Analysis.pdf p. 5; braintree-evidence/reports/SBC Analysis.pdf p. 4",
+    "top_content": "braintree-evidence/reports/Top Content.pdf p. 3",
+    "clinical_trials": "braintree-evidence/reports/Clinical Trials.pdf pp. 1–2",
+    "find_provider": "braintree-evidence/reports/Find a Provider.pdf pp. 1–2",
+    "device_exit_rates": "braintree-evidence/reports/User Journeys.pdf p. 5"
+  }
+}
