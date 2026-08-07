@@ -6,6 +6,12 @@
 
 ---
 
+## React/FastAPI migration — Phase 6 owner-decision refinements folded in
+
+**Date:** 2026-08-06 | **Status:** Phase 6 spec (`migration/specs/phase-6-cutover-hosting.md`) deepened with owner guidance: **D4 sandbox governance** (dedicated synthetic test account/property/Drive folder, synthetic fixtures only — never client data; client-property probe gated on written authorization, classification, `client_paid` mode, production OAuth client, HTTPS domain, token encryption, incident-response posture), **dev vs pre-beta OAuth configuration** (separate dev client at localhost; separate production client with exact HTTPS redirect URI + authorized JS origin + Picker referrer at pre-beta), **Redis rationale** (single Cloud Run instance is ephemeral — restart/revision-replacement/scale-to-zero/cross-instance requests — so Redis arrives with the first hosted beta via VPC connector, not at arbitrary multi-instance scaling), and **Streamlit archive exit criteria** (8 items incl. 14 consecutive days with no critical issue + tested rollback runbook) | **Branch:** docs on `main`
+
+---
+
 ## React/FastAPI migration — Phase 5 complete (GA4 OAuth + Drive import); Phase 6 next
 
 **Date:** 2026-08-06 | **Status:** Phase 5 IMPLEMENTED + tested on `feat/react-fastapi-migration` (`f032c9b`; Task 0 gates evidence `ce16045`) — **944 Python tests** (52 new Phase 5 contract tests), guard exit 0, hooks green; frontend check/build/test green (25 vitest); **both Playwright e2e gates green** (`test_frontend_flow.py` + new `test_phase5_wiring_smoke.py`) | **Branch:** code on `feat/react-fastapi-migration`; docs on `main`
