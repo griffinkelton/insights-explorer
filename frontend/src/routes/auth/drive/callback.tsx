@@ -2,18 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { OAuthCallbackPage } from "@/components/auth/OAuthCallbackPage";
 
-// Phase 5 GA4 callback — backend 303s here with the locked status vocabulary.
+// Phase 5 Drive callback — the separate drive.file consent (D2) lands here
+// after the server-side OAuth round-trip (same locked status vocabulary).
 const callbackSearch = z.object({
   status: z.enum(["success", "cancelled", "error"]).optional(),
   reason: z.string().optional(),
 });
 
-export const Route = createFileRoute("/auth/ga4/callback")({
+export const Route = createFileRoute("/auth/drive/callback")({
   validateSearch: callbackSearch,
-  component: Ga4CallbackPage,
+  component: DriveCallbackPage,
 });
 
-function Ga4CallbackPage() {
+function DriveCallbackPage() {
   const { status, reason } = Route.useSearch();
-  return <OAuthCallbackPage serviceLabel="Google Analytics" status={status} reason={reason} />;
+  return <OAuthCallbackPage serviceLabel="Google Drive" status={status} reason={reason} />;
 }

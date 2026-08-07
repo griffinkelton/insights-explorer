@@ -64,6 +64,7 @@ class AppSession:
     created_at: datetime = field(default_factory=utcnow)  # absolute-expiry anchor
     last_accessed_at: datetime = field(default_factory=utcnow)  # idle-expiry anchor
     ga4_credentials: dict | None = None
+    drive_credentials: dict | None = None  # Phase 5 — separate drive.file connection (D2)
     oauth_state: str | None = None
     code_verifier: str | None = None  # PKCE — used Phase 5
     metadata: dict = field(default_factory=dict)

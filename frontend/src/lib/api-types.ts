@@ -118,5 +118,40 @@ export interface UsageResponse {
 }
 
 export interface ApiError {
-  detail: string;
+  detail: string | { code?: string; message?: string; retryable?: boolean };
+}
+
+// ── Phase 5 — GA4 + Drive (spec phase-5-ga4-drive.md) ─────────────────────
+
+export type OAuthConnection = "ga4" | "drive";
+
+export interface Ga4ConnectResponse {
+  authorizationUrl: string;
+}
+
+export interface Ga4StatusResponse {
+  connected: boolean;
+}
+
+export interface DriveStatusResponse {
+  configured: boolean;
+}
+
+export interface DrivePickerTokenResponse {
+  /** Short-lived Drive access token — browser-memory-only, never persisted. */
+  accessToken: string;
+  expiresAt: string | null;
+  /** Cloud project NUMBER (Picker setAppId) — not the project ID. */
+  appId: string | null;
+  /** Must be echoed back on POST /drive/download (one-shot binding). */
+  requestId: string;
+}
+
+export interface DriveDownloadRequest {
+  requestId: string;
+  fileId: string;
+}
+
+export interface DriveDownloadResponse {
+  dataset: DatasetContext;
 }

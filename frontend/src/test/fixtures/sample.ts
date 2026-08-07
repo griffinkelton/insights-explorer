@@ -21,6 +21,43 @@ export const sampleContextWire = {
 
 export const sampleUploadWire = { dataset: sampleContextWire };
 
+// Phase 5 — GA4 first-pull + Drive download wire fixtures (Task 6 MSW).
+export const sampleGa4ContextWire = {
+  ...sampleContextWire,
+  source: "ga4",
+  filename: "ga4-123456789.csv",
+  row_count: 90,
+  date_range: { start: "2026-05-08", end: "2026-08-05" },
+  metrics: [
+    { id: "sessions", name: "sessions", contract_row: "1", validation_status: "provisional" },
+    { id: "totalUsers", name: "totalUsers", contract_row: "1", validation_status: "provisional" },
+    { id: "engagedSessions", name: "engagedSessions", contract_row: "1", validation_status: "provisional" },
+    { id: "engagementRate", name: "engagementRate", contract_row: "2", validation_status: "provisional" },
+    { id: "bounceRate", name: "bounceRate", contract_row: "2", validation_status: "provisional" },
+    { id: "questionnaire_start_count", name: "questionnaire_start_count", contract_row: "3", validation_status: "unavailable" },
+    { id: "questionnaire_completion_rate", name: "questionnaire_completion_rate", contract_row: "4", validation_status: "unavailable" },
+    { id: "post_questionnaire_action_rate", name: "post_questionnaire_action_rate", contract_row: "5", validation_status: "unavailable" },
+  ],
+  provenance: {
+    source: "ga4",
+    property_id: "123456789",
+    dimensions: ["date"],
+    metrics: ["sessions", "totalUsers", "engagedSessions", "engagementRate", "bounceRate"],
+    start_date: "90daysAgo",
+    end_date: "yesterday",
+    page_count: 1,
+    row_count: 90,
+    pulled_at: "2026-08-06T20:45:00Z",
+    quota_observed: true,
+  },
+};
+
+export const sampleGa4PullWire = { dataset: sampleGa4ContextWire };
+
+export const sampleDriveDownloadWire = {
+  dataset: { ...sampleContextWire, source: "drive", filename: "monthly-report.csv" },
+};
+
 export const samplePreviewWire = {
   dataset: sampleContextWire,
   rows: [

@@ -14,8 +14,15 @@ import type {
   DataSource,
   DatasetContext,
   DateRange,
+  DriveDownloadRequest,
+  DriveDownloadResponse,
+  DrivePickerTokenResponse,
+  DriveStatusResponse,
   ForecastResponse,
   FunnelResponse,
+  Ga4ConnectResponse,
+  Ga4StatusResponse,
+  OAuthConnection,
   QualityReport,
   SummaryResponse,
   UploadResponse,
@@ -56,17 +63,33 @@ export class ApiRequestError extends Error {
   constructor(
     readonly status: number,
     detail: string,
+    /** Phase 5 — server typed error code (e.g. ga4_quota_exhausted). */
+    readonly code?: string,
   ) {
     super(detail);
     this.name = "ApiRequestError";
   }
 }
 
+/** Phase 5 — REST errors may carry a structured { code, message, retryable } detail. */
+function parseErrorDetail(body: ApiError | undefined, fallback: string): { detail: string; code?: string } {
+  const raw = body?.detail;
+  if (typeof raw === "string") return { detail: raw || fallback };
+  if (raw && typeof raw === "object") {
+    return {
+      detail: raw.message || fallback,
+      code: raw.code,
+    };
+  }
+  return { detail: fallback };
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, init);
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Request failed" }));
-    throw new ApiRequestError(res.status, (body as ApiError).detail ?? "Request failed");
+    const parsed = parseErrorDetail(body as ApiError | undefined, "Request failed");
+    throw new ApiRequestError(res.status, parsed.detail, parsed.code);
   }
   return res.json() as Promise<T>;
 }
@@ -214,6 +237,43 @@ export const api = {
     }),
   usage: async (): Promise<UsageResponse> =>
     normalizeUsage(await request<WireRecord>("/ai/usage")),
+  // ── Phase 5 — GA4 + Drive (spec phase-5-ga4-drive.md Task 1/2/4) ──────
+  ga4Connect: (connection: OAuthConnection = "ga4"): Promise<Ga4ConnectResponse> =>
+    request<WireRecord>("/ga4/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ connection }),
+    }).then((r) => ({ authorizationUrl: String(r.authorization_url ?? "") })),
+  ga4Status: async (): Promise<Ga4StatusResponse> => {
+    const r = await request<WireRecord>("/ga4/status");
+    return { connected: Boolean(r.connected) };
+  },
+  ga4Disconnect: () => request<{ status: string }>("/ga4/disconnect", { method: "POST" }),
+  ga4Pull: async (): Promise<UploadResponse> => {
+    const r = await request<WireRecord>("/ga4/pull", { method: "POST" });
+    return { dataset: normalizeDatasetContext((r.dataset as WireRecord) ?? {}) };
+  },
+  driveStatus: async (): Promise<DriveStatusResponse> => {
+    const r = await request<WireRecord>("/drive/status");
+    return { configured: Boolean(r.configured) };
+  },
+  drivePickerToken: async (): Promise<DrivePickerTokenResponse> => {
+    const r = await request<WireRecord>("/drive/picker-token", { method: "POST" });
+    return {
+      accessToken: String(r.access_token ?? ""),
+      expiresAt: r.expires_at == null ? null : String(r.expires_at),
+      appId: r.app_id == null ? null : String(r.app_id),
+      requestId: String(r.request_id ?? ""),
+    };
+  },
+  driveDownload: async (req: DriveDownloadRequest): Promise<DriveDownloadResponse> => {
+    const r = await request<WireRecord>("/drive/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: req.requestId, file_id: req.fileId }),
+    });
+    return { dataset: normalizeDatasetContext((r.dataset as WireRecord) ?? {}) };
+  },
 };
 
 /** Normalized source summary for the store (boundary, track B / F4 §11). */
@@ -227,8 +287,49 @@ export function setSourceFromApi(payload: { dataset: DatasetContext }): {
   return { source: d.source, filename: d.filename, rowCount: d.rowCount, context: d };
 }
 
-/** Server typed error code → user-facing message (drift row 2; Task 3 table). */
-export function mapApiError(status: number, detail?: string): string {
+/** Server typed error code → user-facing message (drift row 2; Task 3 table;
+ *  Phase 5 ga4_* / drive_* codes). */
+export function mapApiError(status: number, detail?: string, code?: string): string {
+  switch (code) {
+    case "ga4_not_configured":
+    case "drive_not_configured":
+      return "Google connections are not configured on this server yet.";
+    case "ga4_connection_required":
+    case "drive_connection_required":
+      return "Connect the source first, then try again.";
+    case "ga4_reconnect_required":
+    case "drive_reconnect_required":
+      return "Your Google connection needs to be refreshed — reconnect and try again.";
+    case "ga4_access_denied":
+      return "Access to that Google Analytics property is denied.";
+    case "ga4_property_unavailable":
+      return "The Google Analytics property is unavailable. Check the configured property.";
+    case "ga4_quota_exhausted":
+      return "Google Analytics reporting capacity is exhausted for now. Try again later.";
+    case "ga4_rate_limited":
+      return "Google Analytics is rate-limiting requests. Try again shortly.";
+    case "ga4_provider_unavailable":
+      return "Google Analytics is temporarily unavailable. Try again shortly.";
+    case "ga4_timeout":
+      return "Google Analytics took too long to respond. Try again.";
+    case "ga4_empty_report":
+      return "The Google Analytics property returned no rows for the report period.";
+    case "stale_picker_request":
+      return "That file selection has expired — open the picker again.";
+    case "workspace_export_required":
+      return "Google Sheets import isn't supported yet — choose a CSV or Excel file.";
+    case "unsupported_type":
+      return "Unsupported file type — choose a CSV, XLSX, or XLS file.";
+    case "too_large":
+      return "File too large — the import limit is 100 MB.";
+    case "file_not_available":
+      return "That Drive file is no longer available.";
+    case "download_not_allowed":
+    case "access_denied":
+      return "Access to that Drive file was denied.";
+    case "drive_parse_failed":
+      return detail || "Couldn't read the downloaded file.";
+  }
   switch (status) {
     case 409:
       return "No active dataset. Upload a file to get started.";

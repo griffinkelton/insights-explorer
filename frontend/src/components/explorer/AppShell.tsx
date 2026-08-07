@@ -3,11 +3,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { EmptyHero } from "./EmptyHero";
+import { ErrorBanner } from "./ErrorBanner";
 import { DataPreview } from "./DataPreview";
 import { Scorecard } from "./Scorecard";
 import { ChartsRow } from "./ChartsRow";
 import { ChatPanel } from "./ChatPanel";
 import { AiSummary } from "./AiSummary";
+import { DrivePickerDialog } from "./DrivePickerDialog";
 import { Toaster } from "@/components/ui/sonner";
 
 export function AppShell() {
@@ -22,6 +24,7 @@ export function AppShell() {
         <TopBar />
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-7xl p-4 sm:p-6">
+            <ErrorBanner />
             {!hasDataset ? (
               <EmptyHero />
             ) : (
@@ -40,6 +43,7 @@ export function AppShell() {
           </div>
         </main>
       </div>
+      <DrivePickerDialog />
       <Toaster />
     </div>
   );

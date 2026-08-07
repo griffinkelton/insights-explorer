@@ -158,9 +158,9 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:5173 >/dev/null && break; sleep 1; done
           curl -sf http://127.0.0.1:5173 >/dev/null || { echo "Vite did not start"; cat /tmp/vite.log; exit 1; }
 
-      - name: Run first-slice user-flow gate (Task 9)
+      - name: Run Playwright user-flow gates (Phase 4 Task 9 + Phase 5 wiring smoke)
         working-directory: frontend
-        run: python -m pytest e2e/test_frontend_flow.py -v
+        run: python -m pytest e2e/test_frontend_flow.py e2e/test_phase5_wiring_smoke.py -v
 
   playwright:
     runs-on: ubuntu-latest

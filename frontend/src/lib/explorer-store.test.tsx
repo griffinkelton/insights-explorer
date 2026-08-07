@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { act, renderHook } from "@testing-library/react";
 import { ExplorerProvider, useExplorer } from "./explorer-store";
-import { csvFile, expectedQuality } from "@/test/fixtures/sample";
+import { csvFile, expectedQuality, sampleDriveDownloadWire } from "@/test/fixtures/sample";
 import { server } from "@/test/server";
 
 function renderStore() {
@@ -13,6 +13,27 @@ async function loadSample(hook: ReturnType<typeof renderStore>) {
   await act(async () => {
     await hook.result.current.loadData(csvFile());
   });
+}
+
+/** Stub window.location.assign for OAuth-redirect assertions. Keeps the real
+ *  origin/href (MSW resolves relative request URLs against them) and restores
+ *  the original location afterwards so later tests are unaffected. */
+function stubLocationAssign(): ReturnType<typeof vi.fn> {
+  const original = window.location;
+  const assign = vi.fn();
+  Object.defineProperty(window, "location", {
+    value: { ...original, assign },
+    writable: true,
+    configurable: true,
+  });
+  afterEach(() => {
+    Object.defineProperty(window, "location", {
+      value: original,
+      writable: true,
+      configurable: true,
+    });
+  });
+  return assign;
 }
 
 describe("explorer-store — drift matrix rows", () => {
@@ -221,5 +242,111 @@ describe("explorer-store — drift matrix rows", () => {
     expect(hook.result.current.context?.dateRange).toEqual({ start: "2026-01-01", end: "2026-05-31" });
     expect(hook.result.current.context?.filename).toBe("sessions.csv");
     expect(hook.result.current.context?.columns).toHaveLength(3);
+  });
+});
+
+describe("explorer-store — Phase 5 GA4 + Drive (spec phase-5-ga4-drive.md Task 5)", () => {
+  it("connectGA4 redirects to the Google authorization URL when disconnected", async () => {
+    const assign = stubLocationAssign();
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.connectGA4();
+    });
+    expect(assign).toHaveBeenCalledWith(expect.stringContaining("accounts.google.com"));
+  });
+
+  it("connectGA4 pulls GA4 data when already connected (Load GA4 data)", async () => {
+    server.use(http.get("/api/v1/ga4/status", () => HttpResponse.json({ connected: true })));
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.connectGA4();
+    });
+    expect(hook.result.current.source).toBe("ga4");
+    expect(hook.result.current.loadState).toBe("ready");
+    expect(hook.result.current.context?.rowCount).toBe(90);
+    // Contract provenance: 5 provisional + 3 unavailable rows (Task 3).
+    const statuses = (hook.result.current.context?.metrics ?? []).map(
+      (m) => (m as { validation_status: string }).validation_status,
+    );
+    expect(statuses.filter((s) => s === "provisional")).toHaveLength(5);
+    expect(statuses.filter((s) => s === "unavailable")).toHaveLength(3);
+  });
+
+  it("connectDrive opens the Picker dialog when configured (JIT token, memory-only)", async () => {
+    server.use(http.get("/api/v1/drive/status", () => HttpResponse.json({ configured: true })));
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.connectDrive();
+    });
+    expect(hook.result.current.drivePickerOpen).toBe(true);
+    expect(hook.result.current.pickerToken?.requestId).toBe("msw-request-1");
+    expect(hook.result.current.pickerToken?.accessToken).toBeTruthy();
+  });
+
+  it("connectDrive redirects to the separate drive.file consent when not configured (D2)", async () => {
+    const assign = stubLocationAssign();
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.connectDrive();
+    });
+    expect(assign).toHaveBeenCalledWith(expect.stringContaining("accounts.google.com"));
+  });
+
+  it("closeDrivePicker clears the memory-only token (Task 4)", async () => {
+    server.use(http.get("/api/v1/drive/status", () => HttpResponse.json({ configured: true })));
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.connectDrive();
+    });
+    expect(hook.result.current.pickerToken).not.toBeNull();
+    await act(async () => {
+      hook.result.current.closeDrivePicker();
+    });
+    expect(hook.result.current.drivePickerOpen).toBe(false);
+    expect(hook.result.current.pickerToken).toBeNull();
+  });
+
+  it("downloadFromDrive posts { request_id, file_id } and sets source=drive", async () => {
+    let body: unknown;
+    server.use(
+      http.post("/api/v1/drive/download", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(sampleDriveDownloadWire, { status: 201 });
+      }),
+    );
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.downloadFromDrive({ requestId: "msw-request-1", fileId: "abc123" });
+    });
+    expect(body).toEqual({ request_id: "msw-request-1", file_id: "abc123" });
+    expect(hook.result.current.source).toBe("drive");
+    expect(hook.result.current.loadState).toBe("ready");
+    expect(hook.result.current.drivePickerOpen).toBe(false);
+  });
+
+  it("downloadFromDrive failure maps the typed drive error code (stale_picker_request)", async () => {
+    server.use(
+      http.post("/api/v1/drive/download", () =>
+        HttpResponse.json(
+          { detail: { code: "stale_picker_request", message: "This file selection has expired." } },
+          { status: 409 },
+        ),
+      ),
+    );
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.downloadFromDrive({ requestId: "old", fileId: "f" });
+    });
+    expect(hook.result.current.loadState).toBe("error");
+    expect(hook.result.current.error).toContain("expired");
+  });
+
+  it("handleGA4Callback refreshes server-owned connection state on success", async () => {
+    server.use(http.get("/api/v1/ga4/status", () => HttpResponse.json({ connected: true })));
+    const hook = renderStore();
+    await act(async () => {
+      await hook.result.current.handleGA4Callback({ status: "success" });
+    });
+    expect(hook.result.current.ga4Connected).toBe(true);
   });
 });

@@ -140,6 +140,45 @@ class FunnelResponse(BaseModel):
     values: list[float]
 
 
+# ── Phase 5 — GA4 + Drive (spec phase-5-ga4-drive.md Task 1/2) ────────────
+
+
+class OAuthConnectRequest(BaseModel):
+    connection: Literal["ga4", "drive"] = "ga4"  # D2 — two separate consents, one client
+
+
+class Ga4ConnectResponse(BaseModel):
+    authorization_url: str  # snake_case locked (F4 §11)
+
+
+class Ga4StatusResponse(BaseModel):
+    connected: bool
+
+
+class DriveStatusResponse(BaseModel):
+    configured: bool
+
+
+class DrivePickerTokenResponse(BaseModel):
+    """JIT Picker bootstrap — short-lived access token + app id + active request id.
+
+    The token is browser-memory-only (Task 4): never persisted, never revoked on
+    Picker close. ``request_id`` must be echoed back on ``/drive/download``.
+    """
+
+    access_token: str
+    expires_at: str | None = None
+    app_id: str | None = None
+    request_id: str
+
+
+class DriveDownloadRequest(BaseModel):
+    request_id: (
+        str  # must match the active server/session picker request (stale/duplicate -> typed error)
+    )
+    file_id: str  # the ONLY authority input — client filename/MIME/size ignored
+
+
 class UsageResponse(BaseModel):
     request_count: int
     success_count: int

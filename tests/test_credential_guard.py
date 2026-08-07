@@ -191,8 +191,35 @@ class TestEnvAllowlist:
             "AI_GENERATE_TIMEOUT_SECONDS=60\n"
             "AI_STREAM_TIMEOUT_SECONDS=120\n"
             "AI_QUEUE_WAIT_SECONDS=30\n"
+            "GA4_CLIENT_ID=your_ga4_client_id_here\n"
+            "GA4_CLIENT_SECRET=your_ga4_client_secret_here\n"
+            "GA4_REDIRECT_URI=http://localhost:8000/api/v1/ga4/callback\n"
+            "GA4_ENABLED=false\n"
+            "GA4_PROPERTY_ID=123456789\n"
+            "DRIVE_ENABLED=false\n"
+            "GOOGLE_CLOUD_PROJECT_NUMBER=123456789012\n"
+            "DRIVE_DOWNLOAD_TIMEOUT_SECONDS=300\n"
         )
         assert errors == []
+
+    def test_phase5_oauth_names_allowlisted(self):
+        guard = self._guard()
+        for name in (
+            "GA4_CLIENT_ID",
+            "GA4_CLIENT_SECRET",
+            "GA4_REDIRECT_URI",
+            "GA4_ENABLED",
+            "GA4_PROPERTY_ID",
+            "DRIVE_ENABLED",
+            "GOOGLE_CLOUD_PROJECT_NUMBER",
+        ):
+            assert name in guard.ALLOWLISTED_ENV_VARS, name
+        # GA4_CLIENT_SECRET is secret-bearing — placeholder-only like the others.
+        assert "GA4_CLIENT_SECRET" in guard.SECRET_ENV_VARS
+        # .env.example must carry every allowlisted name.
+        text = (PROJECT_ROOT / ".env.example").read_text(encoding="utf-8")
+        assert "GA4_CLIENT_SECRET=your_ga4_client_secret_here" in text
+        assert "GOOGLE_CLOUD_PROJECT_NUMBER=123456789012" in text
 
     def test_check_env_example_rejects_real_gemini_api_key(self):
         guard = self._guard()
@@ -453,7 +480,15 @@ class TestMainBehavior:
             "AI_FIRST_TOKEN_TIMEOUT_SECONDS=30\n"
             "AI_GENERATE_TIMEOUT_SECONDS=60\n"
             "AI_STREAM_TIMEOUT_SECONDS=120\n"
-            "AI_QUEUE_WAIT_SECONDS=30\n",
+            "AI_QUEUE_WAIT_SECONDS=30\n"
+            "GA4_CLIENT_ID=your_ga4_client_id_here\n"
+            "GA4_CLIENT_SECRET=your_ga4_client_secret_here\n"
+            "GA4_REDIRECT_URI=http://localhost:8000/api/v1/ga4/callback\n"
+            "GA4_ENABLED=false\n"
+            "GA4_PROPERTY_ID=123456789\n"
+            "DRIVE_ENABLED=false\n"
+            "GOOGLE_CLOUD_PROJECT_NUMBER=123456789012\n"
+            "DRIVE_DOWNLOAD_TIMEOUT_SECONDS=300\n",
             encoding="utf-8",
         )
         assert guard.main(["check_credentials.py", str(env_example)]) == 0

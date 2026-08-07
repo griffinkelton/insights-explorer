@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthDriveCallbackRouteImport } from './routes/auth/drive/callback'
 import { Route as AuthGa4CallbackRouteImport } from './routes/auth/ga4/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthDriveCallbackRoute = AuthDriveCallbackRouteImport.update({
+  id: '/auth/drive/callback',
+  path: '/auth/drive/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthGa4CallbackRoute = AuthGa4CallbackRouteImport.update({
@@ -25,27 +31,31 @@ const AuthGa4CallbackRoute = AuthGa4CallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth/drive/callback': typeof AuthDriveCallbackRoute
   '/auth/ga4/callback': typeof AuthGa4CallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth/drive/callback': typeof AuthDriveCallbackRoute
   '/auth/ga4/callback': typeof AuthGa4CallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth/drive/callback': typeof AuthDriveCallbackRoute
   '/auth/ga4/callback': typeof AuthGa4CallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth/ga4/callback'
+  fullPaths: '/' | '/auth/drive/callback' | '/auth/ga4/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth/ga4/callback'
-  id: '__root__' | '/' | '/auth/ga4/callback'
+  to: '/' | '/auth/drive/callback' | '/auth/ga4/callback'
+  id: '__root__' | '/' | '/auth/drive/callback' | '/auth/ga4/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthDriveCallbackRoute: typeof AuthDriveCallbackRoute
   AuthGa4CallbackRoute: typeof AuthGa4CallbackRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/drive/callback': {
+      id: '/auth/drive/callback'
+      path: '/auth/drive/callback'
+      fullPath: '/auth/drive/callback'
+      preLoaderRoute: typeof AuthDriveCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/ga4/callback': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthDriveCallbackRoute: AuthDriveCallbackRoute,
   AuthGa4CallbackRoute: AuthGa4CallbackRoute,
 }
 export const routeTree = rootRouteImport

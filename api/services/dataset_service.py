@@ -141,4 +141,7 @@ def clear_dataset_state(session: AppSession) -> None:
     # Transient OAuth-flow artifacts do not survive Clear Data:
     session.oauth_state = None
     session.code_verifier = None
-    # session.ga4_credentials is kept — that is the durable provider connection.
+    session.metadata.pop("picker_request_id", None)  # Phase 5: active Picker request
+    session.metadata.pop("picker_request_expires_at", None)
+    # session.ga4_credentials / session.drive_credentials are kept — durable
+    # provider connections (retention policy: OAuth retained, dataset clears).

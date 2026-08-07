@@ -5,8 +5,10 @@ import { useExplorer } from "@/lib/explorer-store";
 import { cn } from "@/lib/utils";
 
 export function Sidebar({ className }: { className?: string }) {
-  const { source, filename, loadState, clearData } = useExplorer();
+  const { source, filename, loadState, clearData, connectGA4, connectDrive, ga4Connected } =
+    useExplorer();
   const activeDataset = loadState === "ready" && source;
+  const busy = loadState === "loading";
 
   return (
     <nav
@@ -36,24 +38,30 @@ export function Sidebar({ className }: { className?: string }) {
           variant="ghost"
           className="justify-start gap-2"
           aria-label="Upload a dataset"
-          disabled={loadState === "loading"}
+          disabled={busy}
         >
           <FileUp className="h-4 w-4" aria-hidden />
           Upload data
         </Button>
-        <Button variant="ghost" className="justify-start gap-2 text-muted-foreground" disabled>
+        <Button
+          variant="ghost"
+          className="justify-start gap-2"
+          aria-label="Import a file from Google Drive"
+          onClick={() => void connectDrive()}
+          disabled={busy}
+        >
           <Database className="h-4 w-4" aria-hidden />
-          Drive import
-          <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            Phase 5
-          </span>
+          Import from Drive
         </Button>
-        <Button variant="ghost" className="justify-start gap-2 text-muted-foreground" disabled>
+        <Button
+          variant="ghost"
+          className="justify-start gap-2"
+          aria-label={ga4Connected ? "Load Google Analytics data" : "Connect Google Analytics"}
+          onClick={() => void connectGA4()}
+          disabled={busy}
+        >
           <Sparkles className="h-4 w-4" aria-hidden />
-          GA4 connect
-          <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            Phase 5
-          </span>
+          {ga4Connected ? "Load GA4 data" : "GA4 connect"}
         </Button>
       </div>
 

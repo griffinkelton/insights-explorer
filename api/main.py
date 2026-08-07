@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.config import get_settings
-from api.routes import analysis, chat, health, upload, usage
+from api.routes import analysis, chat, drive, ga4, health, upload, usage
 
 settings = get_settings()
 app = FastAPI(title="Insights Explorer API", version="0.4.0")
@@ -37,3 +37,5 @@ app.include_router(upload.router)
 app.include_router(chat.router)  # Phase 3 — SSE streaming chat
 app.include_router(analysis.router)  # Phase 3 — summary/forecast/funnel
 app.include_router(usage.router)  # Phase 3 — per-session AI usage ledger
+app.include_router(ga4.router)  # Phase 5 — GA4 OAuth + first pull
+app.include_router(drive.router)  # Phase 5 — Drive picker-token + download

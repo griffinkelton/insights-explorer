@@ -98,10 +98,19 @@ ALLOWLISTED_ENV_VARS = frozenset(
         "AI_GENERATE_TIMEOUT_SECONDS",
         "AI_STREAM_TIMEOUT_SECONDS",
         "AI_QUEUE_WAIT_SECONDS",
+        # Phase 5 — GA4 + Drive OAuth (spec phase-5-ga4-drive.md Task 1/7)
+        "GA4_CLIENT_ID",
+        "GA4_CLIENT_SECRET",
+        "GA4_REDIRECT_URI",
+        "GA4_ENABLED",
+        "GA4_PROPERTY_ID",
+        "DRIVE_ENABLED",
+        "GOOGLE_CLOUD_PROJECT_NUMBER",
+        "DRIVE_DOWNLOAD_TIMEOUT_SECONDS",
     }
 )
 # Non-placeholder fails ANYWHERE, including .env.example.
-SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET", "GEMINI_API_KEY"})
+SECRET_ENV_VARS = frozenset({"API_SESSION_SECRET", "GEMINI_API_KEY", "GA4_CLIENT_SECRET"})
 # Concrete safe defaults OK inside .env.example; fail in committed real env files.
 SAFE_CONFIG_ENV_VARS = frozenset(ALLOWLISTED_ENV_VARS - SECRET_ENV_VARS)
 

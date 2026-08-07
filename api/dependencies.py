@@ -58,6 +58,19 @@ def _discard_session(session_id: str, session: AppSession) -> None:
     sessions.delete(session_id)
 
 
+def set_session_cookie(response: Response, session_id: str) -> None:
+    """Set the signed session cookie on a response (Phase 5 session rotation)."""
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=_sign_session_id(session_id),
+        httponly=True,
+        secure=False,  # True behind HTTPS; Phase 6 adds the __Host- prefix
+        samesite="lax",
+        max_age=SESSION_ABSOLUTE_SECONDS,
+        path="/",
+    )
+
+
 def get_or_create_session(
     request: Request,
     response: Response,
@@ -71,23 +84,46 @@ def get_or_create_session(
             _discard_session(session_id, session)
         else:
             session.last_accessed_at = _utcnow()  # refresh idle anchor
+            request.state.session_id = session_id  # Phase 5 — session rotation
             return session
 
     session_id, session = sessions.create()
-    response.set_cookie(
-        key=SESSION_COOKIE,
-        value=_sign_session_id(session_id),
-        httponly=True,
-        secure=False,  # True behind HTTPS; Phase 6 adds the __Host- prefix
-        samesite="lax",
-        max_age=SESSION_ABSOLUTE_SECONDS,
-        path="/",
-    )
+    request.state.session_id = session_id  # Phase 5 — session rotation
+    set_session_cookie(response, session_id)
     # FastAPI discards dependency-set cookies when the endpoint raises an
     # HTTPException — replay it in api/main.py's exception handler so the
     # session cookie survives 409/410 responses too.
     request.state.pending_session_cookie = response.headers.get("set-cookie")
     return session
+
+
+def enforce_same_origin_unsafe(request: Request) -> None:
+    """CSRF guard for unsafe methods (POST/PUT/PATCH/DELETE) — Phase 5 Task 4.
+
+    Browser ``Origin`` must match either an allowlisted CORS origin (dev Vite
+    origin) **or the request's own Host** (same-origin production deploy, where
+    ``API_CORS_ORIGINS=""`` leaves the CORS allowlist empty but the browser
+    still sends an Origin header on POST). Non-browser clients (curl, contract
+    tests) carry no Origin and are not blocked.
+    """
+    from urllib.parse import urlparse
+
+    settings = get_settings()
+    origin = request.headers.get("origin")
+    if not origin:
+        return
+    allowed = {o.rstrip("/") for o in settings.cors_origins}
+    if origin.rstrip("/") in allowed:
+        return
+    # Same-origin deploy: compare the Origin authority against the Host header.
+    host = request.headers.get("host", "")
+    origin_netloc = urlparse(origin).netloc
+    if host and origin_netloc and host == origin_netloc:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": "csrf_origin_rejected", "message": "Request origin is not allowed."},
+    )
 
 
 def require_dataset(session: AppSession = Depends(get_or_create_session)) -> AppSession:

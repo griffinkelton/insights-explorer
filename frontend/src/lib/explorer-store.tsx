@@ -25,6 +25,7 @@ import type {
   DataPreviewResponse,
   DatasetContext,
   DataSource,
+  DrivePickerTokenResponse,
   ForecastResponse,
   FunnelResponse,
   QualityReport,
@@ -69,9 +70,15 @@ interface ExplorerContextValue {
   filename: string | null;
   forecast: ForecastResponse | null;
   funnel: FunnelResponse | null;
+  // Phase 5 — connection + Picker UI state (spec phase-5-ga4-drive.md Task 5)
+  ga4Connected: boolean;
+  driveConfigured: boolean;
+  drivePickerOpen: boolean;
+  pickerToken: DrivePickerTokenResponse | null;
   // actions
   loadData(file: File): Promise<void>;
   failLoad(message: string): void;
+  clearError(): void;
   clearData(): Promise<void>;
   addFilter(f: Omit<Filter, "id">): void;
   removeFilter(id: string): void;
@@ -83,10 +90,13 @@ interface ExplorerContextValue {
   cancelStream(): void;
   clearChat(): void;
   setSourceFromApi(payload: DataPreviewResponse | { dataset: DatasetContext }): void;
+  refreshConnections(): Promise<void>;
   connectGA4(): Promise<void>;
   handleGA4Callback(params: unknown): Promise<void>;
   connectDrive(): Promise<void>;
-  downloadFromDrive(id: string): Promise<void>;
+  openDrivePicker(): Promise<void>;
+  closeDrivePicker(): void;
+  downloadFromDrive(selection: { requestId: string; fileId: string }): Promise<void>;
   fetchQuality(): Promise<void>;
   fetchCharts(): Promise<void>;
   fetchForecast(metricCol: string, periods?: number): Promise<void>;
@@ -127,6 +137,12 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
   const [context, setContext] = useState<DatasetContext | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [funnel, setFunnel] = useState<FunnelResponse | null>(null);
+  // Phase 5 — connection + Picker UI state (server-owned connection status;
+  // the Picker token is browser-memory-only and cleared on close/select/error).
+  const [ga4Connected, setGa4Connected] = useState(false);
+  const [driveConfigured, setDriveConfigured] = useState(false);
+  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
+  const [pickerToken, setPickerToken] = useState<DrivePickerTokenResponse | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const partialAssistantRef = useRef<ChatMessage | null>(null);
@@ -157,6 +173,8 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     setError(message);
     setLoadState("error");
   }, []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const setSourceFromApiCb = useCallback(
     (payload: DataPreviewResponse | { dataset: DatasetContext }) => {
@@ -199,8 +217,10 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     [failLoad, fetchQuality, refreshUsage, setSourceFromApiCb],
   );
 
-  const clearData = useCallback(async () => {
-    // Derived state dies with the dataset (drift row 3; retention policy §5).
+  /** Derived state dies with the dataset (drift row 3; retention policy §5).
+   *  Shared by Clear Data and by dataset replacement (GA4 pull / Drive import
+   *  over an existing dataset — the server clears first, the UI must too). */
+  const resetDerivedState = useCallback(() => {
     setFilters([]);
     setMetrics([]);
     setSummary("");
@@ -217,6 +237,10 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     setContext(null);
     abortRef.current?.abort();
     abortRef.current = null;
+  }, []);
+
+  const clearData = useCallback(async () => {
+    resetDerivedState();
     try {
       await api.clear();
       await refreshUsage(); // the ledger resets server-side with Clear Data
@@ -224,7 +248,7 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       if (err instanceof ApiRequestError) failLoad(mapApiError(err.status, err.message));
     }
     setLoadState("idle");
-  }, [failLoad, refreshUsage]);
+  }, [failLoad, refreshUsage, resetDerivedState]);
 
   const addFilter = useCallback((f: Omit<Filter, "id">) => {
     // Server-owned: kept as local view state; sync endpoints land in a later PR.
@@ -403,22 +427,137 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Phase 5 members — typed stubs (drift row 13 union, never removed).
+  // ── Phase 5 — GA4 + Drive (spec phase-5-ga4-drive.md Task 5) ────────────
+  const refreshConnections = useCallback(async () => {
+    try {
+      const [ga4, drive] = await Promise.all([api.ga4Status(), api.driveStatus()]);
+      setGa4Connected(ga4.connected);
+      setDriveConfigured(drive.configured);
+    } catch {
+      // Connection status is best-effort — never block the UI on it.
+    }
+  }, []);
+
   const connectGA4 = useCallback(async () => {
-    setError("Google Analytics connection arrives in Phase 5.");
+    setError(null);
+    try {
+      const status = await api.ga4Status();
+      if (!status.connected) {
+        // Disconnected → server-owned OAuth: browser follows the auth URL.
+        const { authorizationUrl } = await api.ga4Connect("ga4");
+        window.location.assign(authorizationUrl);
+        return;
+      }
+      // Connected → the same affordance becomes "Load GA4 data" (Task 5 pull).
+      resetDerivedState();
+      setLoadState("loading");
+      const res = await api.ga4Pull();
+      setSourceFromApiCb(res);
+      const preview = await api.preview();
+      setPreviewRows(preview.rows);
+      await fetchQuality();
+      void refreshUsage();
+      setLoadState("ready");
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        failLoad(mapApiError(err.status, err.message, err.code));
+      } else {
+        failLoad("Could not start Google Analytics sign-in.");
+      }
+    }
+  }, [failLoad, fetchQuality, refreshUsage, resetDerivedState, setSourceFromApiCb]);
+
+  const handleGA4Callback = useCallback(
+    async (params: unknown) => {
+      const p = (params ?? {}) as { status?: string; reason?: string };
+      if (p.status === "success") {
+        await refreshConnections();
+      } else if (p.status === "cancelled") {
+        setError("Google sign-in was cancelled.");
+      } else {
+        setError(p.reason ? `Google connection failed: ${p.reason}` : "Google connection failed.");
+      }
+    },
+    [refreshConnections],
+  );
+
+  const openDrivePicker = useCallback(async () => {
+    setError(null);
+    try {
+      // JIT token — fetched immediately before Picker opens, memory-only.
+      const token = await api.drivePickerToken();
+      setPickerToken(token);
+      setDrivePickerOpen(true);
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        setError(mapApiError(err.status, err.message, err.code));
+      } else {
+        setError("Could not open the file picker.");
+      }
+    }
   }, []);
-  const handleGA4Callback = useCallback(async () => {
-    /* Phase 5 — validateSearch + store hydration */
+
+  const closeDrivePicker = useCallback(() => {
+    // Token cleared on close/cancel/select — never persisted (Task 4).
+    setPickerToken(null);
+    setDrivePickerOpen(false);
   }, []);
+
   const connectDrive = useCallback(async () => {
-    setError("Drive import arrives in Phase 5.");
-  }, []);
-  const downloadFromDrive = useCallback(async () => {
-    setError("Drive import arrives in Phase 5.");
-  }, []);
+    setError(null);
+    try {
+      const status = await api.driveStatus();
+      if (!status.configured) {
+        // Separate drive.file consent (D2) — server-owned OAuth flow.
+        const { authorizationUrl } = await api.ga4Connect("drive");
+        window.location.assign(authorizationUrl);
+        return;
+      }
+      await openDrivePicker();
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        setError(mapApiError(err.status, err.message, err.code));
+      } else {
+        setError("Could not start Drive import.");
+      }
+    }
+  }, [openDrivePicker]);
+
+  const downloadFromDrive = useCallback(
+    async (selection: { requestId: string; fileId: string }) => {
+      resetDerivedState();
+      setLoadState("loading");
+      setError(null);
+      try {
+        const res = await api.driveDownload(selection);
+        setSourceFromApiCb(res);
+        const preview = await api.preview();
+        setPreviewRows(preview.rows);
+        await fetchQuality();
+        closeDrivePicker();
+        setLoadState("ready");
+        void refreshUsage();
+      } catch (err) {
+        if (err instanceof ApiRequestError) {
+          failLoad(mapApiError(err.status, err.message, err.code));
+        } else {
+          failLoad("Drive import failed. Please try again.");
+        }
+      }
+    },
+    [closeDrivePicker, failLoad, fetchQuality, refreshUsage, resetDerivedState, setSourceFromApiCb],
+  );
+
   const exportData = useCallback(async () => {
     setError("Exports arrive with the React download flow.");
   }, []);
+
+  // Phase 5 — refresh connection status + usage on mount (best-effort; never
+  // blocks the UI). Connection state is server-owned; the browser only mirrors it.
+  useEffect(() => {
+    void refreshConnections();
+    void refreshUsage();
+  }, [refreshConnections, refreshUsage]);
 
   const value = useMemo<ExplorerContextValue>(
     () => ({
@@ -441,8 +580,13 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       filename: context?.filename ?? null,
       forecast,
       funnel,
+      ga4Connected,
+      driveConfigured,
+      drivePickerOpen,
+      pickerToken,
       loadData,
       failLoad,
+      clearError,
       clearData,
       addFilter,
       removeFilter,
@@ -454,9 +598,12 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       cancelStream,
       clearChat,
       setSourceFromApi: setSourceFromApiCb,
+      refreshConnections,
       connectGA4,
       handleGA4Callback,
       connectDrive,
+      openDrivePicker,
+      closeDrivePicker,
       downloadFromDrive,
       fetchQuality,
       fetchCharts,
@@ -485,8 +632,13 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       context,
       forecast,
       funnel,
+      ga4Connected,
+      driveConfigured,
+      drivePickerOpen,
+      pickerToken,
       loadData,
       failLoad,
+      clearError,
       clearData,
       addFilter,
       removeFilter,
@@ -498,9 +650,12 @@ export function ExplorerProvider({ children }: { children: ReactNode }) {
       cancelStream,
       clearChat,
       setSourceFromApiCb,
+      refreshConnections,
       connectGA4,
       handleGA4Callback,
       connectDrive,
+      openDrivePicker,
+      closeDrivePicker,
       downloadFromDrive,
       fetchQuality,
       fetchCharts,

@@ -1,6 +1,8 @@
 // MSW network handlers (Task 6) — real endpoint shapes (snake_case wire).
 import { http, HttpResponse } from "msw";
 import {
+  sampleDriveDownloadWire,
+  sampleGa4PullWire,
   samplePreviewWire,
   sampleQualityWire,
   sampleUploadWire,
@@ -44,4 +46,29 @@ export const handlers = [
   http.post("/api/v1/analysis/funnel", () =>
     HttpResponse.json({ steps: ["home", "product", "checkout"], values: [1000, 420, 118] }),
   ),
+
+  // ── Phase 5 — GA4 + Drive (Task 6 MSW) ──────────────────────────────────
+  http.get("/api/v1/ga4/status", () => HttpResponse.json({ connected: false })),
+
+  http.post("/api/v1/ga4/connect", () =>
+    HttpResponse.json({
+      authorization_url:
+        "https://accounts.google.com/o/oauth2/auth?client_id=test&state=msw-state&code_challenge=x&code_challenge_method=S256",
+    }),
+  ),
+
+  http.post("/api/v1/ga4/pull", () => HttpResponse.json(sampleGa4PullWire)),
+
+  http.get("/api/v1/drive/status", () => HttpResponse.json({ configured: false })),
+
+  http.post("/api/v1/drive/picker-token", () =>
+    HttpResponse.json({
+      access_token: "test-access-token",
+      expires_at: "2026-08-06T12:05:00Z",
+      app_id: "123456789012",
+      request_id: "msw-request-1",
+    }),
+  ),
+
+  http.post("/api/v1/drive/download", () => HttpResponse.json(sampleDriveDownloadWire, { status: 201 })),
 ];

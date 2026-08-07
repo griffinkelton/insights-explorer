@@ -11,7 +11,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import ValidationInfo, field_validator
+from pydantic import ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PLACEHOLDER_PREFIXES = ("replace-with-", "your_", "<")
@@ -56,6 +56,36 @@ class Settings(BaseSettings):
     ai_generate_timeout_seconds: int = 60  # AI_GENERATE_TIMEOUT_SECONDS (D10)
     ai_stream_timeout_seconds: int = 120  # AI_STREAM_TIMEOUT_SECONDS (D10)
     ai_queue_wait_seconds: int = 30  # AI_QUEUE_WAIT_SECONDS — bounded ai_lock queue wait (C6)
+
+    # ── Phase 5 — GA4 + Drive OAuth (spec phase-5-ga4-drive.md Task 1/2) ──
+    # Same OAuth client serves both flows with separate, incremental scopes
+    # (D2). GA4_ENABLED/DRIVE_ENABLED fail fast at startup when the required
+    # client configuration is missing — never an undefined runtime state.
+    ga4_enabled: bool = False
+    ga4_client_id: str | None = None
+    ga4_client_secret: str | None = None
+    ga4_redirect_uri: str | None = None
+    ga4_property_id: str | None = None  # server-resolved property; Admin-API auto-lookup deferred
+    drive_enabled: bool = False
+    google_cloud_project_number: str | None = None  # Picker setAppId (Task 4)
+    drive_download_timeout_seconds: int = 300  # whole-download cap (Task 2: timeouts)
+
+    @model_validator(mode="after")
+    def _validate_oauth_config(self) -> "Settings":
+        """Fail fast when an enabled Google flow lacks its required config."""
+        oauth_enabled = self.ga4_enabled or self.drive_enabled
+        if oauth_enabled and not (
+            self.ga4_client_id and self.ga4_client_secret and self.ga4_redirect_uri
+        ):
+            raise ValueError(
+                "GA4_ENABLED/DRIVE_ENABLED requires GA4_CLIENT_ID, GA4_CLIENT_SECRET "
+                "and GA4_REDIRECT_URI to be configured."
+            )
+        if self.drive_enabled and not self.google_cloud_project_number:
+            raise ValueError(
+                "DRIVE_ENABLED requires GOOGLE_CLOUD_PROJECT_NUMBER (Picker setAppId)."
+            )
+        return self
 
     @field_validator("api_session_secret")
     @classmethod
