@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from utils.prompt_templates import build_summary_prompt
 from utils.gemini_client import DEFAULT_MODEL, generate_response
+from utils.session import streamlit_usage_sink
 
 
 def render_summary_section() -> None:
@@ -48,7 +49,9 @@ def _generate_summary(df: pd.DataFrame, stats: dict[str, Any]) -> None:
             stats,
             quality_report=st.session_state.get("quality_report"),
         )
-        st.session_state.summary = generate_response(summary_prompt, model=model)
+        st.session_state.summary = generate_response(
+            summary_prompt, model=model, request_type="summary", usage_sink=streamlit_usage_sink
+        )
     except ValueError as e:
         st.error(f"🔑 Configuration error: {e}")
     except RuntimeError as e:

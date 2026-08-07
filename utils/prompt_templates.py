@@ -4,7 +4,6 @@ from typing import Any
 import json
 import re
 import pandas as pd
-import streamlit as st
 from utils.data_loader import smart_sample
 
 # Schema version for cached prompt templates.
@@ -35,7 +34,6 @@ def _sanitize_question(question: str) -> str:
     return sanitized
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def build_summary_prompt(
     df: pd.DataFrame,
     stats: dict[str, Any],

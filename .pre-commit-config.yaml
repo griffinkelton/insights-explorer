@@ -38,7 +38,7 @@ repos:
   - repo: local
     hooks:
       - id: check-credentials
-        name: Check credential-shaped strings (AIza / ya29)
+        name: Check credential-shaped strings + FastAPI env-var allowlist
         entry: python scripts/check_credentials.py
         language: system
         types: [text]

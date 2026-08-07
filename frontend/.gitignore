@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.local
+*.tsbuildinfo
+node_modules/.tmp/
+
+# Frontend no-secrets guard: never commit real secrets or backend-only config.
+.env
+.env.*
+!.env.example

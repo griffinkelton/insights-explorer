@@ -3,11 +3,13 @@
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
-import streamlit as st
+
+from utils.caching import memoize_fingerprint
 
 # Schema version for cached forecast output structure.
 # Bump when ForecastResult fields or calculation logic change to invalidate
-# the @st.cache_data on forecast_metric(). Wired as a hidden default parameter.
+# the memoized fingerprint cache on forecast_metric(). Wired as a hidden
+# default parameter.
 FORECAST_SCHEMA_VERSION = "1.0.0"
 
 
@@ -27,7 +29,7 @@ class ForecastResult:
     confidence: str  # "strong", "moderate", "weak"
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@memoize_fingerprint()
 def forecast_metric(
     df: pd.DataFrame,
     date_col: str,
