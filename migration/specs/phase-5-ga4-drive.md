@@ -35,13 +35,13 @@ GA4 OAuth (connect/callback/pull) and Drive import. Both flows terminate server-
 
 ## Decisions still open (settled in Task 0 / by owner — see §Decisions)
 
-These are the *only* things not yet executable; everything below is specified up to them:
+These are the *only* things not yet executable; everything below is specified up to them. **Owner decision-detail fold-in 2026-08-06:** D3 locked fallback (`metrics × date`, 90 days, daily grain) + Task 0 decision rules, consent-state model + labels, live-smoke coverage checklist, sidebar action states — recorded in Task 0/1/3/5/6 below.
 
 | # | Decision | **Settled (2026-08-06)** | Why it matters |
 |---|---|---|---|
 | D1 | Drive browse UX: **slide-out** (`GET /api/v1/drive/list`) vs **Picker iframe** (`POST /api/v1/drive/picker-token`) | **Both — Picker iframe first (vertical slice), slide-out as a follow-up** — both end at `POST /api/v1/drive/download`, so the choice is swappable without changing ingestion | Task 4 builds the Picker path first (`picker-token` + ported picker component); the slide-out `drive/list` contract stays specified (master-plan §9) for the follow-up swap |
 | D2 | GA4 OAuth scope set | **Two separate consents** — GA4 connect requests `openid email profile analytics.readonly`; Drive connect requests `drive.file` separately (least-privilege; two button flows + two status states) | Drive scope never granted for GA4-only users; separate reconnect UX per source |
-| D3 | GA4 first-pull report shape: dimensions + date range for the vertical slice | **Let Task 0 research decide** — the feasibility gate + property-probe results pin the exact dims/metrics before the `pull` contract is finalized | Sets the `pull` request contract, pagination math, and the compatibility-probe checklist |
+| D3 | GA4 first-pull report shape: dimensions + date range for the vertical slice | **Let Task 0 research decide, with a locked fallback** — if the probe succeeds, lock **five canonical measurement-contract metrics × `date`, daily grain, trailing 90 complete days**, pagination enabled + tested, provenance recorded; **no `defaultChannelGroup` in slice 1** (see Task 0 decision rules) | Sets the `pull` request contract, pagination math, and the compatibility-probe checklist |
 | D4 | Live opt-in smoke test | **Yes — owner provides a test GA4 property + Drive account**; opt-in, never-in-CI local smoke (connect → pull → drive download) records the post-OAuth property-probe checklist | Gates the "post-OAuth compatibility probe" evidence for D3 |
 | D5 | Drive import UX placement | **Sidebar** — port the captured sidebar Drive sheet per the manifest's `initial_mount` classification | Consistent with the Phase 4 sidebar shell; one Drive surface |
 
@@ -57,7 +57,12 @@ Run both research gates (archive §3.12 prompts), then record evidence in this s
    - **Picker iframe (run now):** project number (Cloud Resource Manager API enablement), referrer-restricted API key, scopes, `POST /api/v1/drive/picker-token` returning `{ token, appId }`; record the `setAppId` + referrer restrictions from the existing `drive_picker_component_frontend/` reference.
    - **Slide-out (deferred, follow-up):** `files.list` pagination via `pageToken`/`nextPageToken` (max `pageSize` 1,000), shared-drive flags `supportsAllDrives`/`includeItemsFromAllDrives`/`corpora` (only if shared drives are in scope), required scopes, native-Sheets export.
    - Both terminate at the same `POST /api/v1/drive/download` — the choice is swappable without changing ingestion (master-plan §13 #9).
-3. **Task 0 acceptance:** both gates' evidence recorded with dates + sources; D1–D5 settled; spec Task checkboxes flipped from `[ ]` to `[x]` where the spec already pins the choice.
+3. **D3 decision rules (locked fallback):**
+   - If all five canonical metrics + `date` work in the selected test property → lock **metrics × `date`, daily grain, 90 days**.
+   - If one or more metrics are unavailable/incompatible → record the exact incompatibility; substitute only with measurement-contract approval, or mark the metric unavailable — **never silently synthesize**.
+   - If pagination, quota, or row volume is problematic → keep the same semantic report, reduce the date range only for the test fixture, and document the production paging behavior.
+   - Do **not** add `defaultChannelGroup` in slice 1 — it adds a second semantic and cardinality axis; it belongs to the next report-shape increment after the contract, property probe, provenance, and import parity are stable.
+4. **Task 0 acceptance:** both gates' evidence recorded with dates + sources; D1–D5 settled; spec Task checkboxes flipped from `[ ]` to `[x]` where the spec already pins the choice.
 
 ---
 
@@ -108,6 +113,22 @@ return value
 """
 ```
 
+### Consent-state model (two application-level connections)
+
+GA4 and Drive are **separate application-level connections** — even if Google's incremental authorization eventually returns a token containing previously granted scopes, a combined token result is never permission to blur feature-level consent, UI state, audit records, or Clear Data behavior.
+
+```text
+GA4:   status = disconnected | connecting | connected | expired | error   scope = analytics.readonly
+Drive: status = disconnected | connecting | connected | expired | error   scope = drive.file
+```
+
+Consent labels (Task 5):
+
+```text
+Connect Google Analytics — "Read aggregate Analytics reporting data from a selected GA4 property."
+Connect Google Drive — "Choose a CSV or spreadsheet from Google Drive for import."
+```
+
 ### Settings validation
 
 - `GA4_CLIENT_ID` / `GA4_CLIENT_SECRET` / `GA4_REDIRECT_URI` presence checked at settings load when `GA4_ENABLED=true` (fail-fast, same pattern as Phase 3's `GEMINI_DATA_POLICY` Literal).
@@ -147,7 +168,7 @@ Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into 
 
 - `POST /api/v1/ga4/pull` → runs `runReport` against the connected property (stored on the session from Task 1), paginates (`limit`/`offset`, 10k-row pages), throttles to the **10 concurrent requests/property (Standard; 50 for 360)** quota; enables `returnPropertyQuota: true` for observability; accounts for token budgets (200k/day + 40k/hr per property) and the 120 thresholded-requests/hr cap.
 - Output is a **`DatasetContext`** (Phase 3 shape) whose `metrics` carry measurement-contract provenance: `contract_row`, `validation_status`. Rows 3–5 of the contract stay `unavailable` until event-level access exists (aggregate-only reality) — **unavailable never renders as numeric evidence**; provisional metrics carry explicit caveats (metric-status consumption policy, master-plan §11-B).
-- Dimension/metric combos + thresholding follow the Task 0 research evidence; the compatibility-probe checklist determines what the *target property* actually supports (D3).
+- Dimension/metric combos + thresholding follow the Task 0 research evidence; the compatibility-probe checklist determines what the *target property* actually supports (D3; **fallback locked: five canonical metrics × `date`, daily grain, trailing 90 complete days**).
 - Request-size guard: cap dimensions per request at the verified limit (open decision #7: 9 dims / 10 metrics, 7 for funnel — re-verified in Task 0).
 
 ---
@@ -175,6 +196,7 @@ Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into 
 
 - **`/auth/ga4/callback`** — already scaffolded in Phase 4 (`routes/auth/ga4/callback.tsx` with `validateSearch`); wire the store's `handleGA4Callback` stub to it: on `status=success` → refresh session + optionally auto-pull; on `cancelled` → neutral state; on `error&reason=<code>` → safe message keyed by code (no raw provider text).
 - **Connect affordances:** sidebar/topbar buttons calling `connectGA4()` / `connectDrive()` (store stubs already exist) → `POST /api/v1/ga4/connect` returns `authorization_url` → `window.location.assign(url)`; disabled/hidden when `status` says not-configured per D5 placement.
+- **Drive action states (D5):** no dataset → `Upload File` + `Import from Drive`; dataset loaded → `Replace Dataset` + `Import from Drive` + `Clear Data`. First interaction: disconnected → explain scope → Connect Drive; connected → open Picker; picker cancelled → return to prior sidebar state; file selected → server-side download + normal ingest flow. No persistent files-list UI in the first Phase 5 PR (deferred with the slide-out).
 - **Drive sheet / picker component** per D1: native React component (never an embedded Streamlit component); `initial_mount` classification from `UI-CAPTURE-8b4b7b9/MANIFEST.md`.
 - **Pull flow:** after GA4 connects, a "Load GA4 data" action → `POST /api/v1/ga4/pull` → dataset context → existing preview/quality/scorecard render (Phase 4 components reused; no new chart contract).
 - **Store:** replace Phase 4 stubs (`connectGA4`, `handleGA4Callback`, `connectDrive`, `downloadFromDrive`) with real `api.ts` calls — the drift-matrix union members are already present; **no new store members required** (drift row 13 satisfied).
@@ -208,7 +230,17 @@ Port `utils/drive_client.py::download_drive_file` **verbatim in behavior** into 
 
 GA4 E2E: connect → pull → preview success path plus the OAuth error/cancel path (row 1). This matrix turns the "Import only fakes `loadData`" discovery into a permanent regression barrier.
 
-**Live opt-in smoke (D4, never CI):** local-key run against the owner-provided test property/account; records the property-probe checklist from Task 0. Skipped when no credentials are provided.
+**Live opt-in smoke (D4, never CI):** local-key run against the owner-provided **non-client test GA4 property + dedicated Drive account** (synthetic/non-client traffic and fixtures only); explicit opt-in flag (`E2E_REAL_GOOGLE=1`); headed/local-only auth setup; no tokens, cookies, property IDs, emails, file IDs, or raw response bodies committed — record a sanitized compatibility checklist, not credentials. Coverage:
+1. GA4 consent succeeds with `analytics.readonly`.
+2. Correct property can be selected/resolved.
+3. Metrics × `date` report succeeds.
+4. Pagination + provenance fields recorded.
+5. Drive consent succeeds with `drive.file`.
+6. Picker opens and returns selected file metadata.
+7. Download/parse/quality pipeline succeeds.
+8. Clear Data removes dataset-derived state but retains OAuth connections.
+9. Disconnect/revoke behavior verified.
+Skipped when no credentials are provided — contract tests close code correctness, but the property probe stays **explicitly pending** (never falsely closed).
 
 ---
 
